@@ -1,0 +1,16 @@
+# PlatformIO
+firmware/.pio/
+firmware/.vscode/
+.pio/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Betriebssystem
+.DS_Store
+
+# Fremdquellen (VESC-Tool-Checkout, 558 MB) - stammt aus dem Upstream-Repo,
+# gehoert nicht in die Projekthistorie. Bei Bedarf neu klonen.
+vesc/
