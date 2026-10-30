@@ -346,3 +346,100 @@ Punkt in [06-offene-fragen](06-offene-fragen.md).
 > **Nachzuziehen in `config.h` und [03-parameter](03-parameter.md) §1/§6:**
 > `TORQUE_ARM_M` 0,070 → 0,040 · `CRR_DESIGN_MAX` 0,015 → 0,007. Beide Listen gemeinsam,
 > wie in CLAUDE.md festgelegt — noch **nicht** geändert.
+
+## 6 Laufrad-Auslaufversuch: woher J kommt
+
+Gebraucht wird nicht die **Masse**, sondern das **Trägheitsmoment** J des kompletten
+Laufrads mit Reifen und Schlauch — nur damit wird aus der gemessenen Verzögerung ein
+Moment: `M_Rad(ω) = −J · dω/dt`.
+
+Für ein Laufrad ist J gutmütig, weil Felge, Reifen und Schlauch fast alles stellen und
+alle auf demselben Radius sitzen. Rechenwert für ein 622er mit 2,5 kg:
+`J ≈ 0,85 · m · r_Felge² = 0,206 kg·m²`.
+
+### 6.1 Was ein J-Fehler kostet
+
+| Fehler auf J | Fehler auf M_Rad | vom Rennreifensignal | als Crr |
+|---|---|---|---|
+| 2 % | 0,0050 Nm | 0,69 % | 0,000026 |
+| 5 % | 0,0125 Nm | 1,74 % | 0,000064 |
+| 10 % | 0,0250 Nm | 3,47 % | 0,000129 |
+
+Ziel also **≤ 2–3 %**. Zum Vergleich: ΔCrr = 0,0005 ist die Auflösungsforderung aus
+[01-requirements](01-requirements.md) M1 — ein 10-%-Fehler auf J frisst davon ein Viertel.
+
+### 6.2 Vier Wege, J zu bestimmen
+
+| Methode | Fehler | Aufwand |
+|---|---|---|
+| **A — Bifilarpendel** (zwei Fäden) | **1,2–1,4 %** | zwei Schnüre, Stoppuhr |
+| B — physikalisches Pendel am Felgenhorn | 2,9 % | ein Nagel, Stoppuhr |
+| C — Auslauf mit Zusatzmasse, J fällt heraus | 4 % (bei 720 g Zusatz) | Gewichte, zwei Läufe |
+| D — wiegen und rechnen | 3–5 % | Waage |
+
+**A ist die richtige Wahl.** Rad waagerecht an zwei gleich langen Fäden aufhängen, die an
+zwei gegenüberliegenden Punkten der Felge befestigt sind. Um die Hochachse um wenige Grad
+verdrehen, loslassen, 20 Schwingungen stoppen:
+
+```
+J = m · g · b² · T² / (4 π² · L)
+```
+
+b = halber Abstand der beiden Aufhängepunkte (= Felgenradius), L = Fadenlänge,
+T = Schwingungsdauer.
+
+| b | L | T | 20 Schwingungen | Fehler auf J |
+|---|---|---|---|---|
+| 30 cm | 100 cm | 1,92 s | 38 s | 1,4 % |
+| 30 cm | 150 cm | 2,35 s | 47 s | **1,2 %** |
+| 15 cm | 100 cm | 3,84 s | 77 s | 1,5 % |
+
+Bedingungen: Fäden senkrecht und gleich lang, Ausschlag < 10°, **Reifen montiert und
+aufgepumpt wie im Versuch** — seine Masse ist Teil von J. D als Gegenprobe rechnen; weichen
+beide um mehr als 5 % ab, stimmt etwas nicht.
+
+Warum B schlechter ist, obwohl es einfacher klingt: beim Pendel am Felgenhorn misst man
+J_Pendel = J + m·d², und der abzuziehende Anteil m·d² ist **54 %** des Messwerts. Der
+Stoppfehler wirkt dadurch doppelt.
+
+### 6.3 Reifenwechsel: J mitführen, nicht neu messen
+
+Jeder Reifen bringt eine andere Masse auf denselben Radius. Das muss nachgeführt werden:
+
+| Massenunterschied | ΔJ | Anteil an J | Fehler, wenn ignoriert |
+|---|---|---|---|
+| 50 g | 0,0055 kg·m² | 2,7 % | 0,9 % vom Rennreifensignal |
+| 100 g | 0,0110 kg·m² | 5,3 % | 1,8 % |
+| 200 g | 0,0219 kg·m² | 10,6 % | 3,7 % |
+
+Also **einmal bifilar messen**, danach pro Reifen rechnerisch korrigieren:
+
+```
+J = J_ref + (m_Reifen − m_Reifen,ref) · r_Reifen²      r_Reifen = (BSD/2 + Reifenhöhe/2)
+```
+
+Reifen wiegen kostet 30 Sekunden und ist auf 1 g genau — die Korrektur ist damit besser
+als die Grundmessung.
+
+### 6.4 Der Auslauf selbst
+
+| | |
+|---|---|
+| Startdrehzahl bei 60 km/h Umfang | 469 1/min (ω = 49,2 rad/s) |
+| M_Rad am Rad (aus 0,25 Nm an der Trommel) | 0,182 Nm |
+| Anfangsverzögerung | 0,88 rad/s² — in 10 s fällt die Drehzahl um 84 1/min |
+| Auslauf 60 → 10 km/h | **4,5 min** |
+| bis Stillstand | 29 min |
+
+Aufnehmer: **4 Magnete an den Speichen** plus ein Hallsensor. Mit einem Magneten wären es
+am unteren Ende nur 1,3 Pulse/s, mit vieren 5,2 — die Kurve bleibt auch bei 10 km/h
+aufgelöst. Ausgewertet wird nicht punktweise differenziert, sondern ein Modell
+`M_Rad(ω) = A + B·ω²` über den ganzen Auslauf gefittet: A ist die Lagerreibung,
+B·ω² die Aerodynamik von Speichen und Reifen.
+
+> **Zwei Vorbehalte.** Erstens misst der freie Auslauf das Rad in ruhender Luft, im
+> Messbetrieb läuft es in der Grenzschicht der Trommel — die Aerodynamik ist nicht exakt
+> dieselbe. Zweitens tragen die Nabenlager im Auslauf nur das Radgewicht (25 N) statt der
+> Auflast (442 N); gerechnet sind das 0,0003 statt 0,005 Nm am Rad, also beide Male
+> vernachlässigbar gegen die 0,18 Nm Aerodynamik. Der dominierende Anteil ist
+> lastunabhängig — deshalb funktioniert das Verfahren überhaupt.
