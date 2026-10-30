@@ -1,0 +1,665 @@
+<title>Trommelprüfstand Ständer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+  :root{
+    --paper:#eef0ec; --sheet:#fbfcfa; --ink:#1b2328; --ink-2:#4a5560; --rule:#c3cac4;
+    --line:#2c353b; --dim:#1f6f8b; --accent:#8a5a1f; --warn:#9c3524; --hatch:#aeb6ae;
+    --font-s:"IBM Plex Sans",system-ui,sans-serif;
+    --font-c:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+    --font-m:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --paper:#15191c; --sheet:#1d2226; --ink:#e6eae6; --ink-2:#a3aeb3; --rule:#394248;
+    --line:#cfd6d8; --dim:#6fc0d8; --accent:#d9a85a; --warn:#e07a63; --hatch:#4a5359;
+  }}
+  :root[data-theme="dark"]{
+    --paper:#15191c; --sheet:#1d2226; --ink:#e6eae6; --ink-2:#a3aeb3; --rule:#394248;
+    --line:#cfd6d8; --dim:#6fc0d8; --accent:#d9a85a; --warn:#e07a63; --hatch:#4a5359;
+  }
+  body{background:var(--paper);color:var(--ink);font-family:var(--font-s);font-size:15px;line-height:1.55;margin:0}
+  .wrap{max-width:1180px;margin:0 auto;padding-block:28px 64px;padding-left:16px;padding-right:16px}
+  h1{font-family:var(--font-c);font-weight:600;font-size:clamp(26px,4.5vw,38px);line-height:1.1;margin:0;text-wrap:balance;letter-spacing:-.01em}
+  .sub{color:var(--ink-2);margin:6px 0 0;max-width:62ch}
+  .block{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin:22px 0 34px}
+  .block div{background:var(--sheet);padding:9px 11px}
+  .block dt{font-family:var(--font-c);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);margin:0}
+  .block dd{font-family:var(--font-m);font-size:14px;margin:3px 0 0}
+  h2{font-family:var(--font-c);font-weight:600;font-size:21px;margin:40px 0 4px;letter-spacing:.01em}
+  h2 .no{color:var(--dim);font-family:var(--font-m);font-size:15px;margin-right:9px}
+  .lead{color:var(--ink-2);margin:0 0 16px;max-width:68ch}
+  figure{margin:0 0 8px;background:var(--sheet);border:1px solid var(--rule);overflow-x:auto}
+  figure svg{display:block;min-width:520px;width:100%;height:auto}
+  figcaption{font-family:var(--font-c);font-size:12.5px;color:var(--ink-2);padding:8px 12px;border-top:1px solid var(--rule);background:var(--sheet)}
+  .dwg{font-family:var(--font-c)}
+  .dwg .outline{fill:none;stroke:var(--line);stroke-width:4}
+  .dwg .fillpart{fill:var(--sheet);stroke:var(--line);stroke-width:4}
+  .dwg .thin{fill:none;stroke:var(--line);stroke-width:2.5}
+  .dwg .cen{fill:none;stroke:var(--dim);stroke-width:2;stroke-dasharray:46 12 6 12;opacity:.75}
+  .dwg .ghost{fill:none;stroke:var(--ink-2);stroke-width:3;stroke-dasharray:22 14;opacity:.6}
+  .dwg .dimline{fill:none;stroke:var(--dim);stroke-width:2.2}
+  .dwg .ext{fill:none;stroke:var(--dim);stroke-width:1.6;opacity:.6}
+  .dwg text{fill:var(--ink);font-size:38px}
+  .dwg .dimtext{fill:var(--dim);font-family:var(--font-m);font-size:38px}
+  .dwg .lbl{fill:var(--ink-2);font-size:36px}
+  .dwg .hatch{stroke:var(--hatch);stroke-width:3}
+  table{border-collapse:collapse;width:100%;font-size:14px;background:var(--sheet)}
+  .tw{overflow-x:auto;border:1px solid var(--rule)}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{font-family:var(--font-c);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap}
+  td.n{font-family:var(--font-m);font-variant-numeric:tabular-nums;white-space:nowrap}
+  tr:last-child td{border-bottom:0}
+  .key{color:var(--dim);font-weight:500}
+  .no-go{color:var(--warn)}
+  ul{padding-left:19px;max-width:70ch}li{margin-bottom:7px}
+  .note{border-left:3px solid var(--accent);padding:2px 0 2px 13px;color:var(--ink-2);margin:16px 0;max-width:68ch;font-size:14px}
+  .bars{display:block;width:100%;height:auto;min-width:640px}
+  .bars .barbg{fill:none;stroke:var(--rule);stroke-width:3}
+  .bars .barno{fill:var(--ink-2);font-family:var(--font-m);font-size:40px;text-anchor:middle}
+  .bars .seg{fill:#fff;font-family:var(--font-c);font-weight:600;font-size:30px;text-anchor:middle}
+  .bars .seglen{fill:#fff;font-family:var(--font-m);font-size:24px;text-anchor:middle;opacity:.85}
+  .bars .rest{fill:var(--ink-2);font-family:var(--font-m);font-size:26px;text-anchor:middle}
+  .bars .leg{fill:var(--ink);font-family:var(--font-c);font-size:30px}
+  .bars .cut{stroke:var(--ink-2);stroke-width:3}
+  .tbd{font-family:var(--font-m);font-size:12px;color:var(--accent);border:1px solid var(--accent);padding:0 4px;border-radius:2px}
+</style>
+<div class="wrap">
+<h1>Ständer für den Rollwiderstandsprüfstand</h1>
+<p class="sub">Trommel Ø 954,9 mm (U = 3,000 m) × 250 mm breit, Nabenmotor als Pendelmaschine,
+Prüflaufrad über eine Hebelwaage mit Laufgewicht aufgelastet. Entwurf zum Bauen — alle Maße in mm.</p>
+
+<dl class="block">
+  <div><dt>Maßstab</dt><dd>Zeichnung maßhaltig</dd></div>
+  <div><dt>Einheiten</dt><dd>mm · N</dd></div>
+  <div><dt>Trommel</dt><dd>Ø 930 × 100</dd></div>
+  <div><dt>Trommelachse</dt><dd>550 über Boden</dd></div>
+  <div><dt>Bauhöhe max</dt><dd>1751</dd></div>
+  <div><dt>Standfläche</dt><dd>1000 × 900</dd></div>
+  <div><dt>Stand</dt><dd>2026-10-30</dd></div>
+</dl>
+
+<h2><span class="no">01</span>Seitenansicht</h2>
+<p class="lead">Der Seitenrahmen ist ein <strong>Dreieck aus Mast und Diagonale</strong>: die Trommel
+hängt am Lagerbock der Diagonale, der Schwingendrehpunkt sitzt am Schieber des Mastes. Weil die Diagonale
+geneigt ist, entsteht der Versatz <em>a</em> = 200 mm zwischen Trommelachse und Drehpunkt von selbst.
+Der Drehpunkt liegt 30 mm über der Radachse (Ausfallende 10 mm unter dem Gabelholm) — nah genug an der
+Achshöhe, dass die Umfangskraft die Auflast kaum verändert, siehe 05b.</p>
+<figure>
+<svg viewBox="0 -200 2000 2060" class="dwg" role="img" aria-label="Seitenansicht: Dreiecksrahmen, Trommel am Lagerbock außen auf der Diagonalen">
+  <line x1="40" y1="1620" x2="1700" y2="1620" stroke="var(--line)" stroke-width="4"/>
+  <g class="hatch"><line x1="60" y1="1620" x2="30" y2="1656"/><line x1="160" y1="1620" x2="130" y2="1656"/><line x1="260" y1="1620" x2="230" y2="1656"/><line x1="360" y1="1620" x2="330" y2="1656"/><line x1="460" y1="1620" x2="430" y2="1656"/><line x1="560" y1="1620" x2="530" y2="1656"/><line x1="660" y1="1620" x2="630" y2="1656"/><line x1="760" y1="1620" x2="730" y2="1656"/><line x1="860" y1="1620" x2="830" y2="1656"/><line x1="960" y1="1620" x2="930" y2="1656"/><line x1="1060" y1="1620" x2="1030" y2="1656"/><line x1="1160" y1="1620" x2="1130" y2="1656"/><line x1="1260" y1="1620" x2="1230" y2="1656"/><line x1="1360" y1="1620" x2="1330" y2="1656"/><line x1="1460" y1="1620" x2="1430" y2="1656"/><line x1="1560" y1="1620" x2="1530" y2="1656"/><line x1="1660" y1="1620" x2="1630" y2="1656"/></g>
+  <g class="fillpart"><rect x="244" y="1500" width="32" height="46"/><rect x="1164" y="1500" width="32" height="46"/></g>
+  <circle cx="260" cy="1583" r="37" class="thin"/><circle cx="1180" cy="1583" r="37" class="thin"/>
+  <rect x="220" y="1480" width="1000" height="40" class="fillpart"/>
+  <rect x="360" y="460" width="40" height="1020" class="fillpart"/>
+  <polygon points="808.0,1450.3 397.5,710.3 362.5,729.7 773.0,1469.7" class="fillpart"/>
+  <rect x="400" y="237" width="40" height="550" class="fillpart"/>
+  <circle cx="620" cy="1070" r="465" class="outline"/>
+  <circle cx="620" cy="1070" r="50" class="thin"/>
+  <line x1="120" y1="1070" x2="1120" y2="1070" class="cen"/>
+  <line x1="620" y1="560" x2="620" y2="1580" class="cen"/>
+  <rect x="578" y="1028" width="84" height="84" class="fillpart"/>
+  <circle cx="620" cy="1070" r="14" class="thin"/>
+  <line x1="150" y1="605" x2="1500" y2="605" class="cen"/>
+  <rect x="420" y="187" width="950" height="40" class="fillpart"/>
+  <rect x="402" y="227" width="36" height="26" class="fillpart"/>
+  <circle cx="420" cy="237" r="13" class="thin"/>
+  <line x1="470" y1="237" x2="470" y2="432" class="dimline"/>
+  <line x1="462" y1="245" x2="478" y2="245" class="dimline"/><line x1="462" y1="424" x2="478" y2="424" class="dimline"/>
+  <circle cx="420" cy="432" r="18" class="ghost"/>
+  <rect x="572" y="227" width="96" height="36" class="thin"/>
+  <circle cx="620" cy="237" r="13" class="thin"/>
+  <circle cx="620" cy="237" r="368" class="outline"/>
+  <circle cx="620" cy="395.5" r="209.5" class="ghost"/>
+  <rect x="1180" y="227" width="80" height="120" class="fillpart"/>
+  <text class="lbl" x="700" y="1000">Trommel Ø 930 × 100</text>
+  <text class="lbl" x="690" y="1150">Lagerbock außen auf der Diagonalen</text>
+  <text class="lbl" x="840" y="1380">Diagonale 850, 29°</text>
+  <text class="lbl" x="100" y="900">Mast 1020</text>
+  <text class="lbl" x="90" y="330">Schieber 550</text>
+  <text class="lbl" x="1000" y="150">Gabelholm 950, y = ±100</text>
+  <text class="lbl" x="1290" y="420">2 × 5 kg</text>
+  <text class="lbl" x="660" y="310">Scharnier unter dem Holm → Pivot = Radachse</text>
+  <text class="lbl" x="150" y="580">Latschebene 1015</text>
+  <text class="lbl" x="500" y="360">Verstellweg 195</text>
+  <text class="lbl" x="170" y="1700">Lenkrolle 100</text>
+  <text class="lbl" x="1070" y="1700">Lenkrolle</text>
+  <line x1="1600" y1="1620" x2="1600" y2="-131" class="dimline"/>
+  <g class="ext">
+    <line x1="1220" y1="1620" x2="1610" y2="1620"/><line x1="1100" y1="1535" x2="1610" y2="1535"/>
+    <line x1="1100" y1="1070" x2="1610" y2="1070"/><line x1="1500" y1="605" x2="1610" y2="605"/>
+    <line x1="1270" y1="237" x2="1610" y2="237"/><line x1="900" y1="-131" x2="1610" y2="-131"/>
+  </g>
+  <g stroke="var(--dim)" stroke-width="2.2">
+    <line x1="1580" y1="1630" x2="1620" y2="1610"/><line x1="1580" y1="1545" x2="1620" y2="1525"/>
+    <line x1="1580" y1="1080" x2="1620" y2="1060"/><line x1="1580" y1="615" x2="1620" y2="595"/>
+    <line x1="1580" y1="247" x2="1620" y2="227"/><line x1="1580" y1="-121" x2="1620" y2="-141"/>
+  </g>
+  <text class="dimtext" x="1640" y="1612">0 Boden</text>
+  <text class="dimtext" x="1640" y="1528">85 Trommel unten</text>
+  <text class="dimtext" x="1640" y="1062">550 Trommelachse</text>
+  <text class="dimtext" x="1640" y="597">1015 Latschebene</text>
+  <text class="dimtext" x="1640" y="229">1383 Radachse = Pivot</text>
+  <text class="dimtext" x="1640" y="-139">1751 Radoberkante</text>
+  <line x1="420" y1="1760" x2="620" y2="1760" class="dimline"/>
+  <line x1="420" y1="1830" x2="1220" y2="1830" class="dimline"/>
+  <line x1="220" y1="1900" x2="1220" y2="1900" class="dimline"/>
+  <g class="ext">
+    <line x1="420" y1="280" x2="420" y2="1840"/><line x1="620" y1="1080" x2="620" y2="1770"/>
+    <line x1="1220" y1="360" x2="1220" y2="1910"/><line x1="220" y1="1530" x2="220" y2="1910"/>
+    <line x1="790" y1="1470" x2="790" y2="1700"/>
+  </g>
+  <g stroke="var(--dim)" stroke-width="2.2">
+    <line x1="410" y1="1780" x2="430" y2="1740"/><line x1="610" y1="1780" x2="630" y2="1740"/>
+    <line x1="410" y1="1850" x2="430" y2="1810"/><line x1="1210" y1="1850" x2="1230" y2="1810"/>
+    <line x1="210" y1="1920" x2="230" y2="1880"/><line x1="1210" y1="1920" x2="1230" y2="1880"/>
+  </g>
+  <text class="dimtext" x="650" y="1772">a = 200</text>
+  <text class="dimtext" x="760" y="1822">b = 800 (verschiebbar)</text>
+  <text class="dimtext" x="560" y="1892">Bodenholm 1000</text>
+  <text class="dimtext" x="680" y="1700">Diagonalenfuß x = +170</text>
+</svg>
+<figcaption>01 — Seitenansicht, Trommel Ø 930. Gestrichelt: kleinstes Laufrad 406-35; dafür wandert der Drehpunkt am Mast um 113 mm nach unten. Die Schwinge läuft über die Trommel hinweg, die Ausfallenden hängen nach unten.</figcaption>
+</figure>
+<style>
+  .dwg.s2 text,.dwg.s2 .dimtext,.dwg.s2 .lbl{font-size:28px}
+  .dwg.s3 text,.dwg.s3 .dimtext,.dwg.s3 .lbl{font-size:16px}
+  .dwg.s3 .outline,.dwg.s3 .fillpart{stroke-width:2.5}
+  .dwg.s3 .thin{stroke-width:1.6}
+  .dwg.s3 .dimline{stroke-width:1.4}
+  .dwg.s2 .outline,.dwg.s2 .fillpart{stroke-width:3.4}
+</style>
+
+<h2><span class="no">02</span>Vorderansicht</h2>
+<p class="lead">Blick in +x; Mast und Diagonale liegen dahinter (gestrichelt), die Welle läuft frei an
+ihnen vorbei. Mit <strong>100 mm Trommelbreite</strong> rückt alles zusammen: Lagerabstand 180 statt 340,
+Querträger 900 statt 1000 — und die Welle braucht keinen Absatz mehr: Ø30 über die
+Trommelbreite, wo das Biegemoment anliegt, Ø15-Zapfen in den Lagern, wo es null ist. Geklemmt wird an
+<strong>beiden</strong> Stirnscheiben. Der Motor hängt über Flansch und radial weiche Kupplung am
+Wellenende; damit tragen die Pendellager nur den Motor (≈ 60 N statt ≈ 650 N) und ihre Hysterese fällt
+von 9,8 auf 1,2 mNm.</p>
+<figure>
+<svg viewBox="0 -260 1400 1620" class="dwg s2" role="img" aria-label="Vorderansicht mit 100 mm breiter Trommel">
+  <line x1="60" y1="1150" x2="1340" y2="1150" stroke="var(--line)" stroke-width="3.4"/>
+  <g class="hatch">
+    <line x1="80" y1="1150" x2="55" y2="1180"/><line x1="280" y1="1150" x2="255" y2="1180"/>
+    <line x1="480" y1="1150" x2="455" y2="1180"/><line x1="680" y1="1150" x2="655" y2="1180"/>
+    <line x1="880" y1="1150" x2="855" y2="1180"/><line x1="1080" y1="1150" x2="1055" y2="1180"/>
+    <line x1="1280" y1="1150" x2="1255" y2="1180"/>
+  </g>
+  <circle cx="250" cy="1113" r="37" class="thin"/><circle cx="1090" cy="1113" r="37" class="thin"/>
+  <rect x="220" y="1110" width="900" height="40" class="fillpart"/>
+  <rect x="450" y="460" width="40" height="650" class="ghost"/>
+  <rect x="750" y="460" width="40" height="650" class="ghost"/>
+  <rect x="510" y="650" width="40" height="460" class="ghost"/>
+  <rect x="690" y="650" width="40" height="460" class="ghost"/>
+  <rect x="570" y="235" width="100" height="930" class="outline"/>
+  <line x1="570" y1="700" x2="670" y2="700" class="cen"/>
+  <rect x="500" y="692" width="350" height="16" class="fillpart"/>
+  <line x1="420" y1="700" x2="1120" y2="700" class="cen"/>
+  <rect x="512" y="655" width="36" height="90" class="fillpart"/>
+  <rect x="692" y="655" width="36" height="90" class="fillpart"/>
+  <circle cx="530" cy="700" r="26" class="thin"/><circle cx="710" cy="700" r="26" class="thin"/>
+  <rect x="565" y="668" width="30" height="64" class="fillpart"/>
+  <rect x="645" y="668" width="30" height="64" class="fillpart"/>
+  <rect x="770" y="630" width="20" height="140" class="fillpart"/>
+  <rect x="830" y="630" width="20" height="140" class="fillpart"/>
+  <line x1="790" y1="648" x2="830" y2="648" class="thin"/><line x1="790" y1="752" x2="830" y2="752" class="thin"/>
+  <rect x="850" y="580" width="90" height="240" class="outline"/>
+  <rect x="960" y="655" width="100" height="90" class="fillpart"/>
+  <circle cx="984" cy="700" r="16" class="thin"/><circle cx="1036" cy="700" r="16" class="thin"/>
+  <rect x="480" y="-183" width="40" height="40" class="fillpart"/>
+  <rect x="720" y="-183" width="40" height="40" class="fillpart"/>
+  <line x1="420" y1="-163" x2="820" y2="-163" class="cen"/>
+  <rect x="556" y="-143" width="20" height="40" class="thin"/>
+  <rect x="664" y="-143" width="20" height="40" class="thin"/>
+  <rect x="552" y="-125" width="136" height="12" class="fillpart"/>
+  <rect x="600" y="-140" width="40" height="375" class="outline"/>
+  <line x1="300" y1="235" x2="940" y2="235" class="cen"/>
+  <text class="lbl" x="700" y="330">Trommel 100 breit</text>
+  <text class="lbl" x="300" y="620">Mast y=±130</text>
+  <text class="lbl" x="250" y="840">Diagonale y=±90</text>
+  <text class="lbl" x="1080" y="600">Pendellager</text>
+  <text class="lbl" x="1080" y="700">Hebelarm 70 ↓</text>
+  <text class="lbl" x="860" y="900">Motor</text>
+  <text class="lbl" x="760" y="860">Kupplung</text>
+  <text class="lbl" x="300" y="760">6902</text>
+  <text class="lbl" x="800" y="-100">Gabelholme y=±100</text>
+  <text class="lbl" x="800" y="-40">Steckachse Ø12</text>
+  <text class="lbl" x="250" y="215">Latschebene</text>
+  <line x1="530" y1="900" x2="710" y2="900" class="dimline"/>
+  <g class="ext"><line x1="530" y1="755" x2="530" y2="915"/><line x1="710" y1="755" x2="710" y2="915"/></g>
+  <g stroke="var(--dim)" stroke-width="2"><line x1="520" y1="915" x2="540" y2="885"/><line x1="700" y1="915" x2="720" y2="885"/></g>
+  <text class="dimtext" x="450" y="945">Lagerabstand 180</text>
+  <line x1="220" y1="1290" x2="1120" y2="1290" class="dimline"/>
+  <g stroke="var(--dim)" stroke-width="2"><line x1="210" y1="1305" x2="230" y2="1275"/><line x1="1110" y1="1305" x2="1130" y2="1275"/></g>
+  <text class="dimtext" x="520" y="1282">Querträger 900</text>
+</svg>
+<figcaption>02 — Vorderansicht. Der Wellenabsatz Ø15 → Ø30 liegt bei y = ±150, also 20 mm neben dem Lager, wo nur 6,1 Nm anliegen — die Kerbe sitzt bewusst in der momentenarmen Zone.</figcaption>
+</figure>
+
+<h2><span class="no">03</span>Detail Drehmomentwaage</h2>
+<p class="lead">Hebelarm 70,0 mm wie in 03-parameter festgelegt: der ungünstigste Fall mit Rampe
+(4,34 Nm) landet bei 62 N, also 63 % vom Endwert der 10-kg-Zelle. Das Kalibrierloch bei 140,0 mm
+nimmt ein bekanntes Gewicht auf — 1 kg dort sind 1,373 Nm.</p>
+<figure>
+<svg viewBox="0 0 760 430" class="dwg s3" role="img" aria-label="Detail der Drehmomentwaage mit Hebelarm und Wägezelle">
+  <!-- Pendelbock -->
+  <rect x="110" y="100" width="100" height="80" class="fillpart"/>
+  <circle cx="160" cy="140" r="28" class="thin"/><circle cx="160" cy="140" r="9" class="fillpart"/>
+  <line x1="60" y1="140" x2="520" y2="140" class="cen"/>
+  <line x1="160" y1="60" x2="160" y2="300" class="cen"/>
+  <!-- Hebelarm -->
+  <rect x="140" y="131" width="360" height="18" class="fillpart"/>
+  <circle cx="300" cy="140" r="6" class="thin"/><circle cx="440" cy="140" r="6" class="thin"/>
+  <!-- Anschlussstab -->
+  <line x1="300" y1="149" x2="300" y2="215" class="thin"/>
+  <line x1="296" y1="165" x2="296" y2="200" class="thin"/><line x1="304" y1="165" x2="304" y2="200" class="thin"/>
+  <!-- Waegezelle -->
+  <rect x="250" y="215" width="150" height="26" class="fillpart"/>
+  <rect x="380" y="205" width="24" height="46" class="fillpart"/>
+  <line x1="200" y1="265" x2="470" y2="265" stroke="var(--line)" stroke-width="2.5"/>
+  <line x1="392" y1="251" x2="392" y2="265" class="thin"/>
+  <g class="hatch">
+    <line x1="220" y1="265" x2="208" y2="280"/><line x1="280" y1="265" x2="268" y2="280"/>
+    <line x1="340" y1="265" x2="328" y2="280"/><line x1="400" y1="265" x2="388" y2="280"/>
+    <line x1="460" y1="265" x2="448" y2="280"/>
+  </g>
+  <text class="lbl" x="60" y="90">Pendelachse = Trommelachse, 2×6902</text>
+  <text class="lbl" x="510" y="145">Alu 30×8</text>
+  <text class="lbl" x="315" y="185">M5, auf Ø3 abgesetzt</text>
+  <text class="lbl" x="315" y="200">(Zug und Druck, kein Moment)</text>
+  <text class="lbl" x="250" y="205">Wägezelle 10 kg</text>
+  <text class="lbl" x="420" y="120">Kalibrierloch</text>
+  <text class="lbl" x="200" y="300">Rahmen</text>
+  <line x1="160" y1="340" x2="300" y2="340" class="dimline"/>
+  <line x1="160" y1="385" x2="440" y2="385" class="dimline"/>
+  <g class="ext"><line x1="300" y1="150" x2="300" y2="350"/><line x1="440" y1="150" x2="440" y2="395"/><line x1="160" y1="150" x2="160" y2="395"/></g>
+  <g stroke="var(--dim)" stroke-width="1.4">
+    <line x1="155" y1="348" x2="165" y2="332"/><line x1="295" y1="348" x2="305" y2="332"/>
+    <line x1="155" y1="393" x2="165" y2="377"/><line x1="435" y1="393" x2="445" y2="377"/>
+  </g>
+  <text class="dimtext" x="200" y="334">70,0</text>
+  <text class="dimtext" x="270" y="379">140,0</text>
+</svg>
+<figcaption>03 — Beide Abstände nach dem Bau auf ±0,1 mm ausmessen; sie gehen linear in das Moment ein.</figcaption>
+</figure>
+
+<h2><span class="no">04</span>Mitdrehende Welle: das Problem und die Behebung</h2>
+<p class="lead">Eine mitdrehende Welle wechselt in jeder Faser pro Umdrehung zwischen Zug und Druck —
+bei 333 1/min 20 000 Lastwechsel je Stunde. Damit gilt nicht die Streckgrenze, sondern die
+Dauerfestigkeit, und die hängt an der Kerbwirkung. Das ist der ganze Unterschied zur stehenden
+Achse: <strong>Faktor 2 bis 3 in der zulässigen Spannung</strong>.</p>
+<div class="tw"><table>
+<thead><tr><th>Stelle auf der Welle</th><th>β<sub>k</sub></th><th>zulässig (C45, S = 2)</th></tr></thead>
+<tbody>
+<tr><td>glatt gedreht, kein Absatz</td><td class="n">1,0</td><td class="n">112 MPa</td></tr>
+<tr><td>Kante einer Klemmnabe (Passungsrost)</td><td class="n">1,5</td><td class="n">75 MPa</td></tr>
+<tr><td>Wellenabsatz mit R2-Freistich</td><td class="n">1,8</td><td class="n">62 MPa</td></tr>
+<tr><td>Passfedernut</td><td class="n">2,5</td><td class="n"><span class="no-go">45 MPa</span></td></tr>
+<tr><td><em>stehende Achse, statisch R<sub>e</sub>/2</em></td><td class="n">—</td><td class="n"><em>170 MPa</em></td></tr>
+</tbody></table></div>
+<p class="note">Die 176 MPa der verworfenen Variante kamen nicht allein vom Mitdrehen, sondern von zwei
+vermeidbaren Fehlern in der Lastführung: die ganze Last in <em>einer</em> Ebene in der Wellenmitte, und
+auf dem ganzen Weg nur Ø15.</p>
+
+<h3 style="font-family:var(--font-c);font-weight:600;font-size:17px;margin:26px 0 6px">Drei Wege, jeder einzeln ausreichend</h3>
+<div class="tw"><table>
+<thead><tr><th>Weg</th><th>Maßnahme</th><th>M</th><th>σ (Ø15)</th><th>Haken</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td>Last auf zwei Punkte: Trommel an <strong>beiden</strong> Stirnscheiben geklemmt, s = 200, Lager 340</td><td class="n">21,5 Nm</td><td class="n">65 MPa</td><td>tragbar, aber ohne Reserve (75 MPa an der Nabenkante)</td></tr>
+<tr><td class="n"></td><td>dto., Lager auf 300 zusammengerückt</td><td class="n">15,3 Nm</td><td class="n">46 MPa</td><td>Lagerschilde müssen dichter an die Trommel</td></tr>
+<tr><td class="n">2</td><td>Lager nach innen, 120 mm auseinander neben der Nabe</td><td class="n">18,4 Nm</td><td class="n">56 MPa</td><td>Rahmen muss in die Trommel greifen — nicht empfohlen</td></tr>
+<tr><td class="n">3</td><td><strong>Welle abgesetzt</strong>: Ø15-Zapfen, Ø30 über die Trommelbreite</td><td class="n">21,5 Nm</td><td class="n"><span class="key">8,1 MPa</span></td><td>ein Drehteil mehr — <strong>das ist die Lösung</strong></td></tr>
+</tbody></table></div>
+<p class="lead" style="margin-top:14px">Weg 3 nutzt aus, dass das Biegemoment bei einer zwischen zwei Lagern
+getragenen Welle <strong>an den Lagern null</strong> und in der Mitte maximal ist. Der dünne Querschnitt
+wird also genau dort gebraucht, wo kein Moment anliegt — und die Kerbe des Absatzes lässt sich bewusst
+in die momentenarme Zone legen:</p>
+<div class="tw"><table>
+<thead><tr><th>Stelle</th><th>M</th><th>Ø</th><th>σ</th><th>mit Kerbfaktor</th><th>zulässig</th></tr></thead>
+<tbody>
+<tr><td>Lagerzapfen bei y = ±170</td><td class="n">0</td><td class="n">15</td><td class="n">0</td><td class="n">—</td><td class="n">—</td></tr>
+<tr><td>Wellenabsatz bei y = ±150</td><td class="n">6,1 Nm</td><td class="n">15</td><td class="n">18,5 MPa</td><td class="n">33 MPa</td><td class="n">62 MPa</td></tr>
+<tr><td>Klemmnabenkante bei y = ±100</td><td class="n">21,5 Nm</td><td class="n">30</td><td class="n">8,1 MPa</td><td class="n">12 MPa</td><td class="n">75 MPa</td></tr>
+<tr><td>Wellenmitte</td><td class="n">21,5 Nm</td><td class="n">30</td><td class="n">8,1 MPa</td><td class="n">8 MPa</td><td class="n">112 MPa</td></tr>
+</tbody></table></div>
+<div class="tw" style="margin-top:12px"><table>
+<thead><tr><th>Welle</th><th>Durchbiegung Mitte</th><th>Steifigkeit</th><th>1. Eigenfrequenz (grob)</th></tr></thead>
+<tbody>
+<tr><td>Ø15 durchgehend</td><td class="n">0,561 mm</td><td class="n">1,09 MN/m</td><td class="n">37 Hz</td></tr>
+<tr><td>Ø15 Zapfen / Ø25 Mitte</td><td class="n">0,074 mm</td><td class="n">8,3 MN/m</td><td class="n">102 Hz</td></tr>
+<tr><td><strong>Ø15 Zapfen / Ø30 Mitte</strong></td><td class="n"><span class="key">0,037 mm</span></td><td class="n">16,8 MN/m</td><td class="n">146 Hz</td></tr>
+</tbody></table></div>
+<p class="note">Damit ist auch der Resonanzeinwand erledigt: 146 Hz liegen weit über der 6. Ordnung der
+Drehzahlmarken (33 Hz bei 60 km/h). Welle Ø15/Ø30, C45 blank, 480 mm, 1,9 kg.</p>
+
+<h3 style="font-family:var(--font-c);font-weight:600;font-size:17px;margin:26px 0 6px">Fünf Details, an denen die Dauerfestigkeit hängt</h3>
+<ul>
+  <li><span class="key">Keine Passfedernut.</span> β<sub>k</sub> = 2,5 halbiert die Zulässigkeit.
+  Klemmnaben oder Spannsätze auf dem Ø30 — kraftschlüssig, spielfrei, selbstzentrierend.</li>
+  <li><span class="key">Freistich am Absatz, R ≥ 2 mm</span>, nicht scharfkantig eindrehen. Der Absatz
+  liegt bei y = ±150, also 20 mm neben dem Lager, wo nur 6,1 Nm anliegen.</li>
+  <li><span class="key">Zapfen gedreht und poliert</span> (R<sub>z</sub> ≤ 6,3). Der Oberflächenfaktor
+  0,85 steckt in der Rechnung; eine Drehriefe quer zur Achse frisst ihn auf.</li>
+  <li><span class="key">Keine lose aufgeschobene Hülse</span> als Verstärkung statt des Absatzes —
+  unter Wechselbiegung erzeugt sie Passungsrost an ihren Kanten, der klassische Anriss. Wenn Hülse,
+  dann mit Spannsatz und auf dem momentenarmen Abschnitt endend.</li>
+  <li><span class="key">Trommel mittig und gewuchtet.</span> 100 g Restunwucht auf r = 0,45 m sind bei
+  34,9 rad/s rund 55 N umlaufende Zusatzlast — 9 % der statischen Last, und sie läuft mit.</li>
+</ul>
+
+<h3 style="font-family:var(--font-c);font-weight:600;font-size:17px;margin:26px 0 6px">Was die mitdrehende Welle zurückbringt</h3>
+<div class="tw"><table>
+<thead><tr><th></th><th>stehende Achse</th><th>mitdrehende Welle</th></tr></thead>
+<tbody>
+<tr><td>Antrieb</td><td>Kupplung an der Stirnscheibe, Motorachse koaxial daneben</td><td><strong>Flansch auf das Wellenende</strong> — wie ursprünglich gedacht</td></tr>
+<tr><td>Trommelbau</td><td>als Rad: Nabenrohr, Stirnscheiben tragen wie Speichen</td><td><strong>geschlossener Zylinder</strong>, zwei Stirnscheiben aufgeklemmt</td></tr>
+<tr><td>Lagerung</td><td>Klemmplatten, Lager drehen in der Trommelnabe</td><td>normale Lagerschilde im Rahmen</td></tr>
+<tr><td>Wuchten</td><td>Trommel allein</td><td>Trommel <strong>mit</strong> Welle als Einheit</td></tr>
+</tbody></table></div>
+
+<h2><span class="no">04b</span>Was sonst vom Vorschlag abweicht</h2>
+<ul>
+  <li><span class="key">Lager bleiben 6902</span> — 15×28×7, 307 N je Lager, L10 ≈ 110 000 h. Alternative
+  6002-2RS (15×32×9, L10 ≈ 300 000 h): gleiche Bohrung, also <em>gleiches Reibmoment</em>, aber breiterer
+  Sitz. Das lastabhängige Reibmoment wächst mit der Bohrung, nicht mit der Baugröße: 4,7 mNm bei Ø15
+  gegen 7,8 mNm bei Ø25, also 0,63 statt 1,06 % vom Rennreifensignal.</li>
+  <li><span class="key">Zwei Pfosten mit Diagonale statt einem Profilrohr.</span> Ein einzelner Pfosten
+  müsste von der Welle durchbohrt werden, genau an der Lasteinleitung. Und ohne Diagonale biegt sich ein
+  40×40 bei 100 N Störkraft am Kopf um 5,6 mm — mit Diagonale um 0,06 mm.</li>
+  <li><span class="key">Laufgewicht 10 kg, nicht 5.</span> Für 417 N braucht es bei a = 200 mm mit 10 kg
+  einen Hebel von 800 mm, mit 5 kg wären es 1700 mm. 5 kg deckt nur bis 221 N.</li>
+  <li><span class="key">Füße 700 mm statt 400–500.</span> Die Trommel ragt bis 477 mm nach vorn; ein Fuß,
+  der bei 300 endet, steht hinter ihrer Vorderkante. Mit 400 mm nach vorn kippt der Ständer erst bei
+  281 N Druck am Schwingenende.</li>
+</ul>
+
+<h2><span class="no">05</span>Auflast über die Laufgewichtstellung</h2>
+<p class="lead">N = m<sub>Rad</sub>·g + W·b/a, Schwinge vorher mit dem Gegengewicht ausgewuchtet.
+Bei a = 200 mm:</p>
+<div class="tw"><table>
+<thead><tr><th>b [mm]</th><th>300</th><th>400</th><th>500</th><th>600</th><th>700</th><th>800</th><th>900</th></tr></thead>
+<tbody>
+<tr><td>W = 5 kg</td><td class="n">74 N</td><td class="n">98</td><td class="n">123</td><td class="n">147</td><td class="n">172</td><td class="n">196</td><td class="n">221 N</td></tr>
+<tr><td>W = 10 kg</td><td class="n">147 N</td><td class="n">196</td><td class="n">245</td><td class="n">294</td><td class="n">343</td><td class="n"><span class="key">392</span></td><td class="n">441 N</td></tr>
+</tbody></table></div>
+<p class="note">Mit einem 2,5-kg-Laufrad liegt die Standard-Auflast von 417 N (42,5 kg) bei
+b = 800 mm. Abgleich: Schwinge ohne Rad auswuchten (Restkraft an der Radposition &lt; ±2 N mit der
+Federwaage), Rad wiegen, a auf ±0,5 mm messen, Maßband mit Null auf der Schwingenachse aufkleben.</p>
+
+<h2><span class="no">05b</span>Drehpunkt auf Radachshöhe: der eine Nachteil</h2>
+<p class="lead">Drehpunkt und Radachse auf gleicher Höhe heißt: die Verbindung ist waagerecht, die Radachse
+läuft <strong>senkrecht</strong>, Latschpunkt und Hebel <em>a</em> bleiben über alle Reifen und Drücke
+stehen. Der Preis: die Umfangskraft T greift r<sub>Rad</sub> unter dem Drehpunkt an und verändert die
+Auflast um ΔN = T · r<sub>Rad</sub>/a.</p>
+<div class="tw"><table>
+<thead><tr><th>Crr</th><th>T</th><th>ΔN bei 406-35</th><th>ΔN bei 622-28</th><th>ΔN bei 622-57</th></tr></thead>
+<tbody>
+<tr><td class="n">0,0025</td><td class="n">1,04 N</td><td class="n">1,24 N / 0,30 %</td><td class="n">1,77 N / 0,42 %</td><td class="n">1,92 N / 0,46 %</td></tr>
+<tr><td class="n">0,0037</td><td class="n">1,54 N</td><td class="n">1,84 N / 0,44 %</td><td class="n">2,61 N / 0,63 %</td><td class="n">2,84 N / 0,68 %</td></tr>
+<tr><td class="n">0,0076</td><td class="n">3,17 N</td><td class="n">3,77 N / 0,90 %</td><td class="n">5,37 N / 1,29 %</td><td class="n">5,83 N / 1,40 %</td></tr>
+<tr><td class="n">0,0127</td><td class="n">5,29 N</td><td class="n">6,30 N / 1,51 %</td><td class="n">8,97 N / 2,15 %</td><td class="n">9,74 N / 2,34 %</td></tr>
+<tr><td class="n">0,0150</td><td class="n">6,25 N</td><td class="n">7,44 N / 1,79 %</td><td class="n">10,60 N / 2,54 %</td><td class="n"><span class="no-go">11,51 N / 2,76 %</span></td></tr>
+</tbody></table></div>
+<p class="note">Der Fehler geht <strong>mit dem Crr selbst</strong> und verzerrt damit die Rangfolge — bis
+2,8 % ist er unkorrigiert zu groß. Drei Wege, jeder reicht: <strong>(1)</strong> rechnerisch,
+N<sub>eff</sub> = N₀ ∓ F<sub>roll</sub> · r<sub>Rad</sub>/a — alle drei Größen sind gemessen, die Korrektur
+selbst ist auf 0,01 % genau; <strong>(2)</strong> Auflast direkt messen (Lagerkonsolen auf Wägezellen),
+dann entfällt sie ganz; <strong>(3)</strong> in beide Drehrichtungen fahren und mitteln, der Term wechselt
+das Vorzeichen und fällt heraus. Die Drehrichtung wird damit zum Protokollwert.</p>
+<p class="note">Die Alternative — Drehpunkt auf Latschhöhe, T ohne Hebel — hat den umgekehrten Nachteil:
+die Radachse läuft dann auf einem schrägen Bogen, und jede Reifeneinfederung verschiebt den Latschpunkt.
+15 mm Einfederung (MTB bei 2 bar) wandern 25 mm und verfälschen <em>a</em> um <strong>7,4 %</strong> —
+das müsste für jeden Reifen neu auf x = 0 nachgestellt werden und ist nicht aus der Messung heraus
+korrigierbar.</p>
+
+<h2><span class="no">06</span>Zuschnitt: 8 Stangen à 2 m</h2>
+<p class="lead">Mit der 100 mm schmalen Trommel schrumpft der Rahmen: <strong>12 300 mm auf sieben
+Stangen</strong>, davon eine nur zu einem Drittel — die achte bleibt ungeschnitten. Bodenholme und
+Querträger sind je eine halbierte Stange, genau wie geplant.</p>
+<figure>
+<svg viewBox="0 0 2200 880" class="bars" role="img" aria-label="Zuschnittplan 8 Stangen">
+<text x="100" y="79" class="barno">1</text>
+<rect x="150" y="40" width="2000" height="58" class="barbg"/>
+<rect x="150" y="40" width="1020" height="58" fill="#a4572a"/>
+<text x="660" y="66" class="seg">P3</text>
+<text x="660" y="90" class="seglen">1020</text>
+<rect x="1170" y="40" width="950" height="58" fill="#1f8a8a"/>
+<text x="1645" y="66" class="seg">P6</text>
+<text x="1645" y="90" class="seglen">950</text>
+<text x="2135" y="78" class="rest">Rest 30</text>
+<text x="100" y="161" class="barno">2</text>
+<rect x="150" y="122" width="2000" height="58" class="barbg"/>
+<rect x="150" y="122" width="1020" height="58" fill="#a4572a"/>
+<text x="660" y="148" class="seg">P3</text>
+<text x="660" y="172" class="seglen">1020</text>
+<rect x="1170" y="122" width="950" height="58" fill="#1f8a8a"/>
+<text x="1645" y="148" class="seg">P6</text>
+<text x="1645" y="172" class="seglen">950</text>
+<text x="2135" y="160" class="rest">Rest 30</text>
+<text x="100" y="243" class="barno">3</text>
+<rect x="150" y="204" width="2000" height="58" class="barbg"/>
+<rect x="150" y="204" width="1000" height="58" fill="#2f6f9f"/>
+<text x="650" y="230" class="seg">P1</text>
+<text x="650" y="254" class="seglen">1000</text>
+<rect x="1150" y="204" width="1000" height="58" fill="#2f6f9f"/>
+<text x="1650" y="230" class="seg">P1</text>
+<text x="1650" y="254" class="seglen">1000</text>
+<text x="100" y="325" class="barno">4</text>
+<rect x="150" y="286" width="2000" height="58" class="barbg"/>
+<rect x="150" y="286" width="900" height="58" fill="#3f8f6f"/>
+<text x="600" y="312" class="seg">P2</text>
+<text x="600" y="336" class="seglen">900</text>
+<rect x="1050" y="286" width="900" height="58" fill="#3f8f6f"/>
+<text x="1500" y="312" class="seg">P2</text>
+<text x="1500" y="336" class="seglen">900</text>
+<text x="2050" y="324" class="rest">Rest 200</text>
+<text x="100" y="407" class="barno">5</text>
+<rect x="150" y="368" width="2000" height="58" class="barbg"/>
+<rect x="150" y="368" width="850" height="58" fill="#b03a2e"/>
+<text x="575" y="394" class="seg">P5</text>
+<text x="575" y="418" class="seglen">850</text>
+<rect x="1000" y="368" width="850" height="58" fill="#b03a2e"/>
+<text x="1425" y="394" class="seg">P5</text>
+<text x="1425" y="418" class="seglen">850</text>
+<rect x="1850" y="368" width="280" height="58" fill="#8f6a3f"/>
+<text x="1990" y="394" class="seg">P11</text>
+<text x="1990" y="418" class="seglen">280</text>
+<text x="2140" y="406" class="rest">Rest 20</text>
+<text x="100" y="489" class="barno">6</text>
+<rect x="150" y="450" width="2000" height="58" class="barbg"/>
+<rect x="150" y="450" width="600" height="58" fill="#4a7a2a"/>
+<text x="450" y="476" class="seg">P10</text>
+<text x="450" y="500" class="seglen">600</text>
+<rect x="750" y="450" width="550" height="58" fill="#7a5ba6"/>
+<text x="1025" y="476" class="seg">P4</text>
+<text x="1025" y="500" class="seglen">550</text>
+<rect x="1300" y="450" width="550" height="58" fill="#7a5ba6"/>
+<text x="1575" y="476" class="seg">P4</text>
+<text x="1575" y="500" class="seglen">550</text>
+<rect x="1850" y="450" width="240" height="58" fill="#8a7a1f"/>
+<text x="1970" y="476" class="seg">P7</text>
+<text x="1970" y="500" class="seglen">240</text>
+<text x="2120" y="488" class="rest">Rest 60</text>
+<text x="100" y="571" class="barno">7</text>
+<rect x="150" y="532" width="2000" height="58" class="barbg"/>
+<rect x="150" y="532" width="340" height="58" fill="#5f6f7f"/>
+<text x="320" y="558" class="seg">P8</text>
+<text x="320" y="582" class="seglen">340</text>
+<rect x="490" y="532" width="300" height="58" fill="#a04a7a"/>
+<text x="640" y="558" class="seg">P9</text>
+<text x="640" y="582" class="seglen">300</text>
+<text x="1470" y="570" class="rest">Rest 1360</text>
+<text x="100" y="653" class="barno">8</text>
+<rect x="150" y="614" width="2000" height="58" class="barbg"/>
+<text x="1150" y="652" class="rest">ungeschnitten — Reserve</text>
+<rect x="150" y="710" width="34" height="34" fill="#2f6f9f"/>
+<text x="196" y="736" class="leg">P1 Bodenholm 1000</text>
+<rect x="460" y="710" width="34" height="34" fill="#3f8f6f"/>
+<text x="506" y="736" class="leg">P2 Querträger 900</text>
+<rect x="770" y="710" width="34" height="34" fill="#a4572a"/>
+<text x="816" y="736" class="leg">P3 Mast 1020</text>
+<rect x="1000" y="710" width="34" height="34" fill="#7a5ba6"/>
+<text x="1046" y="736" class="leg">P4 Schieber 550</text>
+<rect x="1278" y="710" width="34" height="34" fill="#b03a2e"/>
+<text x="1324" y="736" class="leg">P5 Diagonale 850</text>
+<rect x="1572" y="710" width="34" height="34" fill="#1f8a8a"/>
+<text x="1618" y="736" class="leg">P6 Gabelholm 950</text>
+<rect x="150" y="762" width="34" height="34" fill="#8a7a1f"/>
+<text x="196" y="788" class="leg">P7 Querstück Gabel 240</text>
+<rect x="540" y="762" width="34" height="34" fill="#5f6f7f"/>
+<text x="586" y="788" class="leg">P8 Querverb. oben 340</text>
+<rect x="914" y="762" width="34" height="34" fill="#a04a7a"/>
+<text x="960" y="788" class="leg">P9 Pendel-Querarm 300</text>
+<rect x="1288" y="762" width="34" height="34" fill="#4a7a2a"/>
+<text x="1334" y="788" class="leg">P10 Ausleger Steuerung 600</text>
+<rect x="150" y="814" width="34" height="34" fill="#8f6a3f"/>
+<text x="196" y="840" class="leg">P11 Gegengewicht 280 (Option)</text>
+</svg>
+<figcaption>06 — Welches Teil aus welcher Stange. Farbe = Pos-Nummer, Zahl = Länge in mm. Rund 3,4 m Profil bleiben übrig.</figcaption>
+</figure>
+<div class="tw" style="margin-top:14px"><table>
+<thead><tr><th>Pos</th><th>Stk</th><th>Länge</th><th>Teil</th><th>Lage</th><th>aus Stange</th></tr></thead>
+<tbody>
+<tr><td class="n">P1</td><td class="n">2</td><td class="n">1000</td><td>Bodenholm (x)</td><td class="n">y = ±130, x = −400…+600</td><td class="n">3</td></tr>
+<tr><td class="n">P2</td><td class="n">2</td><td class="n">900</td><td>Querträger (y) mit Lenkrollen</td><td class="n">y = −400…+500</td><td class="n">4</td></tr>
+<tr><td class="n">P3</td><td class="n">2</td><td class="n">1020</td><td>Mast, senkrecht</td><td class="n">x = −240, y = ±130, z = 140…1160</td><td class="n">1, 2</td></tr>
+<tr><td class="n">P4</td><td class="n">2</td><td class="n">550</td><td>Schieber, höhenverstellbar</td><td class="n">Mast<strong>vorderseite</strong>, Verstellweg 195</td><td class="n">6</td></tr>
+<tr><td class="n">P5</td><td class="n">2</td><td class="n">850</td><td>Diagonale, trägt die Trommel</td><td class="n">Mast<strong>innenseite</strong> y = ±90, Fuß x = +170, 29°</td><td class="n">5</td></tr>
+<tr><td class="n">P6</td><td class="n">2</td><td class="n">950</td><td>Gabelholm</td><td class="n">y = ±100, Scharnier unten</td><td class="n">1, 2</td></tr>
+<tr><td class="n">P7</td><td class="n">1</td><td class="n">240</td><td>Querstück der Gabel</td><td class="n">x = +450, vor dem Laufrad</td><td class="n">6</td></tr>
+<tr><td class="n">P8</td><td class="n">1</td><td class="n">340</td><td>Querverbindung oben</td><td class="n">zwischen den Mastköpfen</td><td class="n">7</td></tr>
+<tr><td class="n">P9</td><td class="n">1</td><td class="n">300</td><td>Pendel-Querarm</td><td class="n">in y bis y = +440</td><td class="n">7</td></tr>
+<tr><td class="n">P10</td><td class="n">1</td><td class="n">600</td><td>Ausleger für die Steuerung</td><td class="n">Mastaußenseite rechts</td><td class="n">6</td></tr>
+<tr><td class="n">P11</td><td class="n">1</td><td class="n">280</td><td>Gegengewichtsausleger <em>(Option)</em></td><td class="n">x = −200…−480, y = ±100</td><td class="n">5</td></tr>
+</tbody></table></div>
+<p class="note"><strong>17 Teile, 12 300 mm.</strong> Drei Flächen des Mastes sind belegt und stören sich
+nicht: <strong>Innenseite</strong> die Diagonale, <strong>Vorderseite</strong> der Schieber,
+<strong>Außenseite</strong> frei für Ausleger und Kabel. Die Diagonalen mit 850 mm Rohlänge grob ablängen
+und beim Zusammenbau festlegen — die Gelenke an beiden Enden gleichen den Rest aus.
+<strong>900 mm Querträger reichen</strong> (y = −400…+500): der Pendelbock endet bei y = +440. Die
+Mastlänge hängt an der Rollenhöhe: <code>Mast = 1160 − (Rollenhöhe + 40)</code>, also 1020 bei 100 mm.</p>
+
+<h2><span class="no">06b</span>Ist 40×40 überdimensioniert?</h2>
+<div class="tw"><table>
+<thead><tr><th></th><th>I<sub>x</sub></th><th>W<sub>x</sub></th><th>Masse</th><th>Preis</th></tr></thead>
+<tbody>
+<tr><td>40×40 Nut 8 Standard</td><td class="n">9,00 cm⁴</td><td class="n">4,50 cm³</td><td class="n">1,74 kg/m</td><td class="n">17,43 €/m</td></tr>
+<tr><td>40×40 Nut 8 <strong>Superleicht</strong></td><td class="n">7,20 cm⁴</td><td class="n">3,60 cm³</td><td class="n">1,20 kg/m</td><td class="n">12,71 €/m</td></tr>
+</tbody></table></div>
+<p class="lead" style="margin-top:14px">Festigkeit ist nirgends das Thema: das höchstbelastete Profilteil
+ist die Trommellagerkonsole (200 mm Kragarm, 307 N) mit 17,1 MPa gegen 60–80 MPa zulässig — rund 25 %
+Auslastung. Gerechtfertigt ist 40×40 durch das Steinmaß M8 und durch die Steifigkeit:</p>
+<div class="tw"><table>
+<thead><tr><th>100 N Störkraft am Mastkopf</th><th>Standard</th><th>Superleicht</th></tr></thead>
+<tbody>
+<tr><td>ohne Diagonale (1,0 m frei)</td><td class="n">5,3 mm</td><td class="n">6,6 mm</td></tr>
+<tr><td><strong>mit Diagonale</strong> (0,3 m Restkragarm)</td><td class="n"><span class="key">0,14 mm</span></td><td class="n"><span class="key">0,18 mm</span></td></tr>
+<tr><td>Schwinge: Radversatz → Fehler auf <em>a</em></td><td class="n">0,24 %</td><td class="n">0,30 %</td></tr>
+</tbody></table></div>
+<p class="note">Die Diagonale macht die Steifigkeit, nicht die Profilstärke — <strong>Superleicht reicht
+überall</strong> und spart 56 €. Wenn an einer Stelle Standard, dann an den beiden Schwingenholmen: dort
+sitzen die Klemmhebel und die höchsten Nutensteinkräfte. Das ist Vorsicht, keine Rechnung — die
+Lippendicke der Nut steht in keinem der beiden Datenblätter.</p>
+
+<h2><span class="no">06c</span>Verbinder, Kleinteile, Bezugsquelle</h2>
+<div class="tw"><table>
+<thead><tr><th>Teil</th><th>Stk</th><th>Verwendung</th></tr></thead>
+<tbody>
+<tr><td>Befestigungsset Winkel 40 Nut 8 <span style="opacity:.7">(1 Winkel + 2 Schrauben + 2 Nutensteine + 2 Scheiben)</span></td><td class="n">40</td><td>Unterbau 6, Mastfüße 6, Querverbindung 4, Lagerkonsolen 4, Schwinge 10, Pendelbock 4, Ausleger 6</td></tr>
+<tr><td><strong>Gelenk mit Klemmhebel Nut 8 I-Typ</strong></td><td class="n">4</td><td>beide Enden jeder Diagonale — stufenlos 180°, kein Gehrungsschnitt</td></tr>
+<tr><td>Klemmhebel M8</td><td class="n">12</td><td>Ausfallenden 4, Schwingenlager-Ausleger 4, Laufgewicht 2, Gegengewicht 2 — jeder braucht einen Nutenstein</td></tr>
+<tr><td>Zylinderschraube M8 × 20 (DIN 912) + Scheibe</td><td class="n">50</td><td>für die Nutensteine; 12 mm Blech + 8 mm Einschraubtiefe</td></tr>
+<tr><td><strong>Nutenstein mit Federblech, Nut 8 I-Typ, M8</strong> (10er à 3,80 €)</td><td class="n">60</td><td>Lagerschilde, Ausfallenden, Zellenhalter, Elektronik, Klemmhebel — Aufstellung unten</td></tr>
+<tr><td>Verbinderplatte Nut 8, 36 × 76</td><td class="n">4</td><td>Lagerkonsolen und Mastfüße versteifen</td></tr>
+<tr><td>Abdeckkappe Winkel 40 / Profilende</td><td class="n">40 / 20</td><td>Winkel und offene Profilenden</td></tr>
+<tr><td>Winkelstellfuß Nut 8</td><td class="n">6</td><td>4 Ecken + 2 unter dem Pendelbock-Querholm</td></tr>
+</tbody></table></div>
+<p class="note">Eine Quelle für alles, geprüft am 27.10.2026: <strong>Blank Metallbau-Technik GmbH</strong>,
+Holzgerlingen — eigener Shop <a href="https://aluboerse.de">aluboerse.de</a> (Zuschnitt kostenlos, komplettes
+Nut-8-Zubehör), eBay-Shop <a href="https://www.ebay.de/str/blankprofiltechnik">blank-profiltechnik</a>
+(seit 2007, 1,1 Mio. Verkäufe). Profilmarke AlClipTec, I-Typ, <strong>item-kompatibel</strong>.
+Materialkosten Profil + Winkel + Nutensteine rund <strong>235 €</strong> (Superleicht, Zuschnitt). Preise für Gelenke,
+Nutensteine, Kappen und Stellfüße standen nicht im abgerufenen Seitentext — beim Bestellen ablesen.</p>
+
+<h2><span class="no">06d</span>Nutensteine für Lagersitze und Ausfallenden</h2>
+<p class="lead">Die Nutensteine aus den Winkelsets sind mit den Winkeln verbraucht. Alles, was als Blech
+oder Halter in eine Nut geschraubt wird, braucht eigene — und zwar den Typ <strong>mit Federblech</strong>,
+schwenkbar, mit Nutführung: nur der lässt sich <em>nachträglich</em> in einen fertig verschraubten Rahmen
+setzen. Eine Einschubmutter muss vom Profilende her eingeschoben werden und ist dann unbrauchbar.</p>
+<div class="tw"><table>
+<thead><tr><th>Bauteil</th><th>Befestigungspunkte</th><th>Nutensteine</th></tr></thead>
+<tbody>
+<tr><td>Lagerschild Trommelwelle (2 ×)</td><td class="n">4 je Schild</td><td class="n">8</td></tr>
+<tr><td>Lagerschild Schwingenachse (2 ×)</td><td class="n">4 je Schild</td><td class="n">8</td></tr>
+<tr><td>Pendellagerbock</td><td class="n">4</td><td class="n">4</td></tr>
+<tr><td>Ausfallenden / Achshalter Prüfrad (2 ×)</td><td class="n">4 je Platte, davon 2 Klemmhebel</td><td class="n">8</td></tr>
+<tr><td>Halter der Wägezelle</td><td class="n">4</td><td class="n">4</td></tr>
+<tr><td>Ausleger der Schwingenlager an den Masten (2 ×)</td><td class="n">2 je, Klemmhebel</td><td class="n">4</td></tr>
+<tr><td>Sattel des Laufgewichts</td><td class="n">2, Klemmhebel</td><td class="n">2</td></tr>
+<tr><td>Halter des Gegengewichts</td><td class="n">2, Klemmhebel</td><td class="n">2</td></tr>
+<tr><td>Gehäuse Steuerung und HX711</td><td class="n">4</td><td class="n">4</td></tr>
+<tr><td>Exzenterhebel und Anschlagschraube</td><td class="n">4</td><td class="n">4</td></tr>
+<tr><td>Kabelhalter, Skalenende, Reserve</td><td class="n">—</td><td class="n">6</td></tr>
+<tr><td><strong>Summe</strong></td><td class="n"></td><td class="n"><span class="key">54 → 6 Packungen, 22,80 €</span></td></tr>
+</tbody></table></div>
+<p class="note"><strong>Konstruktionsregel für die Lagersitze:</strong> ein 40×40-Profil hat <em>eine</em> Nut
+je Fläche, mittig. Ein Blech auf einer Fläche hat damit alle Schrauben <strong>auf einer Linie</strong> — und
+eine Schraubenlinie nimmt kein Moment um sich selbst auf, das Blech kippt aus der Fläche heraus. Lagersitze
+deshalb als <strong>Winkelblech über zwei Profilflächen</strong> (Nut oben + Nut seitlich) oder mit einem
+zusätzlichen Winkel absichern: zwei Schraubenlinien im rechten Winkel, dann ist der Sitz kippsteif.</p>
+<p class="note">Die höchstbelastete Nutensteinverbindung ist das <strong>Ausfallende</strong>: es kragt für
+OLD 100 bis 95 mm nach innen und trägt 208 N → M = 19,8 Nm. Schraubenpaar 60 mm auseinander ergibt
+<strong>330 N Auszugskraft je Nutenstein</strong>, 100 mm auseinander nur 198 N. Also Punkte weit auseinander
+und vier statt zwei. Die zulässige Auszugskraft steht auf der Produktseite nicht — beim Verkäufer erfragen.</p>
+<p class="note"><strong>I-Typ und B-Typ nicht verwechseln.</strong> Beide heißen „Nut 8" und haben 8 mm
+Nutöffnung, aber die Nutkammer ist unterschiedlich geformt. Der Shop führt getrennte Unterkategorien
+„Nutensteine Nut 8 I-Typ" und „Nutensteine Nut 8 B-Typ"; das gewählte Profil ist <strong>I-Typ</strong>
+(item-kompatibel). Auf der Produktseite des Nutensteins mit Federblech ist von B-Typ-Eignung die Rede —
+vor dem Bestellen klären, sonst passt die Packung nicht in die Nut.</p>
+
+<h2><span class="no">07</span>Lager, Wellen, Drehteile</h2>
+<div class="tw"><table>
+<thead><tr><th>Pos</th><th>Stk</th><th>Teil</th><th>Maße</th><th>Zweck</th></tr></thead>
+<tbody>
+<tr><td class="n">L1</td><td class="n">1</td><td>Trommelwelle, <strong>abgesetzt</strong></td><td class="n">Ø15 h6 Zapfen / Ø30 Mitte, 480 lang, C45, Freistich R2</td><td>mitdrehend</td></tr>
+<tr><td class="n">L2</td><td class="n">2</td><td>Rillenkugellager</td><td class="n">6902-2RS (oder 6002-2RS)</td><td>Lagerabstand 340</td></tr>
+<tr><td class="n">L3</td><td class="n">2</td><td>Lagerschild</td><td class="n">Alu 12 mm, 28 H7 + Sicherungsring</td><td>auf Konsole P4</td></tr>
+<tr><td class="n">L3a</td><td class="n">2</td><td>Klemmnabe Ø30</td><td class="n">keine Passfeder</td><td>an beiden Stirnscheiben</td></tr>
+<tr><td class="n">L4</td><td class="n">1</td><td>Schwingenachse</td><td class="n">Ø15 h6 × 440</td><td>Pivot auf Latschhöhe</td></tr>
+<tr><td class="n">L5</td><td class="n">2</td><td>Rillenkugellager</td><td class="n">6902-2RS, 15×28×7</td><td>Schwinge</td></tr>
+<tr><td class="n">L6</td><td class="n">1</td><td>Pendelstummel</td><td class="n">Ø15 h6 × 160</td><td>Momentenwiege</td></tr>
+<tr><td class="n">L7</td><td class="n">2</td><td>Rillenkugellager</td><td class="n">6902-2RS, 15×28×7</td><td>Pendel, Abstand 100</td></tr>
+<tr><td class="n">L8</td><td class="n">1</td><td>Steckachse</td><td class="n">Ø12 h6 × 200</td><td>Laufrad</td></tr>
+<tr><td class="n">L9</td><td class="n">2+2</td><td>Adapterbuchsen</td><td class="n">12/15 und 12/19, je 25 lang</td><td>15- und 19-mm-Naben</td></tr>
+<tr><td class="n">L10</td><td class="n">1 Satz</td><td>Distanzhülsen</td><td class="n">Ø15</td><td>OLD 100…148</td></tr>
+<tr><td class="n">B1</td><td class="n">2</td><td>Lagerschild Schwingenachse</td><td class="n">Alu 12 mm, Bohrung 28 H7</td><td>am Pfostenkopf</td></tr>
+<tr><td class="n">B2</td><td class="n">1</td><td>Pendellagerbock</td><td class="n">Alu 50×50×120, 2× 28 H7</td><td>Abstand 100</td></tr>
+<tr><td class="n">B3</td><td class="n">2</td><td>Ausfallende mit Langloch</td><td class="n">Alu 10 mm, 150×120, Ø12 H7</td><td>OLD-Verstellung</td></tr>
+<tr><td class="n">B4</td><td class="n">1</td><td>Hebelarm Drehmomentwaage</td><td class="n">Alu 30×8 × 160</td><td>70,0 / 140,0</td></tr>
+<tr><td class="n">B5</td><td class="n">1</td><td>Wiege für die Statorachse</td><td><span class="tbd">TBD</span> Motormaße fehlen</td><td>Pendelteil</td></tr>
+<tr><td class="n">B6/B7</td><td class="n">2</td><td>Kupplungsflansch + Rotorscheibe</td><td><span class="tbd">TBD</span> Lochkreis unbekannt</td><td>Antrieb</td></tr>
+<tr><td class="n">G1</td><td class="n">1</td><td>Laufgewicht mit Sattel und Index</td><td class="n">10 kg</td><td>Auflast</td></tr>
+<tr><td class="n">G2</td><td class="n">1</td><td>Gegengewicht, verschiebbar</td><td class="n">ca. 7 kg</td><td>Schwinge auswuchten</td></tr>
+<tr><td class="n">G7</td><td class="n">1</td><td>Kupplung, radial weich</td><td><span class="tbd">TBD</span> Größe</td><td>Bedingung, siehe 02</td></tr>
+</tbody></table></div>
+
+<h2><span class="no">08</span>Laufradaufnahme</h2>
+<div class="tw"><table>
+<thead><tr><th>Laufrad</th><th>Außendurchmesser</th><th>Ausleger</th><th>Radachse über Boden</th></tr></thead>
+<tbody>
+<tr><td>406 + 35 mm</td><td class="n">476</td><td class="n">238</td><td class="n">1265,5</td></tr>
+<tr><td>406 + 57 mm</td><td class="n">520</td><td class="n">260</td><td class="n">1287,5</td></tr>
+<tr><td>584 + 50 mm</td><td class="n">684</td><td class="n">342</td><td class="n">1369,5</td></tr>
+<tr><td>622 + 28 mm</td><td class="n">678</td><td class="n">339</td><td class="n">1366,5</td></tr>
+<tr><td>622 + 57 mm</td><td class="n">736</td><td class="n">368</td><td class="n">1395,5</td></tr>
+</tbody></table></div>
+<p class="note">Verstellweg 230…380 mm, also 150 mm im Nutprofil. Steckachse Ø12 als Basis
+(statische Biegung, 92 MPa bei 150 mm Einbaubreite — Sicherheit 3,7), Buchsen 12/15 und 12/19
+paarweise, eine je Nabenlager. Einstellregel: Radachse senkrecht über der Trommelachse, ±2 mm.</p>
+
+<p class="note">Vollständige Begründung, Fehlerbudget und Abgleichvorschriften:
+<code>docs/08-staender.md</code> im Projekt. Zwei Zahlen aus den älteren Dokumenten ändern sich durch
+die 250 mm Trommelbreite und die eigene Trommellagerung — beide sind dort unter §10.2 notiert und
+noch nicht nachgezogen.</p>
+</div>
