@@ -1,25 +1,16 @@
 # Messkonzept
 
+> **Formeln und Ablauf sind nach [09-messtheorie](09-messtheorie.md) gewandert.** Dieses
+> Dokument behält die Herleitung, die Fallstricke und die Literaturbezüge — also das
+> *Warum*. Die Zahlenbeispiele unten stammen aus der Auslegung mit Ø 955 × 250 mm Trommel
+> und Crr bis 0,015 (MTB); gültig sind die Werte in
+> [09-messtheorie](09-messtheorie.md) für Ø 933 × 100 mm und Crr bis 0,007.
+
+
 ## 1 Geometrie
 
-| Größe | Symbol | Wert |
-|---|---|---|
-| Trommelumfang | U | 3,000 m |
-| Trommeldurchmesser | d = U/π | 0,9549 m |
-| Trommelradius | r = U/2π | 0,4775 m |
-
-Drehzahl aus Geschwindigkeit:
-
-```
-n [1/min] = 5,556 · v [km/h]          ω [rad/s] = 2π · v[m/s] / U
-```
-
-| v [km/h] | n [1/min] | ω [rad/s] | Pulsperiode bei 1 Marke |
-|---|---|---|---|
-| 10 | 55,6 | 5,82 | 1,080 s |
-| 30 | 166,7 | 17,45 | 0,360 s |
-| 60 | 333,3 | 34,91 | 0,180 s |
-| 100 | 555,6 | 58,18 | 0,108 s |
+Umfang, Radius und die Umrechnung Drehzahl ↔ Geschwindigkeit stehen in
+[09-messtheorie](09-messtheorie.md) §1.5.
 
 ## 2 Kernformel
 
@@ -305,15 +296,5 @@ J · dω/dt = −M_verlust(ω)
 
 ## 6 Berechnungskette in der Firmware
 
-```
-HX711-Rohwert
-  → (raw − offset_static) · N_PER_COUNT            = F [N]
-  → F · TORQUE_ARM_M                                = M [Nm]
-  → M / DRUM_RADIUS_M                               = F_roll [N]
-  → M · ω                                           = P [W]
-  → (F_roll − F_roll_leer(v)) / F_N                 = Crr
-```
-
-`F_roll_leer(v)` stammt aus dem BASELINE-Lauf und wird in der Auswertung, nicht in der
-Firmware, interpoliert. Die Firmware loggt beide Läufe roh und rechnet nur eine
-Live-Vorschau.
+Vollständig in [09-messtheorie](09-messtheorie.md) §1 und §6, einschließlich der beiden
+Korrekturmodelle und der Konsoleneingaben.

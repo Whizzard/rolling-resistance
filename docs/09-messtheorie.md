@@ -82,6 +82,63 @@ Diese Rechnung rückwärts ist der beste Funktionstest der ganzen Kette: wer ein
 mit publiziertem Wert fährt, muss am Ende dieselbe Wattzahl herausbekommen — bis auf die
 Trommelkrümmung, siehe §9.
 
+### 1.5 Drehzahl und Geschwindigkeit
+
+```
+n [1/min] = 60 · v / U          ω = 2π · v / U          v = U · n
+```
+
+Mit U = 2,931 m (Trommel Ø 933 mm, über die fertige Oberfläche gemessen):
+
+| v [km/h] | n [1/min] | ω [rad/s] | Pulsperiode bei 6 Marken |
+|---|---|---|---|
+| 10 | 56,9 | 5,96 | 176 ms |
+| 28,8 | 163,8 | 17,15 | 61 ms |
+| 60 | 341,2 | 35,73 | 29 ms |
+
+`MIN_PULSE_US` = 800 µs filtert damit sicher nur Störer. `MAX_DRUM_RPM` muss auf **341**
+(war 333 für Ø 955) — sonst endet der Stand bei 58,4 km/h.
+
+### 1.6 Was die Pendelwiege misst — und was nicht
+
+Nimm als System alles, was auf der Wiege sitzt. Im stationären Zustand ist die Summe der
+**äußeren** Momente null, also `T_Arm = T_außen`. Alles Innere hebt sich paarweise auf:
+
+| Bauteil | innerhalb der Wiege? | wird gemessen? |
+|---|---|---|
+| Rastmoment, Eisenverluste des Motors | ja | **nein** |
+| Lagerreibung Rotor ↔ Stator | ja | **nein** |
+| Trommellager (eigene Welle, außerhalb) | nein | **ja** → §3.2, Referenzrolle A11 |
+| Kupplungsverluste | nein | ja → fallen in die Leerlaufkennlinie |
+| Luftwiderstand der Trommel | nein | ja → Leerlaufkennlinie |
+| Lager und Aerodynamik des Prüflaufrads | nein | ja → Laufrad-Auslaufversuch |
+| Reifen am Latsch | nein | ja → **das Signal** |
+| Reibung im Pendellager selbst | — | ja, als Hysteresefehler (1,2 mNm) |
+
+Daraus folgt der ganze Rest des Verfahrens: zwei Korrekturkurven (Leerlauf, Laufrad), ein
+Restfehler (Trommellager), und ein Pendellager, das so reibungsarm wie möglich sein muss.
+
+### 1.7 Rampe und Auslauf
+
+Während einer Drehzahländerung misst die Zelle zusätzlich das Beschleunigungsmoment:
+
+```
+(14) M_beschl = J · dω/dt
+```
+
+Mit J = 2,07 kg·m² und der eingestellten Rampe von 0,5 km/h/s sind das **0,62 Nm** — fast
+so viel wie das ganze Reifensignal eines guten Rennreifens (0,72 Nm). **Deshalb wird nur
+auf Plateaus gemessen, nie während der Rampe.**
+
+Umgekehrt nutzbar ist derselbe Zusammenhang im Auslauf:
+
+```
+(15) J · dω/dt = −M_verlust(ω)
+```
+
+Das liefert M_verlust **unabhängig von der Wägezelle** und ist damit der schärfste
+verfügbare Test der ganzen Momentenmesskette — siehe §9.1.
+
 ## 2 Welche Größe wann bestimmt wird
 
 ### 2.1 Einmalig — Anlagenkonstanten
@@ -354,31 +411,201 @@ Vollfaktoriell wären das 11 × 4 × 3 = 132 Punkte je Reifen — unrealistisch.
 Ein Reifenwechsel zieht also drei Dinge nach sich: J korrigieren (§2.3), neue Baseline,
 voller Warmlauf. Ein Laufradwechsel zusätzlich den Bifilar- und den Auslaufversuch.
 
-## 8 Ablauf einer Messreihe
+## 8 Prüfablauf
 
-Checklisten in [05-prüfablauf](05-pruefablauf.md); hier nur die Reihenfolge und warum:
+Ein vollständiger Durchlauf dauert rund zwei Stunden, davon 30 Minuten Warmlauf.
+Abkürzungen rächen sich: die Unterschiede, die gemessen werden sollen, sind kleiner als
+die Effekte, die ein ausgelassener Schritt verursacht. Zur Einordnung — die Kennlinie
+über der Geschwindigkeit ändert sich zwischen 14 und 36 km/h um ganze 11,6 %, und zwei
+gute Rennreifen trennen 0,2 N Umfangskraft.
 
 | # | Schritt | Dauer | warum an dieser Stelle |
 |---|---|---|---|
 | 1 | Sichtprüfung, Haube, Not-Aus | 5 min | [07-sicherheit](07-sicherheit.md) |
-| 2 | Laufrad einsetzen, Auslegerhöhe auf Radachshöhe | 10 min | bestimmt die Geometrie aller Folgeschritte |
-| 3 | Reifen wiegen, Druck setzen, `J` korrigieren | 5 min | vor der Tara, weil es die Wiege nicht berührt |
+| 2 | Laufrad einsetzen, Drehpunkt auf Radachshöhe | 10 min | bestimmt die Geometrie aller Folgeschritte |
+| 3 | Reifen wiegen, Druck setzen, `J_Rad` korrigieren | 5 min | vor der Tara, weil es die Wiege nicht berührt |
 | 4 | Statische Tara `t` | 1 min | nach jedem mechanischen Eingriff |
-| 5 | **Baseline Vorlauf** `b`, Rad abgehoben | 15 min | kalt → liefert den unteren Eckwert der Drift |
+| 5 | **Baseline Vorlauf** `b`, Rad abgehoben | 15 min | kalt → unterer Eckwert der Drift |
 | 6 | Rad absenken, **Warmlauf** 30 min bei 28,8 km/h | 30 min | Crr sinkt mit der Reifentemperatur |
-| 7 | **Messlauf** `m` | 15 min | im thermisch eingeschwungenen Zustand |
-| 8 | **Baseline Nachlauf** `b` | 15 min | warm → oberer Eckwert; Differenz ist das Abbruchkriterium |
-| 9 | Auslaufen lassen, nicht bremsen | 5–30 min | §8 in 05 |
-| 10 | Auswertung `analysis/crr.py` | 2 min | interpoliert Baseline zeitlich zwischen 5 und 8 |
+| 7 | **Messlauf** `m` | 15 min | thermisch eingeschwungener Zustand |
+| 8 | **Baseline Nachlauf** `b` | 15 min | warm → oberer Eckwert, Differenz ist das Abbruchkriterium |
+| 9 | Auslaufen lassen, nicht bremsen | 5–30 min | §8.9 |
+| 10 | Auswertung `analysis/crr.py` | 2 min | interpoliert die Baseline zeitlich zwischen 5 und 8 |
 
-Rund **zwei Stunden je Reifen**. Die Druckreihe (§7.1 Punkt 2) hängt sich an Schritt 7 an
-und kostet je Druckstufe 10 Minuten.
+### 8.0 Vor dem Einschalten
 
-Für jeden Vergleich gilt **A/B/A**: Referenzreifen — Prüfreifen — Referenzreifen in einer
-Sitzung. Weicht die zweite Referenzmessung von der ersten ab, ist der Unterschied
-dazwischen nicht interpretierbar.
+- [ ] Schutzhaube geschlossen und verriegelt
+- [ ] Not-Aus erreichbar und funktionsgeprüft
+- [ ] Trommel sichtgeprüft: Risse, Stoßstelle des Mantelblechs, lose Schrauben
+- [ ] Wiegeteil frei beweglich, Endanschläge nicht anliegend, nichts klemmt am Kabel
+- [ ] Kupplung und Pendellager spielfrei, Trommelbremse **vollständig gelöst**
+- [ ] Umgebungstemperatur notiert
 
-## 9 Was dieses Verfahren nicht hergibt
+> Eine schleifende Trommelbremse erzeugt ein temperaturabhängiges Schleppmoment und lässt
+> Vor- und Nachlauf auseinanderlaufen. Das macht die ganze Reihe wertlos, und man sieht es
+> erst am Abbruchkriterium in §8.8.
+
+### 8.1 Statische Tara
+
+Trommel steht, `t` auf der Konsole. Die Firmware mittelt `TARE_SAMPLES` = 200 Samples
+(≈ 2,5 s bei 80 SPS) und setzt den Offset. Erfasst ADC-Offset, Eigengewicht des Wiegeteils
+am Hebelarm und die Drift seit dem letzten Abgleich.
+
+**Wiederholen, sobald sich am Aufbau irgendetwas geändert hat** — auch nach dem Umstellen
+der Auslegerhöhe oder dem Verlegen eines Kabels.
+
+### 8.2 Laufrad einsetzen und Geometrie einstellen
+
+- [ ] Steckachse Ø12 mit passenden Buchsen, Rad **formschlüssig** gesichert
+- [ ] Laufrad **mittig zur Trommel** — bei 100 mm Trommelbreite und 57 mm Reifen bleiben
+      nur 21 mm je Seite
+- [ ] Ausleger am Mast so klemmen, dass der Gabelholm **waagerecht** steht
+      (Wasserwaage): dann liegt der Drehpunkt auf Radachshöhe und die Umfangskraft hat
+      keinen Hebel
+- [ ] Radachse senkrecht über der Trommelachse, x = 0 ± 2 mm
+- [ ] Rad von Hand drehen: freier Lauf, kein Schlag, Reifen läuft nicht über die
+      Trommelkante
+
+### 8.3 Reifen vorbereiten
+
+- [ ] Reifen wiegen → `J_Rad = J_ref + (m_Reifen − m_ref) · r_Reifen²`
+- [ ] Druck einstellen und über `p<wert>` eingeben
+- [ ] Reifenumfang belastet messen → `r<wert>`
+- [ ] Auflast über die Laufgewichtstellung setzen, `l<wert>` eingeben —
+      **Standard 417 N (42,5 kg)**, die Last der publizierten Crr-Datenbank
+
+### 8.4 Baseline Vorlauf
+
+**Laufrad abgehoben** (Exzenterhebel), `b` auf der Konsole. Die Firmware fährt alle
+Plateaus aus `PLATEAUS_KMH`, wartet je `SETTLE_MS` und mittelt über
+`AVG_REVS_PER_POINT` **ganze Umdrehungen**, getriggert auf die Indexmarke.
+
+Ergebnis: `M_leer(ω)`, daraus der Fit `A₀ + B₀·ω²`. Nicht überspringen — ohne diese Kurve
+sind die Absolutwerte wertlos.
+
+### 8.5 Warmlauf
+
+**30 Minuten bei 28,8 km/h.** Keine Sicherheitsmarge, sondern die Zeit, die der
+kommerzielle Referenzprüfstand ansetzt
+([Quelle](https://www.bicyclerollingresistance.com/the-test)). Der misst anschließend
+dreimal pro Druckstufe bei einer auf ±0,5 °C gehaltenen Raumtemperatur — diese
+Temperaturkonstanz ist in einer Werkstatt nicht zu erreichen, und genau deshalb ist das
+A/B/A-Protokoll in §8.10 kein Extra, sondern tragend.
+
+### 8.6 Messlauf
+
+`m` auf der Konsole, **dieselben Plateaus** wie im Baseline-Lauf — die Auswertung
+subtrahiert punktweise, die Stützstellen müssen übereinstimmen.
+
+Während des Laufs:
+
+- [ ] nicht an den Aufbau fassen, nicht anlehnen
+- [ ] Türen und Lüftung nicht verändern — die Trommelaerodynamik reagiert auf Luftzug
+- [ ] bei Bedarf Druckreihe anhängen: je Stufe 5 min Angleichzeit, dann messen
+
+### 8.7 Baseline Nachlauf
+
+Laufrad abheben, `b`. Zweite Baseline direkt im Anschluss, im warmen Zustand.
+
+### 8.8 Abbruchkriterium
+
+> Weicht der Nachlauf an einer Stützstelle um mehr als **0,02 N** (bezogen auf F_roll) vom
+> Vorlauf ab, ist die Messreihe zu verwerfen.
+
+0,02 N sind 1,3 % vom Rennreifensignal und 9,6 % vom Auflösungsziel (§3.3). Der frühere
+Wert von 0,10 N stammt aus der MTB-Auslegung und wäre hier 6,5 % des Signals.
+Übliche Ursachen: Temperaturdrift der Lager, schleifende Bremse, verändertes Kabel,
+Luftzug.
+
+### 8.9 Auslaufen lassen
+
+`s`, dann frei auslaufen lassen. **Nicht von Hand bremsen.** Bei 60 km/h sind rund 1,3 kJ
+gespeichert. Die Auslaufdauer hängt fast ganz am Schleppmoment des Motors:
+
+| Schleppmoment | Auslauf von 60 km/h |
+|---|---|
+| nur Trommellager (0,002 Nm) | 80 min |
+| 0,05 Nm | 13 min |
+| Nabenmotor, typisches Rastmoment (0,15 Nm) | 6 min |
+| stark rastender Stator (0,30 Nm) | 3,4 min |
+
+Entweder einplanen oder die mechanische Trommelbremse benutzen. **Haube erst öffnen, wenn
+die Trommel steht.**
+
+### 8.10 A/B/A
+
+Für jeden Vergleich: Referenzreifen — Prüfreifen — Referenzreifen, in **einer** Sitzung,
+bei derselben Auflast und demselben Druck. Weicht die zweite Referenzmessung von der
+ersten ab, ist der Unterschied dazwischen nicht interpretierbar.
+
+Mindestens drei Wiederholungen je Reifen, Streuung mit angeben.
+
+**Plausibilitätsanker:** einmal einen Reifen mit publiziertem Wert fahren, bei 42,5 kg und
+28,8 km/h. Die Absolutwerte werden nicht exakt übereinstimmen (§10), aber die
+Größenordnung muss passen und die Rangfolge mehrerer Reifen muss stimmen. Tut sie das
+nicht, stimmt etwas Grundsätzliches nicht.
+
+### 8.11 Auswertung
+
+```sh
+python3 analysis/crr.py data/<datei>.csv
+```
+
+Trennt BASELINE- und MEASURE-Punkte, interpoliert die Leerlaufkennlinie **zeitlich**
+zwischen Vor- und Nachlauf, subtrahiert punktweise, zieht das Radverlustmodell ab und gibt
+Crr(v) und P_Reifen(v) aus.
+
+## 9 Sonderläufe
+
+Nicht Teil jeder Messung, aber Voraussetzung dafür, dass die Zahlen etwas bedeuten.
+
+### 9.1 Auslaufversuch der Trommel — liefert J und prüft die Messkette
+
+Einmalig und nach jeder Änderung an der Trommel:
+
+1. Laufrad abgehoben, auf 60 km/h beschleunigen.
+2. Antrieb freilaufend trennen, Drehzahlverlauf bis zum Stillstand aufzeichnen.
+3. Aus `J · dω/dt = −M_verlust(ω)` folgt M_verlust **unabhängig von der Wägezelle**.
+4. Mit der Leerlaufkennlinie aus §8.4 vergleichen. **Beide Wege müssen übereinstimmen** —
+   das ist der schärfste verfügbare Test des Gesamtsystems.
+
+J selbst folgt aus demselben Versuch mit einer bekannten Zusatzmasse, oder aus der
+Geometrie (2,07 kg·m² gerechnet).
+
+### 9.2 Bifilarpendel — liefert J_Rad
+
+Je Laufrad einmal. Rad waagerecht an zwei gleich langen Fäden aufhängen, an zwei
+gegenüberliegenden Punkten der Felge:
+
+```
+(16) J_Rad = m · g · b² · T² / (4 π² · L)
+```
+
+b = halber Abstand der Aufhängepunkte, L = Fadenlänge, T = Schwingungsdauer über
+20 Schwingungen. Ausschlag < 10°, Reifen montiert und aufgepumpt. Erreichbar **1,2–1,4 %**
+([08-staender](08-staender.md) §6.2).
+
+### 9.3 Laufrad-Auslaufversuch — liefert A₁, B₁
+
+Je Laufrad einmal:
+
+1. Trommel mit aufliegendem Laufrad auf 60 km/h bringen.
+2. Laufrad **im Lauf** abheben (Exzenterhebel).
+3. Drehzahl des Laufrads über den Hallsensor aufzeichnen, 60 → 10 km/h dauert 4,5 min.
+4. `M_Rad(ω) = −J_Rad · dω/dt` als Modell `A₁ + B₁·ω²` über den ganzen Auslauf fitten —
+   nicht punktweise differenzieren.
+5. `w<A₁> <B₁>` eingeben.
+
+Ohne diesen Lauf steckt der Laufradverlust ungetrennt im Ergebnis: 0,25 Nm entsprechen
+einem scheinbaren Crr von 0,00129, also der Hälfte des besten Rennreifens.
+
+### 9.4 Referenzlauf mit starrer Rolle — quantifiziert den Lageranteil
+
+Offen (A11). Eine Stahl- oder PA-Rolle gleicher Baugröße statt des Reifens, gleiche
+Auflast: ihre Hysterese ist vernachlässigbar, gemessen wird praktisch nur der
+lastabhängige Lageranteil von 4,7 mNm. Damit wird aus dem Restfehler eine Korrektur.
+
+## 10 Was dieses Verfahren nicht hergibt
 
 | | |
 |---|---|
