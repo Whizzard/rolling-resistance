@@ -39,6 +39,7 @@ Reifensignals.
 | [docs/06-offene-fragen.md](docs/06-offene-fragen.md) | Entscheidungsliste |
 | [docs/07-sicherheit.md](docs/07-sicherheit.md) | Gefährdungen, Schutzmaßnahmen, Checkliste |
 | [docs/08-staender.md](docs/08-staender.md) | Ständer: Maßkette, Trommellagerung, Auflast-Hebelwaage, Teileliste |
+| [docs/09-messtheorie.md](docs/09-messtheorie.md) | Formeln, Fehlerbudget, Sensorik, Kalibrierung, Messmatrix, Ablauf |
 
 ## Quickstart
 
