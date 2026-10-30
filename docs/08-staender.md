@@ -145,3 +145,104 @@ Die Gabelholme liegen bei y = ±100 und laufen **über** die Trommel hinweg — 
 kleinsten Radgröße mit 180 mm Luft, bei der größten mit 375 mm. Der Pendelbock hängt an
 einem Querarm vom rechten Rahmen aus (§6.4), nicht an einem eigenen Pfosten: Pendelachse
 und Trommelachse müssen koaxial sein, also gehören sie an dasselbe Bauteil.
+
+## 4 Trommelwelle und Lager
+
+### 4.1 Massen und Lastfall
+
+| Anteil | Masse | Herkunft |
+|---|---|---|
+| Trommelkern ohne Beplankung | 16,0 kg | gewogen/geschätzt 2026-10-30 |
+| Mantelblech 1,5 mm Alu-Tränenblech | 1,33 kg | ber: π·0,93·0,10·0,0015·2700, +12 % fürs Muster |
+| Schrauben | ≈ 0,25 kg | geschätzt |
+| **Trommel gesamt** | **≈ 17,6 kg** | |
+
+```
+F = 417 N (Auflast) + 172 N (Trommel) = 589 N
+```
+
+### 4.2 Welle Ø15 durchgehend reicht
+
+Mit 100 mm Trommelbreite rücken die Lager auf **180 mm** zusammen, die Klemmnaben an den
+Stirnscheiben auf **80 mm**. Die Last kommt damit an zwei Punkten herein, die nur 50 mm
+vom jeweiligen Lager entfernt sind:
+
+```
+M = F/2 · (180 − 80)/2 = 294,5 N · 0,050 m = 14,7 Nm
+σ = M / (π·15³/32) = 44,5 MPa
+```
+
+Zulässig an der Klemmnabenkante (β_k = 1,5, umlaufende Biegung, C45, S = 2): **75 MPa**.
+Sicherheit 1,7 — **die abgesetzte Welle Ø15/Ø30 entfällt**. Sie war nur nötig, solange die
+Trommel 250 mm breit war und die Lager 340 mm auseinander standen (21,5 Nm).
+
+| | Lager je | gegen |
+|---|---|---|
+| Radiallast | 295 N | C₀ = 2,19 kN (6902) |
+| L10 bei 342 1/min | 2558 Mio. Umdrehungen | ≈ 125 000 h |
+
+→ **Welle Ø15 h6, C45 blank, ca. 350 mm lang**, 2 × 6902-2RS, Lagerabstand 180,
+Klemmnaben Ø15 an beiden Stirnscheiben im Abstand 80.
+
+### 4.3 Das Tränenblech ist ein messtechnischer Gewinn
+
+Der Referenzprüfstand der publizierten Crr-Datenbank fährt auf **Riffelblech**, nicht auf
+glattem Holz. In [06-offene-fragen](06-offene-fragen.md) C1 steht die Oberfläche deshalb
+als systematische Abweichung nach unten. Mit dem Tränenblech fällt dieser Teil von C1
+weitgehend weg; übrig bleibt die Krümmungsdifferenz (unsere 0,93 m gegen 0,77 m dort).
+
+### 4.4 Was die Beplankung am Umfang ändert
+
+| | D | U | n bei 60 km/h |
+|---|---|---|---|
+| Kern allein | 930,0 | 2,9217 m | 342,3 1/min |
+| + 2 × 1,5 mm Blech | 933,0 | 2,9311 m | 341,2 1/min |
+| + Muster ≈ 1 mm | 935,0 | 2,9374 m | 340,4 1/min |
+
+**U wird über die fertige Oberfläche gemessen**, nicht aus dem Kerndurchmesser gerechnet.
+Das Maßband liegt dabei auf den Tränen auf; der Reifen sinkt ein Stück ins Muster ein, der
+wirksame Radius liegt also minimal darunter. Diese Unsicherheit ist mit ≈ 0,1 % klein und
+fällt beim A/B-Vergleich heraus — bei Absolutwerten gehört sie ins Fehlerbudget.
+
+> `MAX_DRUM_RPM` muss mit: bei U = 2,93 m entsprechen 60 km/h **341 1/min** statt der 333
+> aus [03-parameter](03-parameter.md). Das ist eine Sicherheitsgrenze und gehört nach
+> [07-sicherheit](07-sicherheit.md) §4 nachgezogen — mit 333 bliebe der Stand sonst bei
+> 58,4 km/h stehen.
+
+### 4.5 Schwungmasse
+
+```
+J = ½·16·0,465²  (Kern als Scheibe)  +  1,33·0,465²  (Mantel als Ring)
+  = 1,73 + 0,34 = 2,07 kg·m²        (geschätzt — Auslaufversuch entscheidet)
+E = ½·J·ω² = 1330 J bei 60 km/h (ω = 35,8 rad/s)
+```
+
+Die 1,4 kJ aus [07-sicherheit](07-sicherheit.md) §1 bleiben damit die richtige
+Größenordnung. Das Rampenmoment bei 0,5 km/h/s beträgt 0,62 Nm — weiterhin fast so groß
+wie das Reifensignal, es bleibt also bei Messung auf Plateaus.
+
+### 4.6 Das Blech trägt sich selbst — die Schrauben halten nur die Lage
+
+```
+Umfangsspannung im Blech = ρ·v² = 2700 · 16,67² = 0,75 MPa
+```
+
+Gegen R_p0,2 ≈ 100 MPa ist das nichts: ein umlaufendes Blech zieht sich bei Drehzahl von
+selbst stramm, der nach außen drückende Fliehdruck beträgt nur 2,4 kPa. Zu tragen hat die
+**Stoßstelle**: dort müssen 113 N Umfangskraft übergeben werden (σ·t·b). Zwei Punkte:
+
+1. **Schrauben versenkt und außerhalb der Latschbreite.** Ein überstehender Kopf schlägt
+   einmal pro Umdrehung in den Reifen. Bei 100 mm Trommelbreite und maximal 57 mm
+   Reifenbreite (±28,5) liegt eine Schraubenreihe bei **y = ±40** mit 11,5 mm Abstand
+   zum breitesten Reifen — und trotzdem senkkopfversenkt.
+2. **Wuchten.** Eine Überlappung von 30 × 100 × 1,5 mm sind 12 g auf r = 0,465:
+
+| Restunwucht | Fliehkraft bei 341 1/min | Anteil an der statischen Last |
+|---|---|---|
+| 12 g (ungewuchtet, Stoß) | 7,2 N | 1,2 % |
+| 2 g (gewuchtet) | 1,2 N | 0,2 % |
+
+Die Stoßstelle erzeugt außerdem eine Störung **einmal pro Umdrehung**. Das ist genau der
+Grund für die indexgetriggerte, umdrehungssynchrone Mittelung (M2 in
+[01-requirements](01-requirements.md)) — und winkelaufgelöst ausgewertet wird daraus eine
+Diagnose statt eines Fehlers ([02-messkonzept](02-messkonzept.md) §3.5).
