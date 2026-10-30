@@ -246,3 +246,103 @@ Die Stoßstelle erzeugt außerdem eine Störung **einmal pro Umdrehung**. Das is
 Grund für die indexgetriggerte, umdrehungssynchrone Mittelung (M2 in
 [01-requirements](01-requirements.md)) — und winkelaufgelöst ausgewertet wird daraus eine
 Diagnose statt eines Fehlers ([02-messkonzept](02-messkonzept.md) §3.5).
+
+## 5 Momentenbudget und Hebelarm der Drehmomentwaage
+
+### 5.1 Neuer Auslegungsbereich: nur schnelle Straßenreifen
+
+Nicht mehr MTB. Der langsamste vorgesehene Reifen ist der **Continental Contact Urban**:
+18,4 W bei 4 bar, 40-622, 42,5 kg, 29 km/h
+([Quelle](https://www.bicyclerollingresistance.com/tour-reviews/continental-contact-urban),
+abgerufen 2026-10-30) — daraus `Crr = 18,4 / (8,0 · 416,9) = 0,00552`.
+
+| Reifen | Crr | M_Reifen bei r = 0,4665 | + Leerlauf + Laufrad |
+|---|---|---|---|
+| Vittoria Corsa Speed (bester) | 0,0025 | 0,486 Nm | 1,00 Nm |
+| guter Rennreifen | 0,0037 | 0,720 Nm | 1,24 Nm |
+| Continental Grand Prix Urban (16,9 W) | 0,0051 | 0,985 Nm | 1,50 Nm |
+| **Continental Contact Urban (18,4 W)** | **0,0055** | **1,074 Nm** | **1,59 Nm** |
+| **neue Auslegungsgrenze** | **0,0070** | 1,361 Nm | **1,88 Nm** |
+| *alte Auslegungsgrenze (MTB)* | *0,0150* | *2,917 Nm* | *3,43 Nm* |
+
+Die Auslegungsgrenze halbiert sich damit von 0,015 auf **0,007** — 27 % Reserve über dem
+Contact Urban.
+
+### 5.2 Folge: der Hebelarm wird kürzer, nicht länger
+
+Mit L = 0,070 m läge der ungünstigste Fall samt Rampe (2,51 Nm) bei **37 %** des
+Zellenendwerts. Zwei Drittel des Messbereichs blieben ungenutzt, und die auf den Endwert
+bezogenen Zellenfehler (Kriechen, Nichtwiederholbarkeit, typ. 0,02 % FS) gingen voll mit
+ein.
+
+| | L = 0,070 m | **L = 0,040 m** |
+|---|---|---|
+| Auslegungsfall stationär (1,88 Nm) | 26,8 N / 27 % | **47,0 N / 48 %** |
+| mit Rampe (2,51 Nm) | 35,8 N / 37 % | **62,7 N / 64 %** |
+| ΔCrr = 0,0005 | 1,39 N | **2,43 N** |
+| Zellenfehler 0,02 % FS, als Moment | 0,0014 Nm | **0,0008 Nm** = 0,11 % vom Rennreifensignal |
+
+→ **`TORQUE_ARM_M` von 0,070 auf 0,040 m.** Die Bohrungen am Hebelarm (B4) wandern auf
+**40,0 mm** (Zelle) und **80,0 mm** (Kalibrierung), beide weiterhin auf ±0,1 mm
+auszumessen — bei 40 mm sind das 0,25 % statt 0,14 %, das bleibt unter dem Budget.
+`MAX_FORCE_N` = 90 N bleibt als Sättigungsschutz (entspricht jetzt 3,6 Nm).
+
+> Alternative ohne Umbau: Zelle 5 kg statt 10 kg bei L = 0,070 m. Dann liegt der
+> Auslegungsfall bei 73 % und die FS-bezogenen Fehler halbieren sich ebenfalls. Nur
+> sinnvoll, falls ohnehin eine zweite Zelle beschafft wird.
+
+### 5.3 Der Antrieb ist jetzt deutlich überdimensioniert
+
+Stationär werden im Auslegungsfall **1,88 Nm = 67 W** mechanisch gebraucht. Rechnerisch
+genügte ein Motor mit 119 W Nennleistung — die Auswahlregel „250 W Minimum, 350 W richtig"
+aus [03-parameter](03-parameter.md) §4 galt für MTB-Reifen und ist damit hinfällig. Der
+vorhandene Motor hat Faktor 3 Reserve.
+
+Hochlauf auf 60 km/h mit Contact Urban am Rad (J = 2,38 kg·m²):
+
+| Antriebsmoment | Dauer |
+|---|---|
+| 2,0 Nm | 103 s |
+| 3,0 Nm | 46 s |
+| 5,52 Nm (Dauermoment) | **20 s** |
+
+### 5.4 Wo das Problem jetzt wirklich liegt
+
+Je schneller die Reifen, desto größer der Anteil, der **nicht** vom Reifen kommt:
+
+| Reifen | Trommelaerodynamik | Laufrad (Lager + Speichen) |
+|---|---|---|
+| Vittoria Corsa Speed | 55 % | 51 % des Reifensignals |
+| guter Rennreifen | 37 % | 35 % |
+| Contact Urban | 25 % | 23 % |
+
+Die Aerodynamik fällt über die Leerlaufkennlinie heraus. **Das Laufrad nicht** — beim
+Abheben steht es still, seine Lager- und Speichenverluste stecken also unkorrigiert im
+Ergebnis:
+
+```
+0,25 Nm (geschätzt) / (416,9 N · 0,4665 m) = scheinbares Crr von 0,00129
+```
+
+Das sind **51 % des besten Rennreifens** und 23 % des Contact Urban. Für A/B-Vergleiche
+mit demselben Laufrad fällt es heraus ([02-messkonzept](02-messkonzept.md) §3.3), für
+Absolutwerte ist es jetzt der größte Einzelfehler — größer als alles, was in §4.2 des
+Fehlerbudgets steht.
+
+**Vorschlag: Laufrad-Auslaufversuch.** Die Mechanik dafür ist schon da — der Exzenterhebel
+zum Abheben (§5.5 der Mechanik). Ablauf: Trommel auf Drehzahl bringen, Laufrad **im Lauf**
+abheben, seinen eigenen Auslauf aufzeichnen. Dann gilt `J_Rad · dω/dt = M_Rad(ω)`, und aus
+der Schätzung 0,25 Nm wird eine Messkurve. Gebraucht wird dafür nur:
+
+| Teil | Zweck |
+|---|---|
+| 1 Hallsensor + Magnet an den Speichen | Drehzahl des Prüflaufrads |
+| 1 freier Interrupt-Pin am ESP32 | Pulsmessung |
+| J_Rad | aus Wägung und Geometrie, oder aus demselben Auslauf mit bekannter Zusatzmasse |
+
+Das macht den Prüfstand erst absolutwertfähig und kostet zwei Bauteile. Gehört als neuer
+Punkt in [06-offene-fragen](06-offene-fragen.md).
+
+> **Nachzuziehen in `config.h` und [03-parameter](03-parameter.md) §1/§6:**
+> `TORQUE_ARM_M` 0,070 → 0,040 · `CRR_DESIGN_MAX` 0,015 → 0,007. Beide Listen gemeinsam,
+> wie in CLAUDE.md festgelegt — noch **nicht** geändert.
