@@ -14,3 +14,6 @@ __pycache__/
 # Fremdquellen (VESC-Tool-Checkout, 558 MB) - stammt aus dem Upstream-Repo,
 # gehoert nicht in die Projekthistorie. Bei Bedarf neu klonen.
 vesc/
+
+# Render-Umgebung fuer den Schaltplan
+.venv/
