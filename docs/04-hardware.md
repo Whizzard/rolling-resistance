@@ -237,10 +237,16 @@ liegt durch den vorhandenen Aufbau schon fest.
 
 | | |
 |---|---|
-| Magnet | Scheibe **Ø10 × 3 mm** mit **Ø3-Mittelloch**, N42 |
-| Schraube | **DIN 7997 A2, 3 × 12 mm**, Senkkopf, Kreuzschlitz |
-| Vorbohrung | Ø2,0 mm, ca. 10 mm tief |
-| Einschraubtiefe | 12 − 3 = **9 mm** in 15 mm Multiplex |
+| Magnet | Scheibe **Ø10 × 3 mm**, Mittelloch **Ø3,0 mm, gesenkt**, N42 |
+| Schraube | **DIN 7982 A2, 2,9 × 13 mm**, Senkkopf, Kreuzschlitz |
+| Vorbohrung | Ø2,0 mm, ca. 11 mm tief |
+| Einschraubtiefe | 13 − 3 = **10 mm** in 15 mm Multiplex |
+
+Der Durchmesser ist durch das Loch festgelegt, nicht frei wählbar: durch ein echtes
+Ø3,0-Loch geht keine 3,0er Schraube. 2,9 lässt 0,1 mm Luft — eng, aber das Loch ist
+nur 3 mm tief und die Schraube wird gerade durchgesteckt. Kleiner als 2,9 gibt es in
+A2 mit Senkkopf und Kreuzschlitz kaum; falls die 2,9 im Loch klemmt, ist eine
+**Messingschraube** 2,5 × 12 der Ausweg — Messing ist ebenso unmagnetisch.
 
 Zur Last: die Fliehkraft eines 2-g-Magneten bei 60 km/h und r = 0,465 m ist
 `m·ω²·r` = **1,2 N**. Die Schraube ist um Größenordnungen überdimensioniert; sie
@@ -258,9 +264,10 @@ A2 (1.4301) ist austenitisch und praktisch unmagnetisch; kaltverformt bleibt ein
 kleiner Restmagnetismus, der gegenüber Stahl bedeutungslos ist. **Also A2 oder A4,
 niemals verzinkter Stahl.**
 
-Zweite Konsequenz: hat das Mittelloch **keine Senkung**, steht der Senkkopf rund
-2 mm vor. Dann ist der Luftspalt vom Schraubenkopf aus zu messen, nicht von der
-Magnetfläche. Vor dem Bohren der Sensorposition nachsehen, welcher Fall vorliegt.
+Das Loch ist gesenkt, der Kopf sitzt also bündig oder leicht vertieft — der
+Luftspalt wird von der Magnetfläche aus gemessen. Der Kopf der 2,9er misst 5,5 mm
+und setzt damit in einer Senkung für Ø3 sauber auf, eher etwas tiefer als eine 3,0er.
+Das ist willkommen: je weiter der Stahl vom Sensor weg ist, desto weniger stört er.
 
 ### 9.3 Feldreserve
 
