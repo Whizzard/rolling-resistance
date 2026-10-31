@@ -189,7 +189,7 @@ verfügbare Test der ganzen Momentenmesskette — siehe §9.1.
 | Reifentemperatur | Sensor **TBD**, bis dahin Protokollnotiz |
 | Zeitstempel | für die zeitliche Interpolation der Baseline |
 
-## 3 Fehlerbudget
+## 3 Fehlerbudget und Dynamik
 
 ### 3.1 Alles in F_roll rechnen
 
@@ -249,6 +249,98 @@ F_roll) beträgt: 0,02 N sind 3,5 % Drift der Leerlaufkurve über eine Messreihe
 Selbst 2 % bleiben unter ΔCrr = 0,0005. Die Auflast ist also **nicht** der kritische Pfad
 — solange sie zwischen den verglichenen Reifen dieselbe ist. Für den Vergleich mit
 publizierten Daten dagegen zählt der Absolutwert: dort auf 1 % zielen.
+
+### 3.5 Die Waage als Schwinger
+
+Hebelarm, Zugglied und Wägezelle bilden mit der Masse des Stators ein Feder-Masse-System.
+Steifigkeit aus Sicht der Drehachse:
+
+```
+k_rot = k_Zelle · L²  =  327 N/mm · (0,040 m)²  =  523 Nm/rad
+```
+
+Das Zugglied (Schaltzug, 1272 N/mm) trägt dazu nur 0,4 % bei und ist vernachlässigbar.
+Die Masse ist seit dem Wegfall der Pendelwiege **nur noch der Stator**:
+
+| J_Stator | f_n |
+|---|---|
+| 0,007 kg·m² (2 kg, Trägheitsradius 60 mm) | **43,5 Hz** |
+| 0,012 kg·m² | 33,2 Hz |
+| 0,026 kg·m² (4 kg, 80 mm) | 25,7 Hz |
+
+Zum Vergleich die Anregung bei 60 km/h (Trommel 5,69 U/s):
+
+| Ordnung | Frequenz | Ursache |
+|---|---|---|
+| 1. | 5,7 Hz | Unwucht, Stoßstelle des Mantelblechs, Reifenunrundheit |
+| 2. | 11,4 Hz | Rundlauffehler |
+| 3. | 17,1 Hz | |
+| 8. | 45,5 Hz | achtzählige Geometrie, falls vorhanden |
+
+**Die Eigenfrequenz liegt über allen relevanten Ordnungen** — solange nichts Weiches in
+den Kraftpfad kommt. Jedes Elastomer und jede Blattfeder in Reihe schiebt sie nach unten:
+mit 58 N/mm Reihenfeder wären es nur noch 12,9 Hz und damit zwischen 2. und 3. Ordnung.
+Das ist der Grund, warum das Zugglied **axial steif** sein muss und die Nachgiebigkeit
+allein aus der Zelle kommen soll.
+
+> **Der Mittelwert ist von alldem unberührt.** Die Messung ist momentengetrieben, nicht
+> weggetrieben: der Arm ist frei beweglich, die Kraft folgt aus `F = T/L`, unabhängig
+> davon, was in der Kette federt, kriecht oder sich thermisch längt. Eine Resonanz
+> vergrößert nur die Amplitude um den Mittelwert — und die fällt bei umdrehungs-
+> synchroner Mittelung heraus. Gefährlich ist sie nur, weil der Arm dabei in die
+> Anschläge laufen kann.
+
+### 3.6 Sprungantwort: Faktor 2
+
+Ein Momentensprung — Bremsen, Anfahren mit Stromgrenze, blockierendes Laufrad — baut sich
+in der elektrischen Zeitkonstante des Motors auf, also in etwa einer Millisekunde. Für die
+Waage ist das ein Sprung, und ein ungedämpftes System antwortet darauf mit dem
+**doppelten** statischen Wert.
+
+Konsequenz für die Auslegung: der Anschlag muss das Doppelte des erwarteten Moments
+aushalten, nicht das Einfache. Und der **Wirbelstromdämpfer** gehört montiert, bevor zum
+ersten Mal gebremst wird.
+
+Gedämpft wird **parallel**, nicht in Reihe: eine Aluminiumscheibe am Hebelarm zwischen
+zwei Magneten entzieht Energie, ohne die Steifigkeit zu senken. Ein Elastomer im Kraftpfad
+dämpft zwar auch, senkt aber gleichzeitig f_n — es erkauft die Dämpfung mit genau dem
+Problem, das es lösen soll. Angenehmer Nebeneffekt: `ζ = c/(2√(k_rot·J))` — je kleiner
+k_rot, desto wirksamer derselbe Dämpfer; bei der steifen Anbindung braucht es also etwas
+mehr Dämpferfläche.
+
+### 3.7 Abtastung: hier ist noch ein Loch
+
+Der HX711 läuft mit 80 SPS, die Nyquist-Grenze liegt also bei 40 Hz.
+
+| | 10 km/h | 28,8 km/h | 60 km/h |
+|---|---|---|---|
+| Samples je Umdrehung | 84 | 29 | **14** |
+| 8. Ordnung | 7,6 Hz | 21,8 Hz | **45,5 Hz** |
+
+Die 8. Ordnung liegt bei 60 km/h **über** der Nyquist-Grenze und faltet sich auf
+**34,5 Hz** zurück. Dort sitzt sie nicht mehr auf einer Ordnung der Drehung und wird von
+der synchronen Mittelung nicht mehr sauber gelöscht. Zwei Maßnahmen:
+
+1. **Keine achtzählige Geometrie an der Trommel.** Die acht Blechschrauben des Mantels
+   nicht in einer Ebene auf einem Teilkreis setzen, sondern axial versetzt. Die acht
+   Drehzahlmarken selbst sind unkritisch — Magnete erzeugen keine Kraft auf die Trommel,
+   solange die Sensorhalter aus Alu oder Kunststoff sind (§4).
+2. **Nicht Samples mitteln, sondern über die Zeit integrieren.** Bei 14 Samples je
+   Umdrehung liegen die Abtastzeitpunkte nicht synchron zur Drehung; eine einfache
+   Mittelung gewichtet dann ungleich. Richtig ist die Trapezintegration zwischen zwei
+   Indexpulsen, geteilt durch die Dauer.
+
+### 3.8 Warum synchron gemittelt und nicht tiefpassgefiltert wird
+
+Ein Tiefpass hätte Einschwingzeit und Phasendrehung und würde die tiefen Ordnungen — 5,7
+und 11,4 Hz, also genau die störenden — gar nicht erfassen. Die Mittelung über eine
+**ganze Zahl von Umdrehungen** löscht dagegen *alle* Harmonischen der Drehung exakt aus,
+unabhängig von ihrer Frequenz und Amplitude. Sie ist das stärkste verfügbare Filter und
+kostet nichts außer der Indexmarke.
+
+Was übrig bleibt, ist nicht Rauschen, sondern Information: nach Markennummer in
+**45°-Bins** sortiert zeigt dasselbe Rohsignal, *wo* auf dem Umfang die Störung sitzt —
+Stoßstelle, Unwucht oder Reifenunrundheit lassen sich damit auseinanderhalten.
 
 ## 4 Sensorik: was wo sitzt
 
