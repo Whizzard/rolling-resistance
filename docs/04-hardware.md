@@ -216,3 +216,93 @@ M6-Schraube festgezogen. Daraus folgt dreierlei:
 
 Es ist bewusst nichts verrastet und nichts verschraubt außer dieser einen M6 — das Teil
 soll ohne Nacharbeit druckbar und mit einer Hand montierbar sein.
+
+## 9 Markenaufnahme an der Trommel
+
+**8 Magnete**, gleichmäßig auf einem Teilkreis der Trommel-**Stirnfläche**, direkt
+durchgeschraubt. Die Trommel besteht aus zwei Multiplexscheiben à 15 mm, dazwischen
+8 schmale Abstandsklötze am Umfang und ein Vierer-Stern innen — die Magnete kommen
+sinnvollerweise auf den Teilkreis der **8 Abstandsklötze**: dort ist die Scheibe von
+hinten abgestützt, der Radius ist maximal (längste Bogensegmente) und die Teilung
+liegt durch den vorhandenen Aufbau schon fest.
+
+### 9.1 Teile
+
+| | |
+|---|---|
+| Magnet | Scheibe **Ø10 × 3 mm** mit **Ø3-Mittelloch**, N42 |
+| Schraube | **DIN 7997 A2, 3 × 12 mm**, Senkkopf, Kreuzschlitz |
+| Vorbohrung | Ø2,0 mm, ca. 10 mm tief |
+| Einschraubtiefe | 12 − 3 = **9 mm** in 15 mm Multiplex |
+
+Zur Last: die Fliehkraft eines 2-g-Magneten bei 60 km/h und r = 0,465 m ist
+`m·ω²·r` = **1,2 N**. Die Schraube ist um Größenordnungen überdimensioniert; sie
+muss den Magneten nur gegen Vibration halten.
+
+### 9.2 Die Schraube muss nichtmagnetisch sein
+
+Das ist keine Korrosionsfrage, sondern eine Messfrage. Die Schraube sitzt mitten im
+Flussweg des axial magnetisierten Magneten. Eine **Stahlschraube** ist ein Kurzschluss
+von Pol zu Pol durch den Magneten hindurch, und der Kopf liegt auf genau der Fläche,
+die der Sensor sieht. Das Feld wird dann **ringförmig statt mittig** — der Schaltpunkt
+wandert, im Grenzfall gibt es zwei Flanken pro Magnet.
+
+A2 (1.4301) ist austenitisch und praktisch unmagnetisch; kaltverformt bleibt ein
+kleiner Restmagnetismus, der gegenüber Stahl bedeutungslos ist. **Also A2 oder A4,
+niemals verzinkter Stahl.**
+
+Zweite Konsequenz: hat das Mittelloch **keine Senkung**, steht der Senkkopf rund
+2 mm vor. Dann ist der Luftspalt vom Schraubenkopf aus zu messen, nicht von der
+Magnetfläche. Vor dem Bohren der Sensorposition nachsehen, welcher Fall vorliegt.
+
+### 9.3 Feldreserve
+
+Axialfeld einer Scheibe, `B(z) = Br/2 · [(z+t)/√(R²+(z+t)²) − z/√(R²+z²)]`, N42 mit
+Br ≈ 1,3 T; das Loch per Superposition als Gegenscheibe R = 1,5 mm abgezogen.
+Der Abstand bis zum Chip ist `z = Luftspalt + 1,2 mm Gehäusestirnwand (§8)
++ ≈ 0,5 mm Chiplage im Gehäuse`:
+
+| z | B |
+|---|---|
+| 3 mm | 116 mT |
+| 4 mm | 96 mT |
+| 6 mm | 58 mT |
+| 8 mm | 35 mT |
+
+Das Loch kostet rund 22 %. B_OP des TLE4905L liegt im ungünstigsten Fall bei 18 mT —
+selbst bei 8 mm bleibt Faktor 2. **Amplitude ist nie der Engpass.** Den Luftspalt
+deshalb eher großzügig wählen: das macht die Flanke unempfindlich gegen die
+Feldstörung durch Loch und Schraubenkopf, deren Längenskala nur wenige Millimeter ist.
+
+### 9.4 Polung
+
+Der TLE4905L ist unipolar und schaltet nur auf **eine** Polarität. Alle acht Magnete
+müssen mit derselben Seite nach außen; ein Zylindermagnet passt in beiden Richtungen
+ins Loch, die Mechanik verhindert den Dreher also nicht. **Jeden Magneten vor dem
+Festziehen einzeln gegen den Sensor prüfen**, nicht erst am Ende die Flanken zählen.
+
+### 9.5 Winkellage: messen statt bohren
+
+Die Firmware kann die tatsächliche Winkellage der acht Marken selbst bestimmen und
+braucht dafür keine Bohrgenauigkeit. Bei hoher Drehzahl ändert sich ω innerhalb einer
+Umdrehung um höchstens 0,15 % ([09-messtheorie](09-messtheorie.md) §1.7), die Trommel
+läuft also praktisch gleichförmig. Die Abweichungen der acht Intervalle von je 1/8
+sind damit direkt die Winkelfehler. Einmal im Auslauf aufnehmen, als Korrekturtabelle
+ablegen — danach ist die mechanische Streuung aus der Drehzahlmessung heraus.
+
+Gebraucht wird das nur, wenn Drehzahl **unterhalb** einer Umdrehung ausgewertet wird.
+Alles, was ins Ergebnis geht, läuft index-getriggert über ganze Umdrehungen; dort
+kürzt sich der Winkelfehler ohnehin exakt heraus, weil von derselben Marke zu
+derselben Marke gemessen wird.
+
+### 9.6 Variante B: gedruckter Halter
+
+`hardware/magnethalter.py` → `magnethalter.FCStd`, `.step`, `.stl`.
+28,9 × 13,9 × 4,0 mm, Tasche für einen **ungebohrten** Ø10 × 3-Magneten, nach unten
+offen (die Trommelfläche hält ihn), M3 Senkschraube daneben, Zapfen Ø3 gegen
+Verdrehen.
+
+Nicht gebaut — die vorhandenen Magnete sind gebohrt, und direkt durchgeschraubt ist
+einfacher und genauer: eine Bohrung statt zwei, und der Magnet sitzt zentrisch auf
+der Schraube, kann sich also gar nicht aus der Winkellage drehen. Der Halter bleibt
+als Rückfall, falls die Schraube im Loch die Flanke doch stört.

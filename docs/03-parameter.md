@@ -32,8 +32,8 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 
 | Symbol | Konstante | Wert | Einheit | Herkunft | Ermittlung |
 |---|---|---|---|---|---|
-| k | `MARKS_PER_REV` | 6 | – | Festlegung | gleichmäßig verteilt (Auswuchtung) |
-| — | `MIN_PULSE_US` | 800 | µs | ber | Kürzester Abstand: 60 km/h, 6 Marken → 30 ms. Bei 100 km/h → 18 ms. 800 µs filtert sicher nur Störer. |
+| k | `MARKS_PER_REV` | 8 | – | Festlegung | geschraubte Magnete auf dem Teilkreis der 8 Abstandsklötze, [04-hardware](04-hardware.md) §9. Mehr Marken bringen keine Genauigkeit, nur Latenz. |
+| — | `MIN_PULSE_US` | 800 | µs | ber | Kürzester Abstand: 60 km/h, 8 Marken → 22,5 ms. Bei 100 km/h → 13,5 ms. 800 µs filtert sicher nur Störer. |
 | — | `STALL_TIMEOUT_MS` | 2000 | ms | ber | > 1,08 s (langsamster Puls bei 10 km/h, 1 Marke) mit Reserve |
 | — | `SLIP_TOLERANCE` | 0,05 | – | gesch | zulässige relative Abweichung n_Motor/i gegen n_Trommel |
 | — | `MOTOR_PULSES_PER_REV` | 15 | – | TBD | Hallflanken einer Phase pro Motorumdrehung = Polpaarzahl. Ermittlung: Motor von Hand eine volle Umdrehung drehen und Flanken zählen. |

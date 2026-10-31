@@ -35,8 +35,13 @@ constexpr float BELT_RATIO = 1.00f;
 
 // ------------------------------------------------------- Drehzahlaufnehmer
 
-constexpr uint8_t MARKS_PER_REV = 6;     // [Festlegung] gleichmäßig verteilt
-constexpr uint32_t MIN_PULSE_US = 800;   // [ber] kürzester echter Abstand ist 18 ms
+// [Festlegung] 8 geschraubte Magnete auf dem Teilkreis der 8 Abstandsklötze
+// (docs/04-hardware.md §9). Mehr Marken bringen keine Genauigkeit — alles, was ins
+// Ergebnis geht, wird index-getriggert über ganze Umdrehungen gemessen, dort kürzt
+// sich die Markenteilung exakt heraus. Sie bringen nur Latenz auf dem
+// trommelseitigen Pfad; die eigentliche Auflösung liefert der Motor-Hall.
+constexpr uint8_t MARKS_PER_REV = 8;
+constexpr uint32_t MIN_PULSE_US = 800;   // [ber] kürzester echter Abstand ist 22,5 ms
 constexpr uint32_t STALL_TIMEOUT_MS = 2000;  // [ber] > 1,08 s bei 10 km/h
 constexpr float SLIP_TOLERANCE = 0.05f;  // [gesch] n_Motor/i gegen n_Trommel
 
