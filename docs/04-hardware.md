@@ -178,3 +178,41 @@ Labornetzteil kann sie nicht aufnehmen, die Zwischenkreisspannung steigt und der
 schaltet mit Überspannung ab. Lösungen: Bremswiderstand mit Chopper (1,4 kJ über 10 s
 sind 140 W, ein 100-W-Widerstand reicht), eine Batterie als Puffer, oder die mechanische
 Trommelbremse des Motors benutzen.
+
+## 8 Gebergehäuse für die Hall-Sensoren
+
+CAD-Quelle: `hardware/hall_gehaeuse.py` (FreeCAD-Skript, parametrisch).
+Erzeugt `hardware/hall-gehaeuse.FCStd`, `.step` und `.stl`. Die Datei wird aus dem
+Skript erzeugt, nicht umgekehrt — Maßänderungen immer im Skript.
+
+Außenmaß **37,2 × 20,0 × 10,0 mm**, 3D-Druck, Materialvolumen 4,6 cm³.
+
+### 8.1 Aufbau
+
+| Merkmal | Maß | Begründung |
+|---|---|---|
+| Kavität (Platine) | 20 × 14 × 8 mm | handgesägte Lochrasterplatine 18 × 13 mm, 2,54er Raster, 7 × 5 Löcher |
+| Stirnwand vor dem Geber | 1,2 mm | geht direkt in den Magnet-Luftspalt ein, daher so dünn wie druckbar |
+| Seitenwände / Deckel | 3,0 / 2,0 mm | |
+| M6-Durchgang | Ø 6,6 mm, 4,5 mm aus der Mitte versetzt | Platz für den Kabelkanal daneben |
+| Kabelkanal | D-Nut 4,4 mm breit, **3,4 mm tief** | Kabel Ø 4 mm, dreiadrig |
+| LED-Loch | Ø 3,2 mm im Deckel | 3-mm-LED von innen durchgesteckt |
+
+Die Unterseite ist offen. Der Hall-Geber (TLE4905L, PG-SSO-3-2) steht aufrecht — also
+**parallel zur Schraubenachse** — am Kopfende direkt hinter der 1,2-mm-Stirnwand, die
+beschriftete, magnetempfindliche Seite nach außen.
+
+### 8.2 Montage und Zugentlastung
+
+Das Gehäuse wird mit der offenen Seite auf das Alublech gesetzt und mit **einer**
+M6-Schraube festgezogen. Daraus folgt dreierlei:
+
+1. Das Blech deckt die Platine ab (Isolation durch Klebeband oder Kleber auf der
+   Blechseite — das Gehäuse hat dafür keine eigene Wand).
+2. Die Nut ist mit 3,4 mm flacher als das Kabel dick ist. Das Blech klemmt den Mantel
+   um 0,6 mm ein, das ist die **Zugentlastung** — ohne zusätzliche Schelle.
+3. Nur eine Schraube heißt: das Gehäuse kann sich um sie drehen. Die Ausrichtung des
+   Gebers zur Trommelmarke muss beim Anziehen mit eingestellt werden.
+
+Es ist bewusst nichts verrastet und nichts verschraubt außer dieser einen M6 — das Teil
+soll ohne Nacharbeit druckbar und mit einer Hand montierbar sein.
