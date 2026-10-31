@@ -443,3 +443,141 @@ B·ω² die Aerodynamik von Speichen und Reifen.
 > Auflast (442 N); gerechnet sind das 0,0003 statt 0,005 Nm am Rad, also beide Male
 > vernachlässigbar gegen die 0,18 Nm Aerodynamik. Der dominierende Anteil ist
 > lastunabhängig — deshalb funktioniert das Verfahren überhaupt.
+
+## 7 Momentenabgriff ohne Pendelwiege
+
+### 7.1 Die Anordnung
+
+Der Rotor des Nabenmotors ist über einen **starren Flansch** mit der Hauptwelle verbunden
+und läuft mit ihr um. Der Stator trägt sich auf den motoreigenen Lagern am Rotor ab und
+ist gegen Verdrehen **nur durch den Hebelarm** gehalten. Es gibt kein separates
+Pendellager.
+
+```
+Trommel ── Hauptwelle ── starrer Flansch ── Rotor
+                                             │  Motorlager
+                                           Stator ── Hebelarm ── Zugglied ── Wägezelle
+```
+
+### 7.2 Warum die Motorlagerreibung exakt herausfällt
+
+Freischnitt des Stators und des Rotors getrennt, stationär:
+
+```
+Stator:   −T_em + T_reib + T_arm = 0
+Rotor:    +T_em − T_reib − T_last = 0      →  T_em = T_reib + T_last
+einsetzen: T_arm = T_em − T_reib = T_last
+```
+
+Die Rotor-Stator-Reibung steht in beiden Gleichungen und kürzt sich **exakt** heraus. Der
+Hebelarm misst nur, was von außen an der Trommel zieht. Damit entfällt die
+Pendellager-Hysterese von 1,2 mNm aus dem Fehlerbudget ersatzlos — und mit ihr zwei
+Lager, ein Lagerbock und ein Ausrichtproblem.
+
+### 7.3 Das Zugglied: Schaltzug statt Druckstab
+
+Eine starre Verbindung zwischen Hebelarm und Zelle überträgt bei der Armdrehung ein
+Störmoment in die Zelle. Bei 7,5 mrad (Endlast, Hebel 40 mm, Zelle 0,3 mm):
+
+| Verbindung | Störmoment | vom Contact-Urban-Signal |
+|---|---|---|
+| starre M5-Schraube, 20 mm | 9664 mNm | **900 %** |
+| Ø3-Stab, 100 mm | 250 mNm | 23 % |
+| **Schaltzug 1,2 mm, 80 mm frei** | **1,6 mNm** | **0,15 %** |
+
+→ **Fahrrad-Schaltzug 1,2 mm (1×19), 80 mm freie Länge.** Schaltzüge sind auf minimale
+Längung konstruiert — die Schaltpräzision hängt daran; Bremszüge (besonders 7×7) sind
+bewusst weicher.
+
+| | Wert | Bedeutung |
+|---|---|---|
+| Metallquerschnitt | 0,85 mm² | |
+| k_axial bei 80 mm | 1272 N/mm | gegen 327 N/mm der Zelle → keine Reihenfeder |
+| Bruchlast | ≈ 1600 N | gegen 118 N am Anschlag, Faktor 13 |
+| knickt bei | 6,6 N | **beim Bremsen sieht die Zelle höchstens 6,6 N = 6,7 % FS** |
+
+Die letzte Zeile ist der eigentliche Gewinn: **das Bremsmoment geht vollständig am Sensor
+vorbei.** Bei 20 Nm Bremsmoment landen 500 N im Anschlag und 6,6 N in der Zelle.
+Eine geflochtene Textilschnur wäre mit 157 N/mm dagegen weich genug, um unbeabsichtigt
+als Reihenfeder zu wirken und die Eigenfrequenz zu halbieren.
+
+**Befestigung:** werksseitiger Lötnippel an einem Ende, Klemm- oder Pressnippel am
+anderen. **Kein Knoten, keine flache Klemmschraube auf dem blanken Zug** — beides rutscht
+unter Last. Für die Kraft wäre das harmlos (der Arm ist frei, die Kraft folgt aus dem
+Moment), es verstellt aber die Ruhelage und damit die eingestellten Schwellen. Zug
+**gerade** führen: eine Krümmung verschiebt die Wirkungslinie und damit den Hebelarm.
+
+### 7.4 Vorspannung
+
+Der Zug darf im Messbetrieb nie schlaff werden, sonst wird das Signal einseitig
+abgeschnitten und der Mittelwert verfälscht. Das Moment ist nicht konstant — Unwucht,
+Stoßstelle des Mantelblechs und Reifenunrundheit modulieren es einmal pro Umdrehung.
+
+| Momentenwelligkeit | nötige Mindestvorspannung |
+|---|---|
+| 10 % vom Signal | 2,7 N |
+| 20 % | 5,4 N |
+| 30 % | 8,1 N |
+
+→ **12 N (12 % FS), als konstante Kraft**: Gewicht über eine Rolle oder Gegengewicht am
+Arm. **Keine Feder** — eine Feder hat eine Rate und zweigt einen drehwinkelabhängigen
+Anteil des Moments ab; ein Gewicht liefert eine konstante Kraft und fällt vollständig in
+die statische Tara. Messbereich damit 12 % (Tara) bis 76 % FS im Auslegungsfall.
+
+Wird der Zug doch schlaff, sieht man es in den Rohdaten als untere Begrenzung des
+Signals. Das gehört in die Prüfliste des ersten Laufs.
+
+### 7.5 Anschläge und Messzonenerkennung
+
+Der Zug schützt nur gegen Bremsen. In **Zugrichtung** liegt die Gefahr weiter beim
+Spitzenmoment des Motors: 12,6 Nm sind 315 N und damit über der Bruchlast der 10-kg-Zelle.
+
+| Radius am Hebelarm | Funktion |
+|---|---|
+| 40 mm | Zugglied zur Wägezelle |
+| 80 mm | Kalibrierbohrung |
+| **200 mm** | Flagge der Lichtschranke **und** Anschlagschraube, beide Richtungen |
+
+Der große Radius verfünffacht alle Wege und macht die Einstellung erst praktikabel:
+
+| | Weg am Radius 200 mm |
+|---|---|
+| Messbetrieb (64 % FS) | 0,96 mm |
+| Lichtschranke schaltet (90 % FS) | 1,35 mm |
+| Anschlag greift (120 % FS) | 1,80 mm |
+
+**Eingestellt wird über die Last, nicht über den Spalt.** Masse anhängen, Anschlagschraube
+hineindrehen, bis die Anzeige der Wägezelle aufhört zu steigen, kontern. Das funktioniert
+unabhängig von Zellensteifigkeit und Hebelverhältnis:
+
+| Zielkraft | Masse am Kalibrierloch (80 mm) |
+|---|---|
+| 90 % FS (Lichtschranke) | 4,5 kg |
+| 120 % FS (Anschlag) | **6,0 kg** |
+| *150 % FS — Grenze der zulässigen Überlast* | *7,5 kg, nie überschreiten* |
+
+> 20 kg am 80-mm-Loch wären 15,7 Nm = 392 N = **400 % vom Endwert** und zerstören die
+> Zelle beim Einstellen.
+
+### 7.6 Warum optisch und nicht magnetisch oder mechanisch
+
+| Verfahren | Kraft auf den Arm | bei r = 200 mm | vom Signal |
+|---|---|---|---|
+| Mikroschalter, Standard | 1,5 N | 0,30 Nm | **28 %** |
+| Mikroschalter, hochempfindlich | 0,1 N | 0,02 Nm | 2 % |
+| Magnet + Stahlblende | 0,1…1 N (Kantenkraft) | 0,02…0,2 Nm | **2…19 %** |
+| **Gabellichtschranke** | **0** | **0** | **0 %** |
+
+Zur Blende: **Aluminium schirmt ein statisches Magnetfeld nicht ab** — es ist
+unmagnetisch, das Feld geht hindurch. Nötig wäre Stahl (das Prinzip der alten
+Zündverteiler-Hallgeber). Aber auch dann zieht der Magnet an der Blende, und zwar mit
+einer Kantenkraft genau an der Schaltposition — also dort, wo es am meisten stört. Eine
+Lichtschranke ist von der Physik her kraftfrei.
+
+Eine Fahne mit **Fenster** erledigt beide Richtungen mit einem Sensor und einem GPIO:
+Licht durch → Messzone → Signal gültig. Licht blockiert → Signal verwerfen, FAULT.
+
+> **Nebenbefund für die Trommelmarken:** die Halter der Hall-Sensoren an der Trommel aus
+> **Aluminium oder Kunststoff** fertigen, nicht aus Stahl. Ein Stahlhalter zieht die
+> vorbeilaufenden Magnete an und erzeugt ein Rastmoment — es fiele zwar in die
+> Leerlaufkennlinie, aber es ist vermeidbar.
