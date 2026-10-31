@@ -113,7 +113,7 @@ Nimm als System alles, was auf der Wiege sitzt. Im stationären Zustand ist die 
 | Luftwiderstand der Trommel | nein | ja → Leerlaufkennlinie |
 | Lager und Aerodynamik des Prüflaufrads | nein | ja → Laufrad-Auslaufversuch |
 | Reifen am Latsch | nein | ja → **das Signal** |
-| Reibung im Pendellager selbst | — | ja, als Hysteresefehler (1,2 mNm) |
+| Reibung Rotor ↔ Stator (= das „Pendellager") | ja | **nein** — kürzt sich exakt heraus, §7.2 in 08-staender |
 
 Daraus folgt der ganze Rest des Verfahrens: zwei Korrekturkurven (Leerlauf, Laufrad), ein
 Restfehler (Trommellager), und ein Pendellager, das so reibungsarm wie möglich sein muss.
@@ -210,7 +210,7 @@ Bezugsgröße ist das Ziel aus [01-requirements](01-requirements.md) M1:
 | Zellenrauschen, Einzelsample | 0,0017 N | 0,8 % | 0,11 % |
 | Zellenrauschen nach 10 Umdrehungen | 0,0001 N | 0,1 % | 0,01 % |
 | Zelle, FS-Fehler 0,02 % (Kriechen, Wiederholbarkeit) | 0,0017 N | 0,8 % | 0,11 % |
-| Pendellager-Hysterese (1,2 mNm) | 0,0026 N | 1,2 % | 0,17 % |
+| ~~Pendellager-Hysterese~~ — *entfällt, kein Pendellager mehr ([08-staender](08-staender.md) §7.2)* | 0 | 0 | 0 |
 | Hebelarm L auf ±0,1 mm | 0,0039 N | 1,8 % | 0,25 % |
 | Umfang U auf ±1 mm | 0,0005 N | 0,3 % | 0,03 % |
 | **J_Rad auf ±1,5 %** | 0,0080 N | 3,9 % | 0,52 % |
@@ -254,14 +254,15 @@ publizierten Daten dagegen zählt der Absolutwert: dort auf 1 % zielen.
 
 | Sensor | Ort | Signal | Pin |
 |---|---|---|---|
-| **Trommelmarken** | 6 Magnete auf der Stirnscheibe, gleichmäßig, r so groß wie möglich | Hall, Interrupt | `PIN_MARK` 25 |
-| **Indexmarke** | 1 Magnet, andere Spur oder anderer Radius | Hall, Interrupt | `PIN_INDEX` 26 |
-| **Motor-Hall** | im Motor vorhanden, eine Phase herausführen | Interrupt | `PIN_MOTOR_HALL` 27 |
-| **Wägezelle** | Hebelarm → Zelle, Anbindung über abgesetzten M5-Stab | HX711, 80 SPS | 32 / 33 |
-| **Laufraddrehzahl** *(neu)* | **4 Magnete an den Speichen**, Hall am Ausfallende | Interrupt | **TBD, freier Pin** |
+| **Trommelmarken** | **8 Magnete** auf der Stirnscheibe (die vorhandenen Striche), r so groß wie möglich, **Halter aus Alu oder Kunststoff** | Hall, Interrupt | GPIO4 |
+| **Indexmarke** | 1 Magnet, andere Spur oder anderer Radius — **zwingend unipolar (TLE4905L)**, ein Latch bliebe hängen | Hall, Interrupt | GPIO5 |
+| **Motor-Hall** | im Motor vorhanden, eine Phase herausführen | Interrupt | GPIO7 |
+| **Wägezelle** | Hebelarm → **Schaltzug 1,2 mm, 80 mm** → Zelle, 12 N vorgespannt | HX711, 80 SPS | 15 / 16 |
+| **Laufraddrehzahl** | **4 Magnete an den Speichen**, Hall am Ausfallende | Interrupt | GPIO6 |
+| **Messzone der Waage** | Gabellichtschranke, Fahne mit Fenster auf r = 200 mm am Hebelarm | digital | **TBD, freier Pin** |
 | Reifentemperatur | berührungslos auf die Lauffläche, kurz nach dem Latsch | analog oder I²C | **TBD** |
 | Umgebungstemperatur | am Rahmen, weg von Motor und Netzteil | I²C | **TBD** |
-| Motor-PTC | im Motor | analog | `PIN_MOTOR_PTC` 35 |
+| Motor-PTC | im Motor | analog | GPIO1 (ADC1) |
 | Reifendruck | BLE-Sensor am Ventil | BLE | — |
 
 Zwei Dinge, die bei der Montage entscheiden, ob die Messung taugt:

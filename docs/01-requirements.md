@@ -40,9 +40,12 @@ Diese vier sind später teuer nachzurüsten und gehören in die erste Konstrukti
    Sonst ist die Leerlaufkennlinie nicht unter identischen Bedingungen messbar.
 2. **Drehpunkt des Laufradarms so legen, dass die Tangentialkraft die Auflast nicht
    verändert** — Drehpunkt in Richtung der Reibkraft bzw. auf Latschhöhe.
-3. **Motor-Wiegeteil reibungsarm, steif und leicht.** Zuleitungen als weiche Schlaufe
-   über das Drehlager. Kalibrierpunkt für ein bekanntes Gewicht am Hebelarm vorsehen.
-   Platz für Wirbelstromdämpfer und beidseitige weiche Endanschläge einplanen.
+3. **Momentenabgriff ohne zusätzliches Lager.** Der Stator trägt sich auf den
+   motoreigenen Lagern ab und ist nur über den Hebelarm gehalten; damit kürzt sich die
+   Rotor-Stator-Reibung exakt heraus ([08-staender](08-staender.md) §7.2). Zuleitungen
+   treten axial auf der Achse aus. Kalibrierbohrung bei 80 mm, Flagge der Lichtschranke
+   und **beidseitige Endanschläge bei 200 mm** — ohne sie zerstört schon das
+   Spitzenmoment des Motors die Zelle. Platz für den Wirbelstromdämpfer einplanen.
 4. **Motor-Hallsignale an den ESP32 führen.** Beim Direktantrieb sind Motor- und
    Trommeldrehzahl identisch; der Vergleich mit den Trommelmarken ist dann eine
    Plausibilitätsprüfung, die einen ausgefallenen Aufnehmer erkennt. Kommt doch ein
@@ -54,7 +57,7 @@ Weiter:
 |---|---|---|
 | X1 | M | **Direktantrieb**: Trommel auf dem Motorrotor, Statorachse **beidseitig** in Stehlagern auf dem Wiegerahmen, Trommel symmetrisch zur Motorebene (kein Biegemoment auf die Motorlager). Lässt sich die Achse nicht beidseitig lagern, bekommt die Trommel eigene Lager und einen Zahnriemen. |
 | X2 | M | Trommel gewuchtet; zulässige Höchstdrehzahl schriftlich festgelegt ([07-sicherheit](07-sicherheit.md)). |
-| X3 | M | Wägezelle zug- **und** druckfähig angebunden: im Auslauf kehrt das Moment sein Vorzeichen um. |
+| X3 | M | Wägezelle **nur auf Zug** angebunden (Schaltzug, 12 N vorgespannt). Das Vorzeichen kehrt beim Bremsen und im Auslauf um — dann wird der Zug schlaff und die Last geht in den Anschlag, nicht in die Zelle. Begründung und Maße: [08-staender](08-staender.md) §7.3. |
 | X4 | S | Nur falls doch ein Riemen nötig wird: HTD/GT-Profil, nicht T-Profil, wegen der Anregung des Wiegeteils. |
 | X5 | M | Trommelbremse des Motors im Messbetrieb vollständig gelöst — ein Schleppmoment driftet mit der Temperatur und zerstört die Leerlaufkennlinie. |
 

@@ -30,11 +30,32 @@ Scooter-Vorderräder sitzen üblicherweise beidseitig in der Gabel. Falls ja, is
 Pendellagerung unkompliziert: beide Achsenden in Stehlager, Drehmomentarm an einem Ende.
 Falls einseitig: wie beim Hoverboard-Rad entsprechend auslegen.
 
-### A8 Bremskonzept und Rückspeisung
-Der freie Auslauf dauert gerechnet 13 Minuten. Rekuperatives Bremsen scheitert an einem
-Netzteil, das keine Energie aufnehmen kann. Entscheidung nötig zwischen Bremswiderstand
-mit Chopper (~100 W reichen), einer Batterie als Puffer, oder konsequent der
-mechanischen Trommelbremse.
+### A8 Bremskonzept und Rückspeisung — **entschieden**
+**Kurzschlussbremsung statt Bremswiderstand.** Werden die drei Motorphasen gegeneinander
+kurzgeschlossen, bleibt die Energie im Motorkupfer: 1321 J heben die Wicklung um 4 bis
+11 K an, also nichts. Der Bremswiderstand mit Chopper entfällt damit ersatzlos.
+
+| Zweck | Mittel | funktioniert ohne |
+|---|---|---|
+| normales Anhalten | Regler im Kurzschlussmodus | — braucht den Regler |
+| **Not-Aus** | dreipoliger Schütz, Öffnerkontakte: fällt bei Spannungsverlust ab und schließt die Phasen kurz | Regler **und** Strom |
+| Feststellen | mechanische Trommelbremse | alles |
+
+Zwei Öffnerkontakte genügen (U–V und V–W verbinden alle drei). Strom bei 60 km/h rund
+**60 A** bei 20,3 V Gegen-EMK — der Kontakt schaltet aber **stromlos** (beim Schließen
+fließt noch nichts, geöffnet wird erst im Stillstand), er muss nur tragen. Leistungsschütz
+ab 20 A mit 2 Öffnern, Spule 24 V DC aus derselben geschalteten Versorgung wie der Regler,
+damit die Reihenfolge stimmt.
+
+Offen bleibt: **R und L des Motors messen** (die 60 A sind damit gerechnet), und der
+Kurzschluss muss beim Auslaufversuch offen sein, sonst misst man die Bremskurve statt der
+Verlustkurve. Bremsmoment 5…20 Nm ergibt 15…4 s Bremszeit; der Reifen rutscht dabei nicht
+(4 N nötige Latschkraft gegen 334 N Haftgrenze).
+
+> **Die Wägezelle muss dabei geschützt sein.** Das Bremsmoment geht über den Stator in den
+> Hebelarm. Mit dem Zugglied aus Schaltzug ([08-staender](08-staender.md) §7.3) knickt
+> dieser bei 6,6 N und die Last geht in den Anschlag — ohne diese Maßnahme wären es 250 bis
+> 500 N an einer Zelle mit 98 N Endwert.
 
 ### A7 Masse des Motors
 Geht in die Trägheit des Wiegeteils und damit in dessen Eigenfrequenz ein
