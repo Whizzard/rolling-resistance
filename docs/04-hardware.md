@@ -181,6 +181,11 @@ Trommelbremse des Motors benutzen.
 
 ## 8 Gebergehäuse für die Hall-Sensoren
 
+Die Drehzahlerfassung hat **zwei Enden**, die nichts miteinander gemein haben:
+die **Sensorseite** steht fest am Rahmen (dieser Abschnitt, ein gedrucktes
+Gehäuse), die **Magnetseite** dreht mit der Trommelscheibe (§9, nur Magnet und
+Schraube, nichts Gedrucktes).
+
 CAD-Quelle: `hardware/hall_gehaeuse.py` (FreeCAD-Skript, parametrisch).
 Erzeugt `hardware/hall-gehaeuse.FCStd`, `.step` und `.stl`. Die Datei wird aus dem
 Skript erzeugt, nicht umgekehrt — Maßänderungen immer im Skript.
@@ -218,6 +223,8 @@ Es ist bewusst nichts verrastet und nichts verschraubt außer dieser einen M6 �
 soll ohne Nacharbeit druckbar und mit einer Hand montierbar sein.
 
 ## 9 Markenaufnahme an der Trommel
+
+Die mitdrehende Seite, Gegenstück zum Gebergehäuse aus §8.
 
 **8 Magnete**, gleichmäßig auf einem Teilkreis der Trommel-**Stirnfläche**, direkt
 durchgeschraubt. Die Trommel besteht aus zwei Multiplexscheiben à 15 mm, dazwischen
@@ -294,15 +301,3 @@ Gebraucht wird das nur, wenn Drehzahl **unterhalb** einer Umdrehung ausgewertet 
 Alles, was ins Ergebnis geht, läuft index-getriggert über ganze Umdrehungen; dort
 kürzt sich der Winkelfehler ohnehin exakt heraus, weil von derselben Marke zu
 derselben Marke gemessen wird.
-
-### 9.6 Variante B: gedruckter Halter
-
-`hardware/magnethalter.py` → `magnethalter.FCStd`, `.step`, `.stl`.
-28,9 × 13,9 × 4,0 mm, Tasche für einen **ungebohrten** Ø10 × 3-Magneten, nach unten
-offen (die Trommelfläche hält ihn), M3 Senkschraube daneben, Zapfen Ø3 gegen
-Verdrehen.
-
-Nicht gebaut — die vorhandenen Magnete sind gebohrt, und direkt durchgeschraubt ist
-einfacher und genauer: eine Bohrung statt zwei, und der Magnet sitzt zentrisch auf
-der Schraube, kann sich also gar nicht aus der Winkellage drehen. Der Halter bleibt
-als Rückfall, falls die Schraube im Loch die Flanke doch stört.

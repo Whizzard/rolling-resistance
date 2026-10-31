@@ -17,3 +17,6 @@ vesc/
 
 # Render-Umgebung fuer den Schaltplan
 .venv/
+
+# FreeCAD-Sicherungskopien
+*.FCBak
