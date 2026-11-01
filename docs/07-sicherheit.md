@@ -184,8 +184,15 @@ und den Lagern**, nicht der Messgenauigkeit.
 
 - [ ] Haube geschlossen und verriegelt
 - [ ] Not-Aus erreichbar und geprüft
-- [ ] Trommel sichtgeprüft: Risse, Nabe, lose Teile
+- [ ] Trommel sichtgeprüft: Risse, Nabe, lose Teile, Markenmagnete fest
 - [ ] Prüflaufrad gesichert
-- [ ] Riemenspannung und Riemenabdeckung geprüft
+- [ ] Blockierkeil entfernt
 - [ ] Nichts Loses im Prüfraum
 - [ ] Zweite Person informiert oder anwesend
+- [ ] **Zeit für 3 bis 6 Minuten Auslauf eingeplant** — es gibt keine Bremse
+
+## 7 Nach jedem Lauf
+
+- [ ] Antrieb aus, Trommel **sichtbar** zum Stillstand gekommen
+- [ ] Erst dann Haube öffnen
+- [ ] Vor Arbeiten am Aufbau: Blockierkeil zwischen Rahmen und Speiche
