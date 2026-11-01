@@ -326,30 +326,23 @@ mit 58 N/mm Reihenfeder wären es nur noch 12,9 Hz und damit zwischen 2. und 3. 
 Das ist der Grund, warum das Zugglied **axial steif** sein muss und die Nachgiebigkeit
 allein aus der Zelle kommen soll.
 
-> **Der Mittelwert ist von alldem unberührt.** Die Messung ist momentengetrieben, nicht
-> weggetrieben: der Arm ist frei beweglich, die Kraft folgt aus `F = T/L`, unabhängig
-> davon, was in der Kette federt, kriecht oder sich thermisch längt. Eine Resonanz
-> vergrößert nur die Amplitude um den Mittelwert — und die fällt bei umdrehungs-
-> synchroner Mittelung heraus. Gefährlich ist sie nur, weil der Arm dabei in die
-> Anschläge laufen kann.
+> **Der Mittelwert ist davon unberührt.** Die Messung ist momentengetrieben: der Arm ist
+> frei beweglich, `F = T/L` gilt unabhängig davon, was in der Kette federt oder kriecht.
+> Eine Resonanz vergrößert nur die Amplitude um den Mittelwert, und die fällt bei
+> synchroner Mittelung heraus. Gefährlich ist sie, weil der Arm in die Anschläge läuft.
 
 ### 3.6 Sprungantwort: Faktor 2
 
-Ein Momentensprung — Bremsen, Anfahren mit Stromgrenze, blockierendes Laufrad — baut sich
-in der elektrischen Zeitkonstante des Motors auf, also in etwa einer Millisekunde. Für die
-Waage ist das ein Sprung, und ein ungedämpftes System antwortet darauf mit dem
-**doppelten** statischen Wert.
+Ein Momentensprung — Bremsen, Stromgrenze beim Anfahren, blockierendes Laufrad — baut
+sich in rund einer Millisekunde auf. Ein ungedämpftes System antwortet darauf mit dem
+**doppelten** statischen Wert. Daraus zwei Festlegungen:
 
-Konsequenz für die Auslegung: der Anschlag muss das Doppelte des erwarteten Moments
-aushalten, nicht das Einfache. Und der **Wirbelstromdämpfer** gehört montiert, bevor zum
-ersten Mal gebremst wird.
+- Der Anschlag muss das **Doppelte** des erwarteten Moments aushalten.
+- Der Wirbelstromdämpfer gehört montiert, **bevor** zum ersten Mal gebremst wird.
 
-Gedämpft wird **parallel**, nicht in Reihe: eine Aluminiumscheibe am Hebelarm zwischen
-zwei Magneten entzieht Energie, ohne die Steifigkeit zu senken. Ein Elastomer im Kraftpfad
-dämpft zwar auch, senkt aber gleichzeitig f_n — es erkauft die Dämpfung mit genau dem
-Problem, das es lösen soll. Angenehmer Nebeneffekt: `ζ = c/(2√(k_rot·J))` — je kleiner
-k_rot, desto wirksamer derselbe Dämpfer; bei der steifen Anbindung braucht es also etwas
-mehr Dämpferfläche.
+Gedämpft wird **parallel**: Aluminiumscheibe am Hebelarm zwischen zwei Magneten. Ein
+Elastomer im Kraftpfad dämpft zwar auch, senkt dabei aber f_n — es erkauft die Dämpfung
+mit genau dem Problem, das es lösen soll.
 
 ### 3.7 Abtastung: hier ist noch ein Loch
 
@@ -375,15 +368,14 @@ der synchronen Mittelung nicht mehr sauber gelöscht. Zwei Maßnahmen:
 
 ### 3.8 Warum synchron gemittelt und nicht tiefpassgefiltert wird
 
-Ein Tiefpass hätte Einschwingzeit und Phasendrehung und würde die tiefen Ordnungen — 5,7
-und 11,4 Hz, also genau die störenden — gar nicht erfassen. Die Mittelung über eine
-**ganze Zahl von Umdrehungen** löscht dagegen *alle* Harmonischen der Drehung exakt aus,
-unabhängig von ihrer Frequenz und Amplitude. Sie ist das stärkste verfügbare Filter und
-kostet nichts außer der Indexmarke.
+Ein Tiefpass hätte Einschwingzeit und Phasendrehung und würde die tiefen Ordnungen (5,7
+und 11,4 Hz — genau die störenden) gar nicht erfassen. Die Mittelung über eine **ganze
+Zahl von Umdrehungen** löscht dagegen *alle* Harmonischen der Drehung exakt, unabhängig
+von Frequenz und Amplitude, und kostet nur die Indexmarke.
 
-Was übrig bleibt, ist nicht Rauschen, sondern Information: nach Markennummer in
-**45°-Bins** sortiert zeigt dasselbe Rohsignal, *wo* auf dem Umfang die Störung sitzt —
-Stoßstelle, Unwucht oder Reifenunrundheit lassen sich damit auseinanderhalten.
+Nach Markennummer in **45°-Bins** sortiert zeigt dasselbe Rohsignal zusätzlich, *wo* auf
+dem Umfang die Störung sitzt — Stoßstelle, Unwucht und Reifenunrundheit lassen sich so
+auseinanderhalten.
 
 ## 4 Sensorik: was wo sitzt
 
