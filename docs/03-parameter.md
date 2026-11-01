@@ -13,7 +13,7 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 | r | `DRUM_RADIUS_M` | **0,4665** | m | ber | U / 2π |
 | L | `TORQUE_ARM_M` | **0,040** | m | ber | Von 0,070 **verkürzt**, weil `CRR_DESIGN_MAX` auf 0,007 gesunken ist — sonst blieben zwei Drittel des Messbereichs ungenutzt. Auslegungsfall stationär 1,88 Nm → 47,0 N = 48 % FS; samt Rampe 2,51 Nm → 62,7 N = 64 %; ΔCrr 0,0005 → 2,43 N. Herleitung [08-staender](08-staender.md) §5.2. Bohrungen 40,0 mm (Zelle) und 80,0 mm (Kalibrierung), je ±0,1 mm. Nach dem Bau mit bekanntem Gewicht nachmessen (§2). |
 | i | `BELT_RATIO` | 1,00 | – | Festlegung | **Direktantrieb**: Trommel auf dem Motorrotor, keine Übersetzung. Konstante bleibt für den Fall eines späteren Riemens. |
-| J | — | 2,3 | kg·m² | gesch | **Auslaufversuch**, siehe [02-messkonzept](02-messkonzept.md) §5. Nur für die optionale Rampenkorrektur nötig. |
+| J | — | **2,07** | kg·m² | ber | Aus der Geometrie, [09-messtheorie](09-messtheorie.md) §9.1. Der frühere Wert 2,3 galt der Ø-955-Trommel. Geht **nicht** ins Ergebnis ein (gemessen wird stationär, dω/dt = 0), sondern nur in Rampenkorrektur, Hebelarmauslegung und die Energiebilanz. Nachmessen per Auslaufversuch mit bekannter Zusatzmasse. |
 
 ## 2 Momentenmessung
 
