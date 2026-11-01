@@ -213,8 +213,19 @@ Trommelbremse des Motors benutzen.
 
 Feststehende Seite der Drehzahlerfassung, am Rahmen. Gegenstück ist §9.
 
-CAD-Quelle `hardware/hall_gehaeuse.py` → `hall-gehaeuse.FCStd`, `.step`, `.stl`.
-Maßänderungen immer im Skript. 3D-Druck, Außenmaß **37,2 × 20,0 × 12,0 mm**, 5,2 cm³.
+3D-Druck, Außenmaß **37,2 × 20,0 × 12,0 mm**, 5,6 cm³.
+
+`hall-gehaeuse.FCStd` ist ein **PartDesign-Body mit Featurebaum** und einem
+Spreadsheet `Parameter`; alle Skizzen sind voll bestimmt und über Ausdrücke an die
+Tabelle gebunden. Maße ändert man **in der Tabelle**, nicht in den Skizzen.
+
+| | |
+|---|---|
+| Featurebaum | Grundkoerper · Kavitaet · Bauteilraum · Rastnasen · Federfeld · Schraubloch · Kabelnut (+rund) · Kabelmulde (+rund) · LED_Loch |
+| `hardware/hall_gehaeuse.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
+
+Wer im GUI arbeitet, pflegt die FCStd — das Skript überschreibt sie. Es ist der
+Erzeuger, nicht die Wahrheit.
 
 ### 8.1 Maße
 
