@@ -37,7 +37,7 @@ with schemdraw.Drawing(show=False) as d:
     d += elm.Label().at((-2.0, 3.4)).label(
         'Rollwiderstandsprüfstand — Verdrahtung', fontsize=15, color=INK)
     d += elm.Label().at((-2.0, 2.7)).label(
-        'ESP32-S3-DevKitC-1 N16R8  ·  Stand 2026-10-31  ·  Quelle: hardware/schaltplan.py',
+        'ESP32-S3-DevKitC-1 N16R8  ·  Stand 2026-11-01  ·  Quelle: hardware/schaltplan.py',
         fontsize=7.5, color='#4a5560')
 
     # ---------------------------------------------------- Leistungspfad oben
@@ -48,13 +48,16 @@ with schemdraw.Drawing(show=False) as d:
     si  = box(d,  -5.0,  0.0, 1.9, 1.1, 'Sicherung\n15 A', PWR)
     reg = box(d,  -2.3,  0.0, 2.9, 1.1, 'Motorregler\nFOC, UART', PWR)
     mot = box(d,   1.4,  0.0, 2.9, 1.1, 'Nabenmotor\n36 V / 350 W', PWR)
-    chop= box(d,   5.1,  0.0, 3.0, 1.1, 'Bremswiderstand\n+ Chopper  (A8)', PWR)
+    chop= box(d,   5.1,  0.0, 3.0, 1.1, 'mech. Trommelbremse\nim Motor  (A8)', PWR)
 
     wire(d, nt.E,  na.W,  '36 V', PWR)
     wire(d, na.E,  si.W,  None,   PWR)
     wire(d, si.E,  reg.W, None,   PWR)
     wire(d, reg.E, mot.W, '3 Ph.', PWR)
     d += elm.Line().at(mot.E).to(chop.W).color(PWR).linestyle(':').linewidth(1.1)
+    d += elm.Label().at((6.6, -1.0)).label(
+        'A8 zurückgestellt: kein Bremswiderstand,\nkein Kurzschlussschütz. Frei auslaufen\nlassen, zum Feststellen die Trommelbremse.',
+        fontsize=6.8, color='#4a5560')
 
     # --------------------------------------------------- Routing-Kanal oben
     CH = -1.5                      # waagerechter Kanal fuer Signale nach oben

@@ -71,14 +71,25 @@ sind 140 W) oder eine Batterie als Puffer.
 | Riemenschlupf: n_Motor/i gegen n_Trommel | `SLIP_TOLERANCE` = 5 % | FAULT, Antrieb aus |
 | Kraft an der Wägezelle | `MAX_FORCE_N` = 90 N | FAULT, Antrieb aus |
 | Wägezelle gesättigt oder HX711 ohne Antwort | — | FAULT, Antrieb aus |
-| Trommeldrehzahl über Grenze | `MAX_DRUM_RPM` = 333 1/min | FAULT, Antrieb aus |
+| Trommeldrehzahl über Grenze | `MAX_DRUM_RPM` = **341** 1/min | FAULT, Antrieb aus |
 | Motortemperatur (PTC) | Grenze **TBD**, Kennlinie unbekannt | FAULT, Antrieb aus |
 
 FAULT ist rastend: Quittierung nur im Stillstand über die Konsole.
 
 ## 5 Freigabe höherer Drehzahlen
 
-`MAX_DRUM_RPM` steht auf 333 1/min (60 km/h). Eine Erhöhung setzt voraus:
+`MAX_DRUM_RPM` entspricht 341 1/min (60 km/h an der Trommeloberfläche, U = 2,931 m).
+
+Die Grenze ist in `config.h` **nicht fest eingetragen**, sondern aus `V_MAX_KMH` und
+`DRUM_CIRCUMFERENCE_M` abgeleitet. Das ist Absicht: der frühere feste Wert 333 galt der
+geplanten Ø-955-Trommel und hätte an der gebauten Ø-933-Trommel schon bei 58,4 km/h
+ausgelöst. Wer den Umfang nachmisst, bekommt die passende Grenze automatisch.
+
+**Für dieses Dokument heißt das:** Eine Änderung von `DRUM_CIRCUMFERENCE_M` verschiebt
+eine Sicherheitsgrenze. Sie ist hier genauso nachzuziehen wie eine Änderung von
+`V_MAX_KMH` selbst.
+
+Eine Erhöhung von `V_MAX_KMH` setzt voraus:
 
 1. Trommel gewuchtet, Restunwucht dokumentiert
 2. Nabenanbindung auf das Moment und die Fliehkräfte gerechnet

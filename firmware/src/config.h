@@ -13,17 +13,27 @@
 
 // ---------------------------------------------------------------- Geometrie
 
-// [TBD] Maßband um die Trommel, 3 Messungen mitteln. 1 mm Fehler = 0,03 %.
-constexpr float DRUM_CIRCUMFERENCE_M = 3.000f;
+// [gem] Über die fertige Oberfläche gemessen: Ø 933 mm (docs/09-messtheorie.md §1.5).
+// Der frühere Wert 3,000 stammte von der ursprünglich geplanten Ø-955-Trommel und war
+// 2,4 % zu groß — damit hätte der Stand bei 58,4 statt 60 km/h abgeriegelt.
+// Nachmessen nach jeder Änderung an der Oberfläche: Maßband um die Trommel,
+// 3 Messungen mitteln. 1 mm Fehler = 0,03 %.
+constexpr float DRUM_CIRCUMFERENCE_M = 2.931f;
 
 // [ber] U / 2π
 constexpr float DRUM_RADIUS_M = DRUM_CIRCUMFERENCE_M / (2.0f * PI);
 
-// [ber] So gewählt, dass der ungünstigste Fall samt Anfahren (4,20 Nm) bei etwa 60 N
-// landet, also 61 % vom Endwert der 10-kg-Zelle. Kurzer Arm = größere Kraft =
-// besseres SNR; die Grenze ist allein die Überlastreserve.
-// Nach dem Bau mit bekanntem Gewicht nachmessen.
-constexpr float TORQUE_ARM_M = 0.070f;
+// [ber] Kurzer Arm = größere Kraft = besseres SNR; die Grenze ist die Überlastreserve.
+// Mit CRR_DESIGN_MAX = 0,007 statt 0,015 ist der ungünstigste Fall halb so groß,
+// deshalb wird der Arm von 0,070 auf 0,040 m VERKÜRZT — sonst blieben zwei Drittel
+// des Messbereichs ungenutzt und die auf den Endwert bezogenen Zellenfehler
+// (Kriechen, Nichtwiederholbarkeit) gingen voll ein. Herleitung docs/08-staender.md §5.2:
+//   Auslegungsfall stationär 1,88 Nm → 47,0 N = 48 % vom Zellenendwert
+//   samt Rampe              2,51 Nm → 62,7 N = 64 %
+//   ΔCrr = 0,0005                            →  2,43 N
+// Bohrungen am Hebelarm: 40,0 mm (Zelle), 80,0 mm (Kalibrierung), beide auf ±0,1 mm
+// auszumessen. Anschlag bei 0,200 m. Nach dem Bau mit bekanntem Gewicht nachmessen.
+constexpr float TORQUE_ARM_M = 0.040f;
 
 // [Festlegung] DIREKTANTRIEB: die Trommel sitzt auf dem Rotor des Nabenmotors,
 // Motor- und Trommeldrehzahl sind identisch. Der Motor dreht mit 605 1/min allein
@@ -41,8 +51,11 @@ constexpr float BELT_RATIO = 1.00f;
 // sich die Markenteilung exakt heraus. Sie bringen nur Latenz auf dem
 // trommelseitigen Pfad; die eigentliche Auflösung liefert der Motor-Hall.
 constexpr uint8_t MARKS_PER_REV = 8;
-constexpr uint32_t MIN_PULSE_US = 800;   // [ber] kürzester echter Abstand ist 22,5 ms
-constexpr uint32_t STALL_TIMEOUT_MS = 2000;  // [ber] > 1,08 s bei 10 km/h
+constexpr uint32_t MIN_PULSE_US = 800;   // [ber] kürzester echter Abstand ist 22 ms
+// [ber] Nicht 10 km/h ist der Grenzfall, sondern der Hochlauf: bei 8 Marken ist der
+// Pulsabstand bei 10 km/h nur 132 ms, bei 1 km/h aber 1,32 s. 2000 ms bedeutet
+// "langsamer als 0,66 km/h gilt als Stillstand" — die Rampe ist nach 1,3 s darüber.
+constexpr uint32_t STALL_TIMEOUT_MS = 2000;
 constexpr float SLIP_TOLERANCE = 0.05f;  // [gesch] n_Motor/i gegen n_Trommel
 
 // Motor-Hallflanken pro Motorumdrehung, eine ausgewertete Phase = Polpaarzahl.
@@ -94,30 +107,62 @@ constexpr uint32_t WARMUP_MS = 1800000;
 // bzw. über den Befehl 'l<wert>' eingegeben und geht LINEAR in Crr ein.
 constexpr float STANDARD_LOAD_N = 416.9f;
 
-// [Literatur] Auslegungsobergrenze des Rollwiderstandsbeiwerts. Der langsamste
-// vermessene MTB-Reifen liegt bei 0,0127, der beste Rennreifen bei 0,0025.
-constexpr float CRR_DESIGN_MAX = 0.015f;
+// [Festlegung] Auslegungsobergrenze des Rollwiderstandsbeiwerts. Der Prüfstand ist
+// für schnelle Straßenreifen gedacht, nicht für MTB: der langsamste vorgesehene Reifen
+// ist der Continental Contact Urban mit 18,4 W, also Crr 0,00552. 0,007 gibt darauf
+// 27 % Luft. Die frühere 0,015 war die MTB-Grenze und hat den Hebelarm unnötig lang
+// und damit das Signal unnötig klein gemacht.
+constexpr float CRR_DESIGN_MAX = 0.007f;
 
 // ------------------------------------------------------ Sicherheitsgrenzen
 
 constexpr float MAX_FORCE_N = 90.0f;          // 92 % vom Zellenendwert
-constexpr float MAX_DRUM_RPM = 333.0f;        // entspricht 60 km/h
+// [ber] ABGELEITET, nicht hart gesetzt: die Grenze bedeutet "60 km/h an der
+// Trommeloberfläche" und muss dem Umfang folgen. Der alte feste Wert 333 galt für die
+// geplante Ø-955-Trommel; an der gebauten Ø-933-Trommel hätte er schon bei 58,4 km/h
+// ausgelöst, also mitten im obersten Messplateau.
+// Bei U = 2,931 m sind es 341 1/min.
+// Erhöhung von V_MAX_KMH nur nach docs/07-sicherheit.md §5.
+constexpr float MAX_DRUM_RPM = V_MAX_KMH / 3.6f / DRUM_CIRCUMFERENCE_M * 60.0f;
 constexpr uint32_t FAULT_SETTLE_MS = 500;     // Entprellung der Fehlerkriterien
 
 // ---------------------------------------------------------------- Pinbelegung
-// Vorschlag; anpassen, sobald das ESP32-Board feststeht. Siehe docs/04-hardware.md.
+// Board: ESP32-S3-DevKitC-1, Modul WROOM-1 N16R8. Begründung docs/04-hardware.md §4.
+//
+// Gesperrt auf diesem Board — NICHT benutzen:
+//   GPIO 26…32  SPI-Flash
+//   GPIO 33…37  Octal-PSRAM (das R8 im Namen)
+//   GPIO 19, 20 USB-D−/D+
+//   GPIO 0, 3, 45, 46  Strapping
+//   GPIO 43, 44 UART0-Konsole
+//   GPIO 38     RGB-LED des DevKits
+//   GPIO 22…25  gibt es auf dem S3 nicht
+// Die alte Belegung stammte vom klassischen ESP32 und lag mit 25/26/27/32/33/34/35/22
+// fast vollständig auf gesperrten oder nicht existierenden Pins.
+// Maßgeblich ist hardware/schaltplan.py — dort ist die gesamte Peripherie verdrahtet,
+// auch die Teile, die die Firmware noch nicht anfasst.
 
-constexpr uint8_t PIN_MARK       = 25;  // Drehzahlmarken Trommel (Interrupt)
-constexpr uint8_t PIN_INDEX      = 26;  // Indexmarke Trommel (Interrupt)
-constexpr uint8_t PIN_MOTOR_HALL = 27;  // Motor-Hall, eine Phase (Interrupt)
-constexpr uint8_t PIN_HX711_DOUT = 32;
-constexpr uint8_t PIN_HX711_SCK  = 33;
-constexpr uint8_t PIN_I2C_SDA    = 21;
-constexpr uint8_t PIN_I2C_SCL    = 22;
-constexpr uint8_t PIN_DRIVE_TX   = 17;  // UART2 → Motorregler
-constexpr uint8_t PIN_DRIVE_RX   = 16;  // UART2 ← Motorregler
-constexpr uint8_t PIN_ESTOP_FB   = 34;  // nur Anzeige; Trennung erfolgt in Hardware
-constexpr uint8_t PIN_MOTOR_PTC  = 35;  // PTC im Motor, analog (Kennlinie [TBD])
+constexpr uint8_t PIN_MARK       = 4;   // Drehzahlmarken Trommel (Interrupt), 8/U
+constexpr uint8_t PIN_INDEX      = 5;   // Indexmarke Trommel (Interrupt), 1/U
+constexpr uint8_t PIN_WHEEL      = 6;   // Drehzahl des Prüflaufrads (Interrupt)
+constexpr uint8_t PIN_MOTOR_HALL = 7;   // Motor-Hall, eine Phase (Interrupt)
+constexpr uint8_t PIN_HX711_DOUT = 15;  // Zelle 1, Moment
+constexpr uint8_t PIN_HX711_SCK  = 16;  // gemeinsamer Takt beider HX711
+constexpr uint8_t PIN_HX7112_DOUT = 17; // Zelle 2, Auflast — noch nicht bestückt
+constexpr uint8_t PIN_I2C_SDA    = 8;   // S3-Vorgabebelegung für I²C
+constexpr uint8_t PIN_I2C_SCL    = 9;
+constexpr uint8_t PIN_SD_CS      = 10;  // microSD, Chip Select (SPI noch nicht belegt)
+constexpr uint8_t PIN_DRIVE_TX   = 18;  // UART1 → Motorregler
+constexpr uint8_t PIN_DRIVE_RX   = 21;  // UART1 ← Motorregler
+constexpr uint8_t PIN_ESTOP_FB   = 2;   // nur Anzeige; Trennung erfolgt in Hardware
+constexpr uint8_t PIN_BUTTON     = 14;  // Bedientaster
+constexpr uint8_t PIN_STATUS_LED = 48;  // Status-LED (auf DevKitC-1 v1.0 die RGB-LED)
+// PTC muss auf ADC1 liegen — ADC2 ist bei aktivem WLAN gesperrt. GPIO1 = ADC1_CH0.
+constexpr uint8_t PIN_MOTOR_PTC  = 1;   // PTC im Motor, analog (Kennlinie [TBD])
+
+// PIN_WHEEL, PIN_HX7112_DOUT, PIN_SD_CS, PIN_BUTTON und PIN_STATUS_LED sind reserviert
+// und in hardware/schaltplan.py verdrahtet, werden von der Firmware aber noch nicht
+// benutzt. Sie stehen hier, damit die Belegung an genau einer Stelle gepflegt wird.
 
 // --------------------------------------------------------------------- LCD
 

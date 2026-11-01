@@ -4,16 +4,16 @@
 
 ```
                  ┌──────────────────────────────────────────┐
-                 │                 ESP32                    │
+                 │        ESP32-S3-DevKitC-1 N16R8          │
                  │                                          │
-   Hall-Marken ──┤ GPIO25 (ISR)        I²C ──┬── LCD 4×20   │
-   Hall-Index  ──┤ GPIO26 (ISR)              │   (PCF8574)  │
-   Motor-Hall  ──┤ GPIO27 (ISR)              │              │
-                 │                           └── (frei)     │
-   HX711 DOUT  ──┤ GPIO32                                   │
-   HX711 SCK   ──┤ GPIO33          UART2 ───── Motorregler  │
-                 │                 (TX17/RX16)              │
-   Not-Aus-     ─┤ GPIO34 (in)                              │
+   Hall-Marken ──┤ GPIO4  (ISR)        I²C ──┬── LCD 4×20   │
+   Hall-Index  ──┤ GPIO5  (ISR)              │   (PCF8574)  │
+   Hall-Laufrad──┤ GPIO6  (ISR)              │   SDA8/SCL9  │
+   Motor-Hall  ──┤ GPIO7  (ISR)              └── (frei)     │
+   HX711 DOUT  ──┤ GPIO15                                   │
+   HX711 SCK   ──┤ GPIO16          UART1 ───── Motorregler  │
+                 │                 (TX18/RX21)              │
+   Not-Aus-     ─┤ GPIO2  (in)                              │
    Rückmeldung   │                                          │
                  │                 BLE ────── Drucksensor   │
                  └──────────────────────────────────────────┘
@@ -61,10 +61,11 @@ sehr gutes Wälzlager.
 | Anregung des Wiegeteils | nur Rastmoment | zusätzlich Zahneingriff |
 | Felgenadapter nötig | nein | ja |
 | verfügbares Moment | 5,52 Nm | 9,94 Nm bei i = 1,8 |
+| Reserve über dem Auslegungsfall (2,51 Nm) | **Faktor 2,2** | Faktor 4,0 |
 
 Das verfügbare Moment ist der einzige Punkt, der für den Riemen spricht. Da der
-Auslegungsfall bei 3,53 Nm stationär liegt (siehe [02-messkonzept](02-messkonzept.md) §4),
-reichen 5,52 Nm mit 36 % Reserve. Der Riemen wäre eingetauschte Messgüte für nicht
+Auslegungsfall samt Rampe bei 2,51 Nm liegt ([08-staender](08-staender.md) §5),
+reichen 5,52 Nm mit **Faktor 2,2**. Der Riemen wäre eingetauschte Messgüte für nicht
 benötigtes Moment.
 
 ### Voraussetzung
@@ -107,23 +108,49 @@ Firmware-Konstante `BELT_RATIO` existiert genau für diesen Fall.
 
 ## 4 Pinbelegung
 
-Vorschlag, mit `firmware/src/config.h` abgeglichen. Anpassen, sobald das konkrete
-ESP32-Board feststeht — nicht alle GPIOs sind auf allen Boards frei oder als Eingang
-nutzbar.
+Board: **ESP32-S3-DevKitC-1**, Modul WROOM-1 **N16R8** (16 MB Flash, 8 MB Octal-PSRAM).
+Mit `firmware/src/config.h` und `firmware/platformio.ini` abgeglichen.
+
+Maßgeblich ist `hardware/schaltplan.py` — dort ist auch die Peripherie verdrahtet, die
+die Firmware noch nicht anfasst.
 
 | GPIO | Konstante | Funktion | Richtung | Anmerkung |
 |---|---|---|---|---|
-| 25 | `PIN_MARK` | Drehzahlmarken Trommel | in, Interrupt | 6 Marken/Umdrehung |
-| 26 | `PIN_INDEX` | Indexmarke Trommel | in, Interrupt | 1/Umdrehung, triggert die Mittelung |
-| 27 | `PIN_MOTOR_HALL` | Motor-Hall (eine Phase) | in, Interrupt | Riemenschlupf-Überwachung |
-| 32 | `PIN_HX711_DOUT` | HX711 DOUT | in | |
-| 33 | `PIN_HX711_SCK` | HX711 SCK | out | |
-| 21 | `PIN_I2C_SDA` | I²C SDA | bidir | LCD |
-| 22 | `PIN_I2C_SCL` | I²C SCL | out | LCD |
-| 17 | `PIN_DRIVE_TX` | UART2 TX → Regler | out | |
-| 16 | `PIN_DRIVE_RX` | UART2 RX ← Regler | in | |
-| 34 | `PIN_ESTOP_FB` | Not-Aus-Rückmeldung | in | nur **Anzeige** des Zustands; die Trennung erfolgt in Hardware |
-| 35 | `PIN_MOTOR_PTC` | Motor-PTC | in, analog | Temperaturüberwachung; Kennlinie des PTC noch unbekannt |
+| 1 | `PIN_MOTOR_PTC` | Motor-PTC | in, analog | **ADC1**_CH0 — ADC2 ist bei aktivem WLAN gesperrt. Kennlinie des PTC noch **TBD** |
+| 2 | `PIN_ESTOP_FB` | Not-Aus-Rückmeldung | in | nur **Anzeige** des Zustands; die Trennung erfolgt in Hardware |
+| 4 | `PIN_MARK` | Drehzahlmarken Trommel | in, Interrupt | **8** Marken/Umdrehung |
+| 5 | `PIN_INDEX` | Indexmarke Trommel | in, Interrupt | 1/Umdrehung, triggert die Mittelung |
+| 6 | `PIN_WHEEL` | Drehzahl des Prüflaufrads | in, Interrupt | für den Laufrad-Auslaufversuch; **noch nicht in der Firmware** |
+| 7 | `PIN_MOTOR_HALL` | Motor-Hall (eine Phase) | in, Interrupt | zugleich die hochauflösende Drehzahlquelle |
+| 8 | `PIN_I2C_SDA` | I²C SDA | bidir | LCD; S3-Vorgabebelegung |
+| 9 | `PIN_I2C_SCL` | I²C SCL | out | LCD |
+| 10 | `PIN_SD_CS` | microSD, Chip Select | out | übrige SPI-Pins noch **TBD** |
+| 14 | `PIN_BUTTON` | Bedientaster | in | **noch nicht in der Firmware** |
+| 15 | `PIN_HX711_DOUT` | HX711 #1 DOUT (Moment) | in | |
+| 16 | `PIN_HX711_SCK` | HX711 SCK | out | **gemeinsamer Takt beider HX711** |
+| 17 | `PIN_HX7112_DOUT` | HX711 #2 DOUT (Auflast) | in | zweite Zelle noch nicht bestückt |
+| 18 | `PIN_DRIVE_TX` | UART1 TX → Regler | out | |
+| 21 | `PIN_DRIVE_RX` | UART1 RX ← Regler | in | |
+| 48 | `PIN_STATUS_LED` | Status-LED | out | auf DevKitC-1 **v1.0** ist das die RGB-LED, auf v1.1 ist sie an GPIO 38 |
+
+### Welche GPIOs auf diesem Board gesperrt sind
+
+Die frühere Belegung (25/26/27/32/33/34/35/22) stammte vom klassischen ESP32 und lag
+auf dem S3 fast vollständig auf Pins, die es entweder nicht gibt oder die belegt sind:
+
+| GPIO | warum gesperrt |
+|---|---|
+| 22…25 | existieren auf dem ESP32-S3 nicht |
+| 26…32 | SPI-Flash |
+| 33…37 | Octal-PSRAM — das **R8** im Modulnamen |
+| 19, 20 | USB D−/D+ |
+| 0, 3, 45, 46 | Strapping-Pins |
+| 43, 44 | UART0, serielle Konsole |
+| 38 | RGB-LED des DevKits |
+
+Frei bleiben 1…18 und 21 sowie 39…42 und 47/48. Analog geht nur **ADC1** (GPIO 1…10),
+weil ADC2 bei eingeschaltetem WLAN vom Funk belegt ist — deshalb liegt der PTC auf
+GPIO 10.
 
 Display: `LCD_I2C_ADDR` = 0x27 (**TBD**, übliche Alternative 0x3F), `LCD_COLS` = 20,
 `LCD_ROWS` = 4.
@@ -157,18 +184,21 @@ damit nicht sauber in die Leerlaufkennlinie.
 
 ## 7 Leistungsbedarf und Netzteil
 
-Bei 60 km/h (ω = 34,9 rad/s), Auflast 42,5 kg:
+Bei 60 km/h (ω = 35,73 rad/s), Auflast 42,5 kg. Momente einschließlich Leerlauf und
+Laufradverlusten (rund 0,51 Nm, [08-staender](08-staender.md) §5.1):
 
 | Fall | Moment | P mech | Strom bei kt = 0,568 Nm/A |
 |---|---|---|---|
-| guter Rennreifen | 1,28 Nm | 45 W | 2,3 A |
-| Marathon Plus | 2,06 Nm | 72 W | 3,6 A |
-| langsamster MTB | 3,07 Nm | 107 W | 5,4 A |
-| Auslegung (Crr 0,015) | 3,53 Nm | 123 W | 6,2 A |
-| + Anfahren am Rampenende | 4,20 Nm | 146 W | 7,4 A |
+| bester Rennreifen (Crr 0,0025) | 1,00 Nm | 36 W | 1,8 A |
+| guter Rennreifen (0,0037) | 1,24 Nm | 44 W | 2,2 A |
+| Contact Urban (0,0055) | 1,59 Nm | 57 W | 2,8 A |
+| **Auslegung (Crr 0,007)** | **1,88 Nm** | **67 W** | **3,3 A** |
+| + Anfahren am Rampenende | 2,51 Nm | 90 W | 4,4 A |
+| *langsamster MTB (0,0127) — nicht vorgesehen* | *2,98 Nm* | *106 W* | *5,2 A* |
 
-Elektrisch rund **160 W, in der Spitze 190 W**. Der Nennstrom des Motors liegt bei etwa
-9,7 A — im Auslegungsfall werden also 64 % davon gebraucht.
+Elektrisch rund **90 W, in der Spitze 120 W**. Der Nennstrom des Motors liegt bei etwa
+9,7 A — im Auslegungsfall werden also 34 % davon gebraucht. Mit dem Wechsel von der
+MTB- auf die Rennreifenauslegung ist der Antrieb deutlich überdimensioniert.
 
 Netzteil **36 V / 10 A** genügt; 15 A geben Luft, damit die Strombegrenzung beim Anfahren
 vom Regler kommt und nicht vom Netzteil.

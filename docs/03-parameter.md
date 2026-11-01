@@ -9,9 +9,9 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 
 | Symbol | Konstante | Wert | Einheit | Herkunft | Ermittlung |
 |---|---|---|---|---|---|
-| U | `DRUM_CIRCUMFERENCE_M` | 3,000 | m | TBD | Maßband um die Trommel, 3 Messungen mitteln. 1 mm Fehler = 0,03 % — unkritisch. |
-| r | `DRUM_RADIUS_M` | 0,4775 | m | ber | U / 2π |
-| L | `TORQUE_ARM_M` | 0,070 | m | ber | So gewählt, dass der ungünstigste Fall samt Anfahren (4,20 Nm) bei 60 N liegt = 61 % vom Zellenendwert. Nach dem Bau mit bekanntem Gewicht nachmessen (§2). |
+| U | `DRUM_CIRCUMFERENCE_M` | **2,931** | m | gem | Über die fertige Oberfläche gemessen, Ø 933 mm ([09-messtheorie](09-messtheorie.md) §1.5). Der frühere Wert 3,000 galt der geplanten Ø-955-Trommel und war 2,4 % zu groß. Nach jeder Änderung an der Oberfläche neu messen: Maßband um die Trommel, 3 Messungen mitteln. 1 mm Fehler = 0,03 %. |
+| r | `DRUM_RADIUS_M` | **0,4665** | m | ber | U / 2π |
+| L | `TORQUE_ARM_M` | **0,040** | m | ber | Von 0,070 **verkürzt**, weil `CRR_DESIGN_MAX` auf 0,007 gesunken ist — sonst blieben zwei Drittel des Messbereichs ungenutzt. Auslegungsfall stationär 1,88 Nm → 47,0 N = 48 % FS; samt Rampe 2,51 Nm → 62,7 N = 64 %; ΔCrr 0,0005 → 2,43 N. Herleitung [08-staender](08-staender.md) §5.2. Bohrungen 40,0 mm (Zelle) und 80,0 mm (Kalibrierung), je ±0,1 mm. Nach dem Bau mit bekanntem Gewicht nachmessen (§2). |
 | i | `BELT_RATIO` | 1,00 | – | Festlegung | **Direktantrieb**: Trommel auf dem Motorrotor, keine Übersetzung. Konstante bleibt für den Fall eines späteren Riemens. |
 | J | — | 2,3 | kg·m² | gesch | **Auslaufversuch**, siehe [02-messkonzept](02-messkonzept.md) §5. Nur für die optionale Rampenkorrektur nötig. |
 
@@ -34,7 +34,7 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 |---|---|---|---|---|---|
 | k | `MARKS_PER_REV` | 8 | – | Festlegung | geschraubte Magnete auf dem Teilkreis der 8 Abstandsklötze, [04-hardware](04-hardware.md) §9. Mehr Marken bringen keine Genauigkeit, nur Latenz. |
 | — | `MIN_PULSE_US` | 800 | µs | ber | Kürzester Abstand: 60 km/h, 8 Marken → 22,5 ms. Bei 100 km/h → 13,5 ms. 800 µs filtert sicher nur Störer. |
-| — | `STALL_TIMEOUT_MS` | 2000 | ms | ber | > 1,08 s (langsamster Puls bei 10 km/h, 1 Marke) mit Reserve |
+| — | `STALL_TIMEOUT_MS` | 2000 | ms | ber | Grenzfall ist nicht 10 km/h (135 ms bei 8 Marken), sondern der Hochlauf: bei 1 km/h sind es 1,35 s. 2000 ms bedeutet *langsamer als 0,68 km/h gilt als Stillstand*; die Rampe ist nach 1,4 s darüber. |
 | — | `SLIP_TOLERANCE` | 0,05 | – | gesch | zulässige relative Abweichung n_Motor/i gegen n_Trommel |
 | — | `MOTOR_PULSES_PER_REV` | 15 | – | TBD | Hallflanken einer Phase pro Motorumdrehung = Polpaarzahl. Ermittlung: Motor von Hand eine volle Umdrehung drehen und Flanken zählen. |
 
@@ -56,7 +56,7 @@ Nabenmotor aus einem Bird-One-E-Scooter. Angaben vom Typenschild.
 | kt | 0,568 | Nm/A | ber | 9,55 / kv |
 | Nennmoment | 5,52 | Nm | ber | 350 W / 63,4 rad/s |
 | Spitzenmoment | ≈ 12,6 | Nm | ber | 800 W bei Nenndrehzahl |
-| Moment an der Trommel | 9,94 | Nm | ber | 5,52 · i, bei i = 1,80 |
+| Moment an der Trommel | 5,52 | Nm | ber | 5,52 · i, **i = 1,00** (Direktantrieb) |
 | Stecker | Julet 9-polig | – | Foto | 3 Phasen + 5 Hall + PTC erwartet — **mit dem Messgerät verifizieren** |
 | Hallsensoren | ja | – | Steckerbelegung | 9-poliger Julet, erwartet 3 Phasen + 5 Hall + PTC |
 | Temperaturfühler | PTC | – | Beschreibung | weißes Kabel; Kennlinie **TBD** |
@@ -72,18 +72,23 @@ Zwei Motoren mit gleichem Typenschild liefern unterschiedliches Moment, je nach
 Nenndrehzahl. Zu prüfen sind zwei Größen:
 
 ```
-T_dauer = P_nenn / (2π · n_nenn / 60)   ≥ 3,53 Nm   (Auslegungsfall, §6)
+T_dauer = P_nenn / (2π · n_nenn / 60)   ≥ 2,51 Nm   (Auslegungsfall samt Rampe, §6)
 kv      = n_nenn / U_nenn               = 14…20 1/min/V
 ```
 
-Das kv-Fenster ergibt sich aus der Trommeldrehzahl: 333 1/min bei 60 km/h, geteilt durch
+Das kv-Fenster ergibt sich aus der Trommeldrehzahl: 341 1/min bei 60 km/h, geteilt durch
 36 V Busspannung, sind 9,25 1/min/V als absolute Untergrenze — praktisch 14 bis 20 mit
 Spannungsreserve für den Strom. Angebote mit 100 kv oder mehr sind Motoren zum
 Herunterübersetzen, kein Direktantrieb.
 
 Daraus die Mindestleistung:
 
-| n_nenn bei 36 V | ω | Minimum (3,53 Nm) | mit 50 % Reserve |
+Die folgende Tabelle ist noch mit der **alten** MTB-Auslegung (3,53 Nm) gerechnet und
+damit um Faktor 1,4 konservativ. Für die heutige Auslegung mit 2,51 Nm genügen 71 % der
+genannten Werte — die Empfehlung bleibt trotzdem stehen, weil Typenschildangaben
+billiger Motoren optimistisch sind.
+
+| n_nenn bei 36 V | ω | Minimum (alt, 3,53 Nm) | mit 50 % Reserve |
 |---|---|---|---|
 | 400 1/min | 41,9 rad/s | 148 W | 222 W |
 | 500 1/min | 52,4 rad/s | 185 W | 277 W |
@@ -92,32 +97,38 @@ Daraus die Mindestleistung:
 
 Praktisch: **250 W Minimum, 350 W richtig.** Unter 400 1/min Nenndrehzahl wird es
 unabhängig von der Leistung eng, weil dann kaum Spannungsreserve über den für 60 km/h
-nötigen 333 1/min bleibt.
+nötigen 341 1/min bleibt.
 
 Der Grund für den scheinbar großen Abstand zwischen den 123 W mechanischem Bedarf (§4 in
 [02-messkonzept](02-messkonzept.md)) und den geforderten 224 W Nennleistung: Der Prüfstand
-ist **momentenbegrenzt, nicht leistungsbegrenzt**. Bei 333 1/min läuft der Motor mit 55 %
+ist **momentenbegrenzt, nicht leistungsbegrenzt**. Bei 341 1/min läuft der Motor mit 55 %
 seiner Nenndrehzahl und kann höchstens 55 % seiner Nennleistung abgeben.
 
 > Typenschildangaben billiger Motoren sind optimistisch; die thermische Dauerleistung
-> liegt häufig darunter. Die Tabelle gilt für 42,5 kg Auflast und Crr 0,015. Nur
+> liegt häufig darunter. Die Tabelle gilt für 42,5 kg Auflast und die alte Crr-Grenze
+> 0,015. Nur
 > Rennreifen (Crr ≤ 0,008) kämen mit 2,06 Nm und damit 200 W aus; 100 kg Auflast
 > verdoppeln alles.
 
-### Geschwindigkeitsreserve über die Busspannung
+### Geschwindigkeitsreserve
 
-Die Übersetzung ist auf maximales Moment ausgelegt und begrenzt die Trommel bei 36 V auf
-rund 60 km/h. Mehr kommt über die Spannung, nicht über eine andere Übersetzung — das
-Moment bleibt dabei erhalten:
+Beim **Direktantrieb** ist die Geschwindigkeit nicht spannungsbegrenzt. Trommel- und
+Motordrehzahl sind identisch, 605 1/min Nenndrehzahl bei 36 V ergeben an der Trommel
+bereits **109 km/h** — fast das Doppelte der zugelassenen 60 km/h.
 
-| Busspannung | n_Motor | n_Trommel | v |
-|---|---|---|---|
-| 36 V | 605 1/min | 336 1/min | 60,5 km/h |
-| 48 V | 807 1/min | 448 1/min | 80,7 km/h |
-| 60 V | 1008 1/min | 560 1/min | 100,8 km/h |
+| | n_Motor = n_Trommel | v an der Trommel |
+|---|---|---|
+| Nenndrehzahl bei 36 V | 605 1/min | 109 km/h |
+| **zugelassen** | **341 1/min** | **60 km/h** |
 
-Eine Erhöhung setzt die Freigabe der Trommeldrehzahl voraus
-([07-sicherheit](07-sicherheit.md) §5).
+Die Grenze ist also **mechanisch**, nicht elektrisch: Wuchtgüte und Festigkeit des
+Holzaufbaus, siehe [07-sicherheit](07-sicherheit.md) §5 und A2 in
+[06-offene-fragen](06-offene-fragen.md). Eine höhere Busspannung bringt nichts, solange
+diese Freigabe nicht vorliegt.
+
+Umgekehrt heißt das: Bei 341 1/min läuft der Motor mit 55 % seiner Nenndrehzahl, und die
+nutzbare Leistung ist entsprechend gedeckelt — der Prüfstand ist momenten-, nicht
+drehzahlbegrenzt.
 
 ### Alternative: Hoverboard-Nabenmotor 6,5″
 
@@ -136,7 +147,8 @@ des DAAO-Motors sind dagegen aufgedruckt).
 | Masse | 2,26 kg | schwerer, **TBD** |
 | Lochkreis für den Trommeladapter | 6,5″ | 9,5″, steifer |
 
-Beide erfüllen die Anforderung von 3,53 Nm mit Reserve. Die frühere Einschätzung, die
+Beide erfüllen selbst die alte Anforderung von 3,53 Nm mit Reserve, die heutige von
+2,51 Nm erst recht. Die frühere Einschätzung, die
 „6-adrige Kabelpeitsche" mache Hallsensoren zweifelhaft, hat sich an den Angebotsfotos
 erledigt: es sind 8 Leiter, die Beschreibung zählte nur den Hall-Strang.
 
@@ -170,23 +182,26 @@ Die Achsfrage A6 — beidseitige Lagerung — gilt für beide gleichermaßen und
 |---|---|---|---|---|---|
 | Standard-Auflast | `STANDARD_LOAD_N` | 416,9 | N | Literatur | 42,5 kg — der De-facto-Standard der veröffentlichten Crr-Datenbank. Nur Vorschlagswert; die tatsächliche Last wird über `l<wert>` eingegeben. |
 | Auflast-Mechanik | — | Hebelwaage | – | Entwurf | Laufgewicht 10 kg, `N = m_Rad·g + W·b/a` mit a = 0,200 m, b = 0,30…0,90 m → 147…441 N. Entwurf und Abgleichvorschrift: [08-staender](08-staender.md) §5. Geht **linear** in Crr ein → auf 1 % genau nötig. |
-| Auslegungs-Crr | `CRR_DESIGN_MAX` | 0,015 | – | Literatur | siehe Tabelle unten |
+| Auslegungs-Crr | `CRR_DESIGN_MAX` | **0,007** | – | Festlegung | Es werden schnelle Straßenreifen gemessen, keine MTB-Reifen. Langsamster vorgesehener Reifen ist der Continental Contact Urban mit 0,00552, darauf 27 % Luft. Siehe Tabelle unten. |
 | Reifendruck | — | Eingabe | bar | – | Handeingabe, später BLE |
 | Reifentemperatur | — | **TBD** | °C | TBD | Sensor noch nicht festgelegt |
 | Motortemperatur | — | PTC im Motor | °C | TBD | Kennlinie des PTC unbekannt, siehe §4 |
 
 ### Gemessene Crr-Werte als Auslegungsgrundlage
 
-Einheitlich bei 42,5 kg und 28,8 km/h erhoben
+Einheitlich bei 42,5 kg und 28,8 km/h erhoben; Momente mit r = 0,4665 m gerechnet und
+**ohne** Leerlauf und Laufradverluste (die addieren rund 0,51 Nm, siehe
+[08-staender](08-staender.md) §5.1)
 ([Quelle](https://www.bicyclerollingresistance.com/the-test)):
 
 | Reifen | Leistung | Crr | Moment an unserer Trommel |
 |---|---|---|---|
-| Vittoria Corsa Speed (bester Rennreifen) | ~11 W | ~0,0025 | 0,50 Nm |
-| typischer guter Rennreifen | 13–17 W | 0,0035–0,0040 | 0,70–0,80 Nm |
-| [Schwalbe Marathon Plus](https://www.bicyclerollingresistance.com/tour-reviews/schwalbe-marathon-plus-2015) | 25,5 W | 0,00764 | 1,52 Nm |
-| [Schwalbe Hans Dampf TrailStar, langsamster MTB](https://www.bicyclerollingresistance.com/mtb-reviews) | 42,2 W | ≈ 0,0127 | 2,53 Nm |
-| **Auslegungsgrenze** | | **0,015** | **2,99 Nm** |
+| Vittoria Corsa Speed (bester Rennreifen) | ~11 W | ~0,0025 | 0,49 Nm |
+| typischer guter Rennreifen | 13–17 W | 0,0035–0,0040 | 0,68–0,78 Nm |
+| [Schwalbe Marathon Plus](https://www.bicyclerollingresistance.com/tour-reviews/schwalbe-marathon-plus-2015) | 25,5 W | 0,00764 | 1,49 Nm |
+| **Continental Contact Urban — langsamster vorgesehener Reifen** | **18,4 W** | **0,00552** | **1,07 Nm** |
+| **Auslegungsgrenze `CRR_DESIGN_MAX`** | | **0,007** | **1,36 Nm** |
+| [Schwalbe Hans Dampf TrailStar, langsamster MTB](https://www.bicyclerollingresistance.com/mtb-reviews) — *nicht vorgesehen* | 42,2 W | ≈ 0,0127 | 2,47 Nm |
 
 Der MTB-Crr ist selbst gerechnet, weil die Quelle dort nur Watt ausweist:
 `42,2 W / 8,0 m/s / (42,5 · 9,81 N) = 0,0127`.
@@ -195,11 +210,16 @@ Der MTB-Crr ist selbst gerechnet, weil die Quelle dort nur Watt ausweist:
 > allein für den Reifen 5,95 Nm und überschreitet damit das Dauermoment des Motors.
 > Die Auslegung gilt für 42,5–50 kg.
 
+> **Wer doch einmal MTB-Reifen messen will**, muss nicht nur `CRR_DESIGN_MAX` wieder
+> anheben, sondern auch `TORQUE_ARM_M` zurück auf 0,070 m setzen — sonst läuft die
+> Wägezelle bei Crr 0,0127 samt Anfahrmoment über ihren Endwert. Beide Werte gehören
+> zusammen.
+
 ## 7 Sicherheitsgrenzen
 
 | Konstante | Wert | Einheit | Begründung |
 |---|---|---|---|
 | `MAX_FORCE_N` | 90 | N | 92 % vom Zellenendwert → Abschaltung vor der Sättigung |
-| `MAX_DRUM_RPM` | 333 | 1/min | entspricht 60 km/h; Erhöhung erst nach Freigabe in [07-sicherheit](07-sicherheit.md) |
+| `MAX_DRUM_RPM` | **abgeleitet** → 341 bei U = 2,931 m | 1/min | `V_MAX_KMH / 3,6 / U · 60`. Nicht hart gesetzt: die Grenze bedeutet *60 km/h an der Trommeloberfläche* und muss dem Umfang folgen — der alte feste Wert 333 galt der Ø-955-Trommel und hätte an der gebauten Ø-933-Trommel schon bei 58,4 km/h ausgelöst, mitten im obersten Messplateau. Erhöhung von `V_MAX_KMH` erst nach Freigabe in [07-sicherheit](07-sicherheit.md) §5. |
 | `STALL_TIMEOUT_MS` | 2000 | ms | siehe §3 |
 | `FAULT_SETTLE_MS` | 500 | ms | Entprellung der Fehlerkriterien |

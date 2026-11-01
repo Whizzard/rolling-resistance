@@ -30,7 +30,13 @@ Scooter-Vorderräder sitzen üblicherweise beidseitig in der Gabel. Falls ja, is
 Pendellagerung unkompliziert: beide Achsenden in Stehlager, Drehmomentarm an einem Ende.
 Falls einseitig: wie beim Hoverboard-Rad entsprechend auslegen.
 
-### A8 Bremskonzept und Rückspeisung — **entschieden**
+### A8 Bremskonzept und Rückspeisung — **zurückgestellt**
+> **Stand 2026-10-31: zurückgestellt.** Der Schütz wird vorerst nicht beschafft.
+> Als Rückfall ist eine **mechanische Bremse** vorgesehen — der DAAO-Motor hat eine
+> Trommelbremse integriert. Die Analyse unten bleibt gültig und ist die Vorlage, falls
+> der elektrische Pfad doch gebaut wird. Bis dahin gilt: **frei auslaufen lassen**
+> ([09-messtheorie](09-messtheorie.md) §8.9, 3 bis 80 min je nach Schleppmoment).
+
 **Kurzschlussbremsung statt Bremswiderstand.** Werden die drei Motorphasen gegeneinander
 kurzgeschlossen, bleibt die Energie im Motorkupfer: 1321 J heben die Wicklung um 4 bis
 11 K an, also nichts. Der Bremswiderstand mit Chopper entfällt damit ersatzlos.
@@ -124,9 +130,11 @@ unterschiedlichen Frames. Bestimmt die konkrete `IDrive`-Implementierung.
 Zu prüfen: Verfügbarkeit, Bremsverhalten, Strombegrenzung, Drehzahlregelung im
 unteren Bereich.
 
-### B2 ESP32-Board
-Konkretes Modell bestimmt die endgültige Pinbelegung. GPIO34–39 sind reine Eingänge,
-einige Pins sind beim Boot belegt.
+### ~~B2 ESP32-Board~~ — **entschieden 2026-11-01**
+**ESP32-S3-DevKitC-1, Modul WROOM-1 N16R8** (16 MB Flash, 8 MB Octal-PSRAM), beschafft.
+Pinbelegung in [04-hardware](04-hardware.md) §4, verdrahtet in `hardware/schaltplan.py`.
+Der Hinweis auf GPIO34–39 galt dem klassischen ESP32; beim S3 gibt es keine reinen
+Eingangspins, dafür sperrt das Octal-PSRAM GPIO 33…37 zusätzlich zum Flash auf 26…32.
 
 ### B3 LCD-Anschluss und Pegel
 I²C-Backpack (PCF8574) ist gesetzt. Offen: Läuft das vorhandene Modul auf 3,3 V, oder
@@ -190,6 +198,10 @@ Rohdaten unter `data/` versionieren — ab welcher Menge wird das unhandlich?
 | Rechnerplattform | ESP32 (BLE für den Drucksensor, WLAN-Logging, ein Board für alles) | 2026-10-24 |
 | Geschwindigkeitsbereich | 10–60 km/h; 100 km/h erst nach Trommelfreigabe | 2026-10-24 |
 | Drehzahlaufnehmer | Hall statt Reed, 6 Marken + Index; Geschwindigkeit aus dem Fenster über eine ganze Umdrehung | 2026-10-24 |
+| Markenzahl endgültig | **8** statt 6 — auf dem Teilkreis der 8 Abstandsklötze, geschraubte Ø10×3-Magnete mit A2-Schraube. Mehr Marken bringen *keine* Genauigkeit (das Ergebnis läuft index-getriggert über ganze Umdrehungen, dort kürzt sich die Teilung heraus), nur Latenz. [04-hardware](04-hardware.md) §9 | 2026-11-01 |
+| Rechnerplattform konkret | ESP32-**S3**-DevKitC-1 N16R8. Alte Pinbelegung (25/26/27/32/33/34/35/22) lag fast vollständig auf Pins, die es am S3 nicht gibt oder die Flash/PSRAM belegen. | 2026-11-01 |
+| Auslegungs-Crr und Hebelarm | `CRR_DESIGN_MAX` 0,015 → **0,007** (keine MTB-Reifen), dadurch `TORQUE_ARM_M` 0,070 → **0,040 m**. Der Auslegungsfall nutzt jetzt 48 % statt 27 % des Zellenmessbereichs. [08-staender](08-staender.md) §5 | 2026-11-01 |
+| Trommelumfang | Gemessen: Ø 933 mm, U = **2,931 m**. `MAX_DRUM_RPM` wird daraus abgeleitet (341 1/min) statt fest eingetragen — der alte feste Wert 333 hätte bei 58,4 km/h abgeriegelt. | 2026-11-01 |
 | Mehrere Marken sinnvoll? | Ja — nicht wegen der Crr-Genauigkeit (die braucht kein v), sondern für Regelung, Schlupferkennung und winkelaufgelöste Diagnose | 2026-10-24 |
 | Drehmomentwaage bedämpfen? | Ja, aber zuletzt: erst steif und leicht bauen, Anregung vermeiden, umdrehungssynchron mitteln — dann Wirbelstromdämpfer. Nichts mit Haftreibung im Momentenpfad. | 2026-10-24 |
 | Gimbal-Motor direkt auf der Nabe? | Nein — Faktor ~10 zu wenig Moment, dazu Gegen-EMK-Grenze | 2026-10-24 |

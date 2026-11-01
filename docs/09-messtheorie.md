@@ -90,14 +90,16 @@ n [1/min] = 60 · v / U          ω = 2π · v / U          v = U · n
 
 Mit U = 2,931 m (Trommel Ø 933 mm, über die fertige Oberfläche gemessen):
 
-| v [km/h] | n [1/min] | ω [rad/s] | Pulsperiode bei 6 Marken |
+| v [km/h] | n [1/min] | ω [rad/s] | Pulsperiode bei 8 Marken |
 |---|---|---|---|
-| 10 | 56,9 | 5,96 | 176 ms |
-| 28,8 | 163,8 | 17,15 | 61 ms |
-| 60 | 341,2 | 35,73 | 29 ms |
+| 10 | 56,9 | 5,96 | 132 ms |
+| 28,8 | 163,8 | 17,15 | 46 ms |
+| 60 | 341,2 | 35,73 | 22 ms |
 
-`MIN_PULSE_US` = 800 µs filtert damit sicher nur Störer. `MAX_DRUM_RPM` muss auf **341**
-(war 333 für Ø 955) — sonst endet der Stand bei 58,4 km/h.
+`MIN_PULSE_US` = 800 µs filtert damit sicher nur Störer. `MAX_DRUM_RPM` liegt bei **341**
+(war 333 für Ø 955) — sonst endet der Stand bei 58,4 km/h. In `config.h` ist der Wert
+inzwischen aus `V_MAX_KMH` und `DRUM_CIRCUMFERENCE_M` abgeleitet, damit er dem Umfang
+automatisch folgt.
 
 ### 1.6 Was die Pendelwiege misst — und was nicht
 
