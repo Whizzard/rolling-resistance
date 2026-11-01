@@ -155,17 +155,63 @@ GPIO 10.
 Display: `LCD_I2C_ADDR` = 0x27 (**TBD**, übliche Alternative 0x3F), `LCD_COLS` = 20,
 `LCD_ROWS` = 4.
 
-## 5 Verdrahtungshinweise, die messtechnisch zählen
+## 5 Stromversorgung und Pegel
 
-- **HX711 getrennt versorgen.** Eigene saubere 5 V, Sternmasse, nicht am Motorzweig.
+### 5.1 Speisung über USB
+
+Der Logikteil wird **ausschließlich über USB-C** gespeist, nicht über den 5V-Pin.
+Espressif nennt die drei Wege ausdrücklich *mutually exclusive*
+([User Guide](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html)) —
+eine extern eingespeiste 5 V und ein zum Flashen angestecktes Notebook wären ein
+Kurzschluss zweier Quellen. USB schließt den Fehler konstruktiv aus.
+
+Das Board hat zwei USB-C-Buchsen, und **beide dürfen gleichzeitig speisen**
+(„either one or both"). Also: Netzteil dauerhaft an der einen, Notebook zum Flashen
+an der anderen.
+
+Bei USB-Speisung ist der **5V-Pin ein Ausgang** (VBUS). Von dort kommen die 5 V für
+Hall-Geber, HX711-Analogteil und LCD.
+
+| Verbraucher | Strom |
+|---|---|
+| ESP32-S3 mit WLAN | ≈ 100 mA, Spitze ≈ 350 mA |
+| LCD 2004 mit Beleuchtung | 25…40 mA |
+| 3 × TLE4905L | ≈ 21 mA |
+| HX711 | 1,4 mA |
+
+Rund 150 mA im Mittel. Ein 1-A-Netzteil genügt dreifach. Für den Messbetrieb ein
+eigenes Netzteil nehmen, nicht das Notebook — ein Ruhezustand mitten im Lauf
+kostet die Messung.
+
+### 5.2 Pegel: der ESP32-S3 ist nicht 5-V-tolerant
+
+| Baustein | Versorgung | Signal zum ESP32 |
+|---|---|---|
+| TLE4905L | V_S = 5 V (Minimum 3,8 V) | Open Collector, **Pull-up 2,2…4,7 kΩ nach 3,3 V** |
+| HX711 | **VCC = 5 V** (analog), **VDD = 3,3 V** (digital) | DOUT auf 3,3 V |
+| LCD / PCF8574 | 5 V | I²C über Pegelwandler |
+
+Beim HX711 setzt das ein Modul mit **getrennten VCC- und VDD-Pins** voraus
+(SparkFun-Bauform, fünf Pins). VCC speist die Brücke, VDD legt den Logikpegel fest.
+Auf den billigen vierpoligen Modulen sind beide verbunden — dann bleibt nur, den
+ganzen Baustein auf 3,3 V zu fahren oder DOUT zu wandeln.
+
+Der ganze HX711 auf 3,3 V kostet **keine** Auflösung in Counts: die Brücke wird aus
+AVDD gespeist und AVDD ist zugleich die ADC-Referenz, die Messung ist also
+ratiometrisch. Es kostet aber **SNR** — ein Drittel weniger Erregung bei gleichem
+Eingangsrauschen sind rund 3,6 dB. Bei 12 N Signal des besten Rennreifens auf einer
+98-N-Zelle ist das nicht zu verschenken.
+
+### 5.3 Messtechnisch
+
+- **HX711 getrennt versorgen.** Nicht am Motorzweig. Ferrit und 100 µF direkt am
+  AVDD-Pin, Sternmasse.
 - **Zellenkabel verdrillt und geschirmt**, Schirm einseitig an den Zellenkörper.
 - **HX711 thermisch vom Motor entkoppeln** — Offsetdrift.
 - **Motorzuleitungen über das Pendellager als weiche Schlaufe.** Beim Nabenmotor treten
   sie axial durch die Statorachse aus, also auf der Pendelachse — der Vorteil geht
   verloren, wenn das Kabel straff abgeht.
 - **Logik- und Leistungsmasse an genau einem Punkt verbinden.**
-- **LCD-Pegel beachten:** PCF8574-Module laufen meist auf 5 V; der ESP32 ist 3,3-V-Logik.
-  Ein Modul mit 3,3-V-Betrieb wählen oder Pegelwandler vorsehen.
 
 ## 6 Warum der Motor nicht an der Trommeloberfläche angreift
 
