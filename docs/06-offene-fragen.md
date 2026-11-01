@@ -99,17 +99,12 @@ Hängt an Holzaufbau, Nabenanbindung und Wuchtgüte. Entscheidet, ob über 60 km
 überhaupt etwas geht. **Das ist die härteste Einschränkung am ganzen Konzept** — nicht
 die Elektronik. Siehe [07-sicherheit](07-sicherheit.md).
 
-### A10 Trommel in eigenen Lagern oder auf dem Motorrotor?
-Zwei baubare Anordnungen, beide kosten rund 1 % am Signal, aber an verschiedenen Stellen —
-Gegenüberstellung mit Zahlen in [08-staender](08-staender.md) §1:
-
-- **Trommel auf dem Rotor** (bisher in [04-hardware](04-hardware.md) §2): Trommellager
-  fallen aus der Momentenbilanz, aber die Pendellager tragen Trommel, Motor und Auflast
-  (≈ 650 N) und bringen 9,8 mNm Hysterese — nicht korrigierbar.
-- **Trommel auf eigener, mitdrehender Welle**, abgesetzt Ø15/Ø30, 2 × 6902 auf den
-  Zapfen im Rahmen, Motor über Flansch und radial weiche Kupplung am Wellenende:
-  Pendellager fast lastfrei (1,2 mNm), dafür stehen die Trommellager im Momentenpfad und
-  tragen 4,7 mNm lastabhängig bei — glatt, reproduzierbar und über A11 messbar.
+### ~~A10 Trommel in eigenen Lagern oder auf dem Motorrotor?~~ — **entschieden**
+**Eigene, mitdrehende Welle**, abgesetzt Ø15/Ø30, 2 × 6902 im Rahmen, Motor über Flansch
+am Wellenende. Die Trommellager stehen damit im Momentenpfad und tragen 4,7 mNm
+lastabhängig bei — glatt, reproduzierbar und über A11 messbar. Die Alternative (Trommel
+auf dem Rotor) hätte die Pendellager mit 650 N belastet und 9,8 mNm **nicht
+korrigierbare** Hysterese gebracht. Zahlen in [08-staender](08-staender.md) §1.
 
 Der Entwurf in [08-staender](08-staender.md) geht von der zweiten Variante aus, weil sie
 ohne die Rotormaße baubar ist (A4 blockiert sie nicht). Bedingung ist eine **radial
@@ -122,12 +117,10 @@ vernachlässigbar, gemessen wird praktisch nur der lastabhängige Lageranteil. D
 die Korrektur aus A10 gemessen statt geschätzt. Gehört als Schritt in
 [05-prüfablauf](05-pruefablauf.md); Rollendurchmesser und Material noch offen.
 
-### A12 Trommelbreite 250 mm — Leerlauf neu rechnen
-[09-messtheorie](09-messtheorie.md) §1.8 rechnet die Mantelfläche mit b = 0,1 m. Mit den
-jetzt geplanten 0,25 m steigt die Trommelaerodynamik von 0,29 auf **0,43 Nm** bei 60 km/h
-und damit von 39 auf 58 % des Rennreifensignals. Zahlen in
-[08-staender](08-staender.md) §10.2. Zu entscheiden: Breite bestätigen und 09-messtheorie,
-README und die Momentenbilanz nachziehen — oder die Trommel schmaler bauen.
+### ~~A12 Trommelbreite~~ — **erledigt**
+Gebaut sind **100 mm**. Die Trommelaerodynamik bleibt damit bei 0,27 Nm
+([09-messtheorie](09-messtheorie.md) §1.8); die 0,43 Nm der verworfenen 250-mm-Variante
+sind gegenstandslos.
 
 ### A3 Art der Auflast
 Totgewicht über Hebel oder Feder plus zweite Wägezelle? Die Auflast geht **linear** in
@@ -222,6 +215,8 @@ Rohdaten unter `data/` versionieren — ab welcher Menge wird das unhandlich?
 | Rechnerplattform | ESP32 (BLE für den Drucksensor, WLAN-Logging, ein Board für alles) | 2026-10-24 |
 | Geschwindigkeitsbereich | 10–60 km/h; 100 km/h erst nach Trommelfreigabe | 2026-10-24 |
 | Drehzahlaufnehmer | Hall statt Reed, 6 Marken + Index; Geschwindigkeit aus dem Fenster über eine ganze Umdrehung | 2026-10-24 |
+| Trommellagerung (A10) | **Eigene mitdrehende Welle** statt Trommel auf dem Motorrotor. 4,7 mNm lastabhängig im Momentenpfad statt 9,8 mNm nicht korrigierbarer Hysterese. | 2026-11-01 |
+| Trommelbreite (A12) | **100 mm** gebaut. Leerlauf bleibt bei 0,27 Nm. | 2026-11-01 |
 | Motor | **Hoverboard-Antriebsrad 6,5″, 36 V / 350 W** beschafft. Damit 6,96 Nm Dauermoment (Faktor 2,8 über dem Auslegungsfall), aber **ohne Bremse und ohne Temperaturfühler** — A9 und A5 werden dadurch akut. | 2026-11-01 |
 | Motorregler | **FSESC 4.20 / 50 A** beschafft, VESC-Klasse mit UART. Schließt B1. | 2026-11-01 |
 | Speisung der Logik | **Nur über USB-C.** 5V-Pin und USB schließen sich laut Espressif gegenseitig aus; eine vergessene externe 5 V beim Flashen wäre ein Kurzschluss zweier Quellen. Beide USB-Buchsen dürfen gleichzeitig speisen. | 2026-11-01 |

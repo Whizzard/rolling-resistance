@@ -25,56 +25,39 @@
 
 ## 2 Mechanischer Aufbau
 
-**Direktantrieb**: Die Trommel sitzt auf dem Rotor des Nabenmotors, die Statorachse ist
-die Pendelachse. Keine Übersetzung, kein Riemen, keine Kupplung.
+Die Trommel sitzt auf einer **eigenen, mitdrehenden Welle**, nicht auf dem Motorrotor
+(Entscheidung A10). Der Motor ist über einen Flansch starr mit dem Wellenende verbunden;
+gehalten wird nur seine **Statorachse**, über den Hebelarm gegen die Wägezelle.
+Maßkette und Lagerrechnung in [08-staender](08-staender.md) §1 und §4.
 
 ```
-            Prüflaufrad (abhebbar)
-                   ↓ F_N = 417 N (42,5 kg)
-        ┌──────────────────────────┐
-        │     ╭────────────╮       │   Trommel U = 3 m, auf dem Motorrotor
-        │    (   Trommel    )      │   → Trommellager liegen INNERHALB der
-        │     ╰─────┬──────╯       │     Pendelwiege und werden nicht mitgemessen
-        └───────────┼──────────────┘
-              Statorachse, beidseitig in Stehlagern
-              auf dem Wiegerahmen  (Kabel treten axial
-              auf der Pendelachse aus)
-                    │
-               Hebelarm L = 0,07 m
-                    │
-        ════════════╪════════════  Wägezelle 10 kg
-                                   + Wirbelstromdämpfer
-                                   + weiche Endanschläge beidseitig
+          Prüflaufrad (abhebbar)
+                 ↓ F_N = 417 N (42,5 kg)
+        ╔════════╧════════╗     Trommel U = 2,931 m, an beiden Stirnscheiben
+        ║     Trommel     ║     auf die Welle geklemmt
+  ──┬───╫──┬───────────┬──╫───┬──────  Welle mitdrehend, abgesetzt Ø15/Ø30
+    │   ╚══╪═══════════╪══╝   │
+  6902     Klemmnaben        6902      Flansch auf dem Wellenende
+                                        │
+                                   Nabenmotor, Rotor starr mitdrehend
+                                        │
+                              Statorachse, nur am Hebelarm gehalten
+                                        │
+                              L = 0,040 m → Schaltzug → Wägezelle 10 kg
+                                        + Endanschläge bei r = 200 mm
 ```
 
-Der Wiegerahmen dreht sich um dieselbe Achse wie die Trommel. Seine Lagerreibung ist das
-einzige äußere Störmoment, das sich nicht herausrechnen lässt — deshalb Flexgelenk oder
-sehr gutes Wälzlager.
+Die Rotor-Stator-Reibung kürzt sich exakt heraus, solange die Statorachse **nur** über
+den Hebelarm gehalten wird — Herleitung in [08-staender](08-staender.md) §7.2. Deshalb
+ist das Zugglied ein Schaltzug und kein Stab: er überträgt kein Biegemoment.
 
-### Warum Direktantrieb
+**Keine Übersetzung.** Der Motor dreht mit etwa 480 1/min, die Trommel braucht für
+60 km/h 341 1/min; ein Riemen läge außerhalb des Momentenpfads und ginge mit η ≈ 0,97 als
+2–3 % Skalenfehler ein. `BELT_RATIO` bleibt in `config.h` für den Fall, dass doch einer
+nötig wird.
 
-| | Direktantrieb | mit Zahnriemen |
-|---|---|---|
-| Trommellager | innerhalb der Wiege → **nicht gemessen** | außerhalb → gemessen, driftet mit der Temperatur |
-| Übersetzungsverluste | keine | η ≈ 0,97 → 2–3 % systematischer Skalenfehler |
-| Leerlauf gesamt bei 60 km/h | **0,29 Nm** (nur Aerodynamik) | 0,29 + Lager + Riemen |
-| Anregung des Wiegeteils | nur Rastmoment | zusätzlich Zahneingriff |
-| Felgenadapter nötig | nein | ja |
-| verfügbares Moment | 5,52 Nm | 9,94 Nm bei i = 1,8 |
-| Reserve über dem Auslegungsfall (2,51 Nm) | **Faktor 2,2** | Faktor 4,0 |
-
-Das verfügbare Moment ist der einzige Punkt, der für den Riemen spricht. Da der
-Auslegungsfall samt Rampe bei 2,51 Nm liegt ([08-staender](08-staender.md) §5),
-reichen 5,52 Nm mit **Faktor 2,2**. Der Riemen wäre eingetauschte Messgüte für nicht
-benötigtes Moment.
-
-### Voraussetzung
-
-Die Trommel hängt damit an den Motorlagern. Das setzt voraus, dass die **Statorachse
-beidseitig** gelagert werden kann (offene Frage A6) und dass die Trommel symmetrisch zur
-Motorebene gebaut wird, damit kein Biegemoment auf die Motorlager wirkt. Ist das nicht
-gegeben, bekommt die Trommel eigene Lager und der Motor einen Zahnriemen — die
-Firmware-Konstante `BELT_RATIO` existiert genau für diesen Fall.
+Als Reibrolle gegen die Trommeloberfläche geht der Motor nicht: dafür bräuchte er
+1393 1/min, also das Dreifache seiner Nenndrehzahl.
 
 ## 3 Stückliste
 
@@ -337,22 +320,7 @@ Falls doch einer in die Analogstrecke muss:
   verloren, wenn das Kabel straff abgeht.
 - **Logik- und Leistungsmasse an genau einem Punkt verbinden.**
 
-## 6 Warum der Motor nicht an der Trommeloberfläche angreift
-
-Eine naheliegende Variante wäre, das Hoverboard-Rad mit seinem Vollgummireifen als
-Reibrolle gegen die Trommel zu drücken. Das geht nicht:
-
-```
-Trommeloberfläche bei 60 km/h   = 16,67 m/s
-Raddrehzahl dafür                = 16,67 / 0,718 · 60 = 1393 1/min
-Motor-Nenndrehzahl bei 36 V      = 605 1/min
-```
-
-Mehr als das Doppelte der Nenndrehzahl — unerreichbar. An der **Welle** sind dagegen nur
-333 1/min nötig. Unabhängig davon wäre der Schlupf einer Reibrolle lastabhängig und fiele
-damit nicht sauber in die Leerlaufkennlinie.
-
-## 7 Leistungsbedarf und Netzteil
+## 6 Leistungsbedarf und Netzteil
 
 Bei 60 km/h (ω = 35,73 rad/s), Auflast 42,5 kg. Momente einschließlich Leerlauf und
 Laufradverlusten (rund 0,51 Nm, [08-staender](08-staender.md) §5.1):
@@ -379,9 +347,9 @@ schaltet mit Überspannung ab. Lösungen: Bremswiderstand mit Chopper (1,4 kJ ü
 sind 140 W, ein 100-W-Widerstand reicht) oder eine Batterie als Puffer. Eine mechanische
 Bremse gibt es nicht ([07-sicherheit](07-sicherheit.md) §3).
 
-## 8 Gebergehäuse für die Hall-Sensoren
+## 7 Gebergehäuse für die Hall-Sensoren
 
-Feststehende Seite der Drehzahlerfassung, am Rahmen. Gegenstück ist §9.
+Feststehende Seite der Drehzahlerfassung, am Rahmen. Gegenstück ist §8.
 
 3D-Druck, Außenmaß **37,2 × 20,0 × 12,0 mm**, 5,6 cm³.
 
@@ -397,7 +365,7 @@ Tabelle gebunden. Maße ändert man **in der Tabelle**, nicht in den Skizzen.
 Wer im GUI arbeitet, pflegt die FCStd — das Skript überschreibt sie. Es ist der
 Erzeuger, nicht die Wahrheit.
 
-### 8.1 Maße
+### 7.1 Maße
 
 | Merkmal | Maß |
 |---|---|
@@ -412,7 +380,7 @@ Erzeuger, nicht die Wahrheit.
 | Kabelmulde vor der Platine | dieselbe Nut, 5,2 tief, x = 20…26 mm |
 | LED-Loch | Ø 3,2 im Deckel, 15 mm von der Stirnwand |
 
-Stirnwand 1,2 mm, weil sie in den Magnet-Luftspalt eingeht (§9.3). Nut 3,4 mm bei
+Stirnwand 1,2 mm, weil sie in den Magnet-Luftspalt eingeht (§8.3). Nut 3,4 mm bei
 4 mm Kabel, damit das Blech den Mantel klemmt — das ist die Zugentlastung.
 
 Der Mantel passt **nicht** unter die Platine; dort sind nur 2,0 mm. Er endet in der
@@ -420,7 +388,7 @@ Mulde, die mit 5,2 mm tiefer ist als das Kabel dick — dort wird nichts geklemm
 nichts gegen die Platinenkante gedrückt. Weiter laufen nur die drei Adern. Geklemmt
 wird erst im massiven Block dahinter.
 
-### 8.2 Platinenaufnahme
+### 7.2 Platinenaufnahme
 
 | Merkmal | Maß |
 |---|---|
@@ -446,7 +414,7 @@ federt. Der Absatz dagegen durchgehend; er muss nicht federn, sondern tragen.
 > Der äußerste Lochrasterstreifen liegt auf der Leiste und muss frei von Lötstellen
 > bleiben: Bauteile innerhalb von ±5,2 mm um die Platinenmitte bestücken.
 
-### 8.3 Montage
+### 7.3 Montage
 
 Offene Seite auf das Alublech, eine M6-Schraube. Daraus folgt:
 
@@ -456,15 +424,15 @@ Offene Seite auf das Alublech, eine M6-Schraube. Daraus folgt:
 3. Eine Schraube heißt verdrehbar — die Ausrichtung zur Trommelmarke wird beim
    Anziehen mit eingestellt.
 
-## 9 Markenaufnahme an der Trommel
+## 8 Markenaufnahme an der Trommel
 
-Mitdrehende Seite, Gegenstück zu §8. Kein Druckteil.
+Mitdrehende Seite, Gegenstück zu §7. Kein Druckteil.
 
 **8 Magnete** auf dem Teilkreis der 8 Abstandsklötze der Trommel-Stirnfläche. Dort
 ist die 15-mm-Multiplexscheibe von hinten abgestützt, der Radius ist maximal, und
 die Teilung liegt durch den vorhandenen Aufbau fest.
 
-### 9.1 Teile
+### 8.1 Teile
 
 | | |
 |---|---|
@@ -478,7 +446,7 @@ die Teilung liegt durch den vorhandenen Aufbau fest.
 als 2,9 gibt es in A2 mit Senkkopf und Kreuzschlitz kaum; falls die 2,9 klemmt,
 Messing 2,5 × 12 — ebenso unmagnetisch.
 
-### 9.2 Die Schraube muss nichtmagnetisch sein
+### 8.2 Die Schraube muss nichtmagnetisch sein
 
 Keine Korrosions-, sondern eine Messfrage: die Schraube sitzt im Flussweg des axial
 magnetisierten Magneten. Stahl schließt Nord und Süd durch den Magneten kurz, das
@@ -488,7 +456,7 @@ Flanken pro Magnet. **A2 oder A4, niemals verzinkter Stahl.**
 Der Kopf der 2,9er misst 5,5 mm und sitzt in einer Senkung für Ø3 eher etwas tiefer
 als eine 3,0er — erwünscht, weil der Stahl damit weiter vom Sensor weg ist.
 
-### 9.3 Feldreserve
+### 8.3 Feldreserve
 
 `B(z) = Br/2 · [(z+t)/√(R²+(z+t)²) − z/√(R²+z²)]`, N42 mit Br ≈ 1,3 T, Loch per
 Superposition als Gegenscheibe R = 1,5 mm abgezogen. Abstand bis zum Chip:
@@ -505,13 +473,13 @@ B_OP des TLE4905L im ungünstigsten Fall 18 mT. Das Loch kostet 22 %, bei 8 mm b
 Faktor 2. Luftspalt deshalb eher großzügig wählen: die Störung durch Loch und
 Schraubenkopf hat nur wenige Millimeter Längenskala.
 
-### 9.4 Polung
+### 8.4 Polung
 
 TLE4905L ist unipolar. Alle acht Magnete mit derselben Seite nach außen; ein
 Zylindermagnet passt in beiden Richtungen ins Loch, die Mechanik verhindert den
 Dreher nicht. **Jeden Magneten vor dem Festziehen einzeln gegen den Sensor prüfen.**
 
-### 9.5 Winkellage: messen statt bohren
+### 8.5 Winkellage: messen statt bohren
 
 Bohrgenauigkeit ist nicht nötig. Bei hoher Drehzahl ändert sich ω innerhalb einer
 Umdrehung um höchstens 0,15 % ([09-messtheorie](09-messtheorie.md) §1.7); die
