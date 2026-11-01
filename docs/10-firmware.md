@@ -167,6 +167,8 @@ Die Seite, auf der während eines Laufs alles steht, was zählt.
 | L6 | M | Crr, sobald `LOADCELL_N_PER_COUNT` gesetzt ist. |
 | L7 | S | Restliche Haltezeit auf dem Plateau. |
 | L8 | S | Reifendruck und Auflast, wie vor dem Lauf eingegeben. |
+| L12 | M | **Abrollradius `r_Rad` aus dem Drehzahlverhältnis** `r_Trommel · n_Trommel / n_Rad` berechnen und anzeigen, statt ihn eingeben zu lassen. Mittelung über ≥ 30 s auf einem Plateau. |
+| L13 | S | Das Verhältnis als **Schlupfüberwachung**: Abweichung vom eingeschwungenen Wert um mehr als 1 % meldet rutschenden Reifen. |
 
 ### 7.1 Wann die Drehzahl „konstant" ist
 
@@ -198,7 +200,7 @@ in die Auswertung hinterher.
 |---|---|---|---|
 | `l<N>` | Auflast | `l416.9` | Crr |
 | `p<bar>` | Reifendruck | `p4.0` | nur Protokoll |
-| `r<m>` | Reifenradius | `r0.339` | Umrechnung auf das Laufrad |
+| `r<m>` | Reifenradius | `r0.339` | **nur als Rückfall** — normalerweise aus dem Drehzahlverhältnis gemessen, L12 |
 | `w<A₁> <B₁>` | Radverlustmodell | `w0.012 0.000071` | aus dem Laufrad-Auslauf |
 | `n<A₀> <B₀>` | Leerlaufmodell | `n0.004 0.000209` | aus dem Baseline-Lauf |
 | `t` | statische Tara | | Offset |

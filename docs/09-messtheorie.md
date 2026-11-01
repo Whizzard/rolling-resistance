@@ -198,6 +198,32 @@ auf Plausibilität prüft.
 | Laufradmasse `m_Rad` | Waage | ±20 g |
 | Referenz-Reifenmasse `m_Reifen,ref` | Waage, gehört zu `J_Rad` | ±1 g |
 
+### 2.2a Abrollradius aus dem Drehzahlverhältnis
+
+`r_Rad` wird **nicht eingegeben, sondern gemessen**. Trommel und Laufrad rollen
+aufeinander ab, also legen beide Oberflächen dieselbe Strecke zurück:
+
+```
+U_Rad = U_Trommel · n_Trommel / n_Rad        r_Rad = r_Trommel · n_Trommel / n_Rad
+```
+
+| Beitrag | Größe |
+|---|---|
+| Unsicherheit von `U_Trommel` | 0,035 % (1 mm Maßband) |
+| Schlupf im Latsch, geschätzt | ≈ 0,01 % |
+| Zählquantisierung über 30 s | vernachlässigbar |
+| **gesamt** | **≈ 0,05 %** |
+
+Zum Schlupf: übertragen wird nur das Eigenverlustmoment des Laufrads, `F_t = M_Rad/r =
+0,55 N` gegen 417 N Auflast, also µ = 0,0013. Bei µ_max ≈ 0,8 und 5 bis 10 % Schlupf im
+Maximum bleibt davon rund 0,01 %.
+
+Der so bestimmte Wert ist der **belastete Abrollradius auf der gekrümmten Trommel** —
+genau die Größe, die in die Umrechnung gehört. Ein Maßband um den unbelasteten Reifen
+liefert 2 bis 4 % zu viel.
+
+> Das Verhältnis ist zugleich eine **Schlupfüberwachung**: springt es, rutscht der Reifen.
+
 ### 2.3 Pro Reifen / pro Messreihe
 
 | Größe | Ermittlung | Anmerkung |
