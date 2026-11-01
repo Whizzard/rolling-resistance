@@ -190,7 +190,44 @@ Zur Einordnung: über ein Mittelungsfenster von 10 Umdrehungen bei 60 km/h (1,7 
 muss schärfer stehen, als man vermutet — deshalb gehört der Wert auf die Seite und nicht
 in die Auswertung hinterher.
 
-## 8 Offen
+## 8 Eingaben vor dem Lauf
+
+Über die serielle Konsole, einzeilig, und mit in die CSV-Kopfzeile.
+
+| Befehl | Größe | Beispiel | wofür |
+|---|---|---|---|
+| `l<N>` | Auflast | `l416.9` | Crr |
+| `p<bar>` | Reifendruck | `p4.0` | nur Protokoll |
+| `r<m>` | Reifenradius | `r0.339` | Umrechnung auf das Laufrad |
+| `w<A₁> <B₁>` | Radverlustmodell | `w0.012 0.000071` | aus dem Laufrad-Auslauf |
+| `n<A₀> <B₀>` | Leerlaufmodell | `n0.004 0.000209` | aus dem Baseline-Lauf |
+| `t` | statische Tara | | Offset |
+
+| | P | Anforderung |
+|---|---|---|
+| E1 | M | Jede Eingabe steht in der CSV, damit ein falsch gesetzter Wert später auffällt. |
+| E2 | S | `A₀/B₀` fittet die Firmware nach dem Baseline-Lauf selbst und bietet sie an. |
+| E3 | M | Fehlt eine Eingabe, bleibt die abhängige Größe `--`, sie wird nicht geschätzt. |
+
+## 9 Anzeige
+
+| | P | Anforderung |
+|---|---|---|
+| Z1 | M | **4 × 20 Zeichen**, HD44780 über PCF8574. |
+| Z2 | M | Fehlt `LOADCELL_N_PER_COUNT` oder `A₁/B₁`, steht statt Crr und Watt **`--`**. Kein Wert ist besser als ein falscher. |
+| Z3 | M | Eine Zeile zeigt immer die **Eingaben** (Auflast, Druck), damit ein Fehler vor dem Lauf auffällt. |
+| Z4 | M | Betriebsart und Fortschritt sind immer sichtbar. |
+
+Entwurf der Messseite:
+
+```
+v 28.8 km/h  n 196
+P 12.3 W     Crr .00370
+N 417 N      p 4.0 bar
+MEASURE  rev 7/10  ok
+```
+
+## 10 Offen
 
 | | Frage |
 |---|---|

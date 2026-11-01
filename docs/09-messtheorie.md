@@ -444,42 +444,19 @@ erspart die getrennte Unsicherheit von Zelle und Hebelarm.
 Beides ist nötig. Die statische Tara allein lässt die Aerodynamik stehen, die
 Leerlaufkennlinie allein lässt den ADC-Offset stehen.
 
-## 6 Was der ESP32 rechnet und anzeigt
+## 6 Die Rechenkette im Betrieb
 
-### 6.1 Konstanten, die fest im Code stehen
-
-```c
-DRUM_CIRCUMFERENCE_M   U          gemessen          → r = U/(2π)
-TORQUE_ARM_M           L  0,040   gemessen
-LOADCELL_N_PER_COUNT   k          kalibriert §5.1
-MARKS_PER_REV          6
-```
-
-### 6.2 Werte, die vor dem Lauf eingegeben werden
-
-Über die serielle Konsole, einzeilig, und mit ins CSV:
-
-| Befehl | Größe | Beispiel | wofür |
-|---|---|---|---|
-| `l<N>` | Auflast | `l416.9` | Crr, Gleichung (9) |
-| `p<bar>` | Reifendruck | `p4.0` | nur Protokoll |
-| `r<m>` | Reifenradius | `r0.339` | Umrechnung (12) |
-| `w<A₁> <B₁>` | Radverlustmodell | `w0.012 0.000071` | Gleichung (12) |
-| `n<A₀> <B₀>` | Leerlaufmodell | `n0.004 0.000209` | Gleichung (11) |
-| `t` | statische Tara | | Offset |
-
-`A₀/B₀` fallen aus dem Baseline-Lauf an; die Firmware kann sie selbst fitten und anbieten.
-`A₁/B₁` kommen aus dem Laufrad-Auslauf und bleiben, bis das Laufrad gewechselt wird.
-
-### 6.3 Die Live-Rechnung, Schritt für Schritt
+Reihenfolge der Auswertung. Die Gleichungen stehen in §1, die Konstanten in
+[03-parameter](03-parameter.md), Eingaben und Anzeige in
+[10-firmware](10-firmware.md).
 
 ```
 je Sample:   F_Z = (raw − offset) · k
-je Umdrehung (Index-getriggert, über AVG_REVS_PER_POINT Umdrehungen gemittelt):
+
+je Umdrehung, index-getriggert, über AVG_REVS_PER_POINT gemittelt:
              n   = Marken / (k_Marken · Δt)
              ω   = 2π·n              v = U·n
              M   = F_Z,mittel · L
-             P_ges     = M · ω
              M_leer    = A₀ + B₀·ω²
              ω_Rad     = ω · r / r_Rad
              M_Rad     = (A₁ + B₁·ω_Rad²) · r / r_Rad
@@ -489,22 +466,9 @@ je Umdrehung (Index-getriggert, über AVG_REVS_PER_POINT Umdrehungen gemittelt):
              P_Reifen  = M_Reifen · ω        (= Crr · N · v)
 ```
 
-**Die Wattzahl, die zählt, ist `P_Reifen`** — nicht `P_ges`. Die publizierten Werte sind
-Reifenleistungen bei 28,8 km/h und 42,5 kg; `P_ges` enthält zusätzlich Trommel und
-Laufrad und wäre bei 28,8 km/h um rund 2 W zu hoch (1,05 W Trommel + 0,99 W Laufrad).
-
-### 6.4 Anzeige 4 × 20
-
-```
-v 28.8 km/h  n 196
-P 12.3 W     Crr .00370
-N 417 N      p 4.0 bar
-MEASURE  rev 7/10
-```
-
-Zeile 3 zeigt die Eingaben, damit ein falsch gesetzter Wert auffällt, bevor die Reihe
-läuft. Solange `LOADCELL_N_PER_COUNT` oder `A₁/B₁` fehlen, zeigt die Firmware statt Crr
-und Watt **`--`** — kein Wert ist besser als ein falscher.
+**Die Wattzahl, die zählt, ist `P_Reifen`**, nicht `P_ges = M·ω`. Die publizierten Werte
+sind Reifenleistungen bei 28,8 km/h und 42,5 kg; `P_ges` enthält zusätzlich Trommel und
+Laufrad und läge bei 28,8 km/h um rund 2 W zu hoch (1,05 W Trommel, 0,99 W Laufrad).
 
 ## 7 Die Messmatrix
 
