@@ -113,7 +113,12 @@ die Firmware noch nicht anfasst.
 | 8 | `PIN_I2C_SDA` | I²C SDA | bidir | LCD; S3-Vorgabebelegung |
 | 9 | `PIN_I2C_SCL` | I²C SCL | out | LCD |
 | 10 | `PIN_SD_CS` | microSD, Chip Select | out | übrige SPI-Pins noch **TBD** |
-| 14 | `PIN_BUTTON` | Bedientaster | in | **noch nicht in der Firmware** |
+| 11 | `PIN_BTN_UP` | Steuerkreuz hoch | in, Pull-up | gegen Masse |
+| 12 | `PIN_BTN_DOWN` | Steuerkreuz runter | in, Pull-up | |
+| 13 | `PIN_BTN_IN` | Steuerkreuz rein | in, Pull-up | |
+| 14 | `PIN_BTN_OUT` | Steuerkreuz raus | in, Pull-up | |
+| 39 | `PIN_BTN_OK` | Steuerkreuz Mitte | in, Pull-up | optional |
+| 40 | `PIN_BRAKE_RELEASE` | MOSFET in der Spulenmasse der Bremsrelais | out | **high = Relais an = Bremse gelöst.** Pulldown am Gate: beim Reset gebremst |
 | 15 | `PIN_HX711_DOUT` | HX711 #1 DOUT (Moment) | in | |
 | 16 | `PIN_HX711_SCK` | HX711 SCK | out | **gemeinsamer Takt beider HX711** |
 | 17 | `PIN_HX7112_DOUT` | HX711 #2 DOUT (Auflast) | in | zweite Zelle noch nicht bestückt |
@@ -136,7 +141,7 @@ auf dem S3 fast vollständig auf Pins, die es entweder nicht gibt oder die beleg
 | 43, 44 | UART0, serielle Konsole |
 | 38 | RGB-LED des DevKits |
 
-Frei bleiben 1…18 und 21 sowie 39…42 und 47/48. Analog geht nur **ADC1** (GPIO 1…10),
+Frei bleiben danach noch 41, 42 und 47. Analog geht nur **ADC1** (GPIO 1…10),
 weil ADC2 bei eingeschaltetem WLAN vom Funk belegt ist — deshalb liegt der PTC auf
 GPIO 10.
 

@@ -30,7 +30,24 @@ Zweck: Motor und Mechanik in Betrieb nehmen, bevor gemessen wird.
 | T7 | S | Anzeige des Rohwerts der Wägezelle, damit der Momentenpfad geprüft werden kann. |
 | T8 | S | Sollwert wird beim Verlassen des Testmodus auf 0 gesetzt. |
 
-## 3 Not-Stop
+## 3 Bedienung
+
+**Steuerkreuz mit fünf Tastern plus separatem Not-Aus.**
+
+| | P | Anforderung |
+|---|---|---|
+| B1 | M | Taster **Hoch / Runter / Rein / Raus**, jeweils gegen Masse, interner Pull-up. |
+| B2 | S | Fünfter Taster **Mitte = Bestätigen**. |
+| B3 | M | Entprellung in Software, kein RC im Signalpfad. |
+| B4 | M | Dauerdruck auf Hoch/Runter wiederholt mit Autorepeat. |
+| B5 | M | **Schrittweite 1 oder 5 km/h** über Rein/Raus oder einen Modusschalter — nicht über eine versteckte Tastenkombination. |
+| B6 | M | Der **Not-Aus ist kein Taster am Steuerkreuz**, sondern der zwangsöffnende Pilzschalter im Leistungspfad ([07-sicherheit](07-sicherheit.md) §3). Die Firmware sieht ihn nur über `PIN_ESTOP_FB`. |
+| B7 | S | Dieselbe Navigation über die serielle Konsole, damit ohne Bedienteil gearbeitet werden kann. |
+
+Bauform: **Fünfwege-Tastschalter** (Navigationstaster, z. B. ALPS SKQU) — ein Bauteil,
+fünf Kontakte, gemeinsame Masse. Alternativ fünf einzelne Taster.
+
+## 4 Not-Stop
 
 | | P | Anforderung |
 |---|---|---|
@@ -41,7 +58,7 @@ Zweck: Motor und Mechanik in Betrieb nehmen, bevor gemessen wird.
 | N5 | M | Derselbe Zustand wird von den Abschaltkriterien in [07-sicherheit](07-sicherheit.md) §4 erreicht. |
 | N6 | M | Beim Reset und beim Booten sind die Relais abgefallen, der Stand ist also gebremst. |
 
-## 4 Kalibriermodus Wägezelle
+## 5 Kalibriermodus Wägezelle
 
 Prüfgewicht an den Hebelarm hängen, daraus `LOADCELL_N_PER_COUNT`.
 
@@ -58,13 +75,12 @@ Prüfgewicht an den Hebelarm hängen, daraus `LOADCELL_N_PER_COUNT`.
 Umrechnung: eine Masse *m* am Radius *b* erzeugt an der Zelle (r = 40 mm)
 `F = m · g · b / 0,040 m`. Am 80-mm-Loch also die **doppelte** Kraft.
 
-## 5 Offen
+## 6 Offen
 
 | | Frage |
 |---|---|
 | ? | **Masse des Prüfgewichts.** Vermutet 500 g — das ergibt am 80-mm-Loch nur **10 % vom Zellenendwert**, gemessen wird aber bei 13 bis 64 %. Siehe Hinweis unten. |
-| ? | **Bedienteil.** `PIN_BUTTON` = GPIO14 ist **ein** Taster; Hoch/Runter/Schrittweite/Not-Stop brauchen mehr. Festzulegen: Anzahl Taster oder Bedienung nur über die Konsole. |
-| ? | **Pin für die Relaisansteuerung** (MOSFET in der Spulenmasse) ist noch nicht vergeben. |
+| ? | **Pinbelegung** steht in [04-hardware](04-hardware.md) §4 und geht in `config.h`, sobald die Firmware-Arbeit wieder aufgenommen wird. |
 
 > **Zum Prüfgewicht.** 500 g am 80-mm-Loch sind 9,81 N an der Zelle, also 10 % vom
 > Endwert; der Messbetrieb liegt bei 12 bis 63 N. Eine Kalibrierung bei 10 % auf 64 %
