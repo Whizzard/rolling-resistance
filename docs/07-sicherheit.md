@@ -103,6 +103,65 @@ Eine Erhöhung von `V_MAX_KMH` setzt voraus:
 
 Ohne diese Punkte bleibt es bei 60 km/h.
 
+## 5a Trommel auswuchten
+
+Breite 100 mm bei 933 mm Durchmesser, also L/D = 0,11. Unter 0,2 genügt
+**Einebenen-Wuchten** (statisch) — die beiden Korrekturebenen fallen praktisch
+zusammen.
+
+### Zulässige Restunwucht
+
+Nach ISO 21940 mit Gütestufe **G 6.3**, m ≈ 17 kg, ω = 35,7 rad/s bei 60 km/h:
+
+```
+e_zul = G / ω     = 6,3 / 35,7      = 0,176 mm
+U_zul = e_zul · m = 0,176 mm · 17 kg = 3000 g·mm
+```
+
+Am Radius 466 mm sind das **6,4 g am Umfang**. Das ist das Ziel.
+
+### Der Ausrolltest taugt nur ohne Motor
+
+Die Trommel bleibt stehen, sobald das Schwerkraftmoment der Unwucht das
+Reibmoment unterschreitet: `m_min = T_reib / (g · r)`.
+
+| Lagerung | T_reib | kleinste erkennbare Unwucht am Umfang |
+|---|---|---|
+| **mit Nabenmotor, Rastmoment 0,15 Nm** | 0,15 Nm | **33 g** |
+| mit stark rastendem Stator | 0,30 Nm | 66 g |
+| gedichtete Rillenkugellager, ohne Motor | ≈ 0,02 Nm | 4,4 g |
+| offene Lager oder Schneiden | ≈ 0,002 Nm | 0,44 g |
+
+**Mit angeflanschtem Motor ist der Test wertlos.** Das Rastmoment hält die Trommel
+in jeder beliebigen Stellung fest — sie besteht den Test, egal wie unwuchtig sie
+ist, und zwar um Faktor 5 bis 10 unter der nötigen Auflösung.
+
+Also: Trommel vom Motor trennen und die Welle auf zwei waagerecht ausgerichtete
+Schneiden oder zwei Lagerpaare legen.
+
+### Eigene Auflösung nachweisen
+
+Wenn die Trommel in jeder Stellung steht, ist damit **nicht** bewiesen, dass sie
+gewuchtet ist — nur, dass die Reibung größer ist als die Restunwucht. Deshalb
+gegenprüfen: **ein bekanntes Prüfgewicht von 5 g am Umfang ankleben.** Dreht sich
+die Trommel daraufhin, liegt die Auflösung unter 5 g und das Ergebnis trägt.
+Bewegt sie sich nicht, ist die Reibung zu hoch und das Wuchtergebnis wertlos.
+
+Ausgleich über Schrauben mit Scheiben in die Multiplexscheibe, Radius notieren.
+**Nicht auf den Teilkreis der Markenmagnete** — Stahl neben den Hall-Gebern.
+
+### Gegenprobe im Lauf
+
+Die Wägezelle misst die Restunwucht selbst mit: im umdrehungssynchron gemittelten
+Momentenverlauf ist die **1. Ordnung** ein direktes Maß dafür. Beim stufenweisen
+Hochlauf (§5) mitschreiben.
+
+Für die Messung selbst ist Unwucht unkritisch: die 1. Ordnung liegt bei 60 km/h bei
+5,7 Hz, weit unter der Eigenfrequenz des Wiegeteils von 26…44 Hz
+([09-messtheorie](09-messtheorie.md) §3.5), und die umdrehungssynchrone Mittelung
+löscht alle Vielfachen der Drehfrequenz exakt. Das Wuchten dient der **Sicherheit
+und den Lagern**, nicht der Messgenauigkeit.
+
 ## 6 Checkliste vor jedem Lauf
 
 - [ ] Haube geschlossen und verriegelt
