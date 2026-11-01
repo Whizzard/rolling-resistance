@@ -10,7 +10,7 @@ trägt ihre Herkunft. Maße in mm, Kräfte in N.
 > (drei Messungen mitteln, [03-parameter](03-parameter.md) §1) — **erst dann** gehen U und
 > r in `config.h`. Welche Maße daran hängen und welche nicht, steht in §2.
 
-## 1 Topologie und ihre Begründung
+## 1 Topologie
 
 ```
           Prüflaufrad
@@ -291,20 +291,16 @@ auszumessen — bei 40 mm sind das 0,25 % statt 0,14 %, das bleibt unter dem Bud
 > Auslegungsfall bei 73 % und die FS-bezogenen Fehler halbieren sich ebenfalls. Nur
 > sinnvoll, falls ohnehin eine zweite Zelle beschafft wird.
 
-### 5.3 Der Antrieb ist jetzt deutlich überdimensioniert
+### 5.3 Hochlaufzeit
 
-Stationär werden im Auslegungsfall **1,88 Nm = 67 W** mechanisch gebraucht. Rechnerisch
-genügte ein Motor mit 119 W Nennleistung — die Auswahlregel „250 W Minimum, 350 W richtig"
-aus [03-parameter](03-parameter.md) §4 galt für MTB-Reifen und ist damit hinfällig. Der
-vorhandene Motor hat Faktor 3 Reserve.
-
-Hochlauf auf 60 km/h mit Contact Urban am Rad (J = 2,38 kg·m²):
+Stationär werden im Auslegungsfall 1,88 Nm = 67 W gebraucht; der Motor liefert 6,96 Nm.
+Hochlauf auf 60 km/h mit Contact Urban am Rad, J = 2,38 kg·m²:
 
 | Antriebsmoment | Dauer |
 |---|---|
 | 2,0 Nm | 103 s |
 | 3,0 Nm | 46 s |
-| 5,52 Nm (Dauermoment) | **20 s** |
+| **6,96 Nm (Dauermoment)** | **15 s** |
 
 ### 5.4 Wo das Problem jetzt wirklich liegt
 
@@ -329,23 +325,10 @@ mit demselben Laufrad fällt es heraus ([09-messtheorie](09-messtheorie.md) §1.
 Absolutwerte ist es jetzt der größte Einzelfehler — größer als alles, was in §4.2 des
 Fehlerbudgets steht.
 
-**Vorschlag: Laufrad-Auslaufversuch.** Die Mechanik dafür ist schon da — der Exzenterhebel
-zum Abheben (§5.5 der Mechanik). Ablauf: Trommel auf Drehzahl bringen, Laufrad **im Lauf**
-abheben, seinen eigenen Auslauf aufzeichnen. Dann gilt `J_Rad · dω/dt = M_Rad(ω)`, und aus
-der Schätzung 0,25 Nm wird eine Messkurve. Gebraucht wird dafür nur:
-
-| Teil | Zweck |
-|---|---|
-| 1 Hallsensor + Magnet an den Speichen | Drehzahl des Prüflaufrads |
-| 1 freier Interrupt-Pin am ESP32 | Pulsmessung |
-| J_Rad | aus Wägung und Geometrie, oder aus demselben Auslauf mit bekannter Zusatzmasse |
-
-Das macht den Prüfstand erst absolutwertfähig und kostet zwei Bauteile. Gehört als neuer
-Punkt in [06-offene-fragen](06-offene-fragen.md).
-
-> **Nachzuziehen in `config.h` und [03-parameter](03-parameter.md) §1/§6:**
-> `TORQUE_ARM_M` 0,070 → 0,040 · `CRR_DESIGN_MAX` 0,015 → 0,007. Beide Listen gemeinsam,
-> wie in CLAUDE.md festgelegt — noch **nicht** geändert.
+Behoben wird das über den **Laufrad-Auslaufversuch**
+([09-messtheorie](09-messtheorie.md) §9.3): Trommel auf Drehzahl bringen, Laufrad im Lauf
+abheben, seinen eigenen Auslauf aufzeichnen, `J_Rad · dω/dt = M_Rad(ω)`. Dafür nötig:
+ein Hallsensor mit Magnet an den Speichen (`PIN_WHEEL`) und J_Rad aus dem Bifilarpendel.
 
 ## 6 Laufrad-Auslaufversuch: woher J kommt
 
@@ -368,18 +351,15 @@ alle auf demselben Radius sitzen. Rechenwert für ein 622er mit 2,5 kg:
 Ziel also **≤ 2–3 %**. Zum Vergleich: ΔCrr = 0,0005 ist die Auflösungsforderung aus
 [01-requirements](01-requirements.md) M1 — ein 10-%-Fehler auf J frisst davon ein Viertel.
 
-### 6.2 Vier Wege, J zu bestimmen
+### 6.2 Bifilarpendel
 
-| Methode | Fehler | Aufwand |
-|---|---|---|
-| **A — Bifilarpendel** (zwei Fäden) | **1,2–1,4 %** | zwei Schnüre, Stoppuhr |
-| B — physikalisches Pendel am Felgenhorn | 2,9 % | ein Nagel, Stoppuhr |
-| C — Auslauf mit Zusatzmasse, J fällt heraus | 4 % (bei 720 g Zusatz) | Gewichte, zwei Läufe |
-| D — wiegen und rechnen | 3–5 % | Waage |
+Gewählt, weil es mit 1,2–1,4 % als einziges Verfahren unter die Zielmarke kommt — ein
+Pendel am Felgenhorn liegt bei 2,9 %, Auslauf mit Zusatzmasse bei 4 %, Wiegen und Rechnen
+bei 3–5 %.
 
-**A ist die richtige Wahl.** Rad waagerecht an zwei gleich langen Fäden aufhängen, die an
-zwei gegenüberliegenden Punkten der Felge befestigt sind. Um die Hochachse um wenige Grad
-verdrehen, loslassen, 20 Schwingungen stoppen:
+Rad waagerecht an zwei gleich langen Fäden aufhängen, die an zwei gegenüberliegenden
+Punkten der Felge befestigt sind. Um die Hochachse um wenige Grad verdrehen, loslassen,
+20 Schwingungen stoppen:
 
 ```
 J = m · g · b² · T² / (4 π² · L)
@@ -397,10 +377,6 @@ T = Schwingungsdauer.
 Bedingungen: Fäden senkrecht und gleich lang, Ausschlag < 10°, **Reifen montiert und
 aufgepumpt wie im Versuch** — seine Masse ist Teil von J. D als Gegenprobe rechnen; weichen
 beide um mehr als 5 % ab, stimmt etwas nicht.
-
-Warum B schlechter ist, obwohl es einfacher klingt: beim Pendel am Felgenhorn misst man
-J_Pendel = J + m·d², und der abzuziehende Anteil m·d² ist **54 %** des Messwerts. Der
-Stoppfehler wirkt dadurch doppelt.
 
 ### 6.3 Reifenwechsel: J mitführen, nicht neu messen
 
@@ -559,25 +535,23 @@ unabhängig von Zellensteifigkeit und Hebelverhältnis:
 > 20 kg am 80-mm-Loch wären 15,7 Nm = 392 N = **400 % vom Endwert** und zerstören die
 > Zelle beim Einstellen.
 
-### 7.6 Warum optisch und nicht magnetisch oder mechanisch
+### 7.6 Warum optisch
+
+Jede Alternative übt eine Kraft auf den Hebelarm aus und fälscht damit genau das Signal,
+das gemessen wird:
 
 | Verfahren | Kraft auf den Arm | bei r = 200 mm | vom Signal |
 |---|---|---|---|
-| Mikroschalter, Standard | 1,5 N | 0,30 Nm | **28 %** |
+| Mikroschalter, Standard | 1,5 N | 0,30 Nm | 28 % |
 | Mikroschalter, hochempfindlich | 0,1 N | 0,02 Nm | 2 % |
-| Magnet + Stahlblende | 0,1…1 N (Kantenkraft) | 0,02…0,2 Nm | **2…19 %** |
+| Magnet + Stahlblende | 0,1…1 N (Kantenkraft) | 0,02…0,2 Nm | 2…19 % |
 | **Gabellichtschranke** | **0** | **0** | **0 %** |
 
-Zur Blende: **Aluminium schirmt ein statisches Magnetfeld nicht ab** — es ist
-unmagnetisch, das Feld geht hindurch. Nötig wäre Stahl (das Prinzip der alten
-Zündverteiler-Hallgeber). Aber auch dann zieht der Magnet an der Blende, und zwar mit
-einer Kantenkraft genau an der Schaltposition — also dort, wo es am meisten stört. Eine
-Lichtschranke ist von der Physik her kraftfrei.
+Eine Alublende scheidet aus: Aluminium schirmt ein statisches Magnetfeld nicht ab. Stahl
+würde schirmen, zieht aber genau an der Schaltposition.
 
-Eine Fahne mit **Fenster** erledigt beide Richtungen mit einem Sensor und einem GPIO:
-Licht durch → Messzone → Signal gültig. Licht blockiert → Signal verwerfen, FAULT.
+Eine Fahne mit **Fenster** erledigt beide Richtungen mit einem Sensor: Licht durch →
+Messzone, Signal gültig. Licht blockiert → verwerfen, FAULT.
 
-> **Nebenbefund für die Trommelmarken:** die Halter der Hall-Sensoren an der Trommel aus
-> **Aluminium oder Kunststoff** fertigen, nicht aus Stahl. Ein Stahlhalter zieht die
-> vorbeilaufenden Magnete an und erzeugt ein Rastmoment — es fiele zwar in die
-> Leerlaufkennlinie, aber es ist vermeidbar.
+> Halter der Trommelmarken-Sensoren aus Aluminium oder Kunststoff, nicht aus Stahl —
+> sonst zieht er die vorbeilaufenden Magnete an.
