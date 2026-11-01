@@ -253,7 +253,42 @@ Praktisch:
   und 100 Ω in Reihe im SCK direkt am ESP32 — flankenbremsend, damit der Takt nicht
   in die Analogseite zurückkoppelt.
 
-### 5.4 Messtechnisch
+### 5.4 Steckverbinder
+
+**Die Zellenleitung bekommt keinen Steckverbinder.** Sie ist nur 10 cm lang und geht
+direkt in die **Schraubklemme auf der HX711-Platine**. Eine Schraubklemme ist eine
+gasdichte Klemmverbindung ohne zusätzliche Metallübergänge — elektrisch das Beste,
+was es hier gibt, und zum Zellentausch reicht ein Schraubendreher.
+
+Gesteckt wird die **digitale Seite** (5 V, 3,3 V, GND, DOUT, SCK). Dort ist die
+Bauform gleichgültig; JST-XH, Molex oder auch eine D-Sub 9, falls vorhanden.
+
+Grund: jeder Steckverbinder bringt zwei Metallübergänge je Ader in den Signalpfad,
+und bei µV-Pegeln zählt die **Thermospannung**. Sie hebt sich nur auf, solange beide
+Kontakte eines Paares gleich aufgebaut und gleich warm sind.
+
+| Übergang | Thermospannung |
+|---|---|
+| Kupfer–Gold | ≈ 0,3 µV/K |
+| Kupfer–Lot | 1…3 µV/K |
+| Kupfer–Nickel (durchgeriebene Vergoldung) | ≈ 20 µV/K |
+
+Zum Vergleich: 1 % des Signals eines guten Rennreifens sind **16 µV**. Ein
+durchgeriebener Kontakt mit 2 K Gradient über das Paar liegt bei 40 µV — also
+2,5 % Fehler, und zwar ein systematischer.
+
+Falls doch einer in die Analogstrecke muss:
+
+- **S+ und S− auf benachbarte Pins**, E+ und E− ebenso — dann sind beide Kontakte
+  gleich warm und die Thermospannungen heben sich auf.
+- Kontakte **vergoldet**, nicht verzinnt.
+- Schirm auf das **Metallgehäuse** des Steckers, Metall-Haube verwenden.
+- Nicht in einen Temperaturgradienten setzen, also nicht in Motornähe.
+- **Niemals Stiftleisten oder Dupont-Kabel** im Analogpfad.
+- Analog- und Digitaladern **nicht durch denselben Stecker**; wenn es sich nicht
+  vermeiden lässt, Masseadern dazwischen legen.
+
+### 5.5 Messtechnisch
 
 - **HX711 getrennt versorgen.** Nicht am Motorzweig. Ferrit und 100 µF direkt am
   AVDD-Pin, Sternmasse.
