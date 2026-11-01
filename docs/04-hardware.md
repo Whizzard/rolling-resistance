@@ -214,7 +214,7 @@ Trommelbremse des Motors benutzen.
 Feststehende Seite der Drehzahlerfassung, am Rahmen. Gegenstück ist §9.
 
 CAD-Quelle `hardware/hall_gehaeuse.py` → `hall-gehaeuse.FCStd`, `.step`, `.stl`.
-Maßänderungen immer im Skript. 3D-Druck, Außenmaß **37,2 × 20,0 × 12,0 mm**, 5,1 cm³.
+Maßänderungen immer im Skript. 3D-Druck, Außenmaß **37,2 × 20,0 × 12,0 mm**, 5,2 cm³.
 
 ### 8.1 Maße
 
@@ -237,17 +237,21 @@ Stirnwand 1,2 mm, weil sie in den Magnet-Luftspalt eingeht (§9.3). Nut 3,4 mm b
 
 | Merkmal | Maß |
 |---|---|
-| Auflageleisten | 1,5 mm Vorsprung je Seite, 10 mm lang, mittig; Auflage 1,0 mm |
-| Rastnase | 0,8 mm Vorsprung, 6 mm lang, mittig; Überdeckung 0,30 mm |
-| Haltefläche der Nase | z = 3,7 mm (0,1 mm Luft über der Platine) |
-| Einführschräge | 1,0 mm hoch, unterhalb der Nase |
+| Auflageleisten | 1,8 mm Vorsprung je Seite, **durchgehend 20 mm**; Auflage 1,3 mm |
+| Rastnasen | 0,65 mm Vorsprung, 6 mm lang, **nur mittig**; Überdeckung 0,15 mm |
+| Form der Nase | symmetrischer Keil, Scheitel auf der Platinenoberkante (z = 3,6) |
 | Federfeld, von außen freigestellt | 12 mm lang, 0,8 mm Restwand |
 
-Die Platine wird von unten eingeschoben, rastet über die Nasen und liegt auf den
-Leisten. Leisten und Nasen sitzen **nur mittig**: an den Enden bleibt die volle
-Breite für Bauteile frei, und die 3-mm-Wand federt nur im freigestellten Feld
-überhaupt. Deshalb auch die kleine Überdeckung von 0,30 mm — mehr ließe sich nicht
-montieren.
+Platine von unten einschieben, über die Nasen drücken, sie liegt dann auf den
+Leisten. Die Nasen haben **keinen Hinterschnitt**: die Schräge ist oben wie unten
+gleich, gehalten wird durch Vorspannung. Damit geht die Platine ohne Werkzeug wieder
+heraus.
+
+Nasen nur mittig, weil die 3 mm starke Wand nur im freigestellten Feld überhaupt
+federt. Die Leisten dagegen durchgehend — sie müssen nicht federn, sondern tragen.
+
+> Der äußerste Lochrasterstreifen liegt auf der Leiste und muss frei von Lötstellen
+> bleiben: Bauteile innerhalb von ±5,2 mm um die Platinenmitte bestücken.
 
 ### 8.3 Montage
 

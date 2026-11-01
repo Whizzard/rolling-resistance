@@ -63,18 +63,16 @@ END_WALL  = 1.2   # Stirnwand vor dem Hall-Geber: so dünn wie druckbar,
                   # sie geht direkt in den Magnet-Luftspalt ein
 RIB       = 2.0   # Steg zwischen Kavität und Schraubenblock
 
-# Auflageleisten: tragen die Platine. Nur in der Mitte, damit an den Enden
-# die volle Breite für Bauteile frei bleibt.
-RAIL_W    = 1.5   # Vorsprung je Seite → 1,0 mm Auflagebreite bei 0,5 mm Luft
-RAIL_L    = 10.0
+# Auflageleisten: durchgehend über die ganze Kavitätslänge, beidseitig gleich.
+RAIL_W    = 1.8   # Vorsprung je Seite → 1,3 mm Auflage bei 0,5 mm Luft
 
-# Rastnase über der Platine, auf derselben Mittenlänge. Bewusst klein: die
-# 3-mm-Wand lässt sich kaum biegen, deshalb sitzt sie auf einem von außen
-# freigefrästen Feld (RELIEF_*) und greift nur 0,3 mm über die Platinenkante.
-SNAP_W    = 0.8   # Vorsprung je Seite → 0,3 mm Überdeckung
+# Rastnasen: nur mittig, dort federt das freigestellte Wandfeld (RELIEF_*).
+# Symmetrische Schräge nach oben UND unten — die Platine wird durch Vorspannung
+# gehalten, nicht durch einen Hinterschnitt, und lässt sich ohne Werkzeug wieder
+# herausdrücken. Scheitel liegt auf der Platinenoberkante.
+SNAP_W    = 0.65  # Vorsprung je Seite → 0,15 mm Überdeckung
 SNAP_L    = 6.0
-SNAP_RAMP = 1.0   # Höhe der Einführschräge unter der Nase
-SNAP_PLAY = 0.1   # Luft über der Platine
+SNAP_H    = 0.8   # halbe Höhe des Keils, Schräge oben wie unten
 
 # Freistellung von außen, damit das Wandfeld hinter der Nase federn kann
 RELIEF_L  = 12.0
@@ -107,7 +105,7 @@ M6_X   = CAV_X1 + RIB + SCREW_BLK / 2.0
 
 PCB_Z0 = SOLDER_GAP                      # Unterkante Platine
 PCB_Z1 = PCB_Z0 + PCB_T                  # Oberkante Platine
-SNAP_Z = PCB_Z1 + SNAP_PLAY              # Haltefläche der Rastnase
+SNAP_Z = PCB_Z1                          # Scheitel der Rastnase
 
 YW = CAV_W / 2.0                         # Innenwand der Kavität
 
@@ -126,21 +124,21 @@ def box(lx, ly, lz, x=0.0, y=0.0, z=0.0):
 
 
 def rail(sign):
-    """Auflageleiste an einer Längswand, Oberkante = Unterkante Platine."""
-    return Part.makeBox(RAIL_L, RAIL_W, SOLDER_GAP,
-                        Vector(CAV_XM - RAIL_L / 2.0,
+    """Auflageleiste, durchgehend; Oberkante = Unterkante Platine."""
+    return Part.makeBox(CAV_L, RAIL_W, SOLDER_GAP,
+                        Vector(CAV_X0,
                                sign * YW - (RAIL_W if sign > 0 else 0.0),
                                0.0))
 
 
 def snap(sign):
-    """Rastnase: waagerechte Haltefläche oben, Einführschräge nach unten."""
+    """Rastnase: symmetrischer Keil, Scheitel auf Platinenoberkante."""
     y_wall = sign * YW
     y_tip = y_wall - sign * SNAP_W
-    pts = [Vector(0.0, y_wall, SNAP_Z - SNAP_RAMP),
-           Vector(0.0, y_wall, SNAP_Z),
+    pts = [Vector(0.0, y_wall, SNAP_Z - SNAP_H),
            Vector(0.0, y_tip,  SNAP_Z),
-           Vector(0.0, y_wall, SNAP_Z - SNAP_RAMP)]
+           Vector(0.0, y_wall, SNAP_Z + SNAP_H),
+           Vector(0.0, y_wall, SNAP_Z - SNAP_H)]
     face = Part.Face(Part.makePolygon(pts))
     solid = face.extrude(Vector(SNAP_L, 0, 0))
     solid.translate(Vector(CAV_XM - SNAP_L / 2.0, 0, 0))
@@ -206,9 +204,10 @@ def main():
           % (bb.XLength, bb.YLength, bb.ZLength))
     print('Platine     z = %.1f ... %.1f mm, Loetraum %.1f mm'
           % (PCB_Z0, PCB_Z1, SOLDER_GAP))
-    print('Rastnase    Halteflaeche z = %.1f, Ueberdeckung %.2f mm je Seite'
-          % (SNAP_Z, SNAP_W - (CAV_W - PCB_W) / 2.0))
-    print('Auflage     %.2f mm je Seite' % (RAIL_W - (CAV_W - PCB_W) / 2.0))
+    print('Rastnase    Scheitel z = %.1f, Ueberdeckung %.2f mm je Seite, %.0f mm lang'
+          % (SNAP_Z, SNAP_W - (CAV_W - PCB_W) / 2.0, SNAP_L))
+    print('Auflage     %.2f mm je Seite, durchgehend %.0f mm'
+          % (RAIL_W - (CAV_W - PCB_W) / 2.0, CAV_L))
     print('Federfeld   %.1f mm Restwand ueber %.1f mm Laenge'
           % (RELIEF_T, RELIEF_L))
     print('Volumen     %.0f mm3' % feat.Shape.Volume)
