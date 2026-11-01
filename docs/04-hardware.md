@@ -211,100 +211,91 @@ Trommelbremse des Motors benutzen.
 
 ## 8 Gebergehäuse für die Hall-Sensoren
 
-Die Drehzahlerfassung hat **zwei Enden**, die nichts miteinander gemein haben:
-die **Sensorseite** steht fest am Rahmen (dieser Abschnitt, ein gedrucktes
-Gehäuse), die **Magnetseite** dreht mit der Trommelscheibe (§9, nur Magnet und
-Schraube, nichts Gedrucktes).
+Feststehende Seite der Drehzahlerfassung, am Rahmen. Gegenstück ist §9.
 
-CAD-Quelle: `hardware/hall_gehaeuse.py` (FreeCAD-Skript, parametrisch).
-Erzeugt `hardware/hall-gehaeuse.FCStd`, `.step` und `.stl`. Die Datei wird aus dem
-Skript erzeugt, nicht umgekehrt — Maßänderungen immer im Skript.
+CAD-Quelle `hardware/hall_gehaeuse.py` → `hall-gehaeuse.FCStd`, `.step`, `.stl`.
+Maßänderungen immer im Skript. 3D-Druck, Außenmaß **37,2 × 20,0 × 12,0 mm**, 5,1 cm³.
 
-Außenmaß **37,2 × 20,0 × 10,0 mm**, 3D-Druck, Materialvolumen 4,6 cm³.
+### 8.1 Maße
 
-### 8.1 Aufbau
+| Merkmal | Maß |
+|---|---|
+| Platine | Lochraster 18 × 13 × 1,6 mm, 2,54er Raster, 7 × 5 Löcher |
+| Kavität | 20 × 14 × 10 mm, nach unten offen |
+| Lötraum unter der Platine | 2,0 mm |
+| Bauteilraum über der Platine | 6,4 mm |
+| Stirnwand vor dem Geber | 1,2 mm |
+| Seitenwände / Deckel | 3,0 / 2,0 mm |
+| M6-Durchgang | Ø 6,6, 4,5 mm aus der Mitte versetzt |
+| Kabelkanal | D-Nut 4,4 breit, 3,4 tief (Kabel Ø 4, dreiadrig) |
+| LED-Loch | Ø 3,2 im Deckel, 15 mm von der Stirnwand |
 
-| Merkmal | Maß | Begründung |
-|---|---|---|
-| Kavität (Platine) | 20 × 14 × 8 mm | handgesägte Lochrasterplatine 18 × 13 mm, 2,54er Raster, 7 × 5 Löcher |
-| Stirnwand vor dem Geber | 1,2 mm | geht direkt in den Magnet-Luftspalt ein, daher so dünn wie druckbar |
-| Seitenwände / Deckel | 3,0 / 2,0 mm | |
-| M6-Durchgang | Ø 6,6 mm, 4,5 mm aus der Mitte versetzt | Platz für den Kabelkanal daneben |
-| Kabelkanal | D-Nut 4,4 mm breit, **3,4 mm tief** | Kabel Ø 4 mm, dreiadrig |
-| LED-Loch | Ø 3,2 mm im Deckel | 3-mm-LED von innen durchgesteckt |
+Stirnwand 1,2 mm, weil sie in den Magnet-Luftspalt eingeht (§9.3). Nut 3,4 mm bei
+4 mm Kabel, damit das Blech den Mantel klemmt — das ist die Zugentlastung.
 
-Die Unterseite ist offen. Der Hall-Geber (TLE4905L, PG-SSO-3-2) steht aufrecht — also
-**parallel zur Schraubenachse** — am Kopfende direkt hinter der 1,2-mm-Stirnwand, die
-beschriftete, magnetempfindliche Seite nach außen.
+### 8.2 Platinenaufnahme
 
-### 8.2 Montage und Zugentlastung
+| Merkmal | Maß |
+|---|---|
+| Auflageleisten | 1,5 mm Vorsprung je Seite, 10 mm lang, mittig; Auflage 1,0 mm |
+| Rastnase | 0,8 mm Vorsprung, 6 mm lang, mittig; Überdeckung 0,30 mm |
+| Haltefläche der Nase | z = 3,7 mm (0,1 mm Luft über der Platine) |
+| Einführschräge | 1,0 mm hoch, unterhalb der Nase |
+| Federfeld, von außen freigestellt | 12 mm lang, 0,8 mm Restwand |
 
-Das Gehäuse wird mit der offenen Seite auf das Alublech gesetzt und mit **einer**
-M6-Schraube festgezogen. Daraus folgt dreierlei:
+Die Platine wird von unten eingeschoben, rastet über die Nasen und liegt auf den
+Leisten. Leisten und Nasen sitzen **nur mittig**: an den Enden bleibt die volle
+Breite für Bauteile frei, und die 3-mm-Wand federt nur im freigestellten Feld
+überhaupt. Deshalb auch die kleine Überdeckung von 0,30 mm — mehr ließe sich nicht
+montieren.
 
-1. Das Blech deckt die Platine ab (Isolation durch Klebeband oder Kleber auf der
-   Blechseite — das Gehäuse hat dafür keine eigene Wand).
-2. Die Nut ist mit 3,4 mm flacher als das Kabel dick ist. Das Blech klemmt den Mantel
-   um 0,6 mm ein, das ist die **Zugentlastung** — ohne zusätzliche Schelle.
-3. Nur eine Schraube heißt: das Gehäuse kann sich um sie drehen. Die Ausrichtung des
-   Gebers zur Trommelmarke muss beim Anziehen mit eingestellt werden.
+### 8.3 Montage
 
-Es ist bewusst nichts verrastet und nichts verschraubt außer dieser einen M6 — das Teil
-soll ohne Nacharbeit druckbar und mit einer Hand montierbar sein.
+Offene Seite auf das Alublech, eine M6-Schraube. Daraus folgt:
+
+1. Das Blech schließt das Gehäuse und klemmt das Kabel in der Nut.
+2. Die Platine hat 2,0 mm Abstand zum Blech. Klebeband als Isolation ist damit
+   Rückfallebene, nicht Voraussetzung.
+3. Eine Schraube heißt verdrehbar — die Ausrichtung zur Trommelmarke wird beim
+   Anziehen mit eingestellt.
 
 ## 9 Markenaufnahme an der Trommel
 
-Die mitdrehende Seite, Gegenstück zum Gebergehäuse aus §8.
+Mitdrehende Seite, Gegenstück zu §8. Kein Druckteil.
 
-**8 Magnete**, gleichmäßig auf einem Teilkreis der Trommel-**Stirnfläche**, direkt
-durchgeschraubt. Die Trommel besteht aus zwei Multiplexscheiben à 15 mm, dazwischen
-8 schmale Abstandsklötze am Umfang und ein Vierer-Stern innen — die Magnete kommen
-sinnvollerweise auf den Teilkreis der **8 Abstandsklötze**: dort ist die Scheibe von
-hinten abgestützt, der Radius ist maximal (längste Bogensegmente) und die Teilung
-liegt durch den vorhandenen Aufbau schon fest.
+**8 Magnete** auf dem Teilkreis der 8 Abstandsklötze der Trommel-Stirnfläche. Dort
+ist die 15-mm-Multiplexscheibe von hinten abgestützt, der Radius ist maximal, und
+die Teilung liegt durch den vorhandenen Aufbau fest.
 
 ### 9.1 Teile
 
 | | |
 |---|---|
-| Magnet | Scheibe **Ø10 × 3 mm**, Mittelloch **Ø3,0 mm, gesenkt**, N42 |
+| Magnet | Scheibe Ø10 × 3 mm, Mittelloch Ø3,0 gesenkt, N42 |
 | Schraube | **DIN 7982 A2, 2,9 × 13 mm**, Senkkopf, Kreuzschlitz |
 | Vorbohrung | Ø2,0 mm, ca. 11 mm tief |
-| Einschraubtiefe | 13 − 3 = **10 mm** in 15 mm Multiplex |
+| Einschraubtiefe | 10 mm in 15 mm Multiplex |
+| Fliehkraft je Magnet bei 60 km/h | 1,2 N |
 
-Der Durchmesser ist durch das Loch festgelegt, nicht frei wählbar: durch ein echtes
-Ø3,0-Loch geht keine 3,0er Schraube. 2,9 lässt 0,1 mm Luft — eng, aber das Loch ist
-nur 3 mm tief und die Schraube wird gerade durchgesteckt. Kleiner als 2,9 gibt es in
-A2 mit Senkkopf und Kreuzschlitz kaum; falls die 2,9 im Loch klemmt, ist eine
-**Messingschraube** 2,5 × 12 der Ausweg — Messing ist ebenso unmagnetisch.
-
-Zur Last: die Fliehkraft eines 2-g-Magneten bei 60 km/h und r = 0,465 m ist
-`m·ω²·r` = **1,2 N**. Die Schraube ist um Größenordnungen überdimensioniert; sie
-muss den Magneten nur gegen Vibration halten.
+Ø2,9 statt 3,0, weil durch ein echtes Ø3,0-Loch keine 3,0er Schraube geht. Kleiner
+als 2,9 gibt es in A2 mit Senkkopf und Kreuzschlitz kaum; falls die 2,9 klemmt,
+Messing 2,5 × 12 — ebenso unmagnetisch.
 
 ### 9.2 Die Schraube muss nichtmagnetisch sein
 
-Das ist keine Korrosionsfrage, sondern eine Messfrage. Die Schraube sitzt mitten im
-Flussweg des axial magnetisierten Magneten. Eine **Stahlschraube** ist ein Kurzschluss
-von Pol zu Pol durch den Magneten hindurch, und der Kopf liegt auf genau der Fläche,
-die der Sensor sieht. Das Feld wird dann **ringförmig statt mittig** — der Schaltpunkt
-wandert, im Grenzfall gibt es zwei Flanken pro Magnet.
+Keine Korrosions-, sondern eine Messfrage: die Schraube sitzt im Flussweg des axial
+magnetisierten Magneten. Stahl schließt Nord und Süd durch den Magneten kurz, das
+Feld wird ringförmig statt mittig, der Schaltpunkt wandert, im Grenzfall gibt es zwei
+Flanken pro Magnet. **A2 oder A4, niemals verzinkter Stahl.**
 
-A2 (1.4301) ist austenitisch und praktisch unmagnetisch; kaltverformt bleibt ein
-kleiner Restmagnetismus, der gegenüber Stahl bedeutungslos ist. **Also A2 oder A4,
-niemals verzinkter Stahl.**
-
-Das Loch ist gesenkt, der Kopf sitzt also bündig oder leicht vertieft — der
-Luftspalt wird von der Magnetfläche aus gemessen. Der Kopf der 2,9er misst 5,5 mm
-und setzt damit in einer Senkung für Ø3 sauber auf, eher etwas tiefer als eine 3,0er.
-Das ist willkommen: je weiter der Stahl vom Sensor weg ist, desto weniger stört er.
+Der Kopf der 2,9er misst 5,5 mm und sitzt in einer Senkung für Ø3 eher etwas tiefer
+als eine 3,0er — erwünscht, weil der Stahl damit weiter vom Sensor weg ist.
 
 ### 9.3 Feldreserve
 
-Axialfeld einer Scheibe, `B(z) = Br/2 · [(z+t)/√(R²+(z+t)²) − z/√(R²+z²)]`, N42 mit
-Br ≈ 1,3 T; das Loch per Superposition als Gegenscheibe R = 1,5 mm abgezogen.
-Der Abstand bis zum Chip ist `z = Luftspalt + 1,2 mm Gehäusestirnwand (§8)
-+ ≈ 0,5 mm Chiplage im Gehäuse`:
+`B(z) = Br/2 · [(z+t)/√(R²+(z+t)²) − z/√(R²+z²)]`, N42 mit Br ≈ 1,3 T, Loch per
+Superposition als Gegenscheibe R = 1,5 mm abgezogen. Abstand bis zum Chip:
+`z = Luftspalt + 1,2 mm Gehäusestirnwand + ≈ 0,5 mm Chiplage`.
 
 | z | B |
 |---|---|
@@ -313,28 +304,23 @@ Der Abstand bis zum Chip ist `z = Luftspalt + 1,2 mm Gehäusestirnwand (§8)
 | 6 mm | 58 mT |
 | 8 mm | 35 mT |
 
-Das Loch kostet rund 22 %. B_OP des TLE4905L liegt im ungünstigsten Fall bei 18 mT —
-selbst bei 8 mm bleibt Faktor 2. **Amplitude ist nie der Engpass.** Den Luftspalt
-deshalb eher großzügig wählen: das macht die Flanke unempfindlich gegen die
-Feldstörung durch Loch und Schraubenkopf, deren Längenskala nur wenige Millimeter ist.
+B_OP des TLE4905L im ungünstigsten Fall 18 mT. Das Loch kostet 22 %, bei 8 mm bleibt
+Faktor 2. Luftspalt deshalb eher großzügig wählen: die Störung durch Loch und
+Schraubenkopf hat nur wenige Millimeter Längenskala.
 
 ### 9.4 Polung
 
-Der TLE4905L ist unipolar und schaltet nur auf **eine** Polarität. Alle acht Magnete
-müssen mit derselben Seite nach außen; ein Zylindermagnet passt in beiden Richtungen
-ins Loch, die Mechanik verhindert den Dreher also nicht. **Jeden Magneten vor dem
-Festziehen einzeln gegen den Sensor prüfen**, nicht erst am Ende die Flanken zählen.
+TLE4905L ist unipolar. Alle acht Magnete mit derselben Seite nach außen; ein
+Zylindermagnet passt in beiden Richtungen ins Loch, die Mechanik verhindert den
+Dreher nicht. **Jeden Magneten vor dem Festziehen einzeln gegen den Sensor prüfen.**
 
 ### 9.5 Winkellage: messen statt bohren
 
-Die Firmware kann die tatsächliche Winkellage der acht Marken selbst bestimmen und
-braucht dafür keine Bohrgenauigkeit. Bei hoher Drehzahl ändert sich ω innerhalb einer
-Umdrehung um höchstens 0,15 % ([09-messtheorie](09-messtheorie.md) §1.7), die Trommel
-läuft also praktisch gleichförmig. Die Abweichungen der acht Intervalle von je 1/8
-sind damit direkt die Winkelfehler. Einmal im Auslauf aufnehmen, als Korrekturtabelle
-ablegen — danach ist die mechanische Streuung aus der Drehzahlmessung heraus.
+Bohrgenauigkeit ist nicht nötig. Bei hoher Drehzahl ändert sich ω innerhalb einer
+Umdrehung um höchstens 0,15 % ([09-messtheorie](09-messtheorie.md) §1.7); die
+Abweichungen der acht Intervalle von je 1/8 sind damit direkt die Winkelfehler.
+Einmal im Auslauf aufnehmen, als Korrekturtabelle ablegen.
 
-Gebraucht wird das nur, wenn Drehzahl **unterhalb** einer Umdrehung ausgewertet wird.
-Alles, was ins Ergebnis geht, läuft index-getriggert über ganze Umdrehungen; dort
-kürzt sich der Winkelfehler ohnehin exakt heraus, weil von derselben Marke zu
-derselben Marke gemessen wird.
+Nötig nur für Drehzahl **unterhalb** einer Umdrehung. Was ins Ergebnis geht, läuft
+index-getriggert über ganze Umdrehungen — dort kürzt sich der Winkelfehler exakt
+heraus.
