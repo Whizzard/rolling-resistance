@@ -307,12 +307,28 @@ def build(doc, sh):
     return body
 
 
+def set_visibility(doc, body):
+    """Körper sichtbar, Skizzen und Zwischenschritte aus.
+
+    Ohne GUI macht FreeCAD das nicht von selbst: beim Erzeugen im GUI blendet
+    PartDesign das jeweils vorige Feature aus und die Skizze gleich mit. Im
+    Skript bleibt alles so stehen, wie es angelegt wurde — also von Hand.
+    """
+    for o in doc.Objects:
+        if hasattr(o, 'Visibility'):
+            o.Visibility = False
+    body.Visibility = True
+    if body.Tip is not None:
+        body.Tip.Visibility = True
+
+
 def main():
     here = os.path.dirname(os.path.abspath(__file__))
     doc = App.newDocument('hall-gehaeuse')
     sh = build_sheet(doc)
     body = build(doc, sh)
     doc.recompute()
+    set_visibility(doc, body)
 
     doc.saveAs(os.path.join(here, 'hall-gehaeuse.FCStd'))
     Part.export([body], os.path.join(here, 'hall-gehaeuse.step'))
