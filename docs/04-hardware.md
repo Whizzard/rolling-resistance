@@ -228,27 +228,39 @@ Maßänderungen immer im Skript. 3D-Druck, Außenmaß **37,2 × 20,0 × 12,0 mm*
 | Seitenwände / Deckel | 3,0 / 2,0 mm |
 | M6-Durchgang | Ø 6,6, 4,5 mm aus der Mitte versetzt |
 | Kabelkanal | D-Nut 4,4 breit, 3,4 tief (Kabel Ø 4, dreiadrig) |
+| Kabelmulde vor der Platine | dieselbe Nut, 5,2 tief, x = 20…26 mm |
 | LED-Loch | Ø 3,2 im Deckel, 15 mm von der Stirnwand |
 
 Stirnwand 1,2 mm, weil sie in den Magnet-Luftspalt eingeht (§9.3). Nut 3,4 mm bei
 4 mm Kabel, damit das Blech den Mantel klemmt — das ist die Zugentlastung.
 
+Der Mantel passt **nicht** unter die Platine; dort sind nur 2,0 mm. Er endet in der
+Mulde, die mit 5,2 mm tiefer ist als das Kabel dick — dort wird nichts geklemmt und
+nichts gegen die Platinenkante gedrückt. Weiter laufen nur die drei Adern. Geklemmt
+wird erst im massiven Block dahinter.
+
 ### 8.2 Platinenaufnahme
 
 | Merkmal | Maß |
 |---|---|
-| Auflageleisten | 1,8 mm Vorsprung je Seite, **durchgehend 20 mm**; Auflage 1,3 mm |
+| Absatz | 1,8 mm Vorsprung je Seite, **durchgehend 20 mm**; Auflage 1,3 mm |
+| Unterkante des Absatzes | z = 3,6 mm |
 | Rastnasen | 0,65 mm Vorsprung, 6 mm lang, **nur mittig**; Überdeckung 0,15 mm |
-| Form der Nase | symmetrischer Keil, Scheitel auf der Platinenoberkante (z = 3,6) |
+| Form der Nase | symmetrischer Keil, Scheitel z = 2,0 mm |
 | Federfeld, von außen freigestellt | 12 mm lang, 0,8 mm Restwand |
 
-Platine von unten einschieben, über die Nasen drücken, sie liegt dann auf den
-Leisten. Die Nasen haben **keinen Hinterschnitt**: die Schräge ist oben wie unten
-gleich, gehalten wird durch Vorspannung. Damit geht die Platine ohne Werkzeug wieder
-heraus.
+Zwei Anschläge mit getrennten Aufgaben:
+
+- Der **Absatz** sitzt tief in der Kavität und hindert die Platine daran, weiter
+  hineinzurutschen.
+- Die **Rastnasen** sitzen darunter und hindern sie daran, zur offenen Seite
+  herauszufallen.
+
+Die Nasen haben **keinen Hinterschnitt** — die Schräge ist oben wie unten gleich,
+gehalten wird durch Vorspannung. Die Platine geht ohne Werkzeug wieder heraus.
 
 Nasen nur mittig, weil die 3 mm starke Wand nur im freigestellten Feld überhaupt
-federt. Die Leisten dagegen durchgehend — sie müssen nicht federn, sondern tragen.
+federt. Der Absatz dagegen durchgehend; er muss nicht federn, sondern tragen.
 
 > Der äußerste Lochrasterstreifen liegt auf der Leiste und muss frei von Lötstellen
 > bleiben: Bauteile innerhalb von ±5,2 mm um die Platinenmitte bestücken.

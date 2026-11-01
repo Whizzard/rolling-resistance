@@ -15,9 +15,9 @@ Aufbau (X = Längsachse, Y = Breite, Z = Höhe, Z=0 ist die offene Unterseite):
     |  Deckelwand                           |
     |  +---------------------------+        |
     |  |   Bauteilraum             |  massiv|
-    |  |- - - - - - - - - - - - - -|  Block |
-    |  |   Platine        ]Rastnase|   M6   |
-    |  |===========================|        |   Auflageleisten
+    |  |===========================|  Block |   Absatz, durchgehend
+    |  |   Platine                 |   M6   |
+    |  |- - - - - - - -  ]Rastnase |        |   Nasen nur mittig
     |  |   Lötraum                 |        |
     +--+---------------------------+--------+   z = 0  (offen, Alublech)
        ^                                ^
@@ -29,10 +29,18 @@ Montage: Gehäuse mit der offenen Seite auf das Alublech, eine M6-Schraube
 zieht es fest. Das Kabel liegt im Kanal und wird dabei gegen das Blech
 geklemmt (Zugentlastung).
 
-Die Platine liegt NICHT mehr direkt am Blech, sondern auf zwei Leisten. Damit
-bleibt darunter Platz für Lötstellen, und das Blech kann sie nicht berühren —
-die Isolation durch Klebeband wird damit zur Rückfallebene, nicht zur
-Voraussetzung.
+Montagelage: Gehäuse offen nach oben auf den Tisch legen, Platine hineinfallen
+lassen. Sie kommt am Absatz zur Ruhe, die Schwerkraft hält sie dort, dann über
+die Rastnasen drücken. Deshalb sitzt der Absatz tief in der Kavität und nicht
+am offenen Rand.
+
+Zwischen Platine und Alublech bleiben 2,0 mm für Lötstellen. Die Isolation durch
+Klebeband wird damit zur Rückfallebene statt zur Voraussetzung.
+
+Der Ø-4-Mantel passt NICHT unter die Platine — 2,0 mm sind zu wenig. Er endet
+deshalb in der Mulde vor der Platine; nur die drei Adern laufen weiter. Die Mulde
+ist mit 5,2 mm tiefer als das Kabel dick ist, dort wird also nichts geklemmt.
+Geklemmt wird erst im massiven Block dahinter, wo die Nut nur 3,4 mm tief ist.
 """
 
 import os
@@ -63,13 +71,15 @@ END_WALL  = 1.2   # Stirnwand vor dem Hall-Geber: so dünn wie druckbar,
                   # sie geht direkt in den Magnet-Luftspalt ein
 RIB       = 2.0   # Steg zwischen Kavität und Schraubenblock
 
-# Auflageleisten: durchgehend über die ganze Kavitätslänge, beidseitig gleich.
-RAIL_W    = 1.8   # Vorsprung je Seite → 1,3 mm Auflage bei 0,5 mm Luft
+# Absatz: durchgehend über die ganze Kavitätslänge, beidseitig gleich. Die
+# Platine wird von der offenen Seite eingelegt und stößt von unten dagegen —
+# liegt das Gehäuse offen nach oben auf dem Tisch, fällt sie von selbst in
+# Position und die Schwerkraft hält sie dort, bis die Nasen einrasten.
+LEDGE_W   = 1.8   # Vorsprung je Seite → 1,3 mm Auflage bei 0,5 mm Luft
 
-# Rastnasen: nur mittig, dort federt das freigestellte Wandfeld (RELIEF_*).
-# Symmetrische Schräge nach oben UND unten — die Platine wird durch Vorspannung
-# gehalten, nicht durch einen Hinterschnitt, und lässt sich ohne Werkzeug wieder
-# herausdrücken. Scheitel liegt auf der Platinenoberkante.
+# Rastnasen: UNTER der Platine, halten sie gegen den Absatz. Nur mittig, dort
+# federt das freigestellte Wandfeld (RELIEF_*). Symmetrische Schräge, also kein
+# Hinterschnitt — die Platine geht ohne Werkzeug wieder heraus.
 SNAP_W    = 0.65  # Vorsprung je Seite → 0,15 mm Überdeckung
 SNAP_L    = 6.0
 SNAP_H    = 0.8   # halbe Höhe des Keils, Schräge oben wie unten
@@ -86,8 +96,15 @@ M6_Y      = -4.5  # aus der Mitte versetzt, damit der Kanal daneben passt
 # Kabelkanal: 3-adrig, Mantel Ø 4 mm. Nut flacher als das Kabel dick ist,
 # damit das Alublech es klemmt.
 CAB_D     = 4.4
-CAB_DEPTH = 3.4
+CAB_DEPTH = 3.4   # Klemmstrecke: flacher als das Kabel dick ist
 CAB_Y     = 5.5
+
+# Mulde vor der Platine: dort darf das Kabel NICHT geklemmt werden, sonst
+# drückt es gegen die Platinenkante. Tiefer als das Kabel dick ist, damit der
+# Mantel frei liegt und abtauchen kann. Reicht bis knapp unter das Platinenende.
+CAB_DEEP   = 5.2
+CAB_DEEP_X0 = 20.0
+CAB_DEEP_X1 = 26.0
 
 LED_D     = 3.2   # Durchsteckloch für die 3-mm-LED
 LED_X     = 15.0  # von der Stirnwand aus, über dem hinteren Platinenende
@@ -104,8 +121,8 @@ CAV_XM = (CAV_X0 + CAV_X1) / 2.0        # Mitte der Kavität
 M6_X   = CAV_X1 + RIB + SCREW_BLK / 2.0
 
 PCB_Z0 = SOLDER_GAP                      # Unterkante Platine
-PCB_Z1 = PCB_Z0 + PCB_T                  # Oberkante Platine
-SNAP_Z = PCB_Z1                          # Scheitel der Rastnase
+PCB_Z1 = PCB_Z0 + PCB_T                  # Oberkante Platine, liegt am Absatz an
+SNAP_Z = PCB_Z0                          # Scheitel der Rastnase, unter der Platine
 
 YW = CAV_W / 2.0                         # Innenwand der Kavität
 
@@ -113,7 +130,9 @@ assert abs(M6_Y) + M6_D / 2.0 < W_OUT / 2.0 - 1.5, 'M6-Loch zu dicht am Rand'
 assert CAB_Y + CAB_D / 2.0 < W_OUT / 2.0 - 1.5, 'Kabelkanal zu dicht am Rand'
 assert CAB_Y - CAB_D / 2.0 > M6_Y + M6_D / 2.0, 'Kanal und M6-Loch kollidieren'
 assert CAB_DEPTH < 4.0, 'Nut tiefer als das Kabel dick ist, keine Klemmung'
-assert RAIL_W > (CAV_W - PCB_W) / 2.0, 'Leisten schmaler als das Platinenspiel'
+assert CAB_DEEP > 4.0, 'Mulde flacher als das Kabel — klemmt vor der Platine'
+assert CAB_DEEP_X1 < M6_X - M6_D / 2.0, 'Mulde laeuft in das Schraubenloch'
+assert LEDGE_W > (CAV_W - PCB_W) / 2.0, 'Absatz schmaler als das Platinenspiel'
 assert SNAP_W > (CAV_W - PCB_W) / 2.0, 'Rastnase greift nicht über die Platine'
 assert CAV_XM + RELIEF_L / 2.0 < CAV_X1 + RIB, 'Freistellung laeuft in den Kanal'
 
@@ -123,12 +142,12 @@ def box(lx, ly, lz, x=0.0, y=0.0, z=0.0):
     return Part.makeBox(lx, ly, lz, Vector(x, y - ly / 2.0, z))
 
 
-def rail(sign):
-    """Auflageleiste, durchgehend; Oberkante = Unterkante Platine."""
-    return Part.makeBox(CAV_L, RAIL_W, SOLDER_GAP,
+def ledge(sign):
+    """Absatz, durchgehend; Unterkante = Oberkante Platine."""
+    return Part.makeBox(CAV_L, LEDGE_W, CAV_H - PCB_Z1,
                         Vector(CAV_X0,
-                               sign * YW - (RAIL_W if sign > 0 else 0.0),
-                               0.0))
+                               sign * YW - (LEDGE_W if sign > 0 else 0.0),
+                               PCB_Z1))
 
 
 def snap(sign):
@@ -151,17 +170,17 @@ def build():
     # Kavität, nach unten offen
     body = body.cut(box(CAV_L, CAV_W, CAV_H, CAV_X0, 0.0, 0.0))
 
-    # Auflageleisten und Rastnasen wieder hinzufügen
+    # Absatz und Rastnasen wieder hinzufügen
     for sign in (+1, -1):
-        body = body.fuse(rail(sign))
+        body = body.fuse(ledge(sign))
         body = body.fuse(snap(sign))
 
     # Freistellung von außen: lässt das Wandfeld hinter der Nase federn
     depth = W_OUT / 2.0 - YW - RELIEF_T
     for y0 in (YW + RELIEF_T, -W_OUT / 2.0):
         body = body.cut(
-            Part.makeBox(RELIEF_L, depth, CAV_H - 1.0,
-                         Vector(CAV_XM - RELIEF_L / 2.0, y0, 1.0)))
+            Part.makeBox(RELIEF_L, depth, PCB_Z1 + 2.0,
+                         Vector(CAV_XM - RELIEF_L / 2.0, y0, 0.0)))
 
     # M6-Durchgang
     body = body.cut(
@@ -177,7 +196,13 @@ def build():
     slot = slot.fuse(
         Part.makeCylinder(r, cab_l, Vector(cab_x0, CAB_Y, CAB_DEPTH - r),
                           Vector(1, 0, 0)))
-    body = body.cut(slot)
+    # Mulde: gleiche Nut, nur tiefer
+    deep_l = CAB_DEEP_X1 - CAB_DEEP_X0
+    deep = box(deep_l, CAB_D, CAB_DEEP - r, CAB_DEEP_X0, CAB_Y, 0.0)
+    deep = deep.fuse(
+        Part.makeCylinder(r, deep_l, Vector(CAB_DEEP_X0, CAB_Y, CAB_DEEP - r),
+                          Vector(1, 0, 0)))
+    body = body.cut(slot.fuse(deep))
 
     # LED-Durchsteckloch im Deckel
     body = body.cut(
@@ -206,10 +231,14 @@ def main():
           % (PCB_Z0, PCB_Z1, SOLDER_GAP))
     print('Rastnase    Scheitel z = %.1f, Ueberdeckung %.2f mm je Seite, %.0f mm lang'
           % (SNAP_Z, SNAP_W - (CAV_W - PCB_W) / 2.0, SNAP_L))
-    print('Auflage     %.2f mm je Seite, durchgehend %.0f mm'
-          % (RAIL_W - (CAV_W - PCB_W) / 2.0, CAV_L))
+    print('Absatz      %.2f mm je Seite, durchgehend %.0f mm, Unterkante z = %.1f'
+          % (LEDGE_W - (CAV_W - PCB_W) / 2.0, CAV_L, PCB_Z1))
+    print('Bauteilraum %.1f mm, Breite zwischen den Absaetzen %.1f mm'
+          % (CAV_H - PCB_Z1, CAV_W - 2 * LEDGE_W))
     print('Federfeld   %.1f mm Restwand ueber %.1f mm Laenge'
           % (RELIEF_T, RELIEF_L))
+    print('Kabelnut    %.1f mm tief (Klemmung), Mulde %.1f mm tief bei x = %.0f...%.0f'
+          % (CAB_DEPTH, CAB_DEEP, CAB_DEEP_X0, CAB_DEEP_X1))
     print('Volumen     %.0f mm3' % feat.Shape.Volume)
     print('Gueltig     %s' % feat.Shape.isValid())
 
