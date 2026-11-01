@@ -516,7 +516,7 @@ gute Rennreifen trennen 0,2 N Umfangskraft.
 
 | # | Schritt | Dauer | warum an dieser Stelle |
 |---|---|---|---|
-| 1 | Sichtprüfung, Haube, Not-Aus | 5 min | [07-sicherheit](07-sicherheit.md) |
+| 1 | Sichtprüfung, Not-Aus | 5 min | [07-sicherheit](07-sicherheit.md) |
 | 2 | Laufrad einsetzen, Drehpunkt auf Radachshöhe | 10 min | bestimmt die Geometrie aller Folgeschritte |
 | 3 | Reifen wiegen, Druck setzen, `J_Rad` korrigieren | 5 min | vor der Tara, weil es die Wiege nicht berührt |
 | 4 | Statische Tara `t` | 1 min | nach jedem mechanischen Eingriff |
@@ -529,11 +529,10 @@ gute Rennreifen trennen 0,2 N Umfangskraft.
 
 ### 8.0 Vor dem Einschalten
 
-- [ ] Schutzhaube geschlossen und verriegelt
 - [ ] Not-Aus erreichbar und funktionsgeprüft
 - [ ] Trommel sichtgeprüft: Risse, Stoßstelle des Mantelblechs, lose Schrauben
 - [ ] Wiegeteil frei beweglich, Endanschläge nicht anliegend, nichts klemmt am Kabel
-- [ ] Kupplung und Pendellager spielfrei, Trommelbremse **vollständig gelöst**
+- [ ] Kupplung und Pendellager spielfrei
 - [ ] Umgebungstemperatur notiert
 
 > Eine schleifende Trommelbremse erzeugt ein temperaturabhängiges Schleppmoment und lässt
@@ -624,8 +623,8 @@ gespeichert. Die Auslaufdauer hängt fast ganz am Schleppmoment des Motors:
 | Nabenmotor, typisches Rastmoment (0,15 Nm) | 6 min |
 | stark rastender Stator (0,30 Nm) | 3,4 min |
 
-Entweder einplanen oder die mechanische Trommelbremse benutzen. **Haube erst öffnen, wenn
-die Trommel steht.**
+Einplanen — es gibt keine Bremse ([07-sicherheit](07-sicherheit.md) §3). **Erst
+weiterarbeiten, wenn die Trommel sichtbar steht.**
 
 ### 8.10 A/B/A
 

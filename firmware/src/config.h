@@ -161,9 +161,9 @@ constexpr uint8_t PIN_ESTOP_FB   = 2;   // nur Anzeige; Trennung erfolgt in Hard
 constexpr uint8_t PIN_BUTTON     = 14;  // Bedientaster
 constexpr uint8_t PIN_STATUS_LED = 48;  // Status-LED (auf DevKitC-1 v1.0 die RGB-LED)
 // PTC muss auf ADC1 liegen — ADC2 ist bei aktivem WLAN gesperrt. GPIO1 = ADC1_CH0.
-// Der verbaute Hoverboard-Motor hat KEINEN Temperaturfühler. Pin reserviert für
-// einen nachgerüsteten NTC (docs/06-offene-fragen.md A5).
-constexpr uint8_t PIN_MOTOR_PTC  = 1;   // Motortemperatur, analog [TBD]
+// [TBD] Fühlertyp unbekannt — der Hall-Stecker hat eine 6. Ader, vermutlich ein NTC.
+// Ausmessen nach docs/06-offene-fragen.md A5.
+constexpr uint8_t PIN_MOTOR_PTC  = 1;   // Motortemperatur, analog
 
 // PIN_WHEEL, PIN_HX7112_DOUT, PIN_SD_CS, PIN_BUTTON und PIN_STATUS_LED sind reserviert
 // und in hardware/schaltplan.py verdrahtet, werden von der Firmware aber noch nicht

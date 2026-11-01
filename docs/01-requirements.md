@@ -66,7 +66,7 @@ Weiter:
 | # | Prio | Anforderung |
 |---|---|---|
 | B1 | M | Hardware-Not-Aus, der die Motorleistung **galvanisch** trennt — nicht per Software. |
-| B2 | M | Schutzhaube um die Trommel, besonders in der Rotationsebene. |
+| B2 | M | Offener Aufbau **ohne Schutzhaube** (Festlegung 2026-11-01). Stattdessen: Drehzahlgrenze, Wuchtgüte, Sichtprüfung, Schutzbrille, Standplatz außerhalb der Rotationsebene. |
 | B3 | M | Automatische Abschaltung bei: ausbleibenden Drehzahlpulsen, unplausiblem Drehzahlvergleich Motor/Trommel, Überschreiten der Kraftgrenze, gesättigter Wägezelle. |
 | B4 | M | Kontrollierter Bremspfad über den Regler; die Trommel speichert bei 60 km/h rund 1,4 kJ. |
 | B5 | S | Betriebsstundenzähler bzw. Protokoll der gefahrenen Hochläufe für die Wartung. |

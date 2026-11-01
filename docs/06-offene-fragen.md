@@ -6,7 +6,8 @@ Sortiert nach Blockerwirkung. Stand: 2026-10-24.
 
 ### A1 Steckerbelegung des Motors
 Verbaut ist das Hoverboard-Rad: **3 Flachstecker (gelb/grün/blau) = Phasen, dazu ein
-weißer JST mit 5 dünnen Adern = Hall (Vcc, GND, Ha, Hb, Hc)**. Kein PTC.
+weißer JST mit 6 dünnen Adern** = Vcc, GND, Ha, Hb, Hc und vermutlich ein
+Temperaturfühler (A5). Belegung mit dem Messgerät verifizieren.
 
 In beiden Fällen gilt: **mit dem Messgerät verifizieren**, bevor irgendetwas
 angeschlossen wird. Eine vertauschte Hall-Versorgung zerstört die Sensoren.
@@ -33,13 +34,20 @@ und Speiche vor Arbeiten am Aufbau).
 
 Ebenso fehlt der Temperaturfühler — ein NTC auf der Statorachse ersetzt ihn (A5).
 
-### A5 Temperaturfühler fehlt
-Der verbaute Hoverboard-Motor hat **keinen**. Die Temperaturabschaltung in
-[07-sicherheit](07-sicherheit.md) §4 entfällt damit vorerst. Nachrüsten: NTC (10 k, B
-3950) auf die Statorachse geklebt, an `PIN_MOTOR_PTC` = GPIO1 (ADC1).
+### A5 Temperaturfühler: Typ bestimmen
+Der Hall-Stecker hat **6 Adern**. Vcc, GND und drei Hall-Signale sind fünf — die
+sechste ist vermutlich ein NTC gegen GND.
 
-Dringlichkeit gering: im Auslegungsfall werden 67 W von 350 W gebraucht. Aber der
-Warmlauf dauert 30 Minuten unter Last, und unüberwacht bleibt es trotzdem.
+Widerstand 6. Ader gegen GND bei Raumtemperatur messen:
+
+| Messwert | Deutung |
+|---|---|
+| ≈ 10 kΩ, fällt beim Anwärmen | NTC 10 k, vermutlich B 3950 |
+| ≈ 100 Ω / 1 kΩ, steigt beim Anwärmen | PT100 / PT1000 |
+| offen oder 0 Ω | kein Fühler, NTC nachrüsten |
+
+Danach Grenzwert festlegen und in [07-sicherheit](07-sicherheit.md) §4 eintragen.
+Anschluss an `PIN_MOTOR_PTC` = GPIO1 (ADC1).
 
 ### A6 Ist die Motorachse zweiseitig gelagert?
 Scooter-Vorderräder sitzen üblicherweise beidseitig in der Gabel. Falls ja, ist die

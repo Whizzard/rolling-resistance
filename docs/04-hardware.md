@@ -94,7 +94,7 @@ Firmware-Konstante `BELT_RATIO` existiert genau für diesen Fall.
 | Nabenmotor | **Hoverboard-Antriebsrad 6,5″, 36 V / 350 W** | **beschafft** |
 | Motorregler | **FSESC 4.20 / 50 A** (VESC-Klasse) | **beschafft** |
 | Bremse an der Trommelwelle | Bandbremse oder Bremssattel auf einer Scheibe — der Motor hat keine (A9) | **offen, sicherheitsrelevant** |
-| NTC für die Statorachse | der Motor hat keinen Temperaturfühler (A5) | offen |
+| NTC für die Statorachse | nur falls die 6. Ader am Hall-Stecker kein Fühler ist (A5) | offen |
 | Gegenstecker Julet 9-polig | oder Stecker abschneiden und eigene Verbinder setzen | offen |
 
 | Netzteil | 36–42 V, ≥ 10 A | offen |
@@ -121,7 +121,7 @@ die Firmware noch nicht anfasst.
 
 | GPIO | Konstante | Funktion | Richtung | Anmerkung |
 |---|---|---|---|---|
-| 1 | `PIN_MOTOR_PTC` | Motortemperatur | in, analog | **ADC1**_CH0 — ADC2 ist bei aktivem WLAN gesperrt. Der verbaute Motor hat **keinen** Fühler; Pin reserviert für einen nachgerüsteten NTC (A5) |
+| 1 | `PIN_MOTOR_PTC` | Motortemperatur | in, analog | **ADC1**_CH0; ADC2 ist bei aktivem WLAN gesperrt. Fühlertyp **TBD**, siehe A5 |
 | 2 | `PIN_ESTOP_FB` | Not-Aus-Rückmeldung | in | nur **Anzeige** des Zustands; die Trennung erfolgt in Hardware |
 | 4 | `PIN_MARK` | Drehzahlmarken Trommel | in, Interrupt | **8** Marken/Umdrehung |
 | 5 | `PIN_INDEX` | Indexmarke Trommel | in, Interrupt | 1/Umdrehung, triggert die Mittelung |

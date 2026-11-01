@@ -53,8 +53,8 @@ dazu ein **FSESC 4.20 / 50 A** als Regler.
 | kv | 13,3 | 1/min/V | ber | 480 / 36 |
 | kt | 0,717 | Nm/A | ber | 9,55 / kv |
 | Masse | 2,26 | kg | Angebot | geht in die Eigenfrequenz des Wiegeteils ein |
-| Hallsensoren | ja | – | Angebotsfotos | 3 Flachstecker + weißer JST mit 5 Adern |
-| **Temperaturfühler** | **nein** | – | – | NTC nachrüsten, A5 |
+| Hallsensoren | ja | – | Angebotsfotos | 3 Flachstecker + weißer JST mit 6 Adern |
+| Temperaturfühler | **TBD** | – | – | 6. Ader am Hall-Stecker, vermutlich NTC — ausmessen, A5 |
 | **Mechanische Bremse** | **nein** | – | – | **kein stromloser Bremspfad**, siehe [07-sicherheit](07-sicherheit.md) §3 und A9 |
 | Polzahl | **TBD** | – | TBD | von Hand eine Umdrehung drehen, Hallflanken zählen |
 | Phasenwiderstand | **TBD** | Ω | TBD | Vierleitermessung zwischen je zwei Phasen |
@@ -208,7 +208,7 @@ Die Achsfrage A6 — beidseitige Lagerung — gilt für beide gleichermaßen und
 | Auslegungs-Crr | `CRR_DESIGN_MAX` | **0,007** | – | Festlegung | Es werden schnelle Straßenreifen gemessen, keine MTB-Reifen. Langsamster vorgesehener Reifen ist der Continental Contact Urban mit 0,00552, darauf 27 % Luft. Siehe Tabelle unten. |
 | Reifendruck | — | Eingabe | bar | – | Handeingabe, später BLE |
 | Reifentemperatur | — | **TBD** | °C | TBD | Sensor noch nicht festgelegt |
-| Motortemperatur | — | **kein Fühler** | °C | – | Der verbaute Motor hat keinen. NTC nachrüsten, siehe A5. |
+| Motortemperatur | — | **TBD** | °C | TBD | 6. Ader am Hall-Stecker ausmessen, siehe A5 |
 
 ### Gemessene Crr-Werte als Auslegungsgrundlage
 
