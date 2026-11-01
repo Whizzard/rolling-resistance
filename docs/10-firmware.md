@@ -136,7 +136,7 @@ Werte vom Regler über UART. Macht aus dem Regler ein zweites Messgerät.
 > bekannt und temperaturabhängig —, aber eine Abweichung um Faktor 2 fällt sofort auf.
 > Setzt kt aus A13 und die Polzahl aus A4 voraus.
 
-## 6 Kalibriermodus Wägezelle## 6 Kalibriermodus Wägezelle
+## 6 Kalibriermodus Wägezelle
 
 Prüfgewicht an den Hebelarm hängen, daraus `LOADCELL_N_PER_COUNT`.
 
