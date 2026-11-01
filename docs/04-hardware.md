@@ -376,8 +376,8 @@ vom Regler kommt und nicht vom Netzteil.
 **Rückspeisung beachten:** Beim rekuperativen Bremsen fließt Energie zurück. Ein
 Labornetzteil kann sie nicht aufnehmen, die Zwischenkreisspannung steigt und der Regler
 schaltet mit Überspannung ab. Lösungen: Bremswiderstand mit Chopper (1,4 kJ über 10 s
-sind 140 W, ein 100-W-Widerstand reicht), eine Batterie als Puffer, oder die mechanische
-Trommelbremse des Motors benutzen.
+sind 140 W, ein 100-W-Widerstand reicht) oder eine Batterie als Puffer. Eine mechanische
+Bremse gibt es nicht ([07-sicherheit](07-sicherheit.md) §3).
 
 ## 8 Gebergehäuse für die Hall-Sensoren
 

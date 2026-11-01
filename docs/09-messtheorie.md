@@ -535,7 +535,8 @@ gute Rennreifen trennen 0,2 N Umfangskraft.
 - [ ] Kupplung und Pendellager spielfrei
 - [ ] Umgebungstemperatur notiert
 
-> Eine schleifende Trommelbremse erzeugt ein temperaturabhängiges Schleppmoment und lässt
+> Eine schleifende Bremse — falls eine nachgerüstet wird — erzeugt ein
+> temperaturabhängiges Schleppmoment und lässt
 > Vor- und Nachlauf auseinanderlaufen. Das macht die ganze Reihe wertlos, und man sieht es
 > erst am Abbruchkriterium in §8.8.
 

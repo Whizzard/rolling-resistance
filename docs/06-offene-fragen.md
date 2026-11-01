@@ -69,7 +69,7 @@ kurzgeschlossen, bleibt die Energie im Motorkupfer: 1321 J heben die Wicklung um
 |---|---|---|
 | normales Anhalten | Regler im Kurzschlussmodus | — braucht den Regler |
 | **Not-Aus** | dreipoliger Schütz, Öffnerkontakte: fällt bei Spannungsverlust ab und schließt die Phasen kurz | Regler **und** Strom |
-| Feststellen | mechanische Trommelbremse | alles |
+| Feststellen | mechanische Bremse — **nicht vorhanden**, siehe A9 | alles |
 
 Zwei Öffnerkontakte genügen (U–V und V–W verbinden alle drei). Strom bei 60 km/h rund
 **60 A** bei 20,3 V Gegen-EMK — der Kontakt schaltet aber **stromlos** (beim Schließen
