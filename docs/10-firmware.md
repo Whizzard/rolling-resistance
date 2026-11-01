@@ -58,7 +58,45 @@ fünf Kontakte, gemeinsame Masse. Alternativ fünf einzelne Taster.
 | N5 | M | Derselbe Zustand wird von den Abschaltkriterien in [07-sicherheit](07-sicherheit.md) §4 erreicht. |
 | N6 | M | Beim Reset und beim Booten sind die Relais abgefallen, der Stand ist also gebremst. |
 
-## 5 Kalibriermodus Wägezelle
+## 5 Diagnoseseiten
+
+Eine Seite je Sensor, einzeln anwählbar. Zweck: beim Aufbau prüfen, **ob** ein Geber
+schaltet, und **wie gut**.
+
+| | P | Anforderung |
+|---|---|---|
+| D1 | M | Jede Seite funktioniert **im Stillstand bei Drehen von Hand** — Einzelimpulse werden sichtbar, nicht nur ein Mittelwert. |
+| D2 | M | Jede Seite zeigt einen **Impulszähler**, der sich einzeln hochzählen lässt. |
+| D3 | M | Seite **Trommelmarken**: Zähler, Drehzahl, Impulse je Indexumdrehung, Gleichverteilung (§5.1). |
+| D4 | M | Seite **Index**: Zähler, Umdrehungen, Prüfung auf **genau 1 Impuls je Umdrehung**. |
+| D5 | M | Seite **Motor-Hall**: Zähler und **Impulse je Trommelumdrehung** — damit wird `MOTOR_PULSES_PER_REV` bestimmt, bisher TBD. |
+| D6 | S | Seite **Laufrad**: Zähler, Drehzahl, Impulse je Umdrehung. |
+| D7 | M | Seite **Wägezelle**: Rohwert, Mittelwert, **Streuung** über die letzten N Werte, Abtastrate. |
+| D8 | S | Seite **Lichtschranke**: Zustand und Flankenzähler. |
+| D9 | K | Seite **Temperatur**: Rohwert des Fühlers, bis A5 geklärt ist. |
+
+### 5.1 Drehzahl und Gleichverteilung der Marken
+
+| | P | Anforderung |
+|---|---|---|
+| D10 | M | Drehzahl in **1/min mit einer Nachkommastelle** und Umfangsgeschwindigkeit in km/h, zum Abgleich mit einem Handdrehzahlmesser. |
+| D11 | M | **Pulszahl je Umdrehung** gegen den Sollwert 8. Jede Abweichung heißt: eine Marke schaltet nicht oder prellt. |
+| D12 | M | **Winkelabweichung je Marke** gegen die ideale 45°-Teilung, in Grad **und** in mm am Umfang. |
+| D13 | M | **Kennzahl**: größter Betrag und Standardabweichung über alle acht Marken. |
+| D14 | S | **Impulsbreite je Marke**, umgerechnet in Grad. Eine deutlich schmalere Marke heißt zu großer Luftspalt oder schwacher Magnet — das ist das Maß für die Schaltreserve. Setzt Auswertung **beider Flanken** voraus. |
+| D15 | M | Mittelung über ≥ 50 Umdrehungen bei konstanter Drehzahl; der Messwert gilt nur auf einem Plateau, nicht während der Rampe. |
+
+Rechenweg: über eine Umdrehung die acht Intervalle `t_i` messen, daraus
+
+```
+φ_i = 360° · (Σ_{k≤i} t_k) / T_U  −  i · 45°
+```
+
+Zulässig ist das, weil sich ω innerhalb einer Umdrehung um höchstens 0,15 % ändert
+([09-messtheorie](09-messtheorie.md) §1.7). Dieselben φ_i sind zugleich die
+Korrekturtabelle aus [04-hardware](04-hardware.md) §8.5 — gemessen statt gebohrt.
+
+## 6 Kalibriermodus Wägezelle
 
 Prüfgewicht an den Hebelarm hängen, daraus `LOADCELL_N_PER_COUNT`.
 
@@ -75,12 +113,13 @@ Prüfgewicht an den Hebelarm hängen, daraus `LOADCELL_N_PER_COUNT`.
 Umrechnung: eine Masse *m* am Radius *b* erzeugt an der Zelle (r = 40 mm)
 `F = m · g · b / 0,040 m`. Am 80-mm-Loch also die **doppelte** Kraft.
 
-## 6 Offen
+## 7 Offen
 
 | | Frage |
 |---|---|
 | ? | **Masse des Prüfgewichts.** Vermutet 500 g — das ergibt am 80-mm-Loch nur **10 % vom Zellenendwert**, gemessen wird aber bei 13 bis 64 %. Siehe Hinweis unten. |
 | ? | **Pinbelegung** steht in [04-hardware](04-hardware.md) §4 und geht in `config.h`, sobald die Firmware-Arbeit wieder aufgenommen wird. |
+| ? | **Überbrückungsschalter für die Bremsrelais.** N6 hält den Stand im stromlosen Zustand gebremst — zum Drehen von Hand (D1, Wuchten, Markenmontage) muss sich das abschalten lassen. |
 
 > **Zum Prüfgewicht.** 500 g am 80-mm-Loch sind 9,81 N an der Zelle, also 10 % vom
 > Endwert; der Messbetrieb liegt bei 12 bis 63 N. Eine Kalibrierung bei 10 % auf 64 %
