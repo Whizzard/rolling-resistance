@@ -74,9 +74,9 @@ with schemdraw.Drawing(show=False) as d:
 
     # --------------------------------------------------- Sensorik links
     zelle = box(d, -12.0, -4.4, 2.8, 1.1, 'Wägezelle 10 kg\nBiegebalken', SIG)
-    hx1   = box(d,  -8.4, -4.4, 2.4, 1.1, 'HX711 #1\nMoment', SIG)
+    hx1   = box(d,  -8.4, -4.4, 2.4, 1.1, 'HX711 #1  Moment\nVCC 5 V · VDD 3,3 V', SIG)
     zelle2= box(d, -12.0, -6.1, 2.8, 1.1, 'Wägezelle 2\nAuflast (später)', SIG)
-    hx2   = box(d,  -8.4, -6.1, 2.4, 1.1, 'HX711 #2\nAuflast', SIG)
+    hx2   = box(d,  -8.4, -6.1, 2.4, 1.1, 'HX711 #2  Auflast\nVCC 5 V · VDD 3,3 V', SIG)
     hall1 = box(d, -12.0, -7.6, 2.8, 1.0, 'TLE4905L  × 8\nTrommelmarken', SIG)
     hall2 = box(d, -12.0, -8.9, 2.8, 1.0, 'TLE4905L\nIndexmarke', SIG)
     hall3 = box(d, -12.0,-10.2, 2.8, 1.0, 'TLE4905L\nLaufraddrehzahl', SIG)
@@ -123,13 +123,22 @@ with schemdraw.Drawing(show=False) as d:
         'Masse:  Logik- und Leistungsmasse an GENAU EINEM Punkt verbinden (Sternmasse am Netzteil).',
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -12.45)).label(
-        'HX711:  eigene saubere 5 V, thermisch vom Motor entkoppelt. Zellenkabel verdrillt und geschirmt, Schirm einseitig an den Zellenkörper.',
+        'HX711:  Modul mit GETRENNTEN VCC/VDD. VCC = 5 V speist die Bruecke, VDD = 3,3 V setzt den Logikpegel \u2014 der ESP32-S3 ist nicht 5-V-tolerant.',
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -12.9)).label(
         'TLE4905L:  V_S aus 5 V (min. 3,8 V), Open Collector mit Pull-up 2,2…4,7 kΩ nach 3,3 V, 100 nF am Sensor.',
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -13.35)).label(
         'Nicht nutzbar am N16R8:  GPIO26…37 (Flash + Octal-PSRAM), GPIO19/20 (USB), GPIO0/45/46 (Strapping).',
+        fontsize=7.5, color='#4a5560', halign='left')
+    d += elm.Label().at((-12.0, -13.80)).label(
+        'Speisung:  Logik AUSSCHLIESSLICH ueber USB-C \u2014 5V-Pin und USB schliessen sich aus. Beide Buchsen duerfen gleichzeitig speisen:',
+        fontsize=7.5, color='#4a5560', halign='left')
+    d += elm.Label().at((-12.0, -14.25)).label(
+        '           Netzteil an der einen, Notebook zum Flashen an der anderen. Der 5V-Pin ist dann AUSGANG (VBUS) fuer Geber, HX711-VCC und LCD.',
+        fontsize=7.5, color='#4a5560', halign='left')
+    d += elm.Label().at((-12.0, -14.70)).label(
+        'HX711-Analogteil:  Ferrit und 100 uF direkt am AVDD-Pin, Sternmasse, nicht am Motorzweig.',
         fontsize=7.5, color='#4a5560', halign='left')
 
     d.save('hardware/schaltplan.pdf')

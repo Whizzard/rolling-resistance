@@ -198,6 +198,8 @@ Rohdaten unter `data/` versionieren — ab welcher Menge wird das unhandlich?
 | Rechnerplattform | ESP32 (BLE für den Drucksensor, WLAN-Logging, ein Board für alles) | 2026-10-24 |
 | Geschwindigkeitsbereich | 10–60 km/h; 100 km/h erst nach Trommelfreigabe | 2026-10-24 |
 | Drehzahlaufnehmer | Hall statt Reed, 6 Marken + Index; Geschwindigkeit aus dem Fenster über eine ganze Umdrehung | 2026-10-24 |
+| Speisung der Logik | **Nur über USB-C.** 5V-Pin und USB schließen sich laut Espressif gegenseitig aus; eine vergessene externe 5 V beim Flashen wäre ein Kurzschluss zweier Quellen. Beide USB-Buchsen dürfen gleichzeitig speisen. | 2026-11-01 |
+| HX711-Pegel | Modul mit **getrennten VCC/VDD**: VCC = 5 V für die Brücke, VDD = 3,3 V für den Logikpegel. Der ESP32-S3 ist nicht 5-V-tolerant. Alternative (alles auf 3,3 V) kostet 3,6 dB SNR und wurde verworfen. | 2026-11-01 |
 | Markenzahl endgültig | **8** statt 6 — auf dem Teilkreis der 8 Abstandsklötze, geschraubte Ø10×3-Magnete mit A2-Schraube. Mehr Marken bringen *keine* Genauigkeit (das Ergebnis läuft index-getriggert über ganze Umdrehungen, dort kürzt sich die Teilung heraus), nur Latenz. [04-hardware](04-hardware.md) §9 | 2026-11-01 |
 | Rechnerplattform konkret | ESP32-**S3**-DevKitC-1 N16R8. Alte Pinbelegung (25/26/27/32/33/34/35/22) lag fast vollständig auf Pins, die es am S3 nicht gibt oder die Flash/PSRAM belegen. | 2026-11-01 |
 | Auslegungs-Crr und Hebelarm | `CRR_DESIGN_MAX` 0,015 → **0,007** (keine MTB-Reifen), dadurch `TORQUE_ARM_M` 0,070 → **0,040 m**. Der Auslegungsfall nutzt jetzt 48 % statt 27 % des Zellenmessbereichs. [08-staender](08-staender.md) §5 | 2026-11-01 |

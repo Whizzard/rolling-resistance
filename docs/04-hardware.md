@@ -95,15 +95,17 @@ Firmware-Konstante `BELT_RATIO` existiert genau für diesen Fall.
 | Gegenstecker Julet 9-polig | oder Stecker abschneiden und eigene Verbinder setzen | offen |
 | Motorregler | sensorierte FOC, UART-Sollwert, Bremsfunktion (VESC-Klasse **oder** umgeflashte Hoverboard-Platine) | offen |
 | Netzteil | 36–42 V, ≥ 10 A | offen |
-| ESP32-Board | beliebig, ≥ 2 freie Interrupt-Pins | offen |
-| Hall-Sensoren | 2 Stück, unipolar oder latching, digital | offen |
-| Magnete | 6 + 1 für Marken und Index | offen |
+| ESP32-Board | **ESP32-S3-DevKitC-1 N16R8** | beschafft |
+| USB-Netzteil | 5 V / ≥ 1 A, für den Messbetrieb (nicht das Notebook) | offen |
+| HX711-Modul | **getrennte VCC/VDD** (fünfpolig, SparkFun-Bauform) — vierpolige Module scheiden aus, siehe §5.2 | offen |
+| Hall-Sensoren | 3 × TLE4905L (Marken, Index, Laufrad), unipolar | vorhanden |
+| Magnete | 8 + 1, Ø10 × 3 mm mit Ø3-Senkloch | vorhanden |
 | Netzteil | 36 V, ≥ 10 A (besser 15 A) — Reserve für die Stromgrenze beim Anfahren | offen |
-| Bremswiderstand + Chopper | ~100 W, falls rekuperativ gebremst werden soll; ein Netzteil kann Rückspeisung nicht aufnehmen | offen |
+| Bremswiderstand + Chopper | **zurückgestellt** (A8) — stattdessen frei auslaufen lassen, mechanische Trommelbremse zum Feststellen | – |
 | Stehlager für die Statorachse | 2 Stück, auf dem Wiegerahmen | offen |
 | Zahnriemen | **entfällt beim Direktantrieb** — nur nötig, falls A6 negativ ausfällt | – |
 | Not-Aus | zwangsöffnend, trennt den Leistungspfad | offen |
-| Zweiter HX711 | für die spätere Auflastmessung | später |
+| Zweiter HX711 | dieselbe Bauform, für die spätere Auflastmessung | später |
 | BLE-Drucksensor | Modell noch nicht festgelegt | später |
 
 ## 4 Pinbelegung
@@ -191,16 +193,17 @@ kostet die Messung.
 | HX711 | **VCC = 5 V** (analog), **VDD = 3,3 V** (digital) | DOUT auf 3,3 V |
 | LCD / PCF8574 | 5 V | I²C über Pegelwandler |
 
-Beim HX711 setzt das ein Modul mit **getrennten VCC- und VDD-Pins** voraus
-(SparkFun-Bauform, fünf Pins). VCC speist die Brücke, VDD legt den Logikpegel fest.
-Auf den billigen vierpoligen Modulen sind beide verbunden — dann bleibt nur, den
-ganzen Baustein auf 3,3 V zu fahren oder DOUT zu wandeln.
+**Festlegung: HX711-Modul mit getrennten VCC- und VDD-Pins** (SparkFun-Bauform,
+fünf Pins: VDD, VCC, DAT, CLK, GND). VCC speist die Brücke, VDD legt den Logikpegel
+fest. Am Chip sind das AVDD (Pin 3) und DVDD (Pin 16).
 
-Der ganze HX711 auf 3,3 V kostet **keine** Auflösung in Counts: die Brücke wird aus
-AVDD gespeist und AVDD ist zugleich die ADC-Referenz, die Messung ist also
-ratiometrisch. Es kostet aber **SNR** — ein Drittel weniger Erregung bei gleichem
-Eingangsrauschen sind rund 3,6 dB. Bei 12 N Signal des besten Rennreifens auf einer
-98-N-Zelle ist das nicht zu verschenken.
+Die billigen vierpoligen Module (VCC, GND, DT, SCK) scheiden damit aus — dort sind
+beide verbunden. Die Alternative wäre, den ganzen Baustein auf 3,3 V zu fahren. Das
+kostet **keine** Auflösung in Counts, weil die Brücke aus AVDD gespeist wird und AVDD
+zugleich die ADC-Referenz ist, die Messung also ratiometrisch läuft. Es kostet aber
+**SNR**: ein Drittel weniger Erregung bei gleichem Eingangsrauschen sind rund 3,6 dB.
+Bei 12 N Signal des besten Rennreifens auf einer 98-N-Zelle wird das nicht
+verschenkt.
 
 ### 5.3 Messtechnisch
 
