@@ -215,12 +215,53 @@ zugleich die ADC-Referenz ist, die Messung also ratiometrisch läuft. Es kostet 
 Bei 12 N Signal des besten Rennreifens auf einer 98-N-Zelle wird das nicht
 verschenkt.
 
-### 5.3 Messtechnisch
+### 5.3 Wo der HX711 sitzt
+
+**Am Zellenkabel, nicht am ESP32.** Das Zellensignal ist der empfindliche Teil der
+Kette, das digitale Signal der robuste — also wird die lange Strecke auf die
+digitale Seite gelegt.
+
+| | |
+|---|---|
+| Endwert der 10-kg-Zelle bei 1 mV/V und 5 V Erregung | 5 mV |
+| Auslegungsfall samt Rampe (62,7 N) | 3,2 mV |
+| **ΔCrr = 0,0005 (2,43 N)** | **124 µV** |
+
+Auf einer Leitung, die 124 µV auflösen soll, ist jede eingekoppelte Störung direkt
+Messfehler — und der PGA verstärkt sie mit 128.
+
+Der eigentliche Schaden ist nicht Rauschen, sondern **EMV-Gleichrichtung**: die
+PWM des Reglers koppelt mit einigen zehn kHz in die hochohmigen PGA-Eingänge und
+richtet sich dort zu einem **Gleichanteil** gleich, der mit dem Motorstrom wandert.
+Das sieht exakt wie Signal aus und fällt in der Leerlaufkennlinie nicht auf, weil
+es dort genauso auftritt.
+
+Der oft genannte Grund — Leitungswiderstand bei der Vierleiterzelle — ist dagegen
+**kein** Argument: 2 m Litze sind rund 0,5 Ω in der Erregerschleife, bei 1 kΩ
+Brückenwiderstand und 10 K Temperaturhub ergibt das 0,002 % Spannenfehler.
+
+Praktisch:
+
+- HX711 **innerhalb von etwa 10 cm** an der Zelle, in einem kleinen geschirmten
+  Gehäuse am Rahmen — nicht auf dem Wiegeteil, sonst zieht sein Kabel am Hebelarm.
+- **Nicht** in Motornähe oder in dessen Abluft, trotz der kurzen Strecke zur Zelle:
+  Offsetdrift.
+- Zellenkabel als **zwei verdrillte Paare** (E+/E−, S+/S−), Gesamtschirm, Schirm
+  einseitig an den Zellenkörper.
+- Am HX711-Eingang je 100 Ω in Reihe und 100 nF differenziell über INA+/INA−.
+- Die digitale Strecke verdrillt oder geschirmt, **getrennt vom Zellenkabel geführt**,
+  und 100 Ω in Reihe im SCK direkt am ESP32 — flankenbremsend, damit der Takt nicht
+  in die Analogseite zurückkoppelt.
+
+### 5.4 Messtechnisch
 
 - **HX711 getrennt versorgen.** Nicht am Motorzweig. Ferrit und 100 µF direkt am
   AVDD-Pin, Sternmasse.
-- **Zellenkabel verdrillt und geschirmt**, Schirm einseitig an den Zellenkörper.
-- **HX711 thermisch vom Motor entkoppeln** — Offsetdrift.
+- **RATE-Pin prüfen.** `HX711_RATE_SPS` = 80 setzt RATE auf DVDD voraus. Viele
+  Module legen Pin 15 fest auf GND, das sind 10 SPS — bei 60 km/h nur **1,8 Abtastwerte
+  je Umdrehung** statt 14, womit die umdrehungssynchrone Mittelung
+  ([09-messtheorie](09-messtheorie.md) §3.8) zusammenbricht. Gegebenenfalls Leiterbahn
+  auftrennen und auf DVDD brücken.
 - **Motorzuleitungen über das Pendellager als weiche Schlaufe.** Beim Nabenmotor treten
   sie axial durch die Statorachse aus, also auf der Pendelachse — der Vorteil geht
   verloren, wenn das Kabel straff abgeht.
