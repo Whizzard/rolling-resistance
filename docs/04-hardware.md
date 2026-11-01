@@ -117,13 +117,13 @@ die Firmware noch nicht anfasst.
 | 12 | `PIN_BTN_DOWN` | Steuerkreuz runter | in, Pull-up | |
 | 13 | `PIN_BTN_IN` | Steuerkreuz rein | in, Pull-up | |
 | 14 | `PIN_BTN_OUT` | Steuerkreuz raus | in, Pull-up | |
-| 39 | `PIN_BTN_OK` | Steuerkreuz Mitte | in, Pull-up | optional |
-| 40 | `PIN_BRAKE_RELEASE` | MOSFET in der Spulenmasse der Bremsrelais | out | **high = Relais an = Bremse gelöst.** Pulldown am Gate: beim Reset gebremst |
 | 15 | `PIN_HX711_DOUT` | HX711 #1 DOUT (Moment) | in | |
 | 16 | `PIN_HX711_SCK` | HX711 SCK | out | **gemeinsamer Takt beider HX711** |
 | 17 | `PIN_HX7112_DOUT` | HX711 #2 DOUT (Auflast) | in | zweite Zelle noch nicht bestückt |
 | 18 | `PIN_DRIVE_TX` | UART1 TX → Regler | out | |
 | 21 | `PIN_DRIVE_RX` | UART1 RX ← Regler | in | |
+| 39 | `PIN_BTN_OK` | Steuerkreuz Mitte | in, Pull-up | optional |
+| 40 | `PIN_BRAKE_RELEASE` | MOSFET in der Spulenmasse der Bremsrelais | out | **high = Relais an = Bremse gelöst.** Pulldown am Gate: beim Reset gebremst |
 | 48 | `PIN_STATUS_LED` | Status-LED | out | auf DevKitC-1 **v1.0** ist das die RGB-LED, auf v1.1 ist sie an GPIO 38 |
 
 ### Welche GPIOs auf diesem Board gesperrt sind
