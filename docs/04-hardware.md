@@ -260,8 +260,32 @@ direkt in die **Schraubklemme auf der HX711-Platine**. Eine Schraubklemme ist ei
 gasdichte Klemmverbindung ohne zusätzliche Metallübergänge — elektrisch das Beste,
 was es hier gibt, und zum Zellentausch reicht ein Schraubendreher.
 
-Gesteckt wird die **digitale Seite** (5 V, 3,3 V, GND, DOUT, SCK). Dort ist die
-Bauform gleichgültig; JST-XH, Molex oder auch eine D-Sub 9, falls vorhanden.
+Gesteckt wird die **digitale Seite**. Empfehlung: **JST-XH, 6-polig** — gekeyt,
+crimpbar, billig. Sechs statt fünf Pole, damit jedes Signal eine Masse neben sich
+hat:
+
+| Pin | 1 | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|
+| | 5 V | GND | SCK | DOUT | GND | 3,3 V |
+
+Zwei Dinge entscheiden hier, nicht die Signalqualität:
+
+- **Verpolschutz.** 5 V und 3,3 V liegen auf demselben Stecker. Ein verdrehter oder
+  um einen Pin versetzter Stecker zerstört entweder den HX711 oder den ESP32. Die
+  Bauform muss formschlüssig kodiert sein — deshalb JST und nicht Stiftleiste. Die
+  Reihenfolge oben setzt 5 V und 3,3 V zusätzlich an die beiden Enden.
+- **Vibration.** Der Stecker sitzt am Prüfstand. Kabelbinder als Zugentlastung, oder
+  gleich eine rastende Bauform (Molex Micro-Fit 3.0).
+
+Bei über 1 m Länge oder wenn das Kabel am Regler vorbeiläuft: **geschirmtes
+RJ45-Patchkabel** (S/FTP). Acht Adern als vier verdrillte Paare, jedes Signal mit
+eigener Rückleitung, Schirm auf das Gehäuse, rastend, als Fertigkabel in jeder
+Länge zu haben. Elektrisch deutlich besser als jedes Flachbandkabel.
+
+**Nicht** nötig ist Aufwand wegen der Signale selbst: 3,3-V-CMOS bei maximal 1 MHz
+über einen Meter ist unkritisch. Der HX711 hat allerdings **keine Prüfsumme** — ein
+gekipptes Bit liefert einen wild falschen Wert. Die Firmware sollte Ausreißer
+verwerfen, statt sich auf die Leitung zu verlassen.
 
 Grund: jeder Steckverbinder bringt zwei Metallübergänge je Ader in den Signalpfad,
 und bei µV-Pegeln zählt die **Thermospannung**. Sie hebt sich nur auf, solange beide
