@@ -91,9 +91,12 @@ Firmware-Konstante `BELT_RATIO` existiert genau für diesen Fall.
 
 | Teil | Anforderung | Status |
 |---|---|---|
-| Nabenmotor | Bird One / DAAO 23328N36A28G001, 9,5″, 36 V / 350 W, 605 1/min | ausgewählt |
+| Nabenmotor | **Hoverboard-Antriebsrad 6,5″, 36 V / 350 W** | **beschafft** |
+| Motorregler | **FSESC 4.20 / 50 A** (VESC-Klasse) | **beschafft** |
+| Bremse an der Trommelwelle | Bandbremse oder Bremssattel auf einer Scheibe — der Motor hat keine (A9) | **offen, sicherheitsrelevant** |
+| NTC für die Statorachse | der Motor hat keinen Temperaturfühler (A5) | offen |
 | Gegenstecker Julet 9-polig | oder Stecker abschneiden und eigene Verbinder setzen | offen |
-| Motorregler | sensorierte FOC, UART-Sollwert, Bremsfunktion (VESC-Klasse **oder** umgeflashte Hoverboard-Platine) | offen |
+
 | Netzteil | 36–42 V, ≥ 10 A | offen |
 | ESP32-Board | **ESP32-S3-DevKitC-1 N16R8** | beschafft |
 | USB-Netzteil | 5 V / ≥ 1 A, für den Messbetrieb (nicht das Notebook) | offen |
@@ -101,7 +104,7 @@ Firmware-Konstante `BELT_RATIO` existiert genau für diesen Fall.
 | Hall-Sensoren | 3 × TLE4905L (Marken, Index, Laufrad), unipolar | vorhanden |
 | Magnete | 8 + 1, Ø10 × 3 mm mit Ø3-Senkloch | vorhanden |
 | Netzteil | 36 V, ≥ 10 A (besser 15 A) — Reserve für die Stromgrenze beim Anfahren | offen |
-| Bremswiderstand + Chopper | **zurückgestellt** (A8) — stattdessen frei auslaufen lassen, mechanische Trommelbremse zum Feststellen | – |
+| Bremswiderstand + Chopper | **zurückgestellt** (A8). Achtung: die mechanische Trommelbremse als Rückfall gibt es nicht, siehe oben. | – |
 | Stehlager für die Statorachse | 2 Stück, auf dem Wiegerahmen | offen |
 | Zahnriemen | **entfällt beim Direktantrieb** — nur nötig, falls A6 negativ ausfällt | – |
 | Not-Aus | zwangsöffnend, trennt den Leistungspfad | offen |
@@ -118,7 +121,7 @@ die Firmware noch nicht anfasst.
 
 | GPIO | Konstante | Funktion | Richtung | Anmerkung |
 |---|---|---|---|---|
-| 1 | `PIN_MOTOR_PTC` | Motor-PTC | in, analog | **ADC1**_CH0 — ADC2 ist bei aktivem WLAN gesperrt. Kennlinie des PTC noch **TBD** |
+| 1 | `PIN_MOTOR_PTC` | Motortemperatur | in, analog | **ADC1**_CH0 — ADC2 ist bei aktivem WLAN gesperrt. Der verbaute Motor hat **keinen** Fühler; Pin reserviert für einen nachgerüsteten NTC (A5) |
 | 2 | `PIN_ESTOP_FB` | Not-Aus-Rückmeldung | in | nur **Anzeige** des Zustands; die Trennung erfolgt in Hardware |
 | 4 | `PIN_MARK` | Drehzahlmarken Trommel | in, Interrupt | **8** Marken/Umdrehung |
 | 5 | `PIN_INDEX` | Indexmarke Trommel | in, Interrupt | 1/Umdrehung, triggert die Mittelung |

@@ -29,11 +29,11 @@ Trommelsegment wäre lebensgefährlich.
 | Berstende oder sich lösende Trommel | Schutzhaube aus Stahlblech oder Polycarbonat, besonders in der Rotationsebene. Sichtprüfung vor jedem Lauf. Festgelegte Höchstdrehzahl. |
 | Einzug zwischen Trommel und Prüflaufrad | Haube geschlossen; keine losen Kleidungsstücke, keine langen Haare offen, keine Handschuhe. |
 | Berührung der Trommeloberfläche im Lauf | Haube mit Verriegelung; niemals in den Prüfraum greifen, solange sich etwas dreht. |
-| Langer Auslauf nach dem Abschalten | Gerechnet **13 Minuten** von 60 km/h bis Stillstand. Keine Handbremsung. Haube erst öffnen, wenn die Trommel steht. |
+| Langer Auslauf nach dem Abschalten | **3 bis 6 Minuten** von 60 km/h bis Stillstand, allein durch das Rastmoment des Motors ([09-messtheorie](09-messtheorie.md) §8.9). Keine Handbremsung. Haube erst öffnen, wenn die Trommel steht. |
+| **Kein Bremspfad vorhanden** | **Offen, siehe §3.** Der verbaute Hoverboard-Nabenmotor hat keine mechanische Bremse, und A8 (Kurzschlussschütz) ist zurückgestellt. Derzeit lässt sich die Trommel nur auslaufen lassen. |
 | Gelöstes Prüflaufrad | Laufrad formschlüssig gesichert, nicht nur geklemmt. |
-| Reißender Zahnriemen | Riemen abgedeckt. |
 | Elektrisch: 36–42 V, hohe Ströme | Sicherung im Leistungspfad. Nur isoliertes Werkzeug. Netzteil abdecken. |
-| Überhitzung von Motor oder Regler | PTC im Motor auswerten, Strombegrenzung im Regler, Lauf nicht unbeaufsichtigt. |
+| Überhitzung von Motor oder Regler | Strombegrenzung im Regler, Lauf nicht unbeaufsichtigt. **Der verbaute Motor hat keinen Temperaturfühler** — NTC auf der Statorachse nachrüsten (A5). Im Auslegungsfall werden 67 W von 350 W gebraucht, das Risiko ist gering, aber unüberwacht. |
 | Umkippen des Aufbaus | Rahmen am Boden verankert oder ausreichend schwer. |
 
 ## 3 Not-Aus
@@ -45,21 +45,34 @@ nicht als Not-Aus:
 - ohne Werkzeug erreichbar, auch wenn man von der Maschine zurückweicht
 - Rückmeldung an den ESP32 nur zur **Anzeige**; die Trennung hängt nicht daran
 - nach dem Auslösen läuft die Trommel frei aus — das ist beabsichtigt und dauert
-  gerechnet rund 13 Minuten ([02-messkonzept](02-messkonzept.md) §4.3)
+  **3 bis 6 Minuten** ([09-messtheorie](09-messtheorie.md) §8.9)
 
 Zusätzlich, aber **nicht als Ersatz**: der Regler kann kontrolliert bremsen. Das ist der
-normale Weg zum Anhalten und schont den Riemen.
+normale Weg zum Anhalten.
 
-**Mechanische Bremse.** Der gewählte Nabenmotor hat eine integrierte Trommelbremse. Die
-ist über einen Bowdenzug zu bedienen und dient als Not- und Feststellbremse — der einzige
-Bremspfad, der auch ohne Strom funktioniert. Zwei Bedingungen:
+### Es gibt derzeit keinen stromlosen Bremspfad
 
-- Im Messbetrieb muss sie **vollständig gelöst** sein. Eine schleifende Bremse erzeugt
-  ein temperaturabhängiges Schleppmoment, das die Leerlaufkennlinie zwischen Vor- und
-  Nachlauf auseinanderlaufen lässt und damit die Messreihe wertlos macht.
-- Beim Direktantrieb wirkt sie unmittelbar auf die Trommel, ohne Zwischenglied. Das ist
-  der einzige Bremspfad, der auch bei Stromausfall funktioniert, und angesichts der
-  13 Minuten freien Auslaufs der normale Weg zum Anhalten.
+> **Offener Punkt.** Der verbaute Motor ist ein **Hoverboard-Antriebsrad 6,5″,
+> 36 V / 350 W** — der hat **keine** mechanische Bremse. Die frühere Annahme einer
+> integrierten Trommelbremse stammte vom Scooter-Motor, der nicht verbaut wurde.
+> Gleichzeitig ist A8 (Kurzschlussschütz) zurückgestellt.
+>
+> Damit bleibt nach einem Not-Aus **nur der freie Auslauf von 3 bis 6 Minuten**. Es
+> gibt keine Möglichkeit, die Trommel schneller oder im stromlosen Zustand
+> anzuhalten, und keine Feststellbremse für Arbeiten am Aufbau.
+
+Solange das so ist, gilt:
+
+- Die Haube bleibt nach jedem Lauf zu, bis die Trommel **sichtbar** steht. Nicht
+  nach Gefühl, nicht nach Uhr.
+- Vor Arbeiten an Trommel oder Laufrad die Trommel **mechanisch blockieren**, etwa
+  mit einem Holzkeil zwischen Rahmen und Speiche. Eine stehende Trommel ist nicht
+  gesichert.
+- Der Not-Aus trennt den Antrieb, er hält nichts an.
+
+Nachzurüsten ist eins von beidem: **Bandbremse oder Bremssattel auf einer Scheibe
+an der Trommelwelle** (A9), oder das Kurzschlussschütz aus A8. Erst dann greift die
+Freigabe höherer Drehzahlen nach §5.
 
 **Rückspeisung.** Rekuperatives Bremsen schiebt Energie in den Zwischenkreis zurück. An
 einem Netzteil steigt dabei die Spannung bis zur Überspannungsabschaltung des Reglers.
@@ -71,13 +84,18 @@ sind 140 W) oder eine Batterie als Puffer.
 | Kriterium | Grenze | Reaktion |
 |---|---|---|
 | Keine Drehzahlpulse trotz Sollwert > 0 | `STALL_TIMEOUT_MS` = 2000 ms | FAULT, Antrieb aus |
-| Riemenschlupf: n_Motor/i gegen n_Trommel | `SLIP_TOLERANCE` = 5 % | FAULT, Antrieb aus |
+| Aufnehmer unplausibel: n_Motor gegen n_Trommel | `SLIP_TOLERANCE` = 5 % | FAULT, Antrieb aus |
 | Kraft an der Wägezelle | `MAX_FORCE_N` = 90 N | FAULT, Antrieb aus |
 | Wägezelle gesättigt oder HX711 ohne Antwort | — | FAULT, Antrieb aus |
 | Trommeldrehzahl über Grenze | `MAX_DRUM_RPM` = **341** 1/min | FAULT, Antrieb aus |
-| Motortemperatur (PTC) | Grenze **TBD**, Kennlinie unbekannt | FAULT, Antrieb aus |
+| Motortemperatur | **entfällt vorerst** — der verbaute Motor hat keinen Fühler (A5) | – |
 
 FAULT ist rastend: Quittierung nur im Stillstand über die Konsole.
+
+Beim Direktantrieb kann es keinen Riemenschlupf geben — Motor und Trommel sitzen auf
+derselben Welle. Der Vergleich bleibt trotzdem sinnvoll, aber als
+**Plausibilitätsprüfung der beiden Aufnehmer**: weicht n_Motor von n_Trommel ab, ist
+ein Geber ausgefallen.
 
 ## 5 Freigabe höherer Drehzahlen
 

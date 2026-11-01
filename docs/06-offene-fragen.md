@@ -5,25 +5,41 @@ Sortiert nach Blockerwirkung. Stand: 2026-10-24.
 ## A — Blockiert den Aufbau
 
 ### A1 Steckerbelegung des Motors
-Beim Scooter-Motor hat der Julet-Stecker 9 Pole. Erwartet: 3 dicke Adern = Phasen,
-5 dünne = Hall (Vcc, GND, Ha, Hb, Hc), 1 weiße = PTC. Beim Hoverboard-Rad sind es
-3 Flachstecker (gelb/grün/blau) plus ein weißer JST mit 5 dünnen Adern.
+Verbaut ist das Hoverboard-Rad: **3 Flachstecker (gelb/grün/blau) = Phasen, dazu ein
+weißer JST mit 5 dünnen Adern = Hall (Vcc, GND, Ha, Hb, Hc)**. Kein PTC.
 
 In beiden Fällen gilt: **mit dem Messgerät verifizieren**, bevor irgendetwas
 angeschlossen wird. Eine vertauschte Hall-Versorgung zerstört die Sensoren.
 
 Außerdem offen: Gegenstecker beschaffen oder abschneiden und eigene Verbinder setzen?
 
-### A9 Bremse, falls das Hoverboard-Rad genommen wird
-Dem Hoverboard-Rad fehlt die Trommelbremse. Bei 13 Minuten freiem Auslauf braucht es
-dann eine Bandbremse oder einen Bremssattel auf einer Scheibe an der Trommelwelle.
-Ebenso fehlt der Temperaturfühler — ein NTC auf der Statorachse ersetzt ihn.
+### A9 Bremse — **akut, sicherheitsrelevant**
+Verbaut ist das Hoverboard-Rad, und dem fehlt die Trommelbremse. Zusammen mit dem
+zurückgestellten A8 heißt das: **es gibt derzeit überhaupt keinen Bremspfad.** Nach
+einem Not-Aus läuft die Trommel 3 bis 6 Minuten aus, und es gibt keine Feststellbremse
+für Arbeiten am Aufbau.
 
-### A5 Kennlinie des Motor-PTC
-Der Motor hat einen Temperaturfühler, aber die Kennlinie ist unbekannt. Ohne sie lässt
-sich kein Grenzwert festlegen. Ermittlung: Widerstand bei Raumtemperatur messen und mit
-den üblichen Typen vergleichen (KTY, PT1000, einfacher Schaltschwellen-PTC). Bis dahin
-bleibt die Temperaturabschaltung in [07-sicherheit](07-sicherheit.md) §4 ohne Grenzwert.
+Zu beschaffen ist eins von beidem:
+
+- **Bandbremse oder Bremssattel auf einer Scheibe an der Trommelwelle** — wirkt auch
+  stromlos, taugt als Feststellbremse. Muss im Messbetrieb vollständig lösbar sein
+  (X5), sonst driftet das Schleppmoment mit der Temperatur.
+- **Kurzschlussschütz aus A8** — bremst schnell, aber nur im Lauf und nicht stromlos
+  haltend.
+
+Beides zusammen wäre richtig: elektrisch bremsen, mechanisch feststellen. Bis dahin
+gilt die Zwischenregel in [07-sicherheit](07-sicherheit.md) §3 (Keil zwischen Rahmen
+und Speiche vor Arbeiten am Aufbau).
+
+Ebenso fehlt der Temperaturfühler — ein NTC auf der Statorachse ersetzt ihn (A5).
+
+### A5 Temperaturfühler fehlt
+Der verbaute Hoverboard-Motor hat **keinen**. Die Temperaturabschaltung in
+[07-sicherheit](07-sicherheit.md) §4 entfällt damit vorerst. Nachrüsten: NTC (10 k, B
+3950) auf die Statorachse geklebt, an `PIN_MOTOR_PTC` = GPIO1 (ADC1).
+
+Dringlichkeit gering: im Auslegungsfall werden 67 W von 350 W gebraucht. Aber der
+Warmlauf dauert 30 Minuten unter Last, und unüberwacht bleibt es trotzdem.
 
 ### A6 Ist die Motorachse zweiseitig gelagert?
 Scooter-Vorderräder sitzen üblicherweise beidseitig in der Gabel. Falls ja, ist die
@@ -198,6 +214,8 @@ Rohdaten unter `data/` versionieren — ab welcher Menge wird das unhandlich?
 | Rechnerplattform | ESP32 (BLE für den Drucksensor, WLAN-Logging, ein Board für alles) | 2026-10-24 |
 | Geschwindigkeitsbereich | 10–60 km/h; 100 km/h erst nach Trommelfreigabe | 2026-10-24 |
 | Drehzahlaufnehmer | Hall statt Reed, 6 Marken + Index; Geschwindigkeit aus dem Fenster über eine ganze Umdrehung | 2026-10-24 |
+| Motor | **Hoverboard-Antriebsrad 6,5″, 36 V / 350 W** beschafft. Damit 6,96 Nm Dauermoment (Faktor 2,8 über dem Auslegungsfall), aber **ohne Bremse und ohne Temperaturfühler** — A9 und A5 werden dadurch akut. | 2026-11-01 |
+| Motorregler | **FSESC 4.20 / 50 A** beschafft, VESC-Klasse mit UART. Schließt B1. | 2026-11-01 |
 | Speisung der Logik | **Nur über USB-C.** 5V-Pin und USB schließen sich laut Espressif gegenseitig aus; eine vergessene externe 5 V beim Flashen wäre ein Kurzschluss zweier Quellen. Beide USB-Buchsen dürfen gleichzeitig speisen. | 2026-11-01 |
 | HX711-Pegel | Modul mit **getrennten VCC/VDD**: VCC = 5 V für die Brücke, VDD = 3,3 V für den Logikpegel. Der ESP32-S3 ist nicht 5-V-tolerant. Alternative (alles auf 3,3 V) kostet 3,6 dB SNR und wurde verworfen. | 2026-11-01 |
 | Markenzahl endgültig | **8** statt 6 — auf dem Teilkreis der 8 Abstandsklötze, geschraubte Ø10×3-Magnete mit A2-Schraube. Mehr Marken bringen *keine* Genauigkeit (das Ergebnis läuft index-getriggert über ganze Umdrehungen, dort kürzt sich die Teilung heraus), nur Latenz. [04-hardware](04-hardware.md) §9 | 2026-11-01 |
@@ -208,7 +226,7 @@ Rohdaten unter `data/` versionieren — ab welcher Menge wird das unhandlich?
 | Drehmomentwaage bedämpfen? | Ja, aber zuletzt: erst steif und leicht bauen, Anregung vermeiden, umdrehungssynchron mitteln — dann Wirbelstromdämpfer. Nichts mit Haftreibung im Momentenpfad. | 2026-10-24 |
 | Gimbal-Motor direkt auf der Nabe? | Nein — Faktor ~10 zu wenig Moment, dazu Gegen-EMK-Grenze | 2026-10-24 |
 | Antrieb | Nabenmotor Bird One / DAAO 23328N36A28G001, 36 V / 350 W, 605 1/min, Zahnriemen i ≈ 1,8 | 2026-10-24 |
-| Hoverboard- oder Scooter-Motor? | **Offen geblieben, Preisfrage.** Beide haben Hallsensoren (beim Hoverboard-Rad an den Angebotsfotos verifiziert: 3 dicke Phasen + weißer JST mit 5 dünnen Adern, also 8 Leiter statt der beschriebenen 6). Beide erfüllen 3,53 Nm mit Reserve, das Hoverboard-Rad mit 6,96 Nm sogar mehr. Unterschied ist nur noch die mechanische Bremse. Entscheidungsregel in [03-parameter](03-parameter.md) §4. | 2026-10-24 |
+| Hoverboard- oder Scooter-Motor? | **Entschieden 2026-11-01: Hoverboard.** Frühere Notiz: **Offen geblieben, Preisfrage.** Beide haben Hallsensoren (beim Hoverboard-Rad an den Angebotsfotos verifiziert: 3 dicke Phasen + weißer JST mit 5 dünnen Adern, also 8 Leiter statt der beschriebenen 6). Beide erfüllen 3,53 Nm mit Reserve, das Hoverboard-Rad mit 6,96 Nm sogar mehr. Unterschied ist nur noch die mechanische Bremse. Entscheidungsregel in [03-parameter](03-parameter.md) §4. | 2026-10-24 |
 | Direktantrieb statt Riemen? | Nein. Drehzahlmäßig möglich (605 1/min = 109 km/h an der Trommel) und messtechnisch besser, aber nur 5,52 statt 9,94 Nm. Zu wenig Moment wäre ein Neubau, Riemenverlust nur eine Zahl zum Abziehen. | 2026-10-24 |
 | Reserve für 100 km/h | über die Busspannung, nicht über eine Übersetzung | 2026-10-24 |
 | Riemen oder Direktantrieb? | **Direktantrieb.** Die Momentenbilanz der Pendelwiege (`T_Arm = T_außen`) zeigt: ein Riemen liegt außerhalb der Wiege und wird mitgemessen, die Trommellager beim Direktantrieb dagegen innerhalb und fallen heraus. Nach der Literaturrecherche reichen 5,52 Nm mit 36 % Reserve. | 2026-10-24 |

@@ -36,8 +36,9 @@ constexpr float DRUM_RADIUS_M = DRUM_CIRCUMFERENCE_M / (2.0f * PI);
 constexpr float TORQUE_ARM_M = 0.040f;
 
 // [Festlegung] DIREKTANTRIEB: die Trommel sitzt auf dem Rotor des Nabenmotors,
-// Motor- und Trommeldrehzahl sind identisch. Der Motor dreht mit 605 1/min allein
-// schon 109 km/h an der Trommel, eine Übersetzung ist also nicht nötig — und jede
+// Motor- und Trommeldrehzahl sind identisch. Der verbaute Hoverboard-Motor dreht mit
+// etwa 480 1/min allein schon 84 km/h an der Trommel, eine Übersetzung ist also
+// nicht nötig — und jede
 // Übersetzung läge AUSSERHALB der Pendelwiege und würde mitgemessen
 // (docs/02-messkonzept.md §2.1). Die Konstante bleibt für den Fall, dass doch
 // einmal ein Riemen dazwischenkommt.
@@ -56,7 +57,9 @@ constexpr uint32_t MIN_PULSE_US = 800;   // [ber] kürzester echter Abstand ist 
 // Pulsabstand bei 10 km/h nur 132 ms, bei 1 km/h aber 1,32 s. 2000 ms bedeutet
 // "langsamer als 0,66 km/h gilt als Stillstand" — die Rampe ist nach 1,3 s darüber.
 constexpr uint32_t STALL_TIMEOUT_MS = 2000;
-constexpr float SLIP_TOLERANCE = 0.05f;  // [gesch] n_Motor/i gegen n_Trommel
+// [gesch] n_Motor/i gegen n_Trommel. Beim Direktantrieb gibt es keinen Schlupf —
+// das ist eine PLAUSIBILITÄTSPRÜFUNG der beiden Aufnehmer, kein Schlupfkriterium.
+constexpr float SLIP_TOLERANCE = 0.05f;
 
 // Motor-Hallflanken pro Motorumdrehung, eine ausgewertete Phase = Polpaarzahl.
 // [TBD] Polzahl des DAAO-Motors ausmessen: Motor langsam eine volle Umdrehung von
@@ -158,7 +161,9 @@ constexpr uint8_t PIN_ESTOP_FB   = 2;   // nur Anzeige; Trennung erfolgt in Hard
 constexpr uint8_t PIN_BUTTON     = 14;  // Bedientaster
 constexpr uint8_t PIN_STATUS_LED = 48;  // Status-LED (auf DevKitC-1 v1.0 die RGB-LED)
 // PTC muss auf ADC1 liegen — ADC2 ist bei aktivem WLAN gesperrt. GPIO1 = ADC1_CH0.
-constexpr uint8_t PIN_MOTOR_PTC  = 1;   // PTC im Motor, analog (Kennlinie [TBD])
+// Der verbaute Hoverboard-Motor hat KEINEN Temperaturfühler. Pin reserviert für
+// einen nachgerüsteten NTC (docs/06-offene-fragen.md A5).
+constexpr uint8_t PIN_MOTOR_PTC  = 1;   // Motortemperatur, analog [TBD]
 
 // PIN_WHEEL, PIN_HX7112_DOUT, PIN_SD_CS, PIN_BUTTON und PIN_STATUS_LED sind reserviert
 // und in hardware/schaltplan.py verdrahtet, werden von der Firmware aber noch nicht

@@ -59,7 +59,7 @@ Weiter:
 | X2 | M | Trommel gewuchtet; zulässige Höchstdrehzahl schriftlich festgelegt ([07-sicherheit](07-sicherheit.md)). |
 | X3 | M | Wägezelle **nur auf Zug** angebunden (Schaltzug, 12 N vorgespannt). Das Vorzeichen kehrt beim Bremsen und im Auslauf um — dann wird der Zug schlaff und die Last geht in den Anschlag, nicht in die Zelle. Begründung und Maße: [08-staender](08-staender.md) §7.3. |
 | X4 | S | Nur falls doch ein Riemen nötig wird: HTD/GT-Profil, nicht T-Profil, wegen der Anregung des Wiegeteils. |
-| X5 | M | Trommelbremse des Motors im Messbetrieb vollständig gelöst — ein Schleppmoment driftet mit der Temperatur und zerstört die Leerlaufkennlinie. |
+| X5 | M | Eine nachgerüstete Bremse muss im Messbetrieb vollständig gelöst sein — ein Schleppmoment driftet mit der Temperatur und zerstört die Leerlaufkennlinie. Der verbaute Hoverboard-Motor hat keine eingebaute Bremse. |
 
 ## 4 Betrieb und Sicherheit
 
@@ -67,7 +67,7 @@ Weiter:
 |---|---|---|
 | B1 | M | Hardware-Not-Aus, der die Motorleistung **galvanisch** trennt — nicht per Software. |
 | B2 | M | Schutzhaube um die Trommel, besonders in der Rotationsebene. |
-| B3 | M | Automatische Abschaltung bei: ausbleibenden Drehzahlpulsen, Riemenschlupf, Überschreiten der Kraftgrenze, gesättigter Wägezelle. |
+| B3 | M | Automatische Abschaltung bei: ausbleibenden Drehzahlpulsen, unplausiblem Drehzahlvergleich Motor/Trommel, Überschreiten der Kraftgrenze, gesättigter Wägezelle. |
 | B4 | M | Kontrollierter Bremspfad über den Regler; die Trommel speichert bei 60 km/h rund 1,4 kJ. |
 | B5 | S | Betriebsstundenzähler bzw. Protokoll der gefahrenen Hochläufe für die Wartung. |
 

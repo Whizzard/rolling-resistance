@@ -40,7 +40,29 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 
 ## 4 Antrieb
 
-Nabenmotor aus einem Bird-One-E-Scooter. Angaben vom Typenschild.
+**Verbaut ist das Hoverboard-Antriebsrad 6,5″, 36 V / 350 W** (beschafft 2026-10-28),
+dazu ein **FSESC 4.20 / 50 A** als Regler.
+
+| Größe | Wert | Einheit | Herkunft | Anmerkung |
+|---|---|---|---|---|
+| Bauform | Hoverboard-Nabenmotor 6,5″ | – | Angebot | |
+| Nennspannung / -leistung | 36 / 350 | V / W | Angebot | |
+| Nenndrehzahl | ≈ 480 | 1/min | **abgeleitet** | aus der üblichen Hoverboard-Endgeschwindigkeit, **nicht** vom Typenschild |
+| Dauermoment `P/ω` | **6,96** | Nm | ber | Faktor 2,8 über dem Auslegungsfall von 2,51 Nm |
+| n_nenn → Trommel | 480 1/min → **84 km/h** | – | ber | reicht für 60 km/h mit Reserve |
+| kv | 13,3 | 1/min/V | ber | 480 / 36 |
+| kt | 0,717 | Nm/A | ber | 9,55 / kv |
+| Masse | 2,26 | kg | Angebot | geht in die Eigenfrequenz des Wiegeteils ein |
+| Hallsensoren | ja | – | Angebotsfotos | 3 Flachstecker + weißer JST mit 5 Adern |
+| **Temperaturfühler** | **nein** | – | – | NTC nachrüsten, A5 |
+| **Mechanische Bremse** | **nein** | – | – | **kein stromloser Bremspfad**, siehe [07-sicherheit](07-sicherheit.md) §3 und A9 |
+| Polzahl | **TBD** | – | TBD | von Hand eine Umdrehung drehen, Hallflanken zählen |
+| Phasenwiderstand | **TBD** | Ω | TBD | Vierleitermessung zwischen je zwei Phasen |
+
+### Nicht verbaut: Scooter-Motor (DAAO)
+
+Die folgende Tabelle war die Alternative und ist nur noch als Vergleich interessant.
+Angaben vom Typenschild.
 
 | Größe | Wert | Einheit | Herkunft | Anmerkung |
 |---|---|---|---|---|
@@ -57,6 +79,7 @@ Nabenmotor aus einem Bird-One-E-Scooter. Angaben vom Typenschild.
 | Nennmoment | 5,52 | Nm | ber | 350 W / 63,4 rad/s |
 | Spitzenmoment | ≈ 12,6 | Nm | ber | 800 W bei Nenndrehzahl |
 | Moment an der Trommel | 5,52 | Nm | ber | 5,52 · i, **i = 1,00** (Direktantrieb) |
+| Mechanische Bremse | Trommelbremse | – | Beschreibung | **der verbaute Hoverboard-Motor hat sie nicht** |
 | Stecker | Julet 9-polig | – | Foto | 3 Phasen + 5 Hall + PTC erwartet — **mit dem Messgerät verifizieren** |
 | Hallsensoren | ja | – | Steckerbelegung | 9-poliger Julet, erwartet 3 Phasen + 5 Hall + PTC |
 | Temperaturfühler | PTC | – | Beschreibung | weißes Kabel; Kennlinie **TBD** |
@@ -185,7 +208,7 @@ Die Achsfrage A6 — beidseitige Lagerung — gilt für beide gleichermaßen und
 | Auslegungs-Crr | `CRR_DESIGN_MAX` | **0,007** | – | Festlegung | Es werden schnelle Straßenreifen gemessen, keine MTB-Reifen. Langsamster vorgesehener Reifen ist der Continental Contact Urban mit 0,00552, darauf 27 % Luft. Siehe Tabelle unten. |
 | Reifendruck | — | Eingabe | bar | – | Handeingabe, später BLE |
 | Reifentemperatur | — | **TBD** | °C | TBD | Sensor noch nicht festgelegt |
-| Motortemperatur | — | PTC im Motor | °C | TBD | Kennlinie des PTC unbekannt, siehe §4 |
+| Motortemperatur | — | **kein Fühler** | °C | – | Der verbaute Motor hat keinen. NTC nachrüsten, siehe A5. |
 
 ### Gemessene Crr-Werte als Auslegungsgrundlage
 
