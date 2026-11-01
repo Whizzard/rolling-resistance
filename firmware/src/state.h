@@ -14,7 +14,7 @@
 //
 // Gemessen wird ausschließlich im Zustand POINT, auf einem Geschwindigkeits-
 // Plateau und über eine ganze Zahl von Trommelumdrehungen. Begründung:
-// docs/02-messkonzept.md §3.1 und §3.5.
+// docs/09-messtheorie.md §1.7 und §3.5.
 //
 #include <Arduino.h>
 

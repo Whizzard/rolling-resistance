@@ -4,7 +4,7 @@ Die geschlossene Darstellung: welche Formeln gelten, welche Größen einmal und 
 jeder Messung bestimmt werden, wo die Sensoren sitzen, wie kalibriert wird und was der
 ESP32 braucht, um Watt und Crr live zu rechnen.
 
-Ergänzt [02-messkonzept](02-messkonzept.md) (Herleitung und Fallstricke) und
+Ersetzt das frühere 02-messkonzept (Herleitung und Fallstricke) und
 [05-prüfablauf](05-pruefablauf.md) (Checklisten). Zahlenwerte gelten für den Stand vom
 2026-10-30: Trommel Ø 933 mm, Hebelarm 40 mm, Auslegung auf schnelle Straßenreifen.
 
@@ -120,6 +120,11 @@ Nimm als System alles, was auf der Wiege sitzt. Im stationären Zustand ist die 
 Daraus folgt der ganze Rest des Verfahrens: zwei Korrekturkurven (Leerlauf, Laufrad), ein
 Restfehler (Trommellager), und ein Pendellager, das so reibungsarm wie möglich sein muss.
 
+Der kommerzielle Referenzprüfstand misst stattdessen die elektrische Leistungsaufnahme und
+rechnet über eine Wirkungsgradkennlinie des Motors zurück
+([Beschreibung](https://www.bicyclerollingresistance.com/the-test)). Diese Kennlinie ist
+dort die größte Fehlerquelle; die Pendelwiege braucht sie nicht.
+
 ### 1.7 Rampe und Auslauf
 
 Während einer Drehzahländerung misst die Zelle zusätzlich das Beschleunigungsmoment:
@@ -140,6 +145,27 @@ Umgekehrt nutzbar ist derselbe Zusammenhang im Auslauf:
 
 Das liefert M_verlust **unabhängig von der Wägezelle** und ist damit der schärfste
 verfügbare Test der ganzen Momentenmesskette — siehe §9.1.
+
+### 1.8 Woher die Trommelaerodynamik kommt
+
+Der Leerlauf besteht beim Direktantrieb nur aus dem Luftwiderstand der Trommel.
+Gerechnet für 16,67 m/s Umfangsgeschwindigkeit, Ø 0,933 m, Breite 0,100 m,
+ρ = 1,2 kg/m³, ν = 1,51·10⁻⁵ m²/s:
+
+```
+Mantel:    Re  = v·D/ν   = 1,03·10⁶ ,  Cf = 0,004 ,  A = π·D·b = 0,293 m²
+           τ   = ½·ρ·Cf·v² = 0,67 Pa  →  F = 0,196 N  →  M = 0,091 Nm
+
+Scheiben:  Re_ω = ω·R²/ν = 5,15·10⁵ ,  Cm = 0,146·Re_ω^−0,2 = 0,0105
+           M    = Cm·½·ρ·ω²·R⁵ = 0,178 Nm
+
+Summe ≈ 0,27 Nm ≈ 9,6 W bei 60 km/h, wachsend mit v²
+```
+
+Gilt für eine **glatte, geschlossene** Trommel in ruhender Luft. Offene Speichen, raue
+Oberfläche oder Anbauten können ein Vielfaches ergeben. **Die erste Leerlaufkennlinie
+(§8.4) ersetzt diese Rechnung** — sie ist nur die Erwartung, gegen die man das Messergebnis
+auf Plausibilität prüft.
 
 ## 2 Welche Größe wann bestimmt wird
 
@@ -192,6 +218,18 @@ verfügbare Test der ganzen Momentenmesskette — siehe §9.1.
 | Zeitstempel | für die zeitliche Interpolation der Baseline |
 
 ## 3 Fehlerbudget und Dynamik
+
+Was aufzulösen ist, steht in dieser Tabelle. Crr steigt mit der Geschwindigkeit, aber
+zwischen 14,4 und 36 km/h nur um **11,6 %**
+([Messung](https://www.bicyclerollingresistance.com/specials/crr-speed-test), Mittel aus
+6 Reifen):
+
+| v [km/h] | 14,4 | 21,6 | 28,8 | 36,0 |
+|---|---|---|---|---|
+| Crr | 0,00346 | 0,00362 | 0,00378 | 0,00386 |
+
+Die Kennlinie ist also ein flacher Effekt. Um sie über mehrere Stützstellen aufzulösen,
+braucht es **1 bis 2 % je Messpunkt**.
 
 ### 3.1 Alles in F_roll rechnen
 
@@ -617,12 +655,18 @@ Luftzug.
 `s`, dann frei auslaufen lassen. **Nicht von Hand bremsen.** Bei 60 km/h sind rund 1,3 kJ
 gespeichert. Die Auslaufdauer hängt fast ganz am Schleppmoment des Motors:
 
-| Schleppmoment | Auslauf von 60 km/h |
+Mit `J·dω/dt = −(a + b·ω²)`, a = Schleppmoment, b = 0,27/35,73² = 2,12·10⁻⁴:
+
+```
+t = (J/√(ab)) · arctan(ω₀·√(b/a))
+```
+
+| Schleppmoment a | Auslauf von 60 km/h |
 |---|---|
 | nur Trommellager (0,002 Nm) | 80 min |
 | 0,05 Nm | 13 min |
-| Nabenmotor, typisches Rastmoment (0,15 Nm) | 6 min |
-| stark rastender Stator (0,30 Nm) | 3,4 min |
+| **Nabenmotor, typisches Rastmoment (0,15 Nm)** | **5,7 min** |
+| stark rastender Stator (0,30 Nm) | 3,3 min |
 
 Einplanen — es gibt keine Bremse ([07-sicherheit](07-sicherheit.md) §3). **Erst
 weiterarbeiten, wenn die Trommel sichtbar steht.**

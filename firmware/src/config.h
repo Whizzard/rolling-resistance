@@ -40,7 +40,7 @@ constexpr float TORQUE_ARM_M = 0.040f;
 // etwa 480 1/min allein schon 84 km/h an der Trommel, eine Übersetzung ist also
 // nicht nötig — und jede
 // Übersetzung läge AUSSERHALB der Pendelwiege und würde mitgemessen
-// (docs/02-messkonzept.md §2.1). Die Konstante bleibt für den Fall, dass doch
+// (docs/09-messtheorie.md §1.6). Die Konstante bleibt für den Fall, dass doch
 // einmal ein Riemen dazwischenkommt.
 constexpr float BELT_RATIO = 1.00f;
 

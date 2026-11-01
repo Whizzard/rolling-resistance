@@ -6,7 +6,7 @@ namespace {
 
 // Gemeinsame Rampenlogik: der Sollwert folgt dem Zielwert mit RAMP_KMH_PER_S.
 // Begründung für die Rampenbegrenzung: ein schneller Sollwertsprung erzeugt über
-// J·dω/dt ein Scheinmoment, das die Messung verfälscht (docs/02-messkonzept.md §3.1).
+// J·dω/dt ein Scheinmoment, das die Messung verfälscht (docs/09-messtheorie.md §1.7).
 class RampedDrive : public IDrive {
  public:
   void setTargetKmh(float kmh) override {

@@ -245,7 +245,7 @@ selbst stramm, der nach außen drückende Fliehdruck beträgt nur 2,4 kPa. Zu tr
 Die Stoßstelle erzeugt außerdem eine Störung **einmal pro Umdrehung**. Das ist genau der
 Grund für die indexgetriggerte, umdrehungssynchrone Mittelung (M2 in
 [01-requirements](01-requirements.md)) — und winkelaufgelöst ausgewertet wird daraus eine
-Diagnose statt eines Fehlers ([02-messkonzept](02-messkonzept.md) §3.5).
+Diagnose statt eines Fehlers ([09-messtheorie](09-messtheorie.md) §3.8).
 
 ## 5 Momentenbudget und Hebelarm der Drehmomentwaage
 
@@ -325,7 +325,7 @@ Ergebnis:
 ```
 
 Das sind **51 % des besten Rennreifens** und 23 % des Contact Urban. Für A/B-Vergleiche
-mit demselben Laufrad fällt es heraus ([02-messkonzept](02-messkonzept.md) §3.3), für
+mit demselben Laufrad fällt es heraus ([09-messtheorie](09-messtheorie.md) §1.2), für
 Absolutwerte ist es jetzt der größte Einzelfehler — größer als alles, was in §4.2 des
 Fehlerbudgets steht.
 

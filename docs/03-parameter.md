@@ -123,7 +123,7 @@ unabhängig von der Leistung eng, weil dann kaum Spannungsreserve über den für
 nötigen 341 1/min bleibt.
 
 Der Grund für den scheinbar großen Abstand zwischen den 123 W mechanischem Bedarf (§4 in
-[02-messkonzept](02-messkonzept.md)) und den geforderten 224 W Nennleistung: Der Prüfstand
+[09-messtheorie](09-messtheorie.md)) und den geforderten 224 W Nennleistung: Der Prüfstand
 ist **momentenbegrenzt, nicht leistungsbegrenzt**. Bei 341 1/min läuft der Motor mit 55 %
 seiner Nenndrehzahl und kann höchstens 55 % seiner Nennleistung abgeben.
 
@@ -176,7 +176,7 @@ Beide erfüllen selbst die alte Anforderung von 3,53 Nm mit Reserve, die heutige
 erledigt: es sind 8 Leiter, die Beschreibung zählte nur den Hall-Strang.
 
 Übrig bleibt als Unterschied die **mechanische Bremse**, und die ist bei 13 Minuten
-freiem Auslauf (siehe [02-messkonzept](02-messkonzept.md) §4.3) kein Komfortmerkmal.
+freiem Auslauf (siehe [09-messtheorie](09-messtheorie.md) §8.9) kein Komfortmerkmal.
 Nachrüstbar ist sie aber: Bandbremse oder Bremssattel auf einer Scheibe an der
 Trommelwelle.
 

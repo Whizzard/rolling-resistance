@@ -11,7 +11,7 @@ Legende: **M** = muss, **S** = soll, **K** = kann (später).
 | F3 | M | Ein Laufrad mit Prüfreifen wird mit definierter, bekannter Auflast gegen die Trommel gepresst. |
 | F4 | M | Das Reaktionsmoment des Antriebs wird kontinuierlich gemessen. |
 | F5 | M | Aus Moment und Geometrie werden Rollwiderstandskraft, Verlustleistung und Crr berechnet. |
-| F6 | M | Messung läuft auf **Geschwindigkeits-Plateaus** mit Haltezeit, nicht während der Rampe (Begründung: [02-messkonzept](02-messkonzept.md), Fallstrick 1). |
+| F6 | M | Messung läuft auf **Geschwindigkeits-Plateaus** mit Haltezeit, nicht während der Rampe (Begründung: [09-messtheorie](09-messtheorie.md), Fallstrick 1). |
 | F7 | M | Leerlaufkennlinie P_leer(v) bei abgehobenem Laufrad wird aufgenommen und abgezogen. |
 | F8 | M | Alle Messpunkte werden als CSV protokolliert (seriell; SD optional). |
 | F9 | S | Anzeige von v, P, Crr, Zustand auf 4×20-Zeichen-LCD. |

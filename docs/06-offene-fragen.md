@@ -89,7 +89,7 @@ Verlustkurve. Bremsmoment 5…20 Nm ergibt 15…4 s Bremszeit; der Reifen rutsch
 
 ### A7 Masse des Motors
 Geht in die Trägheit des Wiegeteils und damit in dessen Eigenfrequenz ein
-(f ∝ √(k/J), siehe [02-messkonzept](02-messkonzept.md)). Ein 9,5″-Scooter-Nabenmotor ist
+(f ∝ √(k/J), siehe [09-messtheorie](09-messtheorie.md)). Ein 9,5″-Scooter-Nabenmotor ist
 deutlich schwerer als das Hoverboard-Rad mit 2,26 kg. Wiegen und prüfen, ob die
 geschätzte Eigenfrequenz von 50–150 Hz noch über der Zahneingriffsfrequenz des Riemens
 liegt (bei 605 1/min und 20 Zähnen rund 200 Hz — das könnte eng werden).
@@ -123,10 +123,10 @@ die Korrektur aus A10 gemessen statt geschätzt. Gehört als Schritt in
 [05-prüfablauf](05-pruefablauf.md); Rollendurchmesser und Material noch offen.
 
 ### A12 Trommelbreite 250 mm — Leerlauf neu rechnen
-[02-messkonzept](02-messkonzept.md) §4.1 rechnet die Mantelfläche mit b = 0,1 m. Mit den
+[09-messtheorie](09-messtheorie.md) §1.8 rechnet die Mantelfläche mit b = 0,1 m. Mit den
 jetzt geplanten 0,25 m steigt die Trommelaerodynamik von 0,29 auf **0,43 Nm** bei 60 km/h
 und damit von 39 auf 58 % des Rennreifensignals. Zahlen in
-[08-staender](08-staender.md) §10.2. Zu entscheiden: Breite bestätigen und 02-messkonzept,
+[08-staender](08-staender.md) §10.2. Zu entscheiden: Breite bestätigen und 09-messtheorie,
 README und die Momentenbilanz nachziehen — oder die Trommel schmaler bauen.
 
 ### A3 Art der Auflast

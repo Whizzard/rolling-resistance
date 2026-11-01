@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Auswertung der Prüfstands-Rohdaten: Crr(v) und P_Reifen(v).
 
-Verfahren (siehe docs/02-messkonzept.md):
+Verfahren (siehe docs/09-messtheorie.md):
 
 1. BASELINE- und MEASURE-Punkte trennen.
 2. Die Leerlaufkennlinie wird in zwei Läufen gefahren, vor und nach der Messung.
@@ -201,7 +201,7 @@ def main():
 
     if not baseline:
         sys.exit("Fehler: keine BASELINE-Punkte in der Datei. Ohne Leerlaufkennlinie "
-                 "sind die Werte nicht auswertbar (docs/02-messkonzept.md §3.2).")
+                 "sind die Werte nicht auswertbar (docs/09-messtheorie.md §5.3).")
     if not measure:
         sys.exit("Fehler: keine MEASURE-Punkte in der Datei.")
 
@@ -255,7 +255,7 @@ def main():
               "Flachbahn liegen Trommelwerte höher (Krümmung), gegenüber der publizierten\n"
               "Datenbank niedriger (größere Trommel, glatte Holzoberfläche statt Riffelblech).\n"
               "Belastbar sind Vergleiche unter identischen Bedingungen "
-              "(docs/02-messkonzept.md §3.6, docs/06-offene-fragen.md C1).")
+              "(docs/09-messtheorie.md §10, docs/06-offene-fragen.md C1).")
 
     if args.plot:
         try:
