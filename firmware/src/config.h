@@ -13,12 +13,12 @@
 
 // ---------------------------------------------------------------- Geometrie
 
-// [gem] Über die fertige Oberfläche gemessen: Ø 933 mm (docs/09-messtheorie.md §1.5).
-// Der frühere Wert 3,000 stammte von der ursprünglich geplanten Ø-955-Trommel und war
-// 2,4 % zu groß — damit hätte der Stand bei 58,4 statt 60 km/h abgeriegelt.
-// Nachmessen nach jeder Änderung an der Oberfläche: Maßband um die Trommel,
-// 3 Messungen mitteln. 1 mm Fehler = 0,03 %.
-constexpr float DRUM_CIRCUMFERENCE_M = 2.931f;
+// [TBD] Gebaut und gemessen: Ø 900 mm BLANK (2026-11-01). Mit 1,5 mm Tränenblech
+// auf dem Umfang wird daraus Ø 903 mm, also U = 2,837 m — das ist der Wert hier.
+// Er bleibt TBD, bis das Blech drauf ist und mit dem Maßband um die fertige
+// Oberfläche nachgemessen wurde (3 Messungen mitteln). 1 mm Fehler = 0,035 %.
+// Alle aus r abgeleiteten Momente verschieben sich mit diesem Wert.
+constexpr float DRUM_CIRCUMFERENCE_M = 2.837f;
 
 // [ber] U / 2π
 constexpr float DRUM_RADIUS_M = DRUM_CIRCUMFERENCE_M / (2.0f * PI);
@@ -52,10 +52,10 @@ constexpr float BELT_RATIO = 1.00f;
 // sich die Markenteilung exakt heraus. Sie bringen nur Latenz auf dem
 // trommelseitigen Pfad; die eigentliche Auflösung liefert der Motor-Hall.
 constexpr uint8_t MARKS_PER_REV = 8;
-constexpr uint32_t MIN_PULSE_US = 800;   // [ber] kürzester echter Abstand ist 22 ms
+constexpr uint32_t MIN_PULSE_US = 800;   // [ber] kürzester echter Abstand ist 21 ms
 // [ber] Nicht 10 km/h ist der Grenzfall, sondern der Hochlauf: bei 8 Marken ist der
 // Pulsabstand bei 10 km/h nur 132 ms, bei 1 km/h aber 1,32 s. 2000 ms bedeutet
-// "langsamer als 0,66 km/h gilt als Stillstand" — die Rampe ist nach 1,3 s darüber.
+// "langsamer als 0,64 km/h gilt als Stillstand" — die Rampe ist nach 1,3 s darüber.
 constexpr uint32_t STALL_TIMEOUT_MS = 2000;
 // [gesch] n_Motor/i gegen n_Trommel. Beim Direktantrieb gibt es keinen Schlupf —
 // das ist eine PLAUSIBILITÄTSPRÜFUNG der beiden Aufnehmer, kein Schlupfkriterium.
@@ -124,7 +124,7 @@ constexpr float MAX_FORCE_N = 90.0f;          // 92 % vom Zellenendwert
 // Trommeloberfläche" und muss dem Umfang folgen. Der alte feste Wert 333 galt für die
 // geplante Ø-955-Trommel; an der gebauten Ø-933-Trommel hätte er schon bei 58,4 km/h
 // ausgelöst, also mitten im obersten Messplateau.
-// Bei U = 2,931 m sind es 341 1/min.
+// Bei U = 2,837 m sind es 353 1/min.
 // Erhöhung von V_MAX_KMH nur nach docs/07-sicherheit.md §5.
 constexpr float MAX_DRUM_RPM = V_MAX_KMH / 3.6f / DRUM_CIRCUMFERENCE_M * 60.0f;
 constexpr uint32_t FAULT_SETTLE_MS = 500;     // Entprellung der Fehlerkriterien

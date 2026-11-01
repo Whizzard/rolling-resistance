@@ -14,7 +14,21 @@ angeschlossen wird. Eine vertauschte Hall-Versorgung zerstört die Sensoren.
 
 Außerdem offen: Gegenstecker beschaffen oder abschneiden und eigene Verbinder setzen?
 
-### A9 Bremse — **akut, sicherheitsrelevant**
+### A9 Bremse — **Lösung gemessen, Umsetzung offen**
+> **2026-11-01 erprobt: Kurzschlussbremsung bringt die Trommel in rund 25 s zum
+> Stehen** (aus über 400 1/min). Gegenüber 3 bis 6 Minuten freiem Auslauf ist das
+> Faktor 8 bis 14. Damit ist A8 praktisch bestätigt und A9 über A8 lösbar.
+>
+> Aus 25 s folgt ein mittleres Bremsmoment von `J·ω/t` = 1,94 · 41,9 / 25 =
+> **3,25 Nm** und eine mittlere Verlustleistung von 68 W im Kupfer — thermisch
+> belanglos, wie in A8 gerechnet.
+>
+> Offen bleibt die **stromlose** Ausführung: drei KFZ-Wechselrelais 12 V/40 A an den
+> Öffnern (87a), Spulen aus einem XL7015 am Bus, dazu ein MOSFET in der Spulenmasse
+> für die Softwareauslösung. Dann bremst der Stand sowohl bei Stromausfall als auch
+> auf Befehl. Eine Feststellbremse ersetzt das nicht — dafür bleibt der Blockierkeil.
+
+**Ursprüngliche Lage:**
 Verbaut ist das Hoverboard-Rad, und dem fehlt die Trommelbremse. Zusammen mit dem
 zurückgestellten A8 heißt das: **es gibt derzeit überhaupt keinen Bremspfad.** Nach
 einem Not-Aus läuft die Trommel 3 bis 6 Minuten aus, und es gibt keine Feststellbremse
@@ -33,6 +47,22 @@ gilt die Zwischenregel in [07-sicherheit](07-sicherheit.md) §3 (Keil zwischen R
 und Speiche vor Arbeiten am Aufbau).
 
 Ebenso fehlt der Temperaturfühler — ein NTC auf der Statorachse ersetzt ihn (A5).
+
+### A13 Drehzahlreserve — **neu, kann den Bus auf 42 V zwingen**
+Erster Versuch 2026-11-01 mit BLDC-Tester: **über 400 1/min bei 40 V**, nicht am
+Anschlag. Daraus kv ≥ 10 1/min/V statt der angenommenen 13,3.
+
+Für 60 km/h braucht die Trommel **353 1/min**. Bei kv = 10 und 36 V wären das im
+Leerlauf 360 1/min — rechnerisch genug, aber **ohne jede Reserve**, und unter Last
+sinkt die Drehzahl durch den Spannungsabfall weiter. Bei 40 V sind es 400 1/min
+(68 km/h), damit geht 60 km/h auch belastet.
+
+Zu messen: Motor mit der Bohrmaschine auf bekannte Drehzahl bringen, Phase-Phase-
+Wechselspannung messen, daraus kv exakt. Danach entscheiden, ob das Netzteil auf
+**40–42 V** ausgelegt wird statt auf 36 V.
+
+Hängt mit A14 zusammen: ein 42-V-Bus liegt über der 40-V-Grenze des LM2596, für den
+12-V-Zweig ist deshalb der XL7015 vorgesehen (5–80 V).
 
 ### A5 Temperaturfühler: Typ bestimmen
 Der Hall-Stecker hat **6 Adern**. Vcc, GND und drei Hall-Signale sind fünf — die

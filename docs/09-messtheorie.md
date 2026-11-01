@@ -88,18 +88,21 @@ Trommelkrümmung, siehe §9.
 n [1/min] = 60 · v / U          ω = 2π · v / U          v = U · n
 ```
 
-Mit U = 2,931 m (Trommel Ø 933 mm, über die fertige Oberfläche gemessen):
+Mit **U = 2,837 m** (Ø 900 mm blank gemessen am 2026-11-01, + 1,5 mm Tränenblech →
+Ø 903 mm). **Vorläufig**, bis das Blech drauf ist und mit dem Maßband nachgemessen wurde:
 
 | v [km/h] | n [1/min] | ω [rad/s] | Pulsperiode bei 8 Marken |
 |---|---|---|---|
-| 10 | 56,9 | 5,96 | 132 ms |
-| 28,8 | 163,8 | 17,15 | 46 ms |
-| 60 | 341,2 | 35,73 | 22 ms |
+| 10 | 58,8 | 6,15 | 128 ms |
+| 28,8 | 169,2 | 17,72 | 44 ms |
+| 60 | **352,5** | **36,91** | 21 ms |
 
-`MIN_PULSE_US` = 800 µs filtert damit sicher nur Störer. `MAX_DRUM_RPM` liegt bei **341**
-(war 333 für Ø 955) — sonst endet der Stand bei 58,4 km/h. In `config.h` ist der Wert
-inzwischen aus `V_MAX_KMH` und `DRUM_CIRCUMFERENCE_M` abgeleitet, damit er dem Umfang
-automatisch folgt.
+`MIN_PULSE_US` = 800 µs filtert sicher nur Störer. `MAX_DRUM_RPM` ist in `config.h` aus
+`V_MAX_KMH` und `DRUM_CIRCUMFERENCE_M` **abgeleitet** und folgt dem Umfang automatisch.
+
+> Die Momente in diesem Dokument sind noch mit r = 0,4665 m (Ø 933) gerechnet. Mit
+> r = 0,4515 m sinken sie um **3,2 %**. Nachgezogen wird gemeinsam, sobald der Umfang
+> endgültig gemessen ist.
 
 ### 1.6 Was die Pendelwiege misst — und was nicht
 
