@@ -171,8 +171,18 @@ Das Board hat zwei USB-C-Buchsen, und **beide dürfen gleichzeitig speisen**
 („either one or both"). Also: Netzteil dauerhaft an der einen, Notebook zum Flashen
 an der anderen.
 
-Bei USB-Speisung ist der **5V-Pin ein Ausgang** (VBUS). Von dort kommen die 5 V für
-Hall-Geber, HX711-Analogteil und LCD.
+Bei USB-Speisung ist der **5V-Pin ein Ausgang** (VBUS). Beide Schienen kommen damit
+aus derselben Quelle:
+
+| Schiene | Herkunft | versorgt |
+|---|---|---|
+| 5 V | 5V-Pin = VBUS | Hall-Geber, HX711-**VCC**, LCD |
+| 3,3 V | 3V3-Pin, Onboard-LDO aus VBUS | HX711-**VDD**, Pull-ups der Geber |
+
+Weil der 3,3-V-Regler aus denselben 5 V läuft, gibt es **kein Sequencing-Problem**:
+die Schienen kommen und gehen gemeinsam. Nur bei getrennten Quellen müsste VDD vor
+VCC anliegen, sonst treiben die Eingangsschutzdioden des HX711 Strom in den
+Digitalteil.
 
 | Verbraucher | Strom |
 |---|---|
