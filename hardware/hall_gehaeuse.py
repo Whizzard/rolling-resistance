@@ -307,6 +307,59 @@ def build(doc, sh):
     return body
 
 
+# FreeCAD speichert die Sichtbarkeit fuer das GUI NICHT in Document.xml, sondern in
+# einer GuiDocument.xml mit je einem ViewProvider pro Objekt. Headless entsteht die
+# nicht — deshalb oeffnet sich eine so erzeugte Datei mit Default-Sichtbarkeiten:
+# Skizzen an, Koerper aus. Die schreiben wir nach dem Speichern selbst ins Archiv.
+
+_GUI_HEAD = """<?xml version='1.0' encoding='utf-8'?>
+<!--
+ FreeCAD Document, see https://www.freecad.org for more information...
+-->
+<Document SchemaVersion="1">
+    <ViewProviderData Count="%d">
+"""
+_GUI_VP = """        <ViewProvider name="%s" expanded="0">
+            <Properties Count="1" TransientCount="0">
+                <Property name="Visibility" type="App::PropertyBool" status="1">
+                    <Bool value="%s"/>
+                </Property>
+            </Properties>
+        </ViewProvider>
+"""
+_GUI_TAIL = """    </ViewProviderData>
+</Document>
+"""
+
+
+def write_gui_visibility(fcstd, visible):
+    """GuiDocument.xml ins FCStd-Archiv schreiben."""
+    import re
+    import shutil
+    import zipfile
+    with zipfile.ZipFile(fcstd) as z:
+        names = z.namelist()
+        doc_xml = z.read('Document.xml').decode('utf-8')
+        data = {n: z.read(n) for n in names}
+    order, seen = [], set()
+    for o in re.findall(r'<Object name="([^"]+)"', doc_xml):
+        if o not in seen:
+            seen.add(o)
+            order.append(o)
+    xml = _GUI_HEAD % len(order)
+    for o in order:
+        xml += _GUI_VP % (o, 'true' if o in visible else 'false')
+    xml += _GUI_TAIL
+    tmp = fcstd + '.new'
+    with zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED) as z:
+        for n in names:
+            if n != 'GuiDocument.xml':
+                z.writestr(n, data[n])
+        z.writestr('GuiDocument.xml', xml)
+    shutil.move(tmp, fcstd)
+    return len(order)
+
+
 def set_visibility(doc, body):
     """Körper sichtbar, Skizzen und Zwischenschritte aus.
 
@@ -330,7 +383,14 @@ def main():
     doc.recompute()
     set_visibility(doc, body)
 
-    doc.saveAs(os.path.join(here, 'hall-gehaeuse.FCStd'))
+    fcstd = os.path.join(here, 'hall-gehaeuse.FCStd')
+    doc.saveAs(fcstd)
+    # Origin-Kinder bleiben auf true; versteckt werden sie ueber die Origin-Gruppe,
+    # genau wie FreeCAD es selbst schreibt.
+    write_gui_visibility(fcstd, {
+        body.Name, body.Tip.Name,
+        'X_Axis', 'Y_Axis', 'Z_Axis',
+        'XY_Plane', 'XZ_Plane', 'YZ_Plane', 'Origin001'})
     Part.export([body], os.path.join(here, 'hall-gehaeuse.step'))
     body.Shape.exportStl(os.path.join(here, 'hall-gehaeuse.stl'))
 
