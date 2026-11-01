@@ -38,6 +38,7 @@ Luftwiderstand der Trommel übrig, rund 0,27 Nm bei 60 km/h.
 | [docs/07-sicherheit.md](docs/07-sicherheit.md) | Gefährdungen, Schutzmaßnahmen, Checkliste |
 | [docs/08-staender.md](docs/08-staender.md) | Ständer: Maßkette, Trommellagerung, Auflast-Hebelwaage, Teileliste |
 | [docs/09-messtheorie.md](docs/09-messtheorie.md) | Formeln, Fehlerbudget, Sensorik, Kalibrierung, Messmatrix, Ablauf |
+| [docs/10-firmware.md](docs/10-firmware.md) | Firmware-Anforderungen |
 
 Lücke bei 02: das frühere Messkonzept ist in 09 aufgegangen.
 
