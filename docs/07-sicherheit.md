@@ -7,17 +7,20 @@
 
 ## 1 Die zentrale Zahl
 
-Die Trommel ist ein Schwungrad. Mit J ≈ 2,3 kg·m² (geschätzt, **durch Auslaufversuch zu
-bestätigen**):
+Die Trommel ist ein Schwungrad. Mit J = 2,07 kg·m² (aus der Geometrie, **durch
+Auslaufversuch zu bestätigen**), U = 2,931 m:
 
-| v an der Oberfläche | ω | gespeicherte Energie |
-|---|---|---|
-| 30 km/h | 17,5 rad/s | ≈ 350 J |
-| 60 km/h | 34,9 rad/s | ≈ **1400 J** |
-| 100 km/h | 58,2 rad/s | ≈ **3900 J** |
+| v an der Oberfläche | ω | E = ½Jω² | |
+|---|---|---|---|
+| 30 km/h | 17,9 rad/s | 330 J | 0,09 Wh |
+| **60 km/h** | **35,7 rad/s** | **1321 J** | **0,37 Wh** |
+| 100 km/h | 59,5 rad/s | 3670 J | 1,02 Wh |
 
-1400 J entsprechen ungefähr einem 1-kg-Körper mit 53 m/s. Ein sich lösendes Trommel-
-segment wäre lebensgefährlich. Die Umfangsgeschwindigkeit beträgt bei 60 km/h 16,7 m/s.
+Als Energie ist das wenig — eine AA-Zelle hat das Siebenfache. Die Gefahr liegt nicht
+in der Menge, sondern darin, wie schnell sie frei wird: 1321 J sind die ganze Trommel
+(17 kg) mit **45 km/h** geradeaus, oder dieselben 17 kg aus **7,9 m Höhe** fallend.
+Die Umfangsgeschwindigkeit beträgt bei 60 km/h 16,7 m/s; ein sich lösendes
+Trommelsegment wäre lebensgefährlich.
 
 ## 2 Gefährdungen und Maßnahmen
 
