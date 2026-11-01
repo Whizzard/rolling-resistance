@@ -277,6 +277,14 @@ Zwei Dinge entscheiden hier, nicht die Signalqualität:
 - **Vibration.** Der Stecker sitzt am Prüfstand. Kabelbinder als Zugentlastung, oder
   gleich eine rastende Bauform (Molex Micro-Fit 3.0).
 
+Kabel dazu: **LiYCY 6×0,14 mm²** — geschirmt, sechsadrig, und 0,14 mm² ≈ 26 AWG
+liegt mitten im Crimpbereich der XH-Kontakte.
+
+Der Schirm hat bei sechs Adern auf sechs Positionen **keinen eigenen Pin**. Er wird
+als kurzer Zopf herausgeführt und **nur am ESP32-Ende** auf Masse gelegt, am HX711
+offen gelassen: einseitig geerdet, also keine Masseschleife parallel zur
+GND-Ader. Reicht das gegen die Reglerstörungen nicht, kommt das zweite Ende dazu.
+
 Bei über 1 m Länge oder wenn das Kabel am Regler vorbeiläuft: **geschirmtes
 RJ45-Patchkabel** (S/FTP). Acht Adern als vier verdrillte Paare, jedes Signal mit
 eigener Rückleitung, Schirm auf das Gehäuse, rastend, als Fertigkabel in jeder
