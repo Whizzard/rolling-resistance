@@ -153,7 +153,44 @@ Prüfgewicht an den Hebelarm hängen, daraus `LOADCELL_N_PER_COUNT`.
 Umrechnung: eine Masse *m* am Radius *b* erzeugt an der Zelle (r = 40 mm)
 `F = m · g · b / 0,040 m`. Am 80-mm-Loch also die **doppelte** Kraft.
 
-## 7 Offen
+## 7 Messseite
+
+Die Seite, auf der während eines Laufs alles steht, was zählt.
+
+| | P | Anforderung |
+|---|---|---|
+| L1 | M | **Drehzahl** in 1/min und **Umfangsgeschwindigkeit** in km/h, jeweils **Soll und Ist**. |
+| L2 | M | **Leistung in W**. Solange die Zelle nicht kalibriert ist, die **elektrische** Leistung vom Regler, ausdrücklich so beschriftet. |
+| L3 | M | **Motorstrom** und **Motortemperatur**. |
+| L4 | M | **Drehzahlzustand**: konstant / beschleunigt / bremst. |
+| L5 | M | **dv/dt numerisch** in km/h/s, nicht nur als Symbol. |
+| L6 | M | Crr, sobald `LOADCELL_N_PER_COUNT` gesetzt ist. |
+| L7 | S | Restliche Haltezeit auf dem Plateau. |
+| L8 | S | Reifendruck und Auflast, wie vor dem Lauf eingegeben. |
+
+### 7.1 Wann die Drehzahl „konstant" ist
+
+Nicht Augenmaß, sondern Grenzwert. Ein Rest an Beschleunigung erzeugt über
+`M = J · dω/dt` ein Scheinmoment, das direkt ins Ergebnis geht:
+
+```
+1 % vom Signal eines guten Rennreifens  = 0,012 Nm
+α = 0,012 / 1,94 kg·m²                  = 0,0062 rad/s²
+dv/dt                                    = 0,010 km/h/s
+```
+
+| | P | Anforderung |
+|---|---|---|
+| L9 | M | **konstant** gilt bei `\|dv/dt\| < 0,010 km/h/s`. Das entspricht 1 % Fehler. |
+| L10 | M | Messpunkte, die außerhalb dieses Fensters aufgenommen wurden, werden **als ungültig markiert** — in der Anzeige und in der CSV-Zeile. |
+| L11 | S | Schärferes Fenster `< 0,002 km/h/s` für 0,2 % wählbar. |
+
+Zur Einordnung: über ein Mittelungsfenster von 10 Umdrehungen bei 60 km/h (1,7 s) sind
+0,010 km/h/s gerade **0,017 km/h Drift**, also 0,03 % der Geschwindigkeit. Das Plateau
+muss schärfer stehen, als man vermutet — deshalb gehört der Wert auf die Seite und nicht
+in die Auswertung hinterher.
+
+## 8 Offen
 
 | | Frage |
 |---|---|
