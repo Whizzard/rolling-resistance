@@ -66,37 +66,77 @@ schaltet, und **wie gut**.
 | | P | Anforderung |
 |---|---|---|
 | D1 | M | Jede Seite funktioniert **im Stillstand bei Drehen von Hand** — Einzelimpulse werden sichtbar, nicht nur ein Mittelwert. |
-| D2 | M | Jede Seite zeigt einen **Impulszähler**, der sich einzeln hochzählen lässt. |
-| D3 | M | Seite **Trommelmarken**: Zähler, Drehzahl, Impulse je Indexumdrehung, Gleichverteilung (§5.1). |
-| D4 | M | Seite **Index**: Zähler, Umdrehungen, Prüfung auf **genau 1 Impuls je Umdrehung**. |
-| D5 | M | Seite **Motor-Hall**: Zähler und **Impulse je Trommelumdrehung** — damit wird `MOTOR_PULSES_PER_REV` bestimmt, bisher TBD. |
-| D6 | S | Seite **Laufrad**: Zähler, Drehzahl, Impulse je Umdrehung. |
-| D7 | M | Seite **Wägezelle**: Rohwert, Mittelwert, **Streuung** über die letzten N Werte, Abtastrate. |
-| D8 | S | Seite **Lichtschranke**: Zustand und Flankenzähler. |
-| D9 | K | Seite **Temperatur**: Rohwert des Fühlers, bis A5 geklärt ist. |
+| D2 | M | Jede Seite zeigt einen **Impulszähler**, einzeln rücksetzbar. |
+| D3 | M | Anzeige ist **4 × 20 Zeichen**. Passt eine Seite nicht, wird sie geblättert, nicht gekürzt. |
 
-### 5.1 Drehzahl und Gleichverteilung der Marken
+### 5.1 Übersicht Rohwerte
 
 | | P | Anforderung |
 |---|---|---|
-| D10 | M | Drehzahl in **1/min mit einer Nachkommastelle** und Umfangsgeschwindigkeit in km/h, zum Abgleich mit einem Handdrehzahlmesser. |
-| D11 | M | **Pulszahl je Umdrehung** gegen den Sollwert 8. Jede Abweichung heißt: eine Marke schaltet nicht oder prellt. |
-| D12 | M | **Winkelabweichung je Marke** gegen die ideale 45°-Teilung, in Grad **und** in mm am Umfang. |
-| D13 | M | **Kennzahl**: größter Betrag und Standardabweichung über alle acht Marken. |
-| D14 | S | **Impulsbreite je Marke**, umgerechnet in Grad. Eine deutlich schmalere Marke heißt zu großer Luftspalt oder schwacher Magnet — das ist das Maß für die Schaltreserve. Setzt Auswertung **beider Flanken** voraus. |
-| D15 | M | Mittelung über ≥ 50 Umdrehungen bei konstanter Drehzahl; der Messwert gilt nur auf einem Plateau, nicht während der Rampe. |
+| D4 | M | **Eine Seite mit allen Gebern gleichzeitig**, jeder als Rohwert: Trommelmarken, Index, Motor-Hall, Laufrad, Lichtschranke, Wägezelle. |
+| D5 | M | Digitale Geber als **Pegel und Zähler**, die Wägezelle als **Rohwert in Counts** — ungefiltert, unkalibriert. |
+| D6 | M | Aktualisierung mindestens 5× je Sekunde, damit Handdrehen sichtbar wird. |
 
-Rechenweg: über eine Umdrehung die acht Intervalle `t_i` messen, daraus
+Zweck ist der Verdrahtungstest: ein Blick, ob überhaupt jeder Kanal lebt.
+
+### 5.2 Trommelmarken: Drehzahl und Gleichverteilung
+
+| | P | Anforderung |
+|---|---|---|
+| D7 | M | Drehzahl in **1/min mit einer Nachkommastelle** und Umfangsgeschwindigkeit in km/h, zum Abgleich mit einem Handdrehzahlmesser. |
+| D8 | M | **Pulszahl je Umdrehung** gegen den Sollwert 8. Jede Abweichung heißt: eine Marke schaltet nicht oder prellt. |
+| D9 | M | **Winkelabweichung je Marke** gegen die ideale 45°-Teilung, in Grad **und** in mm am Umfang. |
+| D10 | M | **Kennzahl**: größter Betrag und Standardabweichung über alle acht Marken. |
+| D11 | S | **Impulsbreite je Marke** in Grad. Eine deutlich schmalere Marke heißt zu großer Luftspalt oder schwacher Magnet — das ist das Maß für die Schaltreserve. Setzt Auswertung **beider Flanken** voraus. |
+| D12 | M | Mittelung über ≥ 50 Umdrehungen bei konstanter Drehzahl; gilt nur auf einem Plateau, nicht während der Rampe. |
 
 ```
 φ_i = 360° · (Σ_{k≤i} t_k) / T_U  −  i · 45°
 ```
 
-Zulässig ist das, weil sich ω innerhalb einer Umdrehung um höchstens 0,15 % ändert
-([09-messtheorie](09-messtheorie.md) §1.7). Dieselben φ_i sind zugleich die
-Korrekturtabelle aus [04-hardware](04-hardware.md) §8.5 — gemessen statt gebohrt.
+Zulässig, weil sich ω innerhalb einer Umdrehung um höchstens 0,15 % ändert
+([09-messtheorie](09-messtheorie.md) §1.7). Dieselben φ_i sind die Korrekturtabelle aus
+[04-hardware](04-hardware.md) §8.5 — gemessen statt gebohrt.
 
-## 6 Kalibriermodus Wägezelle
+### 5.3 Weitere Geberseiten
+
+| | P | Anforderung |
+|---|---|---|
+| D13 | M | **Index**: Zähler, Umdrehungen, Prüfung auf genau 1 Impuls je Umdrehung. |
+| D14 | M | **Motor-Hall**: Zähler und **Impulse je Trommelumdrehung** — damit wird `MOTOR_PULSES_PER_REV` bestimmt, bisher TBD. |
+| D15 | S | **Laufrad**: Zähler, Drehzahl, Impulse je Umdrehung. |
+| D16 | S | **Lichtschranke**: Zustand und Flankenzähler. |
+
+### 5.4 Wägezelle
+
+| | P | Anforderung |
+|---|---|---|
+| D17 | M | **Rohwert** in Counts, ungefiltert. |
+| D18 | M | **Mittelwert, Streuung und Spitze-Spitze** über die letzten N Werte. |
+| D19 | M | **Glättung N zur Laufzeit verstellbar**, Wirkung auf die Streuung sofort sichtbar. So wird `AVG_REVS_PER_POINT` belegt statt geschätzt. |
+| D20 | M | **Tatsächliche Abtastrate** in SPS — damit fällt auf, wenn der RATE-Pin auf 10 statt 80 SPS steht ([04-hardware](04-hardware.md) §5.5). |
+| D21 | S | **Drift seit der letzten Tara**, in Counts und in Minuten. |
+| D22 | S | Nach Kalibrierung zusätzlich in **N und Nm**. |
+
+### 5.5 Motor
+
+Werte vom Regler über UART. Macht aus dem Regler ein zweites Messgerät.
+
+| | P | Anforderung |
+|---|---|---|
+| D23 | M | **Drehzahl** vom Regler, umgerechnet auf mechanische 1/min — Gegenprobe zu den Trommelmarken. |
+| D24 | M | **Motorstrom und Eingangsstrom**, **Busspannung**, **Aussteuerung**. |
+| D25 | M | **Reglertemperatur** und, sobald A5 geklärt ist, **Motortemperatur**. |
+| D26 | M | **Fehlercode des Reglers** im Klartext. |
+| D27 | S | Verbrauchte Ah und Wh seit Lauf-Beginn. |
+| D28 | S | **Moment aus dem Strom** rechnen (`M = kt · I`) und neben das Moment aus der Wägezelle stellen. |
+
+> D28 ist die wertvollste Zeile dieser Seite: zwei voneinander unabhängige
+> Momentenmessungen. Sie ersetzt die Wägezelle nicht — kt ist nur auf 10 bis 20 %
+> bekannt und temperaturabhängig —, aber eine Abweichung um Faktor 2 fällt sofort auf.
+> Setzt kt aus A13 und die Polzahl aus A4 voraus.
+
+## 6 Kalibriermodus Wägezelle## 6 Kalibriermodus Wägezelle
 
 Prüfgewicht an den Hebelarm hängen, daraus `LOADCELL_N_PER_COUNT`.
 
