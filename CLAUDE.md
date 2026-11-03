@@ -21,8 +21,10 @@ Das gilt besonders für Kalibrierfaktoren: `LOADCELL_N_PER_COUNT` bleibt TBD, bi
 kalibriert wurde, und die Firmware weigert sich, Crr-Werte auszugeben, solange das so ist.
 
 ## Messdaten
-Rohdaten als CSV unter `data/`, unverändert und versioniert. Abgeleitete Größen werden
-nie in die Rohdatei zurückgeschrieben — Auswertung erzeugt immer neue Dateien.
+Versioniert werden die **gemittelten Messpunkte** als CSV unter `data/`, unverändert.
+Der rohe 80-SPS-Strom bleibt auf der SD-Karte und kommt **nicht** ins Repo (rund 30 MB
+je Sitzung). Abgeleitete Größen werden nie in eine vorhandene Datei zurückgeschrieben —
+Auswertung erzeugt immer neue Dateien.
 
 ## Firmware
 - Kein `delay()` im Hauptpfad; die Zustandsmaschine ist nicht blockierend.

@@ -42,11 +42,24 @@ Hängt an Holzaufbau, Nabenanbindung und Wuchtgüte. Entscheidet, ob über 60 km
 überhaupt etwas geht. **Das ist die härteste Einschränkung am ganzen Konzept** — nicht
 die Elektronik. Siehe [07-sicherheit](07-sicherheit.md).
 
-### A11 Referenzlauf mit starrer Rolle
-Eine Stahl- oder PA-Rolle anstelle des Reifens, gleiche Auflast: ihre Hysterese ist
-vernachlässigbar, gemessen wird praktisch nur der lastabhängige Lageranteil. Damit wird
-die Korrektur aus A10 gemessen statt geschätzt. Gehört als Schritt in
-[05-prüfablauf](05-pruefablauf.md); Rollendurchmesser und Material noch offen.
+### A11 Referenzlauf mit starrer Rolle — **zurückgestellt, vermutlich entbehrlich**
+Die lastabhängige Lagerreibung ist **keine Schätzung**, sondern aus dem Reibmodell für
+Rillenkugellager gerechnet:
+
+```
+M = 0,5 · µ · F · d = 0,5 · 0,0015 · 417 N · 0,015 m = 4,7 mNm
+```
+
+Das sind **0,39 %** vom Signal eines guten Rennreifens. Selbst ±50 % Unsicherheit auf µ
+lassen davon ±0,2 % übrig — kleiner als alles andere im Budget. Für A/B-Vergleiche fällt
+der Anteil ohnehin vollständig heraus (gleiche Last, gleiche Lager).
+
+Falls doch gemessen werden soll: **Laufraddurchmesser ist Pflicht**, nicht Kür. Eine
+kleine Rolle verstärkt ihre eigene Lagerreibung mit `r_Trommel/r_Rolle` — bei einer
+30-mm-Rolle um Faktor 30. Eine blanke Alufelge direkt auf dem Tränenblech scheidet aus:
+Linienkontakt mit 417 N drückt beides ein. Nötig wäre also eine Felge mit **POM- oder
+PU-Lauffläche** in Reifengröße, in der vorhandenen Gabel. Dafür Aufwand und Geld gegen
+0,2 % — lohnt nicht.
 
 ## B — Blockiert die Firmware
 
@@ -61,13 +74,26 @@ der Handeingabe. Mögliches Vorgehen: mit einem BLE-Scanner die Characteristics 
 
 ## C — Methodisch
 
-### C1 Trommelkrümmungs- und Oberflächenkorrektur
-Zwei systematische Abweichungen gegenüber publizierten Werten, beide unquantifiziert:
-die **Krümmung** (unsere Trommel ist mit 0,90 m größer als die 0,77 m des
-Referenzprüfstands, also weniger Zuschlag) und die **Oberfläche** (glattes Holz statt
-Riffelblech, also niedrigerer Crr). Beide wirken in dieselbe Richtung: unsere Werte
-liegen unter den publizierten. Gesucht ist ein belastbarer Korrekturansatz aus der
-Literatur — **wird nicht geraten**. Bis dahin: nur Vergleiche, keine Absolutwerte.
+### C1 Trommelkrümmung — **halbiert, Oberfläche erledigt**
+> **Oberfläche: kein Thema mehr.** Die Trommel bekommt Alu-**Tränenblech**, also
+> dieselbe Art Oberfläche wie der Referenzprüfstand. Der früher befürchtete Zuschlag
+> durch glattes Holz entfällt.
+
+Übrig bleibt die **Krümmung**. Der Reifen wird auf einer Trommel stärker verformt als
+auf der Ebene; maßgeblich ist der effektive Kontaktradius `1/(1/r_Reifen + 1/r_Trommel)`:
+
+| | r_eff bei r_Reifen = 0,34 m | Anteil am Flachwert |
+|---|---|---|
+| Referenzprüfstand, Ø 0,77 m | 0,181 m | 53 % |
+| **unsere Trommel, Ø 0,90 m** | **0,194 m** | **57 %** |
+| Ebene | 0,340 m | 100 % |
+
+Die beiden Trommeln unterscheiden sich also um **7 %** im effektiven Radius — unsere
+Werte liegen folglich etwas unter den publizierten, aber in derselben Größenordnung, nicht
+um Faktor 2. Wie sich die 7 % in Crr übersetzen, ist der unbekannte Teil; dafür fehlt ein
+belastbarer Ansatz aus der Literatur. **Wird nicht geraten.**
+
+Bis dahin: Vergleiche zwischen Reifen sind gültig, Absolutwerte nur mit diesem Vorbehalt.
 
 ### C2 Referenzreifen — **zurückgestellt**
 Erst Wiederholbarkeit herstellen, dann einen Reifen mit publiziertem Crr als Anker
@@ -84,8 +110,12 @@ reagiert sie auf Türen, Lüftung, Position im Raum? Einmal gezielt ausprobieren
 
 ## D — Kleinigkeiten
 
-### D2 Datenablage
-Rohdaten unter `data/` versionieren — ab welcher Menge wird das unhandlich?
+### ~~D2 Datenablage~~ — **entschieden**
+**Keine Rohdaten in Git.** Der rohe 80-SPS-Strom sind rund 30 MB je Zweistundensitzung;
+nach zwanzig Sitzungen wäre das Repo bei 600 MB. Rohstrom bleibt auf der SD-Karte.
+
+Versioniert werden die **gemittelten Messpunkte** — wenige Kilobyte je Lauf. Das ist die
+Datei, auf der die Auswertung läuft.
 
 ## Erledigt
 
