@@ -1,5 +1,41 @@
 # Konventionen in diesem Projekt
 
+## Knowledgebase — erste Regel, vor allem anderen
+
+Die Dokumentation wird in der Knowledgebase gespiegelt (MCP-Connector
+„claude.ai Knowledgebase", `claudeai-proxy` auf https://machineum.com), als
+browsebarer Ast mit Texten, Verweisen und Zeichnungen.
+
+**Gespiegelt werden:** `README.md`, alles unter `docs/`, sowie die gerenderten
+Zeichnungen `hardware/schaltplan.pdf`, `.png` und `hardware/hall-gehaeuse.*`.
+**Nicht gespiegelt:** `firmware/`, `analysis/`, `data/`, die `.py`-Quellen der
+Zeichnungen. Code lebt nur im Repo.
+
+**Ablauf, verbindlich:**
+
+1. **Zu Beginn jeder Sitzung**, bevor irgendetwas lokal geändert wird: den Stand der
+   Knowledgebase holen und mit dem Repo vergleichen. Dort geänderte Knoten zuerst ins
+   Repo übernehmen und committen.
+2. **Vor jedem Schreiben in die Knowledgebase**: prüfen, ob sich der Zielknoten seit
+   dem Holen verändert hat. Wenn ja, **nicht überschreiben** — beide Fassungen zeigen
+   und nachfragen.
+3. **Nach jedem Commit**, der gespiegelte Dateien berührt: die betroffenen Knoten
+   zurückschreiben.
+
+Zwischen Schritt 1 und 3 wird nicht erneut abgefragt — ein Abgleich je Datei wäre bei
+dutzenden Änderungen je Sitzung unbrauchbar. Schritt 2 fängt den Fall ab, dass
+zwischendurch doch jemand in der Knowledgebase gearbeitet hat.
+
+**Bei Konflikt wird nicht automatisch zusammengeführt.** Das Repo ist nicht
+automatisch im Recht: wer zuletzt bewusst geschrieben hat, entscheidet — und das weiß
+nur der Mensch.
+
+> Der Grund für diese Regel steht in der Projektgeschichte: Dieselbe Information an
+> zwei Stellen war die Quelle fast aller Fehler, die wir finden mussten — veraltete
+> Trommelmaße, ein Motor, der nie verbaut wurde, eine Bremse, die es nicht gibt.
+> Eine Spiegelung ohne Abgleichregel wäre dieselbe Falle noch einmal.
+
+
 ## Sprache
 Dokumentation und Kommentare auf Deutsch. Bezeichner im Code auf Englisch.
 
