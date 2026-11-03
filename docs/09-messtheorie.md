@@ -243,7 +243,7 @@ liefert 2 bis 4 % zu viel.
 |---|---|
 | `v` bzw. `n` | Markenzähler, Mittel über ganze Umdrehungen |
 | `F_Z` | HX711, Mittel über dieselbe ganze Zahl von Umdrehungen |
-| Reifentemperatur | Sensor **TBD**, bis dahin Protokollnotiz |
+| Reifentemperatur | IR-Sensor über I²C, mitgeloggt |
 | Zeitstempel | für die zeitliche Interpolation der Baseline |
 
 ## 3 Fehlerbudget und Dynamik
@@ -413,7 +413,7 @@ auseinanderhalten.
 | **Wägezelle** | Hebelarm → **Schaltzug 1,2 mm, 80 mm** → Zelle, 12 N vorgespannt | HX711, 80 SPS | 15 / 16 |
 | **Laufraddrehzahl** | **4 Magnete an den Speichen**, Hall am Ausfallende | Interrupt | GPIO6 |
 | **Messzone der Waage** | Gabellichtschranke, Fahne mit Fenster auf r = 200 mm am Hebelarm | digital | **TBD, freier Pin** |
-| Reifentemperatur | berührungslos auf die Lauffläche, kurz nach dem Latsch | analog oder I²C | **TBD** |
+| Reifentemperatur | **IR berührungslos** auf die Lauffläche, kurz hinter dem Latsch | I²C | 8 / 9, kein eigener Pin |
 | Umgebungstemperatur | am Rahmen, weg von Motor und Netzteil | I²C | **TBD** |
 | Motor-PTC | im Motor | analog | GPIO1 (ADC1) |
 | Reifendruck | BLE-Sensor am Ventil | BLE | — |
@@ -450,6 +450,16 @@ erspart die getrennte Unsicherheit von Zelle und Hebelarm.
 > Deutschland liegt unter 0,1 %.
 
 ### 5.2 Auflast
+
+Vor jeder Messreihe mit der **Plattformwaage** zwischen Trommel und Laufrad einstellen,
+nicht aus dem Hebelverhältnis rechnen. Vorhandene Waage: 120 kg, 20 g Auflösung — bei
+42,5 kg sind das 0,05 %, weit unter dem 1-%-Ziel. Laufrad- und Reifenmasse sind darin
+automatisch enthalten.
+
+> **Vorbehalt:** die Waage baut auf und hebt das Laufrad um ihre Bauhöhe an. Dadurch
+> kippt die Schwinge leicht und das Hebelverhältnis ändert sich — bei 40 mm Bauhöhe und
+> 400 mm Schwingenlänge sind das 5,7° und rund **0,5 %**. Entweder hinnehmen oder die
+> Trommelseite um dieselbe Höhe unterlegen.
 
 1. Schwinge **ohne Laufrad und ohne Laufgewicht** mit dem Gegengewicht auswuchten.
    Restkraft an der Radposition mit einer Federwaage prüfen: **< ±2 N**.

@@ -14,22 +14,6 @@ angeschlossen wird. Eine vertauschte Hall-Versorgung zerstört die Sensoren.
 
 Außerdem offen: Gegenstecker beschaffen oder abschneiden und eigene Verbinder setzen?
 
-### A13 Drehzahlreserve — **neu, kann den Bus auf 42 V zwingen**
-Erster Versuch 2026-11-01 mit BLDC-Tester: **über 400 1/min bei 40 V**, nicht am
-Anschlag. Daraus kv ≥ 10 1/min/V statt der angenommenen 13,3.
-
-Für 60 km/h braucht die Trommel **353 1/min**. Bei kv = 10 und 36 V wären das im
-Leerlauf 360 1/min — rechnerisch genug, aber **ohne jede Reserve**, und unter Last
-sinkt die Drehzahl durch den Spannungsabfall weiter. Bei 40 V sind es 400 1/min
-(68 km/h), damit geht 60 km/h auch belastet.
-
-Zu messen: Motor mit der Bohrmaschine auf bekannte Drehzahl bringen, Phase-Phase-
-Wechselspannung messen, daraus kv exakt. Danach entscheiden, ob das Netzteil auf
-**40–42 V** ausgelegt wird statt auf 36 V.
-
-Hängt mit A14 zusammen: ein 42-V-Bus liegt über der 40-V-Grenze des LM2596, für den
-12-V-Zweig ist deshalb der XL7015 vorgesehen (5–80 V).
-
 ### A5 Temperaturfühler: Typ bestimmen
 Der Hall-Stecker hat **6 Adern**. Vcc, GND und drei Hall-Signale sind fünf — die
 sechste ist vermutlich ein NTC gegen GND.
@@ -64,15 +48,6 @@ vernachlässigbar, gemessen wird praktisch nur der lastabhängige Lageranteil. D
 die Korrektur aus A10 gemessen statt geschätzt. Gehört als Schritt in
 [05-prüfablauf](05-pruefablauf.md); Rollendurchmesser und Material noch offen.
 
-### A3 Auflast: Abgleich und zweite Wägezelle
-Nominalwert und Mechanik stehen (417 N, Hebelwaage mit Laufgewicht,
-[08-staender](08-staender.md) §5). Offen ist nur noch:
-
-- Abgleich gegen eine unabhängige Referenz — die Auflast geht **linear** in Crr ein und
-  muss auf 1 % stimmen.
-- Kommt eine zweite Wägezelle unter die Trommellagerkonsolen? Dann wäre die Auflast
-  gemessen statt gerechnet.
-
 ## B — Blockiert die Firmware
 
 ### B3 LCD-Anschluss und Pegel
@@ -94,16 +69,10 @@ Riffelblech, also niedrigerer Crr). Beide wirken in dieselbe Richtung: unsere We
 liegen unter den publizierten. Gesucht ist ein belastbarer Korrekturansatz aus der
 Literatur — **wird nicht geraten**. Bis dahin: nur Vergleiche, keine Absolutwerte.
 
-### C2 Referenzreifen
-Ein Reifen mit publiziertem Crr als Plausibilitätsanker. Die Absolutwerte werden wegen
-C1 nicht übereinstimmen, aber Größenordnung und Rangfolge mehrerer Reifen müssen passen.
-Marathon Plus (0,00764) wäre ein guter Kandidat: weit verbreitet, gut dokumentiert, und
-mit 25,5 W deutlich genug über dem Rauschen.
-
-### C3 Temperaturerfassung
-Reifentemperatur und Umgebungstemperatur sollen mitgeloggt werden. Sensor und Messstelle
-offen — berührungslos auf die Lauffläche wäre richtig, ist aber bei drehender Trommel
-unterzubringen.
+### C2 Referenzreifen — **zurückgestellt**
+Erst Wiederholbarkeit herstellen, dann einen Reifen mit publiziertem Crr als Anker
+beschaffen. Kandidat bleibt Marathon Plus (0,00764, 25,5 W) — weit genug über dem
+Rauschen, dass ein Faktor-2-Fehler in der Messkette auffiele.
 
 ### C4 Einschwingzeit und Mittelungslänge
 `SETTLE_MS` = 15 s und `AVG_REVS_PER_POINT` = 10 sind geschätzt. Nach den ersten echten
@@ -134,6 +103,9 @@ Rohdaten unter `data/` versionieren — ab welcher Menge wird das unhandlich?
 | SimpleFOC-Plattform (B5) | Gegenstandslos: mit dem FSESC entfällt der SimpleFOC-Pfad. | 2026-11-03 |
 | ESP32-Board (B2) | ESP32-S3-DevKitC-1 N16R8 beschafft. | 2026-11-01 |
 | Verzeichnisname (D1) | Heißt korrekt `rolling-resistance`. | 2026-11-03 |
+| **Drehzahlreserve (A13)** | **Erledigt.** Nackte Trommel mit sensorlosem Regler über **100 km/h bei 42 V** = 589 1/min → **kv ≈ 14** (nicht 10, die 400 1/min am BLDC-Tester waren nicht der Anschlag). Bei 36 V sind das 505 1/min = 86 km/h, also **43 % Reserve** über den für 60 km/h nötigen 353 1/min. Netzteil 36 V genügt. | 2026-11-03 |
+| **Auflast (A3)** | **Keine zweite Wägezelle.** Vor der Messung eine Plattformwaage zwischen Trommel und Laufrad schieben, Auflast auf den Zielwert justieren. Die vorhandene 120-kg-Waage mit 20 g Auflösung sind 0,05 % bei 42,5 kg. Laufrad- und Reifenmasse sind damit automatisch enthalten. | 2026-11-03 |
+| **Reifentemperatur (C3)** | **IR-Sensor** berührungslos auf die Lauffläche, vorhanden. Hängt am bestehenden I²C-Bus (GPIO8/9), kein zusätzlicher Pin. Macht aus dem Warmlauf ein Kriterium statt einer Zeitvorgabe. | 2026-11-03 |
 | Motor | **Hoverboard-Antriebsrad 6,5″, 36 V / 350 W** beschafft. Damit 6,96 Nm Dauermoment (Faktor 2,8 über dem Auslegungsfall), aber **ohne Bremse und ohne Temperaturfühler** — A9 und A5 werden dadurch akut. | 2026-11-01 |
 | Motorregler | **FSESC 4.20 / 50 A** beschafft, VESC-Klasse mit UART. Schließt B1. | 2026-11-01 |
 | Speisung der Logik | **Nur über USB-C.** 5V-Pin und USB schließen sich laut Espressif gegenseitig aus; eine vergessene externe 5 V beim Flashen wäre ein Kurzschluss zweier Quellen. Beide USB-Buchsen dürfen gleichzeitig speisen. | 2026-11-01 |

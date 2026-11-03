@@ -47,11 +47,11 @@ dazu ein **FSESC 4.20 / 50 A** als Regler.
 |---|---|---|---|---|
 | Bauform | Hoverboard-Nabenmotor 6,5″ | – | Angebot | |
 | Nennspannung / -leistung | 36 / 350 | V / W | Angebot | |
-| Nenndrehzahl | **TBD** | 1/min | – | Erster Versuch 2026-11-01: **über 400 1/min bei 40 V**, nicht am Anschlag. Daraus kv ≥ 10 — deutlich unter den vorher angenommenen 13,3. Siehe A13. |
-| Dauermoment `P/ω` | ≥ 6,96 | Nm | ber | mit kleinerem kv entsprechend mehr |
-| n → Trommel | 400 1/min → **68 km/h** (gemessen bei 40 V) | – | gem | für 60 km/h sind 353 1/min nötig |
-| kv | **≥ 10** | 1/min/V | gem | untere Schranke aus >400 1/min bei 40 V; echter Wert über Gegen-EMK messen (A13) |
-| kt | **≤ 0,96** | Nm/A | ber | 9,55 / kv; kleineres kv heißt mehr Moment je Ampere |
+| Leerlaufdrehzahl bei 42 V | **589** | 1/min | gem | nackte Trommel über 100 km/h, 2026-11-03 |
+| Dauermoment `P/ω` | **6,96** | Nm | ber | Faktor 2,8 über dem Auslegungsfall von 2,51 Nm |
+| n → Trommel bei 36 V | 505 1/min → **86 km/h** | – | ber | für 60 km/h sind 353 1/min nötig, also 43 % Reserve |
+| kv | **14,0** | 1/min/V | gem | 589 1/min bei 42 V |
+| kt | 0,68 | Nm/A | ber | 9,55 / kv |
 | Masse | 2,26 | kg | Angebot | geht in die Eigenfrequenz des Wiegeteils ein |
 | Hallsensoren | ja | – | Angebotsfotos | 3 Flachstecker + weißer JST mit 6 Adern |
 | Temperaturfühler | **TBD** | – | – | 6. Ader am Hall-Stecker, vermutlich NTC — ausmessen, A5 |
