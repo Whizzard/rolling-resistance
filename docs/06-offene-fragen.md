@@ -63,7 +63,7 @@ der Handeingabe. Mögliches Vorgehen: mit einem BLE-Scanner die Characteristics 
 
 ### C1 Trommelkrümmungs- und Oberflächenkorrektur
 Zwei systematische Abweichungen gegenüber publizierten Werten, beide unquantifiziert:
-die **Krümmung** (unsere Trommel ist mit 0,955 m größer als die 0,77 m des
+die **Krümmung** (unsere Trommel ist mit 0,90 m größer als die 0,77 m des
 Referenzprüfstands, also weniger Zuschlag) und die **Oberfläche** (glattes Holz statt
 Riffelblech, also niedrigerer Crr). Beide wirken in dieselbe Richtung: unsere Werte
 liegen unter den publizierten. Gesucht ist ein belastbarer Korrekturansatz aus der
