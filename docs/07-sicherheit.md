@@ -40,15 +40,16 @@ Der Not-Aus trennt den Leistungspfad **in Hardware**. Ein Softwarebefehl zählt 
 - Rückmeldung an den ESP32 nur zur Anzeige
 - danach läuft die Trommel frei aus
 
-**Es gibt keinen Bremspfad.** Der verbaute Hoverboard-Motor hat keine mechanische
-Bremse, A8 (Kurzschlussschütz) ist zurückgestellt. Der Not-Aus trennt den Antrieb,
-er hält nichts an. Daraus folgt:
+**Gebremst wird über Kurzschluss der drei Phasen** — Schaltung in
+[04-hardware](04-hardware.md) §9. Gemessen: **25 s** aus über 400 1/min. Zwei Pfade,
+beide in dieselbe Richtung: Bus weg → gebremst, GPIO low → gebremst, Reset → gebremst.
+
+**Eine Feststellbremse gibt es nicht.** Eine stehende Trommel ist nicht gesichert:
 
 - Nach jedem Lauf warten, bis die Trommel **sichtbar** steht.
 - Vor Arbeiten am Aufbau Blockierkeil zwischen Rahmen und Speiche.
 
-Nachzurüsten: Bandbremse oder Bremssattel an der Trommelwelle (A9), oder A8. Erst
-dann greift die Freigabe nach §5.
+Solange die Relais nicht verbaut sind, bleibt nur der freie Auslauf von 3 bis 6 Minuten.
 
 **Rückspeisung.** Rekuperatives Bremsen treibt die Zwischenkreisspannung am Netzteil
 bis zur Überspannungsabschaltung. Nötig wären Bremswiderstand mit Chopper (1,4 kJ

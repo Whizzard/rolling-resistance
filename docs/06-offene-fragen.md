@@ -14,40 +14,6 @@ angeschlossen wird. Eine vertauschte Hall-Versorgung zerstört die Sensoren.
 
 Außerdem offen: Gegenstecker beschaffen oder abschneiden und eigene Verbinder setzen?
 
-### A9 Bremse — **Lösung gemessen, Umsetzung offen**
-> **2026-11-01 erprobt: Kurzschlussbremsung bringt die Trommel in rund 25 s zum
-> Stehen** (aus über 400 1/min). Gegenüber 3 bis 6 Minuten freiem Auslauf ist das
-> Faktor 8 bis 14. Damit ist A8 praktisch bestätigt und A9 über A8 lösbar.
->
-> Aus 25 s folgt ein mittleres Bremsmoment von `J·ω/t` = 1,94 · 41,9 / 25 =
-> **3,25 Nm** und eine mittlere Verlustleistung von 68 W im Kupfer — thermisch
-> belanglos, wie in A8 gerechnet.
->
-> Offen bleibt die **stromlose** Ausführung: drei KFZ-Wechselrelais 12 V/40 A an den
-> Öffnern (87a), Spulen aus einem XL7015 am Bus, dazu ein MOSFET in der Spulenmasse
-> für die Softwareauslösung. Dann bremst der Stand sowohl bei Stromausfall als auch
-> auf Befehl. Eine Feststellbremse ersetzt das nicht — dafür bleibt der Blockierkeil.
-
-**Ursprüngliche Lage:**
-Verbaut ist das Hoverboard-Rad, und dem fehlt die Trommelbremse. Zusammen mit dem
-zurückgestellten A8 heißt das: **es gibt derzeit überhaupt keinen Bremspfad.** Nach
-einem Not-Aus läuft die Trommel 3 bis 6 Minuten aus, und es gibt keine Feststellbremse
-für Arbeiten am Aufbau.
-
-Zu beschaffen ist eins von beidem:
-
-- **Bandbremse oder Bremssattel auf einer Scheibe an der Trommelwelle** — wirkt auch
-  stromlos, taugt als Feststellbremse. Muss im Messbetrieb vollständig lösbar sein
-  (X5), sonst driftet das Schleppmoment mit der Temperatur.
-- **Kurzschlussschütz aus A8** — bremst schnell, aber nur im Lauf und nicht stromlos
-  haltend.
-
-Beides zusammen wäre richtig: elektrisch bremsen, mechanisch feststellen. Bis dahin
-gilt die Zwischenregel in [07-sicherheit](07-sicherheit.md) §3 (Keil zwischen Rahmen
-und Speiche vor Arbeiten am Aufbau).
-
-Ebenso fehlt der Temperaturfühler — ein NTC auf der Statorachse ersetzt ihn (A5).
-
 ### A13 Drehzahlreserve — **neu, kann den Bus auf 42 V zwingen**
 Erster Versuch 2026-11-01 mit BLDC-Tester: **über 400 1/min bei 40 V**, nicht am
 Anschlag. Daraus kv ≥ 10 1/min/V statt der angenommenen 13,3.
@@ -79,67 +45,18 @@ Widerstand 6. Ader gegen GND bei Raumtemperatur messen:
 Danach Grenzwert festlegen und in [07-sicherheit](07-sicherheit.md) §4 eintragen.
 Anschluss an `PIN_MOTOR_PTC` = GPIO1 (ADC1).
 
-### A6 Ist die Motorachse zweiseitig gelagert?
-Scooter-Vorderräder sitzen üblicherweise beidseitig in der Gabel. Falls ja, ist die
-Pendellagerung unkompliziert: beide Achsenden in Stehlager, Drehmomentarm an einem Ende.
-Falls einseitig: wie beim Hoverboard-Rad entsprechend auslegen.
+### A7 Masse und Trägheitsmoment des Stators
+Nur der **Stator** hängt am Hebelarm, nicht das ganze Rad (2,26 kg). Sein
+Trägheitsmoment bestimmt die Eigenfrequenz der Waage: 0,007 kg·m² ergeben 43,5 Hz,
+0,026 kg·m² nur noch 25,7 Hz ([09-messtheorie](09-messtheorie.md) §3.5). Unter 17 Hz
+käme die 3. Ordnung der Trommeldrehung in die Nähe.
 
-### A8 Bremskonzept und Rückspeisung — **zurückgestellt**
-> **Stand 2026-10-31: zurückgestellt.** Der Schütz wird vorerst nicht beschafft.
-> Als Rückfall ist eine **mechanische Bremse** vorgesehen — der DAAO-Motor hat eine
-> Trommelbremse integriert. Die Analyse unten bleibt gültig und ist die Vorlage, falls
-> der elektrische Pfad doch gebaut wird. Bis dahin gilt: **frei auslaufen lassen**
-> ([09-messtheorie](09-messtheorie.md) §8.9, 3 bis 80 min je nach Schleppmoment).
-
-**Kurzschlussbremsung statt Bremswiderstand.** Werden die drei Motorphasen gegeneinander
-kurzgeschlossen, bleibt die Energie im Motorkupfer: 1321 J heben die Wicklung um 4 bis
-11 K an, also nichts. Der Bremswiderstand mit Chopper entfällt damit ersatzlos.
-
-| Zweck | Mittel | funktioniert ohne |
-|---|---|---|
-| normales Anhalten | Regler im Kurzschlussmodus | — braucht den Regler |
-| **Not-Aus** | dreipoliger Schütz, Öffnerkontakte: fällt bei Spannungsverlust ab und schließt die Phasen kurz | Regler **und** Strom |
-| Feststellen | mechanische Bremse — **nicht vorhanden**, siehe A9 | alles |
-
-Zwei Öffnerkontakte genügen (U–V und V–W verbinden alle drei). Strom bei 60 km/h rund
-**60 A** bei 20,3 V Gegen-EMK — der Kontakt schaltet aber **stromlos** (beim Schließen
-fließt noch nichts, geöffnet wird erst im Stillstand), er muss nur tragen. Leistungsschütz
-ab 20 A mit 2 Öffnern, Spule 24 V DC aus derselben geschalteten Versorgung wie der Regler,
-damit die Reihenfolge stimmt.
-
-Offen bleibt: **R und L des Motors messen** (die 60 A sind damit gerechnet), und der
-Kurzschluss muss beim Auslaufversuch offen sein, sonst misst man die Bremskurve statt der
-Verlustkurve. Bremsmoment 5…20 Nm ergibt 15…4 s Bremszeit; der Reifen rutscht dabei nicht
-(4 N nötige Latschkraft gegen 334 N Haftgrenze).
-
-> **Die Wägezelle muss dabei geschützt sein.** Das Bremsmoment geht über den Stator in den
-> Hebelarm. Mit dem Zugglied aus Schaltzug ([08-staender](08-staender.md) §7.3) knickt
-> dieser bei 6,6 N und die Last geht in den Anschlag — ohne diese Maßnahme wären es 250 bis
-> 500 N an einer Zelle mit 98 N Endwert.
-
-### A7 Masse des Motors
-Geht in die Trägheit des Wiegeteils und damit in dessen Eigenfrequenz ein
-(f ∝ √(k/J), siehe [09-messtheorie](09-messtheorie.md)). Ein 9,5″-Scooter-Nabenmotor ist
-deutlich schwerer als das Hoverboard-Rad mit 2,26 kg. Wiegen und prüfen, ob die
-geschätzte Eigenfrequenz von 50–150 Hz noch über der Zahneingriffsfrequenz des Riemens
-liegt (bei 605 1/min und 20 Zähnen rund 200 Hz — das könnte eng werden).
+Stator wiegen, Trägheitsradius abschätzen, Eigenfrequenz nachrechnen.
 
 ### A2 Zulässige Höchstdrehzahl der Trommel
 Hängt an Holzaufbau, Nabenanbindung und Wuchtgüte. Entscheidet, ob über 60 km/h hinaus
 überhaupt etwas geht. **Das ist die härteste Einschränkung am ganzen Konzept** — nicht
 die Elektronik. Siehe [07-sicherheit](07-sicherheit.md).
-
-### ~~A10 Trommel in eigenen Lagern oder auf dem Motorrotor?~~ — **entschieden**
-**Eigene, mitdrehende Welle**, abgesetzt Ø15/Ø30, 2 × 6902 im Rahmen, Motor über Flansch
-am Wellenende. Die Trommellager stehen damit im Momentenpfad und tragen 4,7 mNm
-lastabhängig bei — glatt, reproduzierbar und über A11 messbar. Die Alternative (Trommel
-auf dem Rotor) hätte die Pendellager mit 650 N belastet und 9,8 mNm **nicht
-korrigierbare** Hysterese gebracht. Zahlen in [08-staender](08-staender.md) §1.
-
-Der Entwurf in [08-staender](08-staender.md) geht von der zweiten Variante aus, weil sie
-ohne die Rotormaße baubar ist (A4 blockiert sie nicht). Bedingung ist eine **radial
-weiche** Kupplung: eine starre Flanschverbindung macht die Motorlager zum zweiten
-Trommellager und hebt den Vorteil auf.
 
 ### A11 Referenzlauf mit starrer Rolle
 Eine Stahl- oder PA-Rolle anstelle des Reifens, gleiche Auflast: ihre Hysterese ist
@@ -147,41 +64,16 @@ vernachlässigbar, gemessen wird praktisch nur der lastabhängige Lageranteil. D
 die Korrektur aus A10 gemessen statt geschätzt. Gehört als Schritt in
 [05-prüfablauf](05-pruefablauf.md); Rollendurchmesser und Material noch offen.
 
-### ~~A12 Trommelbreite~~ — **erledigt**
-Gebaut sind **100 mm**. Die Trommelaerodynamik bleibt damit bei 0,27 Nm
-([09-messtheorie](09-messtheorie.md) §1.8); die 0,43 Nm der verworfenen 250-mm-Variante
-sind gegenstandslos.
+### A3 Auflast: Abgleich und zweite Wägezelle
+Nominalwert und Mechanik stehen (417 N, Hebelwaage mit Laufgewicht,
+[08-staender](08-staender.md) §5). Offen ist nur noch:
 
-### A3 Art der Auflast
-Totgewicht über Hebel oder Feder plus zweite Wägezelle? Die Auflast geht **linear** in
-Crr ein und muss auf 1 % genau bekannt sein.
-Der **Nominalwert ist entschieden**: 42,5 kg = 417 N, der De-facto-Standard der
-veröffentlichten Crr-Datenbank. Die Mechanik liegt als Entwurf vor:
-Hebelwaage mit Laufgewicht 10 kg, a = 200 mm, b = 300…900 mm, Schwingenachse auf
-Latschhöhe ([08-staender](08-staender.md) §5). Offen bleibt der Abgleich gegen eine
-unabhängige Referenz und die Entscheidung, ob die zweite Wägezelle unter die
-Trommellagerkonsolen kommt (dann ist die Auflast gemessen statt gerechnet).
-
-### A4 Befestigung der Trommel auf dem Rotor
-Durch den Direktantrieb ist die Riemenscheibe vom Tisch, dafür muss die Trommel auf den
-Rotor. Die seitlichen Deckelschrauben sind dafür nicht gedacht — es braucht eine
-Adapterplatte, deren Lochkreis zur Felge passt. Maße der Felge noch unbekannt.
-Die Trommel muss **symmetrisch zur Motorebene** sitzen, sonst wirkt ein Biegemoment auf
-die Motorlager.
+- Abgleich gegen eine unabhängige Referenz — die Auflast geht **linear** in Crr ein und
+  muss auf 1 % stimmen.
+- Kommt eine zweite Wägezelle unter die Trommellagerkonsolen? Dann wäre die Auflast
+  gemessen statt gerechnet.
 
 ## B — Blockiert die Firmware
-
-### B1 Welcher Motorregler?
-VESC-Klasse oder umgeflashte Hoverboard-Hauptplatine. Beide sprechen UART, aber mit
-unterschiedlichen Frames. Bestimmt die konkrete `IDrive`-Implementierung.
-Zu prüfen: Verfügbarkeit, Bremsverhalten, Strombegrenzung, Drehzahlregelung im
-unteren Bereich.
-
-### ~~B2 ESP32-Board~~ — **entschieden 2026-11-01**
-**ESP32-S3-DevKitC-1, Modul WROOM-1 N16R8** (16 MB Flash, 8 MB Octal-PSRAM), beschafft.
-Pinbelegung in [04-hardware](04-hardware.md) §4, verdrahtet in `hardware/schaltplan.py`.
-Der Hinweis auf GPIO34–39 galt dem klassischen ESP32; beim S3 gibt es keine reinen
-Eingangspins, dafür sperrt das Octal-PSRAM GPIO 33…37 zusätzlich zum Flash auf 26…32.
 
 ### B3 LCD-Anschluss und Pegel
 I²C-Backpack (PCF8574) ist gesetzt. Offen: Läuft das vorhandene Modul auf 3,3 V, oder
@@ -191,14 +83,6 @@ wird ein Pegelwandler gebraucht? I²C-Adresse (0x27 oder 0x3F)?
 Welches Modell? Die Beschreibung „Airspy" deutet auf einen SKS Airspy hin — zu
 verifizieren. Ohne bekanntes BLE-Profil (Service- und Characteristic-UUIDs) bleibt es bei
 der Handeingabe. Mögliches Vorgehen: mit einem BLE-Scanner die Characteristics auslesen.
-
-### B5 SimpleFOC-Build braucht eine neuere Plattform
-SimpleFOC ab 2.3 verlangt Arduino-esp32 3.x (ESP-IDF 5). Die offizielle
-PlatformIO-Plattform `espressif32` liefert nur 2.x; der Build bricht in der Bibliothek
-ab. Lösungswege: den `pioarduino`-Fork der Plattform verwenden, eine ältere SimpleFOC-
-Version pinnen, oder den Pfad ganz überspringen und direkt mit dem richtigen Regler
-anfangen. Entscheidung erst nötig, wenn das Shield tatsächlich verdrahtet wird —
-`lib_deps` ist deshalb in `platformio.ini` noch auskommentiert und beide Builds sind grün.
 
 ## C — Methodisch
 
@@ -231,10 +115,6 @@ reagiert sie auf Türen, Lüftung, Position im Raum? Einmal gezielt ausprobieren
 
 ## D — Kleinigkeiten
 
-### D1 Verzeichnisname
-`rolling-reistance` enthält einen Tippfehler (`reistance` → `resistance`). Vor dem
-ersten Push korrigieren?
-
 ### D2 Datenablage
 Rohdaten unter `data/` versionieren — ab welcher Menge wird das unhandlich?
 
@@ -247,6 +127,13 @@ Rohdaten unter `data/` versionieren — ab welcher Menge wird das unhandlich?
 | Drehzahlaufnehmer | Hall statt Reed, 6 Marken + Index; Geschwindigkeit aus dem Fenster über eine ganze Umdrehung | 2026-10-24 |
 | Trommellagerung (A10) | **Eigene mitdrehende Welle** statt Trommel auf dem Motorrotor. 4,7 mNm lastabhängig im Momentenpfad statt 9,8 mNm nicht korrigierbarer Hysterese. | 2026-11-01 |
 | Trommelbreite (A12) | **100 mm** gebaut. Leerlauf bleibt bei 0,27 Nm. | 2026-11-01 |
+| **Bremse (A8, A9)** | **Kurzschlussbremsung über drei KFZ-Wechselrelais an den Öffnern.** Gemessen 2026-11-01: 25 s aus über 400 1/min, mittleres Bremsmoment 3,25 Nm, 68 W im Kupfer. Schaltung in [04-hardware](04-hardware.md) §9. Kein Bremswiderstand, kein DC-DC-Wandler. | 2026-11-03 |
+| Lagerung der Motorachse (A6) | Gegenstandslos: die Trommel hat eine eigene Welle (A10), die Statorachse wird nur vom Hebelarm gehalten. | 2026-11-03 |
+| Trommelbefestigung (A4) | Gegenstandslos: Flansch am Wellenende statt Adapterplatte auf dem Rotor. | 2026-11-03 |
+| Motorregler (B1) | **FSESC 4.20 / 50 A** beschafft, VESC-Klasse mit UART. | 2026-11-01 |
+| SimpleFOC-Plattform (B5) | Gegenstandslos: mit dem FSESC entfällt der SimpleFOC-Pfad. | 2026-11-03 |
+| ESP32-Board (B2) | ESP32-S3-DevKitC-1 N16R8 beschafft. | 2026-11-01 |
+| Verzeichnisname (D1) | Heißt korrekt `rolling-resistance`. | 2026-11-03 |
 | Motor | **Hoverboard-Antriebsrad 6,5″, 36 V / 350 W** beschafft. Damit 6,96 Nm Dauermoment (Faktor 2,8 über dem Auslegungsfall), aber **ohne Bremse und ohne Temperaturfühler** — A9 und A5 werden dadurch akut. | 2026-11-01 |
 | Motorregler | **FSESC 4.20 / 50 A** beschafft, VESC-Klasse mit UART. Schließt B1. | 2026-11-01 |
 | Speisung der Logik | **Nur über USB-C.** 5V-Pin und USB schließen sich laut Espressif gegenseitig aus; eine vergessene externe 5 V beim Flashen wäre ein Kurzschluss zweier Quellen. Beide USB-Buchsen dürfen gleichzeitig speisen. | 2026-11-01 |
