@@ -451,34 +451,36 @@ erspart die getrennte Unsicherheit von Zelle und Hebelarm.
 
 ### 5.2 Auflast
 
-Vor jeder Messreihe mit der **Plattformwaage** zwischen Trommel und Laufrad einstellen,
-nicht aus dem Hebelverhältnis rechnen. Vorhandene Waage: 120 kg, 20 g Auflösung — bei
-42,5 kg sind das 0,05 %, weit unter dem 1-%-Ziel. Laufrad- und Reifenmasse sind darin
-automatisch enthalten.
+Die Auflast wird **gewogen, nicht gerechnet**. Vorhandene Plattformwaage: 120 kg,
+20 g Auflösung — bei 42,5 kg sind das 0,05 %, weit unter dem 1-%-Ziel. Laufrad- und
+Reifenmasse stecken automatisch darin, eine zweite Wägezelle entfällt (A3).
 
-Ablauf:
-
-1. Laufrad mit dem Exzenterhebel abheben.
-2. Waage auf die Trommel legen, gegen Kippen sichern — sie steht auf dem Scheitel einer
-   100 mm breiten Trommel.
-3. **Schieber um die Bauhöhe der Waage anheben.** Damit steht die Radachse relativ zum
-   Schwingendrehpunkt wieder dort, wo sie beim Messen steht, und das Hebelverhältnis ist
-   unverändert. Der Verstellweg von 195 mm ([08-staender](08-staender.md) §2.1) deckt
-   jede übliche Waagenhöhe ab.
-4. Laufgewicht auf den Zielwert justieren, ablesen.
-5. Waage heraus, Schieber zurück auf das Maß der Radgröße.
-
-Ohne Schritt 3 kippt die Schwinge um die Bauhöhe und das Hebelverhältnis stimmt nicht
-mehr — bei 40 mm und 400 mm Schwingenlänge wären das rund 0,5 %.
+**Einrichtung, einmalig:**
 
 1. Schwinge **ohne Laufrad und ohne Laufgewicht** mit dem Gegengewicht auswuchten.
    Restkraft an der Radposition mit einer Federwaage prüfen: **< ±2 N**.
 2. Laufrad wiegen (`m_Rad`).
 3. `a` waagerecht ausmessen, ±0,5 mm.
-4. Maßband auf den Holm kleben, Null **auf der Pivotachse**. Index am Laufgewicht ankörnen.
-5. Gegenprobe: Personenwaage auf die Trommel, Rad absenken, Anzeige mit (13) vergleichen.
-   Abweichung ≤ 2 % erwartet — die Waage hebt das Rad um ihre Bauhöhe an, das ist eine
-   Plausibilitätsprüfung, **nicht** die Kalibrierung.
+4. Maßband auf den Holm kleben, Null **auf der Pivotachse**. Index am Laufgewicht
+   ankörnen. Damit ist die Hebelwaage reproduzierbar einstellbar, auch ohne Wägung.
+
+**Vor jeder Messreihe:**
+
+1. Laufrad mit dem Exzenterhebel abheben.
+2. Waage auf die Trommel legen, gegen Kippen sichern — sie steht auf dem Scheitel einer
+   nur 100 mm breiten Trommel.
+3. **Schieber um die Bauhöhe der Waage anheben.** Damit steht die Radachse relativ zum
+   Schwingendrehpunkt wieder dort, wo sie beim Messen steht, und das Hebelverhältnis
+   bleibt unverändert. Der Verstellweg von 195 mm
+   ([08-staender](08-staender.md) §2.1) deckt jede übliche Waagenhöhe ab.
+4. Rad absenken, Laufgewicht auf den Zielwert justieren, Position am Maßband ablesen.
+5. Rad abheben, Waage heraus, Schieber zurück auf das Maß der Radgröße, Rad absenken.
+
+Ohne Schritt 3 kippt die Schwinge um die Bauhöhe; bei 40 mm und 400 mm Schwingenlänge
+wären das rund 0,5 %.
+
+Die abgelesene Position des Laufgewichts kommt in die CSV. Weicht sie beim nächsten Mal
+ab, hat sich etwas an Laufrad, Reifen oder Mechanik geändert.
 
 ### 5.3 Null, zweimal
 
