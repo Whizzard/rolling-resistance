@@ -456,10 +456,20 @@ nicht aus dem Hebelverhältnis rechnen. Vorhandene Waage: 120 kg, 20 g Auflösun
 42,5 kg sind das 0,05 %, weit unter dem 1-%-Ziel. Laufrad- und Reifenmasse sind darin
 automatisch enthalten.
 
-> **Vorbehalt:** die Waage baut auf und hebt das Laufrad um ihre Bauhöhe an. Dadurch
-> kippt die Schwinge leicht und das Hebelverhältnis ändert sich — bei 40 mm Bauhöhe und
-> 400 mm Schwingenlänge sind das 5,7° und rund **0,5 %**. Entweder hinnehmen oder die
-> Trommelseite um dieselbe Höhe unterlegen.
+Ablauf:
+
+1. Laufrad mit dem Exzenterhebel abheben.
+2. Waage auf die Trommel legen, gegen Kippen sichern — sie steht auf dem Scheitel einer
+   100 mm breiten Trommel.
+3. **Schieber um die Bauhöhe der Waage anheben.** Damit steht die Radachse relativ zum
+   Schwingendrehpunkt wieder dort, wo sie beim Messen steht, und das Hebelverhältnis ist
+   unverändert. Der Verstellweg von 195 mm ([08-staender](08-staender.md) §2.1) deckt
+   jede übliche Waagenhöhe ab.
+4. Laufgewicht auf den Zielwert justieren, ablesen.
+5. Waage heraus, Schieber zurück auf das Maß der Radgröße.
+
+Ohne Schritt 3 kippt die Schwinge um die Bauhöhe und das Hebelverhältnis stimmt nicht
+mehr — bei 40 mm und 400 mm Schwingenlänge wären das rund 0,5 %.
 
 1. Schwinge **ohne Laufrad und ohne Laufgewicht** mit dem Gegengewicht auswuchten.
    Restkraft an der Radposition mit einer Federwaage prüfen: **< ±2 N**.
