@@ -76,7 +76,8 @@ Als Reibrolle gegen die Trommeloberfläche geht der Motor nicht: dafür bräucht
 |---|---|---|
 | Nabenmotor | **Hoverboard-Antriebsrad 6,5″, 36 V / 350 W** | **beschafft** |
 | Motorregler | **FSESC 4.20 / 50 A** (VESC-Klasse) | **beschafft** |
-| Bremse an der Trommelwelle | Bandbremse oder Bremssattel auf einer Scheibe — der Motor hat keine (A9) | **offen, sicherheitsrelevant** |
+| 3 × KFZ-Wechselrelais 12 V/40 A | Kurzschlussbremse, §9 | im Warenkorb |
+| 2N5551, 1N4007, Widerstände | Low-Side-Schalter der Relaiskette, §9 | Sortiment beschafft |
 | NTC für die Statorachse | nur falls die 6. Ader am Hall-Stecker kein Fühler ist (A5) | offen |
 | Gegenstecker Julet 9-polig | oder Stecker abschneiden und eigene Verbinder setzen | offen |
 
@@ -87,7 +88,7 @@ Als Reibrolle gegen die Trommeloberfläche geht der Motor nicht: dafür bräucht
 | Hall-Sensoren | 3 × TLE4905L (Marken, Index, Laufrad), unipolar | vorhanden |
 | Magnete | 8 + 1, Ø10 × 3 mm mit Ø3-Senkloch | vorhanden |
 | Netzteil | 36 V, ≥ 10 A (besser 15 A) — Reserve für die Stromgrenze beim Anfahren | offen |
-| Bremswiderstand + Chopper | **zurückgestellt** (A8). Achtung: die mechanische Trommelbremse als Rückfall gibt es nicht, siehe oben. | – |
+| Bremswiderstand + Chopper | **entfällt** — gebremst wird über Kurzschluss, §9 | – |
 | Stehlager für die Statorachse | 2 Stück, auf dem Wiegerahmen | offen |
 | Zahnriemen | **entfällt beim Direktantrieb** — nur nötig, falls A6 negativ ausfällt | – |
 | Not-Aus | zwangsöffnend, trennt den Leistungspfad | offen |
@@ -494,3 +495,56 @@ Einmal im Auslauf aufnehmen, als Korrekturtabelle ablegen.
 Nötig nur für Drehzahl **unterhalb** einer Umdrehung. Was ins Ergebnis geht, läuft
 index-getriggert über ganze Umdrehungen — dort kürzt sich der Winkelfehler exakt
 heraus.
+
+## 9 Bremse: Kurzschluss über drei Relais
+
+Der Motor hat keine mechanische Bremse. Gebremst wird, indem die drei Phasen
+gegeneinander kurzgeschlossen werden; die Energie bleibt im Kupfer.
+
+**Gemessen am 2026-11-01:** 25 s aus über 400 1/min. Daraus `J·ω/t` = 1,94 · 41,9 / 25 =
+**3,25 Nm** mittleres Bremsmoment und 68 W mittlere Verlustleistung — thermisch
+belanglos. Gegenüber 3 bis 6 Minuten freiem Auslauf Faktor 8 bis 14.
+
+### 9.1 Schaltung
+
+```
+   +36…42 V (Bus)
+        │
+   ┌────┴────┐   drei 12-V-Spulen in REIHE
+   │ K1 K2 K3│   zusammen 140 mA, 1N4007 antiparallel über die ganze Kette
+   └────┬────┘
+        │
+        C
+      2N5551        B ──1 kΩ── GPIO40
+        E                └─10 kΩ─┐
+        │                        │
+       GND ──────────────────────┘
+```
+
+| Teil | Wert | Warum |
+|---|---|---|
+| Relais | 3 × KFZ-Wechselrelais 12 V, Kontakt an **87a** (Öffner) | stromlos geschlossen = gebremst |
+| Spulen | **in Reihe** am Bus | 3 × 12 V = 36 V, kein DC-DC-Wandler nötig |
+| Transistor | **2N5551**, 160 V / 600 mA | Bus plus Diodenabfall; 45-V-Typen sind bei 42 V zu knapp |
+| Basiswiderstand | 1 kΩ | 2,6 mA bei hFE ≈ 60 unter Last |
+| Basis–Emitter | 10 kΩ | GPIO ist beim Reset hochohmig — ohne ihn floatet die Basis |
+| Freilauf | 1N4007 über die Kette | eine genügt |
+| Phasenleitungen | ≥ 4 mm² | 60 A Spitze; die mitgelieferten Fassungskabel sind zu dünn |
+
+### 9.2 Warum in Reihe und nicht über einen Wandler
+
+Die Spulen hängen direkt am Bus. Bricht er zusammen, fallen die Relais **sofort** ab;
+ein DC-DC-Wandler hielte sie über seinen Ausgangselko noch einige Millisekunden. Der
+Strom ist in Reihe nur **einmal** 140 mA, nicht dreimal.
+
+### 9.3 Grenzen
+
+- Der Öffner 87a ist bei KFZ-Wechselrelais meist nur mit **20–30 A** spezifiziert, nicht
+  mit den beworbenen 40 A. Gegen 60 A Spitze als Tragstrom für Sekunden vertretbar,
+  dauerhaft nicht.
+- Beim Schließen in die drehende Maschine fließt sofort Strom (20 V Gegen-EMK). Mit
+  Kontaktprellen gibt das einen Einschaltlichtbogen — die Kontakte sind Verschleißteil.
+- Die drei Relais sind ein **Satz**: in Reihe teilen sie die Spannung nach ihrem
+  Widerstand. Ersatz nur mit demselben Modell.
+- Eine **Feststellbremse ersetzt das nicht.** Dafür bleibt der Blockierkeil
+  ([07-sicherheit](07-sicherheit.md) §3).
