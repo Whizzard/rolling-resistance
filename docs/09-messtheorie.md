@@ -335,19 +335,23 @@ Die Masse ist seit dem Wegfall der Pendelwiege **nur noch der Stator**:
 |---|---|
 | 0,007 kg·m² (2 kg, Trägheitsradius 60 mm) | **43,5 Hz** |
 | 0,012 kg·m² | 33,2 Hz |
-| 0,026 kg·m² (4 kg, 80 mm) | 25,7 Hz |
+| 0,020 kg·m² | 25,7 Hz |
+| 0,026 kg·m² (4 kg, 80 mm) | **22,6 Hz** |
 
-Zum Vergleich die Anregung bei 60 km/h (Trommel 5,69 U/s):
+Zum Vergleich die Anregung bei 60 km/h (Trommel 5,87 U/s):
 
 | Ordnung | Frequenz | Ursache |
 |---|---|---|
-| 1. | 5,7 Hz | Unwucht, Stoßstelle des Mantelblechs, Reifenunrundheit |
-| 2. | 11,4 Hz | Rundlauffehler |
-| 3. | 17,1 Hz | |
-| 8. | 45,5 Hz | achtzählige Geometrie, falls vorhanden |
+| 1. | 5,9 Hz | Unwucht, Stoßstelle des Mantelblechs, Reifenunrundheit |
+| 2. | 11,7 Hz | Rundlauffehler |
+| 3. | 17,6 Hz | |
+| 4. | 23,5 Hz | |
+| 8. | 47,0 Hz | achtzählige Geometrie, falls vorhanden |
 
-**Die Eigenfrequenz liegt über allen relevanten Ordnungen** — solange nichts Weiches in
-den Kraftpfad kommt. Jedes Elastomer und jede Blattfeder in Reihe schiebt sie nach unten:
+**Am leichten Ende liegt die Eigenfrequenz über allen Ordnungen, am schweren nicht:**
+bei J = 0,026 kg·m² fällt f_n mit 22,6 Hz zwischen die 3. und die 4. Ordnung. Deshalb
+wird f_n nach dem Bau **gemessen**, nicht gerechnet (A7) — und nichts Weiches kommt in
+den Kraftpfad. Jedes Elastomer und jede Blattfeder in Reihe schiebt sie nach unten:
 mit 58 N/mm Reihenfeder wären es nur noch 12,9 Hz und damit zwischen 2. und 3. Ordnung.
 Das ist der Grund, warum das Zugglied **axial steif** sein muss und die Nachgiebigkeit
 allein aus der Zelle kommen soll.

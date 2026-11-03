@@ -29,13 +29,31 @@ Widerstand 6. Ader gegen GND bei Raumtemperatur messen:
 Danach Grenzwert festlegen und in [07-sicherheit](07-sicherheit.md) §4 eintragen.
 Anschluss an `PIN_MOTOR_PTC` = GPIO1 (ADC1).
 
-### A7 Masse und Trägheitsmoment des Stators
-Nur der **Stator** hängt am Hebelarm, nicht das ganze Rad (2,26 kg). Sein
-Trägheitsmoment bestimmt die Eigenfrequenz der Waage: 0,007 kg·m² ergeben 43,5 Hz,
-0,026 kg·m² nur noch 25,7 Hz ([09-messtheorie](09-messtheorie.md) §3.5). Unter 17 Hz
-käme die 3. Ordnung der Trommeldrehung in die Nähe.
+### A7 Eigenfrequenz der Waage — **messen, nicht wiegen**
+Gebraucht wird nicht die Masse des Stators, sondern das **Trägheitsmoment** — und selbst
+das nur als Zwischenschritt zur Eigenfrequenz:
 
-Stator wiegen, Trägheitsradius abschätzen, Eigenfrequenz nachrechnen.
+```
+f_n = (1/2π)·√(k_rot/J)      k_rot = k_Zelle · L² = 523 Nm/rad
+```
+
+| J_Stator | f_n | Lage zu den Ordnungen bei 60 km/h |
+|---|---|---|
+| 0,007 kg·m² | 43,5 Hz | über allen |
+| 0,026 kg·m² | **22,6 Hz** | zwischen 3. (17,6) und 4. (23,5) |
+
+Wiegen hilft dabei wenig: aus der Masse allein folgt kein J, der Trägheitsradius wäre
+geschätzt. **Besser direkt messen:** Hebelarm anschlagen und die Ausschwingfrequenz
+aufnehmen. Das erfasst alles — Zelle, Zugglied, Einspannung — statt es zu modellieren.
+
+Nicht mit dem HX711: 80 SPS reichen nur bis 40 Hz. Stattdessen ein Handy mit
+Beschleunigungs- und FFT-App auf den Arm kleben, anschlagen, Spitze ablesen.
+
+**Was davon abhängt:** nicht der Messwert. Die Messung ist momentengetrieben, eine
+Resonanz vergrößert nur die Amplitude um den Mittelwert und fällt bei synchroner
+Mittelung heraus ([09-messtheorie](09-messtheorie.md) §3.5). Gefährlich ist sie nur,
+wenn der Arm in die Anschläge läuft oder wenn sie über 40 Hz angeregt wird und sich
+dann in die Abtastung faltet (§3.7).
 
 ### A2 Zulässige Höchstdrehzahl der Trommel
 Hängt an Holzaufbau, Nabenanbindung und Wuchtgüte. Entscheidet, ob über 60 km/h hinaus
