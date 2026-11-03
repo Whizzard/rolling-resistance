@@ -495,10 +495,44 @@ Stoßstelle des Mantelblechs und Reifenunrundheit modulieren es einmal pro Umdre
 | 20 % | 5,4 N |
 | 30 % | 8,1 N |
 
-→ **12 N (12 % FS), als konstante Kraft**: Gewicht über eine Rolle oder Gegengewicht am
-Arm. **Keine Feder** — eine Feder hat eine Rate und zweigt einen drehwinkelabhängigen
-Anteil des Moments ab; ein Gewicht liefert eine konstante Kraft und fällt vollständig in
-die statische Tara. Messbereich damit 12 % (Tara) bis 76 % FS im Auslegungsfall.
+→ **12 N (12 % FS), als konstante Kraft**. **Keine Feder** — eine Feder hat eine Rate und
+zweigt einen drehwinkelabhängigen Anteil des Moments ab; ein Gewicht liefert eine
+konstante Kraft und fällt vollständig in die statische Tara. Messbereich damit 12 %
+(Tara) bis 76 % FS im Auslegungsfall.
+
+**Ausführung: hängend.** Der Arm sitzt **unter** der Konsole, die Wägezelle darüber, das
+Zugglied zieht nach oben. Die Schwerkraft liefert die Vorspannung damit selbst — keine
+Umlenkrolle, keine zusätzliche Reibung, und der Zug steht auch im stromlosen Zustand.
+Die Konsole kommt dadurch höher und ist besser zugänglich.
+
+Zwei Bedingungen:
+
+- Das Zusatzgewicht wird **starr an den Arm geschraubt**, nicht an einen Draht gehängt.
+  Ein hängendes Gewicht ist ein Pendel und bringt eine zweite Eigenfrequenz mit.
+- Der Arm muss so stehen, dass das Reaktionsmoment des Motors den Zug **spannt** statt
+  entlastet — sonst steht die Zelle bei Null am Anschlag und läuft unter Last leer.
+
+### 7.4a Das Vorspanngewicht gehört nach innen
+
+Für ein gegebenes Vorspannmoment gilt `J = M·r/g` — das Trägheitsmoment wächst **linear
+mit dem Radius**, an dem das Gewicht sitzt. Weit außen braucht man weniger Masse, zahlt
+aber mehr Trägheit:
+
+| Radius | nötige Masse | J-Zuwachs |
+|---|---|---|
+| **40 mm** | 1,22 kg | **0,0020 kg·m²** |
+| 80 mm | 0,61 kg | 0,0039 kg·m² |
+| 200 mm | 0,25 kg | 0,0098 kg·m² |
+
+Das schlägt direkt auf die Eigenfrequenz durch. Bei einem Stator mit J = 0,012 kg·m²:
+
+| Gewicht bei | f_n |
+|---|---|
+| 40 mm | **30,8 Hz** |
+| 200 mm | 24,7 Hz — dicht an der 4. Ordnung (23,5 Hz) |
+
+→ **Vorspanngewicht auf denselben Radius wie die Zelle**, also 40 mm. Die höhere Masse
+ist der richtige Tausch.
 
 Wird der Zug doch schlaff, sieht man es in den Rohdaten als untere Begrenzung des
 Signals. Das gehört in die Prüfliste des ersten Laufs.
