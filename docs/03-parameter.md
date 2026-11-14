@@ -53,8 +53,8 @@ dazu ein **FSESC 4.20 / 50 A** als Regler ([04-hardware](04-hardware.md) §10).
 | kv | **14,0** | 1/min/V | gem | 589 1/min bei 42 V |
 | kt | 0,68 | Nm/A | ber | 9,55 / kv |
 | Masse | 2,26 | kg | Angebot | geht in die Eigenfrequenz des Wiegeteils ein |
-| Hallsensoren | ja | – | Angebotsfotos | 3 Flachstecker + weißer JST mit 6 Adern |
-| Temperaturfühler | **TBD** | – | – | 6. Ader am Hall-Stecker, vermutlich NTC — ausmessen, A5 |
+| Hallsensoren | ja, 3 Stück auf einer Platine im Stator | – | Foto des geöffneten Motors | 3 Flachstecker (gelb/grün/blau) + weißer JST mit 6 Adern, Belegung in [04-hardware](04-hardware.md) §11 |
+| Temperaturfühler | **TBD** | – | – | weiße Ader am Hall-Stecker, führt ins Wickelpaket — Typ ausmessen, A5 |
 | **Mechanische Bremse** | **nein** | – | – | **kein stromloser Bremspfad**, siehe [07-sicherheit](07-sicherheit.md) §3 und A9 |
 | Polzahl | **TBD** | – | TBD | von Hand eine Umdrehung drehen, Hallflanken zählen |
 | Phasenwiderstand | **TBD** | Ω | TBD | Vierleitermessung zwischen je zwei Phasen |

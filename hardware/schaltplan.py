@@ -48,16 +48,16 @@ with schemdraw.Drawing(show=False) as d:
     si  = box(d,  -5.0,  0.0, 1.9, 1.1, 'Sicherung\n15 A', PWR)
     reg = box(d,  -2.3,  0.0, 2.9, 1.1, 'FSESC 4.20 / 50 A\n8…60 V · UART', PWR)
     mot = box(d,   1.4,  0.0, 2.9, 1.1, 'Nabenmotor\n36 V / 350 W', PWR)
-    chop= box(d,   5.1,  0.0, 3.0, 1.1, 'mech. Trommelbremse\nim Motor  (A8)', PWR)
+    brk = box(d,   5.1,  0.0, 3.0, 1.1, 'Kurzschlussbremse\n3 × Relais 12 V  (§9)', PWR)
 
     wire(d, nt.E,  na.W,  '36 V', PWR)
     wire(d, na.E,  si.W,  None,   PWR)
     wire(d, si.E,  reg.W, None,   PWR)
     wire(d, reg.E, mot.W, '3 Ph.', PWR)
-    d += elm.Line().at(mot.E).to(chop.W).color(PWR).linestyle(':').linewidth(1.1)
-    d += elm.Label().at((6.6, -1.0)).label(
-        'A8 zurückgestellt: kein Bremswiderstand,\nkein Kurzschlussschütz. Frei auslaufen\nlassen, zum Feststellen die Trommelbremse.',
-        fontsize=6.8, color='#4a5560')
+    wire(d, mot.E, brk.W, '3 Ph.', PWR)
+    d += elm.Label().at((8.5, 0.15)).label(
+        'Stromlos geschlossen = gebremst.\nGemessen 25 s aus über 400 1/min.\nKEINE mechanische Bremse — zum\nFeststellen der Blockierkeil.',
+        fontsize=6.8, color='#4a5560', halign='left')
 
     # --------------------------------------------------- Routing-Kanal oben
     CH = -1.5                      # waagerechter Kanal fuer Signale nach oben
@@ -108,15 +108,17 @@ with schemdraw.Drawing(show=False) as d:
     d += elm.Line().at(btn.E).to(ble.W).color(AUX).linestyle(':').linewidth(1.1)
 
     # ------------------------- Signale vom ESP32 nach oben, rechtwinklig
-    def up(x_from, y_from, x_to, y_to, label, color, ls='-', dy=0.0):
+    def up(x_from, y_from, x_to, y_to, label, color, ls='-', dy=0.0, lx=None):
         d.add(elm.Line().at((x_from, y_from)).to((x_from, CH+dy)).color(color).linestyle(ls).linewidth(1.1))
         d.add(elm.Line().at((x_from, CH+dy)).to((x_to, CH+dy)).color(color).linestyle(ls).linewidth(1.1))
         d.add(elm.Line().at((x_to, CH+dy)).to((x_to, y_to)).color(color).linestyle(ls).linewidth(1.1))
-        d.add(elm.Label().at(((x_from+x_to)/2, CH+dy+0.28)).label(label, fontsize=7, color=color))
+        d.add(elm.Label().at((lx if lx is not None else (x_from+x_to)/2, CH+dy+0.28)).label(
+            label, fontsize=7, color=color))
 
     up(ESPX+1.4, ESPY+3.2, reg.S[0], reg.S[1], 'UART1   TX 18 · RX 21', SIG, dy=0.0)
     up(ESPX+3.6, ESPY+3.2, mot.S[0], mot.S[1], 'Motor-Hall GPIO7 · PTC GPIO1 (ADC1)', SIG, dy=-0.75)
     up(ESPX+0.4, ESPY+3.2, na.S[0],  na.S[1],  'Not-Aus-Rückmeldung GPIO2 (nur Anzeige)', PWR, ls=':', dy=-1.5)
+    up(ESPX+4.8, ESPY+3.2, brk.S[0]+1.3, brk.S[1], 'Bremse lösen  GPIO40', SIG, dy=-2.25, lx=2.9)
 
     # --------------------------------------------------------- Fussnoten
     d += elm.Label().at((-12.0, -12.0)).label(
@@ -142,6 +144,9 @@ with schemdraw.Drawing(show=False) as d:
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -15.15)).label(
         'FSESC 4.20:  UART an der Stiftleiste COMM (5V · 3.3V · − · ADC · TX · RX · ADC2). Nur TX, RX und Masse anschliessen — die 5 V des Reglers NICHT,',
+        fontsize=7.5, color='#4a5560', halign='left')
+    d += elm.Label().at((-12.0, -16.05)).label(
+        'Bremse:  GPIO40 high = Relais angezogen = Bremse geloest; Pulldown am Gate, beim Reset also gebremst. Reihenfolge: erst Treiber sperren, dann Relais abfallen lassen.',
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -15.60)).label(
         '           der Logikteil haengt am USB. Motor-Hall und TMP liegen an der Leiste SENSE (− · H3 · H2 · H1 · TMP · 5V), siehe docs/04-hardware.md §10.',

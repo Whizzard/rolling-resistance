@@ -6,28 +6,29 @@ Sortiert nach Blockerwirkung. Stand: 2026-10-24.
 
 ### A1 Steckerbelegung des Motors
 Verbaut ist das Hoverboard-Rad: **3 Flachstecker (gelb/grün/blau) = Phasen, dazu ein
-weißer JST mit 6 dünnen Adern** = Vcc, GND, Ha, Hb, Hc und vermutlich ein
-Temperaturfühler (A5). Belegung mit dem Messgerät verifizieren.
+weißer JST mit 6 dünnen Adern** (weiß, schwarz, grün, blau, gelb, rot).
 
-In beiden Fällen gilt: **mit dem Messgerät verifizieren**, bevor irgendetwas
-angeschlossen wird. Eine vertauschte Hall-Versorgung zerstört die Sensoren.
+Aderfarben, erschlossene Belegung und die Weiterführung an den Regler stehen in
+[04-hardware](04-hardware.md) §11. Offen bleibt die **Verifikation mit dem
+Messgerät** — Vorschrift in §11.3. Eine vertauschte Hall-Versorgung zerstört die
+Sensoren.
 
 Außerdem offen: Gegenstecker beschaffen oder abschneiden und eigene Verbinder setzen?
 
 ### A5 Temperaturfühler: Typ bestimmen
-Der Hall-Stecker hat **6 Adern**. Vcc, GND und drei Hall-Signale sind fünf — die
-sechste ist vermutlich ein NTC gegen GND.
+Die sechste Ader des Hall-Steckers ist **weiß** und läuft am geöffneten Motor nicht
+auf die Hall-Platine, sondern in einem Glasseidenschlauch ins Wickelpaket
+([04-hardware](04-hardware.md) §11.1). Das ist der Platz eines Fühlers, beweist aber
+weder Typ noch Kennlinie.
 
-Widerstand 6. Ader gegen GND bei Raumtemperatur messen:
+**Zu tun:** Widerstand weiß gegen schwarz messen und beim Anwärmen beobachten —
+Messvorschrift samt Deutungstabelle in [04-hardware](04-hardware.md) §11.3.
 
-| Messwert | Deutung |
-|---|---|
-| ≈ 10 kΩ, fällt beim Anwärmen | NTC 10 k, vermutlich B 3950 |
-| ≈ 100 Ω / 1 kΩ, steigt beim Anwärmen | PT100 / PT1000 |
-| offen oder 0 Ω | kein Fühler, NTC nachrüsten |
+Danach zwei Entscheidungen:
 
-Danach Grenzwert festlegen und in [07-sicherheit](07-sicherheit.md) §4 eintragen.
-Anschluss an `PIN_MOTOR_PTC` = GPIO1 (ADC1).
+1. **Wohin die Ader geht** — an `TMP` des Reglers oder an `PIN_MOTOR_PTC` = GPIO1
+   (ADC1). Nur eines von beidem, Gegenüberstellung in §11.4.
+2. **Grenzwert festlegen** und in [07-sicherheit](07-sicherheit.md) §4 eintragen.
 
 ### A7 Eigenfrequenz der Waage — **messen, nicht wiegen**
 Gebraucht wird nicht die Masse des Stators, sondern das **Trägheitsmoment** — und selbst

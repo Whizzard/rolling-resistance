@@ -625,7 +625,7 @@ PWM-Sollwerteingang. Für den Prüfstand ohne Belang — gesteuert wird über UA
 | COMM `RX` | ESP32 `PIN_DRIVE_TX` = GPIO 18 | |
 | COMM `−` | gemeinsame Masse, Sternpunkt nach §5.5 | die einzige Verbindung zwischen Logik- und Leistungsmasse |
 | COMM `5V` | **nicht anschließen** | der Logikteil hängt am USB (§5.1); zwei speisende Quellen wären ein Kurzschluss |
-| SENSE | Hall-Kabel des Motors | H1…H3 und `TMP` passen zum sechsadrigen Motorstecker — ob dessen 6. Ader wirklich ein Fühler ist, klärt A5 |
+| SENSE | Hall-Kabel des Motors | Aderfarben und Zuordnung in §11; die weiße Ader erst nach A5 an `TMP` |
 | CAN, SWD | frei | CAN erst nötig, wenn ein zweiter Regler dazukommt; SWD nur zum Flashen des Bootloaders |
 
 Der ESP32 greift eine Hall-Phase zusätzlich an `PIN_MOTOR_HALL` = GPIO 7 ab (§4).
@@ -644,3 +644,86 @@ setzen.
   ([10-firmware](10-firmware.md) N2).
 - **Die mitgelieferten Phasen- und Batteriekabel sind zu dünn** für die 60 A Spitze
   der Kurzschlussbremse (§9.1).
+
+## 11 Motoranschluss: Phasen und Hall-Stecker
+
+Aufgenommen am geöffneten Motor (Fotos vom 2026-11-14). **Nichts davon ist
+durchgemessen** — die Zuordnung unten ist aus den Aderfarben und dem Verlauf der
+Leitungen erschlossen. Vor dem ersten Anschließen gilt §11.3; eine vertauschte
+Hall-Versorgung zerstört die Sensoren.
+
+### 11.1 Was am Motor herauskommt
+
+- **Drei dicke Adern mit Flachsteckern: gelb, grün, blau** — die Phasen.
+- **Ein weißer JST-Stecker mit sechs dünnen Adern:** weiß, schwarz, grün, blau,
+  gelb, rot (Reihenfolge am Stecker, so wie fotografiert).
+- Im Stator sitzt eine Platine mit drei Hall-ICs auf dem Teilkreis. Zu ihr führen
+  die farbigen Adern und rot/schwarz; die **weiße Ader geht nicht auf die
+  Hall-Platine, sondern in einem Glasseidenschlauch ins Wickelpaket** — genau dort,
+  wo ein Temperaturfühler sitzen würde.
+
+### 11.2 Erschlossene Belegung
+
+```
+   JST 6-polig am Motor            FSESC, Leiste 2 SENSE
+   ┌─────────────────────┐
+   │ 1  weiß    TMP ?    │ ─────▶ TMP   (erst nach A5 anschließen)
+   │ 2  schwarz GND      │ ─────▶ −
+   │ 3  grün    Hall     │ ─────▶ H3 ┐
+   │ 4  blau    Hall     │ ─────▶ H2 ├ Zuordnung beliebig, das VESC-Tool
+   │ 5  gelb    Hall     │ ─────▶ H1 ┘ erkennt die Hall-Tabelle selbst
+   │ 6  rot     +5 V     │ ─────▶ 5V
+   └─────────────────────┘
+
+   Phasen (Flachstecker):  gelb · grün · blau  →  A1 · B1 · C1 des Reglers,
+   Reihenfolge beliebig — die Drehrichtung wird in der Software gesetzt (§10.1).
+```
+
+Woher die Zuordnung kommt:
+
+| Ader | Deutung | Begründung |
+|---|---|---|
+| gelb, grün, blau | die drei Hall-Signale | dieselben drei Farben wie die Phasen; beim Hoverboard-Rad üblich |
+| rot, schwarz | Versorgung der Hall-Platine, 5 V und GND | an der Platine, nicht an den Wicklungen |
+| weiß | Temperaturfühler | die einzige übrige Ader, und sie führt in die Wicklung, nicht auf die Hall-Platine |
+
+> Die gleichfarbige Hall-Ader gehört **nicht** zwangsläufig zur gleichfarbigen Phase.
+> Welches Ende des Steckers Pin 1 ist, liegt ebenfalls nicht fest — maßgeblich ist
+> die Farbe, nicht die Position.
+
+### 11.3 Prüfvorschrift vor dem Anschließen
+
+Ohne Versorgung, mit dem Multimeter:
+
+1. **weiß gegen schwarz** messen — das klärt A5:
+
+   | Messwert | Deutung |
+   |---|---|
+   | ≈ 10 kΩ, **fällt** beim Anwärmen | NTC 10 k, vermutlich B 3950 |
+   | ≈ 100 Ω / 1 kΩ, **steigt** beim Anwärmen | PT100 / PT1000 oder KTY |
+   | ≈ 0 Ω, öffnet beim Anwärmen | Thermoschalter, kein Fühler |
+   | offen | weiß gegen rot und gegen die Hall-Adern nachmessen, bevor „kein Fühler" gilt |
+
+   Anwärmen mit dem Fön auf Handwärme genügt; entscheidend ist das **Vorzeichen**
+   der Änderung.
+2. **rot gegen schwarz:** niederohmig darf es nicht sein. Erwartet wird der
+   Eingangswiderstand der Hall-Platine, nicht ein Kurzschluss.
+3. Erst dann **5 V an rot/schwarz** legen, strombegrenzt. Jede der drei Hall-Adern
+   gegen schwarz messen und das Rad von Hand langsam drehen: der Pegel muss
+   umschalten. Flanken je Umdrehung zählen — das ist `MOTOR_PULSES_PER_REV`
+   ([03-parameter](03-parameter.md) §3).
+4. **Den High-Pegel notieren.** Liegt er bei 5 V, darf die Ader nicht direkt an
+   `PIN_MOTOR_HALL` = GPIO 7; der ESP32-S3 ist nicht 5-V-tolerant (§5.2). Dasselbe
+   gilt für den Abgriff am SENSE-Eingang des Reglers (§10.3).
+
+### 11.4 Wohin die weiße Ader geht
+
+Zwei Möglichkeiten, und **nur eine davon** — ein resistiver Fühler verträgt keine
+zwei Pull-ups, beide Messungen wären falsch:
+
+| | Fühler an `TMP` des Reglers | Fühler an `PIN_MOTOR_PTC` = GPIO 1 |
+|---|---|---|
+| Auswertung | der Regler begrenzt selbst, der ESP32 liest den Wert über UART ([10-firmware](10-firmware.md) D25) | ESP32 über ADC1, Kennlinie in der Firmware |
+| Voraussetzung | Fühlertyp muss zu den Kennlinien des VESC-Tools passen | freie Kennlinie, aber eigene Beschaltung und Abgleich |
+
+Entscheidung offen, siehe A5.
