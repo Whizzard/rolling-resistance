@@ -75,7 +75,7 @@ Als Reibrolle gegen die Trommeloberfläche geht der Motor nicht: dafür bräucht
 | Teil | Anforderung | Status |
 |---|---|---|
 | Nabenmotor | **Hoverboard-Antriebsrad 6,5″, 36 V / 350 W** | **beschafft** |
-| Motorregler | **FSESC 4.20 / 50 A** (VESC-Klasse) | **beschafft** |
+| Motorregler | **FSESC 4.20 / 50 A** (VESC-Klasse), Eckdaten und Anschlüsse in §10 | **beschafft** |
 | 3 × KFZ-Wechselrelais 12 V/40 A | Kurzschlussbremse, §9 | im Warenkorb |
 | 2N5551, 1N4007, Widerstände | Low-Side-Schalter der Relaiskette, §9 | Sortiment beschafft |
 | NTC für die Statorachse | nur falls die 6. Ader am Hall-Stecker kein Fühler ist (A5) | offen |
@@ -548,3 +548,99 @@ Strom ist in Reihe nur **einmal** 140 mA, nicht dreimal.
   Widerstand. Ersatz nur mit demselben Modell.
 - Eine **Feststellbremse ersetzt das nicht.** Dafür bleibt der Blockierkeil
   ([07-sicherheit](07-sicherheit.md) §3).
+
+## 10 Motorregler FSESC 4.20
+
+**Flipsky Mini FSESC 4.20 mit Kühlkörper.** VESC-Hardware V4.20, konfiguriert wird
+über USB mit dem VESC-/BLDC-Tool. Quelle dieses Abschnitts ist das dem Regler
+beiliegende Herstellerhandbuch (Specs und Wiring diagram).
+
+### 10.1 Eckdaten
+
+| Größe | Wert | Anmerkung |
+|---|---|---|
+| Hardware | V4.20 | VESC-Projekt, Open Source |
+| Strom | **50 A dauernd, 150 A Spitze** | Auslegungsfall des Prüfstands: 3,3 A (§6) |
+| Zellen | 3–13S LiPo | |
+| Spannung | **8–60 V** | Bus 36 V, mit Rückspeisung bis 42 V — Reserve nach oben |
+| BEC | 5 V / 1,5 A, interner Treiber | **wird nicht benutzt**, siehe §10.3 |
+| Timing | per Software | |
+| Abschaltspannung | programmierbar | relevant nur im Akkubetrieb |
+| Sollwerteingang | PWM (PPM/Servo) | wir fahren über UART, §10.3 |
+| Rückwärtslauf | ja | Drehrichtung per Software, nicht durch Phasentausch |
+| Programmierkarte | nein | Einstellung ausschließlich über USB |
+| Masse | 80 g | |
+| Außenmaß | 67 × 39 × 18,3 mm | mit Kühlkörper |
+| Lieferumfang | Regler + Kühlkörper, Micro-USB-Kabel, VESC-Sensorkabel, Handbuch | |
+
+> Zwei Zeilen der Vorlage — „Governor" und das reine Platinenmaß — sind im Druck
+> nicht lesbar und stehen deshalb nicht in der Tabelle.
+
+### 10.2 Anschlussschema
+
+```
+                        ┌──────── BATTERY ────────┐
+                        │   +  rot      −  schwarz│   8…60 V  (hier 36 V)
+                        └────────────┬────────────┘
+                                     │
+   ┌────────┐                 ┌──────┴────────────────────┐              ┌────────┐
+   │ 4 SWD  │────────────────▶│                           │◀─────────────│ 1 CAN  │
+   └────────┘                 │   Mini FSESC 4.20         │              └────────┘
+   ┌────────┐                 │   VESC-HW V4.20           │              ┌────────┐
+   │ 3 COMM │────────────────▶│   50 A / 150 A Spitze     │◀─────────────│ 2 SENSE│
+   └────────┘                 │                           │              └────────┘
+                              │        [ Micro-USB ]      │
+                              └────┬────────┬────────┬────┘
+                                 C1│      B1│      A1│   3 Phasen, ≥ 4 mm²
+                                   └────────┼────────┘    (Bremsrelais dazwischen, §9)
+                                            ▼
+                                       Nabenmotor
+```
+
+Belegung der vier Stiftleisten, in der Reihenfolge des Handbuchs:
+
+| | 1 CAN | 2 SENSE | 3 COMM | 4 SWD |
+|---|---|---|---|---|
+| | − | − | 5V | NC |
+| | CAL | H3 | 3.3V | RST |
+| | CAH | H2 | − | DIO |
+| | 5V | H1 | ADC | − |
+| | | TMP | TX | CLK |
+| | | 5V | RX | 3.3V |
+| | | | ADC2 | |
+
+> Welches Ende der Leiste Pin 1 ist, geht aus der Zeichnung nicht hervor. Vor dem
+> ersten Anschließen 5 V und Masse am Stecker nachmessen.
+
+Der Empfänger ist im Handbuch mit **GND / 5V / SIN** gezeichnet, also der
+PWM-Sollwerteingang. Für den Prüfstand ohne Belang — gesteuert wird über UART.
+
+### 10.3 Was davon benutzt wird
+
+| Anschluss | Gegenstelle | Anmerkung |
+|---|---|---|
+| BATTERY + / − | Netzteil 36 V über Not-Aus und Sicherung | §1, §6 |
+| C1 / B1 / A1 | Motorphasen, dazwischen die Bremsrelais | §9. Drehrichtung per Software, nicht durch Phasentausch |
+| COMM `TX` | ESP32 `PIN_DRIVE_RX` = GPIO 21 | 3,3-V-Pegel, kein Wandler nötig |
+| COMM `RX` | ESP32 `PIN_DRIVE_TX` = GPIO 18 | |
+| COMM `−` | gemeinsame Masse, Sternpunkt nach §5.5 | die einzige Verbindung zwischen Logik- und Leistungsmasse |
+| COMM `5V` | **nicht anschließen** | der Logikteil hängt am USB (§5.1); zwei speisende Quellen wären ein Kurzschluss |
+| SENSE | Hall-Kabel des Motors | H1…H3 und `TMP` passen zum sechsadrigen Motorstecker — ob dessen 6. Ader wirklich ein Fühler ist, klärt A5 |
+| CAN, SWD | frei | CAN erst nötig, wenn ein zweiter Regler dazukommt; SWD nur zum Flashen des Bootloaders |
+
+Der ESP32 greift eine Hall-Phase zusätzlich an `PIN_MOTOR_HALL` = GPIO 7 ab (§4).
+**TBD:** Auf welchem Pegel die Hall-Leitungen am SENSE-Eingang liegen, ist nicht
+dokumentiert. Liegt dort ein Pull-up nach 5 V, darf die Leitung nicht direkt an den
+S3 (§5.2) — am angeschlossenen Regler messen, notfalls Teiler oder Pegelwandler
+setzen.
+
+### 10.4 Grenzen
+
+- **Rückspeisung.** Der Regler bremst elektrisch und schiebt die Energie in den Bus
+  zurück; ein Labornetzteil nimmt sie nicht auf (§6). Die Abschaltspannung ist
+  programmierbar, der Überspannungsfall bleibt trotzdem der Regler-Fehlerfall.
+- **Reihenfolge beim Bremsen.** Erst den Treiber sperren, dann die Relais abfallen
+  lassen — die Phasen dürfen nicht kurzgeschlossen werden, solange der Regler treibt
+  ([10-firmware](10-firmware.md) N2).
+- **Die mitgelieferten Phasen- und Batteriekabel sind zu dünn** für die 60 A Spitze
+  der Kurzschlussbremse (§9.1).

@@ -37,7 +37,7 @@ with schemdraw.Drawing(show=False) as d:
     d += elm.Label().at((-2.0, 3.4)).label(
         'Rollwiderstandsprüfstand — Verdrahtung', fontsize=15, color=INK)
     d += elm.Label().at((-2.0, 2.7)).label(
-        'ESP32-S3-DevKitC-1 N16R8  ·  Stand 2026-11-01  ·  Quelle: hardware/schaltplan.py',
+        'ESP32-S3-DevKitC-1 N16R8  ·  Stand 2026-11-14  ·  Quelle: hardware/schaltplan.py',
         fontsize=7.5, color='#4a5560')
 
     # ---------------------------------------------------- Leistungspfad oben
@@ -46,7 +46,7 @@ with schemdraw.Drawing(show=False) as d:
     nt  = box(d, -12.0,  0.0, 2.6, 1.1, 'Netzteil\n36 V / 10 A', PWR)
     na  = box(d,  -8.6,  0.0, 2.8, 1.1, 'NOT-AUS\nzwangsöffnend', PWR, lw=2.6)
     si  = box(d,  -5.0,  0.0, 1.9, 1.1, 'Sicherung\n15 A', PWR)
-    reg = box(d,  -2.3,  0.0, 2.9, 1.1, 'Motorregler\nFOC, UART', PWR)
+    reg = box(d,  -2.3,  0.0, 2.9, 1.1, 'FSESC 4.20 / 50 A\n8…60 V · UART', PWR)
     mot = box(d,   1.4,  0.0, 2.9, 1.1, 'Nabenmotor\n36 V / 350 W', PWR)
     chop= box(d,   5.1,  0.0, 3.0, 1.1, 'mech. Trommelbremse\nim Motor  (A8)', PWR)
 
@@ -114,7 +114,7 @@ with schemdraw.Drawing(show=False) as d:
         d.add(elm.Line().at((x_to, CH+dy)).to((x_to, y_to)).color(color).linestyle(ls).linewidth(1.1))
         d.add(elm.Label().at(((x_from+x_to)/2, CH+dy+0.28)).label(label, fontsize=7, color=color))
 
-    up(ESPX+1.4, ESPY+3.2, reg.S[0], reg.S[1], 'UART2   TX 18 · RX 21', SIG, dy=0.0)
+    up(ESPX+1.4, ESPY+3.2, reg.S[0], reg.S[1], 'UART1   TX 18 · RX 21', SIG, dy=0.0)
     up(ESPX+3.6, ESPY+3.2, mot.S[0], mot.S[1], 'Motor-Hall GPIO7 · PTC GPIO1 (ADC1)', SIG, dy=-0.75)
     up(ESPX+0.4, ESPY+3.2, na.S[0],  na.S[1],  'Not-Aus-Rückmeldung GPIO2 (nur Anzeige)', PWR, ls=':', dy=-1.5)
 
@@ -139,6 +139,12 @@ with schemdraw.Drawing(show=False) as d:
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -14.70)).label(
         'HX711-Analogteil:  Ferrit und 100 uF direkt am AVDD-Pin, Sternmasse, nicht am Motorzweig.',
+        fontsize=7.5, color='#4a5560', halign='left')
+    d += elm.Label().at((-12.0, -15.15)).label(
+        'FSESC 4.20:  UART an der Stiftleiste COMM (5V · 3.3V · − · ADC · TX · RX · ADC2). Nur TX, RX und Masse anschliessen — die 5 V des Reglers NICHT,',
+        fontsize=7.5, color='#4a5560', halign='left')
+    d += elm.Label().at((-12.0, -15.60)).label(
+        '           der Logikteil haengt am USB. Motor-Hall und TMP liegen an der Leiste SENSE (− · H3 · H2 · H1 · TMP · 5V), siehe docs/04-hardware.md §10.',
         fontsize=7.5, color='#4a5560', halign='left')
 
     d.save('hardware/schaltplan.pdf')

@@ -41,7 +41,7 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 ## 4 Antrieb
 
 **Verbaut ist das Hoverboard-Antriebsrad 6,5″, 36 V / 350 W** (beschafft 2026-10-28),
-dazu ein **FSESC 4.20 / 50 A** als Regler.
+dazu ein **FSESC 4.20 / 50 A** als Regler ([04-hardware](04-hardware.md) §10).
 
 | Größe | Wert | Einheit | Herkunft | Anmerkung |
 |---|---|---|---|---|
