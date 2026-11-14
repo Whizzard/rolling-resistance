@@ -193,7 +193,7 @@ kostet die Messung.
 |---|---|---|
 | TLE4905L | V_S = 5 V (Minimum 3,8 V) | Open Collector, **Pull-up 2,2…4,7 kΩ nach 3,3 V** |
 | HX711 | **VCC = 5 V** (analog), **VDD = 3,3 V** (digital) | DOUT auf 3,3 V |
-| LCD / PCF8574 | 5 V | I²C über Pegelwandler |
+| LCD / PCF8574 | 5 V | I²C — drei Wege, §5.6 |
 
 **Festlegung: HX711-Modul mit getrennten VCC- und VDD-Pins** (SparkFun-Bauform,
 fünf Pins: VDD, VCC, DAT, CLK, GND). VCC speist die Brücke, VDD legt den Logikpegel
@@ -325,6 +325,36 @@ Falls doch einer in die Analogstrecke muss:
   sie axial durch die Statorachse aus, also auf der Pendelachse — der Vorteil geht
   verloren, wenn das Kabel straff abgeht.
 - **Logik- und Leistungsmasse an genau einem Punkt verbinden.**
+
+### 5.6 Das LCD auf 3,3-V-Pegel bringen
+
+Backpack (PCF8574) und HD44780-Modul laufen auf **5 V**. SDA und SCL sind Open Drain:
+den High-Pegel macht nicht der Baustein, sondern der **Pull-up** — und auf dem
+Backpack sitzen 4,7 kΩ nach **5 V**. Genau die dürfen nicht an den S3.
+
+| Weg | Eingriff | Bewertung |
+|---|---|---|
+| **a) Pegelwandler** | zwei MOSFETs (BSS138) oder ein Fertigmodul zwischen Bus und ESP32 | innerhalb der Spezifikation, nichts am Modul zu ändern; kostet ein Bauteil und zwei Steckstellen |
+| **b) Pull-ups umhängen** | die 4,7 kΩ auf dem Backpack auslöten, stattdessen 2,2…4,7 kΩ nach **3,3 V** am ESP32 | am wenigsten Aufwand, aber **außerhalb der Spezifikation** |
+| **c) LCD auf 3,3 V** | auf dem Backpack ist ein Spannungsregler **nicht bestückt**; dazu kämen einige Kondensatoren und Widerstände (Sichtprüfung der vorhandenen Platine) | sauberster Pegel, aber Bestückungsarbeit — und der Kontrast des HD44780 bei 3,3 V ist zu prüfen |
+
+Warum (b) „nicht ganz sauber" ist: der PCF8574 verlangt als High-Pegel
+**0,7 · V_DD**, bei 5 V Versorgung also **3,5 V**. Ein Bus, der nur auf 3,3 V
+hochgezogen wird, liegt darunter.
+
+- **Kaputt geht dabei nichts.** Gefährlich wäre die umgekehrte Richtung — 5 V am
+  S3 —, und die ist nach dem Auslöten gerade weg.
+- Ob der Baustein die 3,3 V **zuverlässig** als High liest, sagt das Datenblatt
+  nicht zu. Das entscheidet sich am Exemplar und an der Temperatur. In der Praxis
+  läuft es oft; eine Zusicherung ist es nicht.
+- **Ein marginaler High-Pegel lässt sich nicht nachbessern.** Kleinere Pull-ups
+  machen nur die Flanken steiler, nicht den Pegel höher; 100 kHz statt 400 kHz
+  ebenso. Zickt der Bus, bleibt nur (a) oder (c).
+
+**Reihenfolge bei (b): erst auslöten, dann anschließen.** Solange die 4,7 kΩ nach
+5 V am Bus hängen, liegen 5 V an GPIO 8 und 9.
+
+Entscheidung offen, siehe [06-offene-fragen](06-offene-fragen.md) B3.
 
 ## 6 Leistungsbedarf und Netzteil
 
@@ -727,3 +757,45 @@ zwei Pull-ups, beide Messungen wären falsch:
 | Voraussetzung | Fühlertyp muss zu den Kennlinien des VESC-Tools passen | freie Kennlinie, aber eigene Beschaltung und Abgleich |
 
 Entscheidung offen, siehe A5.
+
+### 11.5 Umsortieren statt löten
+
+Der einfachste Weg, **wenn beide Stecker dasselbe System sind**: die Kontakte aus den
+Kammern ziehen und in der richtigen Reihenfolge wieder einsetzen. Kein Löten, keine
+zusätzliche Steckstelle, jederzeit rückgängig zu machen.
+
+Zwei Dinge müssen vorher feststehen:
+
+1. **Raster und Kontakttyp beider Stecker.** Messschieber an den weißen Motorstecker
+   und an das beiliegende VESC-Sensorkabel. Gleiches System → umstecken. Verschiedene
+   Systeme → die Kontakte passen nicht ins andere Gehäuse, dann wird das Sensorkabel
+   angespleißt und beim Spleißen umsortiert. **TBD**, beides noch nicht gemessen.
+2. **Welches Ende der Leiste `SENSE` Pin 1 ist** (§10.2). Am angeschlossenen Regler
+   5 V und Masse nachmessen — sonst wird sauber spiegelverkehrt sortiert.
+
+Zielreihenfolge ist die des Reglers: `−` · `H3` · `H2` · `H1` · `TMP` · `5V`.
+
+| Kammer | heute | künftig |
+|---|---|---|
+| 1 | weiß | **schwarz** — GND |
+| 2 | schwarz | grün — Hall |
+| 3 | grün | blau — Hall |
+| 4 | blau | gelb — Hall |
+| 5 | gelb | **weiß** — TMP |
+| 6 | rot | **rot** — 5 V |
+
+> Die drei Hall-Adern dürfen untereinander beliebig liegen, das VESC-Tool erkennt die
+> Hall-Tabelle selbst (§11.2). Stimmen müssen nur **schwarz, weiß und rot**. Praktisch
+> ist es eine Rotation: alles außer rot rückt eine Kammer vor, weiß wandert ans Ende.
+
+Beim Ziehen:
+
+- **Der gelbe Verguss an der Kabeleinführung muss zuerst weg.** Solange er hält, kommt
+  kein Kontakt aus der Kammer. Mit der Klingenspitze aufbrechen oder mit Isopropanol
+  anlösen — nicht am Kabel ziehen.
+- Rastzunge mit einer feinen Nadel oder einem Entriegelungswerkzeug niederdrücken, dann
+  die Ader **nach hinten** herausziehen.
+- Eine abgebrochene Rastzunge heißt: der Kontakt hält nicht mehr von allein. Zunge
+  wieder aufstellen oder den Kontakt im Gehäuse sichern.
+- Vorher fotografieren. Hinterher **jede Ader einzeln auf Durchgang prüfen**, bevor
+  Spannung daraufkommt.

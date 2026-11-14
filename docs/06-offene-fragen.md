@@ -13,7 +13,16 @@ Aderfarben, erschlossene Belegung und die Weiterführung an den Regler stehen in
 Messgerät** — Vorschrift in §11.3. Eine vertauschte Hall-Versorgung zerstört die
 Sensoren.
 
-Außerdem offen: Gegenstecker beschaffen oder abschneiden und eigene Verbinder setzen?
+Außerdem offen, wie die Verbindung zum Regler zustande kommt — die Reihenfolge der
+beiden Sechser stimmt nicht überein (§11.2):
+
+1. **Kontakte aus den Kammern ziehen und umsortieren** ([04-hardware](04-hardware.md)
+   §11.5) — der kürzeste Weg, setzt aber voraus, dass beide Stecker dasselbe System
+   sind.
+2. Gegenstecker beschaffen.
+3. Abschneiden und eigene Verbinder setzen.
+
+Was davon geht, entscheidet die Messung von Raster und Kontakttyp an beiden Steckern.
 
 ### A5 Temperaturfühler: Typ bestimmen
 Die sechste Ader des Hall-Steckers ist **weiß** und läuft am geöffneten Motor nicht
@@ -83,8 +92,16 @@ PU-Lauffläche** in Reifengröße, in der vorhandenen Gabel. Dafür Aufwand und 
 ## B — Blockiert die Firmware
 
 ### B3 LCD-Anschluss und Pegel
-I²C-Backpack (PCF8574) ist gesetzt. Offen: Läuft das vorhandene Modul auf 3,3 V, oder
-wird ein Pegelwandler gebraucht? I²C-Adresse (0x27 oder 0x3F)?
+I²C-Backpack (PCF8574) ist gesetzt, er läuft auf 5 V. Drei Wege zum 3,3-V-Pegel stehen
+nebeneinander in [04-hardware](04-hardware.md) §5.6:
+
+| | |
+|---|---|
+| a) Pegelwandler | in der Spezifikation, ein Bauteil mehr |
+| b) die 4,7-kΩ-Pull-ups vom Backpack auslöten und gegen 3,3 V ziehen | am wenigsten Aufwand, aber unter den 0,7 · V_DD = 3,5 V, die der PCF8574 als High verlangt |
+| c) das LCD selbst auf 3,3 V | der Spannungsregler auf dem Backpack ist nicht bestückt; Kontrast bei 3,3 V zu prüfen |
+
+Offen außerdem: I²C-Adresse (0x27 oder 0x3F)?
 
 ### B4 Luftdrucksensor
 Welches Modell? Die Beschreibung „Airspy" deutet auf einen SKS Airspy hin — zu

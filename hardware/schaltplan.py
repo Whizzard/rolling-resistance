@@ -93,7 +93,7 @@ with schemdraw.Drawing(show=False) as d:
     RX = ESPX + 5.2
     d += elm.Label().at((RX+2.2, -3.4)).label('BEDIENUNG · PROTOKOLL', fontsize=8,
                                                  color=AUX, halign='left')
-    lvl = box(d, RX+2.2, -4.4, 2.3, 1.0, 'I²C-Pegel-\nwandler', AUX)
+    lvl = box(d, RX+2.2, -4.4, 2.6, 1.0, 'I²C-Pegel:\nWandler / Pull-ups', AUX)
     lcd = box(d, RX+5.4, -4.4, 2.7, 1.0, 'LCD 2004\nPCF8574  5 V', AUX)
     sd  = box(d, RX+2.2, -6.1, 2.7, 1.0, 'microSD\nSPI 3,3 V', AUX)
     tmp = box(d, RX+2.2, -7.8, 2.7, 1.0, 'Temperatur\nI²C   (TBD)', AUX)
@@ -144,6 +144,12 @@ with schemdraw.Drawing(show=False) as d:
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -15.15)).label(
         'FSESC 4.20:  UART an der Stiftleiste COMM (5V · 3.3V · − · ADC · TX · RX · ADC2). Nur TX, RX und Masse anschliessen — die 5 V des Reglers NICHT,',
+        fontsize=7.5, color='#4a5560', halign='left')
+    d += elm.Label().at((-12.0, -16.50)).label(
+        'LCD:  Backpack und Display laufen auf 5 V. Entweder Pegelwandler, oder die 4k7-Pullups auf dem Backpack ausloeten und gegen 3,3 V ziehen \u2014 dann aber',
+        fontsize=7.5, color='#4a5560', halign='left')
+    d += elm.Label().at((-12.0, -16.95)).label(
+        '           unter den 0,7 \u00b7 V_DD = 3,5 V, die der PCF8574 als High verlangt. Drei Wege samt Bewertung in docs/04-hardware.md \u00a75.6 (offene Frage B3).',
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -16.05)).label(
         'Bremse:  GPIO40 high = Relais angezogen = Bremse geloest; Pulldown am Gate, beim Reset also gebremst. Reihenfolge: erst Treiber sperren, dann Relais abfallen lassen.',
