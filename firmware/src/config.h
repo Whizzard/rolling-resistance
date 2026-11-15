@@ -158,16 +158,35 @@ constexpr uint8_t PIN_SD_CS      = 10;  // microSD, Chip Select (SPI noch nicht 
 constexpr uint8_t PIN_DRIVE_TX   = 18;  // UART1 → Motorregler
 constexpr uint8_t PIN_DRIVE_RX   = 21;  // UART1 ← Motorregler
 constexpr uint8_t PIN_ESTOP_FB   = 2;   // nur Anzeige; Trennung erfolgt in Hardware
-constexpr uint8_t PIN_BUTTON     = 14;  // Bedientaster
 constexpr uint8_t PIN_STATUS_LED = 48;  // Status-LED (auf DevKitC-1 v1.0 die RGB-LED)
-// PTC muss auf ADC1 liegen — ADC2 ist bei aktivem WLAN gesperrt. GPIO1 = ADC1_CH0.
-// [TBD] Fühlertyp unbekannt — der Hall-Stecker hat eine 6. Ader, vermutlich ein NTC.
-// Ausmessen nach docs/06-offene-fragen.md A5.
-constexpr uint8_t PIN_MOTOR_PTC  = 1;   // Motortemperatur, analog
 
-// PIN_WHEEL, PIN_HX7112_DOUT, PIN_SD_CS, PIN_BUTTON und PIN_STATUS_LED sind reserviert
-// und in hardware/schaltplan.py verdrahtet, werden von der Firmware aber noch nicht
-// benutzt. Sie stehen hier, damit die Belegung an genau einer Stelle gepflegt wird.
+// Steuerkreuz: fünf Kontakte gegen Masse, interner Pull-up. Entprellung in Software,
+// kein RC im Signalpfad (docs/10-firmware.md B1…B5). Bauform ist ein
+// Fünfwege-Tastschalter — ein Bauteil, fünf Kontakte, gemeinsame Masse.
+constexpr uint8_t PIN_BTN_UP     = 11;  // Sollwert hoch
+constexpr uint8_t PIN_BTN_DOWN   = 12;  // Sollwert runter
+constexpr uint8_t PIN_BTN_IN     = 13;  // rein — Schrittweite 1/5 km/h
+constexpr uint8_t PIN_BTN_OUT    = 14;  // raus
+constexpr uint8_t PIN_BTN_OK     = 39;  // Mitte, bestätigen
+
+// MOSFET in der Spulenmasse der Bremsrelais (docs/04-hardware.md §9).
+// high = Relais angezogen = Bremse gelöst. Pulldown am Gate, beim Reset also gebremst.
+constexpr uint8_t PIN_BRAKE_RELEASE = 40;
+
+// KEIN PIN_MOTOR_PTC: der Temperaturfühler des Motors hängt am Eingang TMP des
+// REGLERS, nicht am ESP32. Der Regler begrenzt selbst, der ESP32 liest den Wert über
+// UART (docs/04-hardware.md §11.4). Ein resistiver Fühler verträgt nur EINEN Pull-up,
+// also gibt es nur eine Auswertestelle. GPIO 1 bleibt damit frei.
+// [TBD] Welcher Fühlertyp es ist, bleibt offen (A5) — das entscheidet nur, welche
+// Kennlinie im VESC-Tool eingestellt wird, nicht mehr, wo die Ader hingeht.
+
+// PIN_WHEEL, PIN_HX7112_DOUT, PIN_SD_CS, PIN_BTN_*, PIN_BRAKE_RELEASE und
+// PIN_STATUS_LED sind reserviert und in hardware/schaltplan.py verdrahtet, werden von
+// der Firmware aber noch nicht benutzt. Sie stehen hier, damit die Belegung an genau
+// einer Stelle gepflegt wird.
+//
+// Frei bleiben damit GPIO 1, 41, 42 und 47. Die microSD braucht davon noch drei
+// (SCK/MOSI/MISO), CS liegt auf PIN_SD_CS — danach ist GPIO 1 der einzige freie Pin.
 
 // --------------------------------------------------------------------- LCD
 

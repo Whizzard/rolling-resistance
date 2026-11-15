@@ -37,7 +37,7 @@ Zweck: Motor und Mechanik in Betrieb nehmen, bevor gemessen wird.
 | | P | Anforderung |
 |---|---|---|
 | B1 | M | Taster **Hoch / Runter / Rein / Raus**, jeweils gegen Masse, interner Pull-up. |
-| B2 | S | Fünfter Taster **Mitte = Bestätigen**. |
+| B2 | M | Fünfter Taster **Mitte = Bestätigen**. Entschieden und verdrahtet, `PIN_BTN_OK` = GPIO 39 ([04-hardware](04-hardware.md) §12.3). |
 | B3 | M | Entprellung in Software, kein RC im Signalpfad. |
 | B4 | M | Dauerdruck auf Hoch/Runter wiederholt mit Autorepeat. |
 | B5 | M | **Schrittweite 1 oder 5 km/h** über Rein/Raus oder einen Modusschalter — nicht über eine versteckte Tastenkombination. |
@@ -45,7 +45,8 @@ Zweck: Motor und Mechanik in Betrieb nehmen, bevor gemessen wird.
 | B7 | S | Dieselbe Navigation über die serielle Konsole, damit ohne Bedienteil gearbeitet werden kann. |
 
 Bauform: **Fünfwege-Tastschalter** (Navigationstaster, z. B. ALPS SKQU) — ein Bauteil,
-fünf Kontakte, gemeinsame Masse. Alternativ fünf einzelne Taster.
+fünf Kontakte, gemeinsame Masse. Alternativ fünf einzelne Taster. **Keine** analogen
+Joystick-Breakouts: die geben eine Spannung, keine fünf Kontakte.
 
 ## 4 Not-Stop
 

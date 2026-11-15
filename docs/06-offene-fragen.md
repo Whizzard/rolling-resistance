@@ -33,10 +33,14 @@ weder Typ noch Kennlinie.
 **Zu tun:** Widerstand weiß gegen schwarz messen und beim Anwärmen beobachten —
 Messvorschrift samt Deutungstabelle in [04-hardware](04-hardware.md) §11.3.
 
-Danach zwei Entscheidungen:
+**Wohin die Ader geht, ist entschieden:** an `TMP` des **Reglers**, nicht an den
+ESP32 — Übertemperatur muss den Treiber sperren, und der Treiber ist der Regler
+([04-hardware](04-hardware.md) §11.4). `PIN_MOTOR_PTC` ist aus `config.h` entfallen.
 
-1. **Wohin die Ader geht** — an `TMP` des Reglers oder an `PIN_MOTOR_PTC` = GPIO1
-   (ADC1). Nur eines von beidem, Gegenüberstellung in §11.4.
+Offen bleibt damit nur noch:
+
+1. **Welcher Fühlertyp** es ist — das entscheidet, welche Kennlinie im VESC-Tool
+   eingestellt wird. Passt keine, muss doch ein eigener Fühler an GPIO 1 (wieder frei).
 2. **Grenzwert festlegen** und in [07-sicherheit](07-sicherheit.md) §4 eintragen.
 
 ### A7 Eigenfrequenz der Waage — **messen, nicht wiegen**

@@ -164,7 +164,7 @@ des DAAO-Motors sind dagegen aufgedruckt).
 | Dauermoment `P/ω_nenn` | **6,96 Nm** | 5,52 Nm |
 | Hallsensoren | ja — 3 dicke Phasen (gelb/grün/blau) + weißer JST mit 5 dünnen Adern | ja |
 | n_nenn → Trommel max | 480 1/min → 86 km/h | 605 1/min → 109 km/h |
-| Temperaturfühler | nein (NTC nachrüstbar) | PTC |
+| Temperaturfühler | vermutlich ja — weiße Ader ins Wickelpaket, Typ **TBD** (A5) | PTC |
 | Mechanische Bremse | **nein** | Trommelbremse |
 | Spitzenlast | unbekannt | 800 W |
 | Masse | 2,26 kg | schwerer, **TBD** |
@@ -208,7 +208,7 @@ Die Achsfrage A6 — beidseitige Lagerung — gilt für beide gleichermaßen und
 | Auslegungs-Crr | `CRR_DESIGN_MAX` | **0,007** | – | Festlegung | Es werden schnelle Straßenreifen gemessen, keine MTB-Reifen. Langsamster vorgesehener Reifen ist der Continental Contact Urban mit 0,00552, darauf 27 % Luft. Siehe Tabelle unten. |
 | Reifendruck | — | Eingabe | bar | – | Handeingabe, später BLE |
 | Reifentemperatur | — | **TBD** | °C | TBD | Sensor noch nicht festgelegt |
-| Motortemperatur | — | **TBD** | °C | TBD | 6. Ader am Hall-Stecker ausmessen, siehe A5 |
+| Motortemperatur | — | **TBD** | °C | TBD | 6. Ader am Hall-Stecker ausmessen (A5). Fühler hängt am Eingang `TMP` des Reglers, Auslesung über UART — [04-hardware](04-hardware.md) §11.4 |
 
 ### Gemessene Crr-Werte als Auslegungsgrundlage
 

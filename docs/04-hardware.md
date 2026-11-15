@@ -84,6 +84,7 @@ Als Reibrolle gegen die Trommeloberfläche geht der Motor nicht: dafür bräucht
 | Netzteil | 36–42 V, ≥ 10 A | offen |
 | ESP32-Board | **ESP32-S3-DevKitC-1 N16R8** | beschafft |
 | USB-Netzteil | 5 V / ≥ 1 A, für den Messbetrieb (nicht das Notebook) | offen |
+| Fünfwege-Tastschalter | Navigationstaster, 5 Kontakte + gemeinsame Masse (z. B. ALPS SKQU); **keine** analogen Joystick-Breakouts | offen |
 | HX711-Modul | **getrennte VCC/VDD** (fünfpolig, SparkFun-Bauform) — vierpolige Module scheiden aus, siehe §5.2 | offen |
 | Hall-Sensoren | 3 × TLE4905L (Marken, Index, Laufrad), unipolar | vorhanden |
 | Magnete | 8 + 1, Ø10 × 3 mm mit Ø3-Senkloch | vorhanden |
@@ -105,7 +106,6 @@ die Firmware noch nicht anfasst.
 
 | GPIO | Konstante | Funktion | Richtung | Anmerkung |
 |---|---|---|---|---|
-| 1 | `PIN_MOTOR_PTC` | Motortemperatur | in, analog | **ADC1**_CH0; ADC2 ist bei aktivem WLAN gesperrt. Fühlertyp **TBD**, siehe A5 |
 | 2 | `PIN_ESTOP_FB` | Not-Aus-Rückmeldung | in | nur **Anzeige** des Zustands; die Trennung erfolgt in Hardware |
 | 4 | `PIN_MARK` | Drehzahlmarken Trommel | in, Interrupt | **8** Marken/Umdrehung |
 | 5 | `PIN_INDEX` | Indexmarke Trommel | in, Interrupt | 1/Umdrehung, triggert die Mittelung |
@@ -123,7 +123,7 @@ die Firmware noch nicht anfasst.
 | 17 | `PIN_HX7112_DOUT` | HX711 #2 DOUT (Auflast) | in | zweite Zelle noch nicht bestückt |
 | 18 | `PIN_DRIVE_TX` | UART1 TX → Regler | out | |
 | 21 | `PIN_DRIVE_RX` | UART1 RX ← Regler | in | |
-| 39 | `PIN_BTN_OK` | Steuerkreuz Mitte | in, Pull-up | optional |
+| 39 | `PIN_BTN_OK` | Steuerkreuz Mitte, bestätigen | in, Pull-up | |
 | 40 | `PIN_BRAKE_RELEASE` | MOSFET in der Spulenmasse der Bremsrelais | out | **high = Relais an = Bremse gelöst.** Pulldown am Gate: beim Reset gebremst |
 | 48 | `PIN_STATUS_LED` | Status-LED | out | auf DevKitC-1 **v1.0** ist das die RGB-LED, auf v1.1 ist sie an GPIO 38 |
 
@@ -142,9 +142,18 @@ auf dem S3 fast vollständig auf Pins, die es entweder nicht gibt oder die beleg
 | 43, 44 | UART0, serielle Konsole |
 | 38 | RGB-LED des DevKits |
 
-Frei bleiben danach noch 41, 42 und 47. Analog geht nur **ADC1** (GPIO 1…10),
-weil ADC2 bei eingeschaltetem WLAN vom Funk belegt ist — deshalb liegt der PTC auf
-GPIO 10.
+Frei bleiben danach **GPIO 1, 41, 42 und 47**. Die microSD braucht davon noch drei
+(SCK/MOSI/MISO, CS liegt auf GPIO 10) — danach ist GPIO 1 der einzige freie Pin. Wenn
+später noch etwas dazukommt, muss es über den I²C-Bus gehen, der ohnehin schon liegt.
+
+GPIO 1 ist frei geworden, weil der Motorfühler am Regler hängt und nicht am ESP32
+(§11.4). Falls doch einmal etwas analog gemessen werden soll: nur **ADC1** (GPIO 1…10)
+ist brauchbar, ADC2 ist bei eingeschaltetem WLAN vom Funk belegt. GPIO 1 ist ADC1_CH0
+und damit der richtige Pin dafür.
+
+Dass GPIO 39…42 die JTAG-Pins sind (MTCK/MTDO/MTDI/MTMS), kostet nur einen **externen**
+JTAG-Adapter. Das On-Chip-USB-Serial-JTAG des S3 läuft über die native USB-Buchse und
+bleibt nutzbar.
 
 Display: `LCD_I2C_ADDR` = 0x27 (**TBD**, übliche Alternative 0x3F), `LCD_COLS` = 20,
 `LCD_ROWS` = 4.
@@ -162,6 +171,26 @@ Kurzschluss zweier Quellen. USB schließt den Fehler konstruktiv aus.
 Das Board hat zwei USB-C-Buchsen, und **beide dürfen gleichzeitig speisen**
 („either one or both"). Also: Netzteil dauerhaft an der einen, Notebook zum Flashen
 an der anderen.
+
+Die beiden Buchsen sind aber **nicht gleichwertig**, auch wenn sie es für die Speisung
+sind:
+
+| Buchse | Weg in den Chip | wofür |
+|---|---|---|
+| `USB` | **natives USB** des S3 über GPIO 19/20, direkt am Chip | USB-Serial-JTAG, USB-CDC, Debuggen ohne externen Adapter |
+| `COM` | **USB-UART-Brücke** auf UART0 (GPIO 43/44) | Flashen und serielle Konsole, Reset über DTR/RTS |
+
+Praktischer Unterschied beim Flashen: die Brücke an `COM` zieht über DTR und RTS die
+Leitungen EN und GPIO 0, kann den Chip also **selbst** in den Download-Modus
+zurücksetzen. Die native Buchse kann das nur, solange die laufende Firmware die dafür
+nötige Reset-Behandlung mitbringt — tut sie das nicht, bleibt esptool mit *„No serial
+data received"* stehen, und der Download-Modus muss von Hand gestellt werden:
+**BOOT halten, RESET antippen, BOOT loslassen.**
+
+> Nachgesehen am 2026-11-15: an der nativen Buchse meldet sich das Board als
+> Composite-Gerät von Espressif (`VID 0x303A`, `bDeviceClass 0xEF`) unter
+> `/dev/cu.usbmodem*`. Welches Brückenbauteil an `COM` sitzt und unter welchem
+> Gerätenamen es erscheint, ist **TBD** — beim ersten Anstecken nachsehen.
 
 Bei USB-Speisung ist der **5V-Pin ein Ausgang** (VBUS). Beide Schienen kommen damit
 aus derselben Quelle:
@@ -748,15 +777,24 @@ Ohne Versorgung, mit dem Multimeter:
 
 ### 11.4 Wohin die weiße Ader geht
 
-Zwei Möglichkeiten, und **nur eine davon** — ein resistiver Fühler verträgt keine
-zwei Pull-ups, beide Messungen wären falsch:
+**Entschieden: an `TMP` des Reglers.** Es gibt nur eine Auswertestelle, denn ein
+resistiver Fühler verträgt keine zwei Pull-ups — bei beiden wären beide Messungen
+falsch.
 
-| | Fühler an `TMP` des Reglers | Fühler an `PIN_MOTOR_PTC` = GPIO 1 |
+| | **Fühler an `TMP` des Reglers** | Fühler am ESP32 (ADC1) |
 |---|---|---|
 | Auswertung | der Regler begrenzt selbst, der ESP32 liest den Wert über UART ([10-firmware](10-firmware.md) D25) | ESP32 über ADC1, Kennlinie in der Firmware |
 | Voraussetzung | Fühlertyp muss zu den Kennlinien des VESC-Tools passen | freie Kennlinie, aber eigene Beschaltung und Abgleich |
+| | **gewählt** | – |
 
-Entscheidung offen, siehe A5.
+Der Grund ist nicht Bequemlichkeit, sondern wo die Abschaltung sitzt: Übertemperatur
+muss den **Treiber** sperren, und der Treiber ist der Regler. Hängt der Fühler am
+ESP32, läuft die Schutzfunktion über UART und damit über eine Strecke, die ausfallen
+kann. Am Regler begrenzt er auch dann, wenn die Firmware steht.
+
+Preis dafür: der Fühlertyp muss zu einer Kennlinie des VESC-Tools passen. Das ist der
+Rest von A5 — **welcher** Fühler es ist, ist weiter offen und wird nach §11.3
+ausgemessen. `PIN_MOTOR_PTC` ist aus `config.h` entfallen, GPIO 1 ist frei.
 
 ### 11.5 Umsortieren statt löten
 
@@ -799,3 +837,116 @@ Beim Ziehen:
   wieder aufstellen oder den Kontakt im Gehäuse sichern.
 - Vorher fotografieren. Hinterher **jede Ader einzeln auf Durchgang prüfen**, bevor
   Spannung daraufkommt.
+
+## 12 MVP-Verdrahtung
+
+Erster Aufbau zum Inbetriebnehmen: Board, Wägezelle mit HX711, LCD, Steuerkreuz und die
+UART-Strecke zum Regler. **Der Motor dreht dabei nicht.** Not-Aus, Sicherung und die
+drei Bremsrelais (§9) sind nicht verbaut; ohne sie gibt es nur freien Auslauf von 3 bis
+6 Minuten ([07-sicherheit](07-sicherheit.md) §3). Der Regler wird verkabelt und die
+UART-Verbindung geprüft, nicht mehr.
+
+Drehzahl kommt im MVP **über UART vom Regler** (ERPM). Die Hall-Geber an GPIO 4/5/6/7
+braucht es dafür noch nicht.
+
+### 12.1 Blockbild
+
+```
+       USB-C Netzteil 5 V/1 A ──► [USB ]  ┐  beide Buchsen dürfen
+       Notebook (Flashen)     ──► [COM ]  ┘  gleichzeitig speisen (§5.1)
+                                     │
+         ┌───────────────────────────┴──────────────────────────────┐
+         │            ESP32-S3-DevKitC-1  N16R8                     │
+         │     5V-Pin = VBUS (Ausgang)   ·   3V3-Pin = LDO          │
+         │                                                          │
+ HX711 ──┤ GPIO15  DOUT ◄───────────────────────  DAT               │
+         │ GPIO16  SCK  ──100 Ω─────────────────►  CLK              │
+         │ 3V3 ─────────────────────────────────►  VCC + VDD        │
+         │ GND ─────────────────────────────────►  GND              │
+         │                        Schraubklemme ──► Wägezelle 10 kg │
+         │                                                          │
+ LCD   ──┤ GPIO8  SDA ──┬── 3,3 kΩ ──┐                              │
+         │ GPIO9  SCL ──┼── 3,3 kΩ ──┤                              │
+         │ 3V3 ─────────┴────────────┴──► Backpack VCC  (§12.3)     │
+         │ GND ─────────────────────────► Backpack GND              │
+         │                                                          │
+ Kreuz ──┤ GPIO11 hoch   GPIO12 runter   GPIO13 rein                │
+         │ GPIO14 raus   GPIO39 OK    alle gegen GND, interner PU   │
+         │                                                          │
+ FSESC ──┤ GPIO18  TX ──────────────────►  COMM  RX                 │
+         │ GPIO21  RX ◄─────────────────── COMM  TX                 │
+         │ GND ──────────────────────────  COMM  −   ← Sternpunkt    │
+         │                                 COMM  5V  ← NICHT        │
+         └──────────────────────────────────────────────────────────┘
+```
+
+### 12.2 Strippenliste
+
+| | von → nach | Kabel | Länge | Steckverbinder |
+|---|---|---|---|---|
+| 1 | Wägezelle → HX711 | die 4 Adern der Zelle (E+/E−/S+/S−) | **10 cm** | **keiner** — direkt in die Schraubklemme, §5.4 |
+| 2 | HX711 → ESP32 | **LiYCY 6×0,14 mm²**, geschirmt | nach Aufbau | **JST-XH 6-polig**, Belegung nach §5.4 |
+| 3 | ESP32 → LCD | 4-adrig, beliebig | 30 cm | unkritisch, digital |
+| 4 | ESP32 → Steuerkreuz | 6-adrig (5 Signale + gemeinsame Masse) | 50 cm | beliebig |
+| 5 | ESP32 → FSESC `COMM` | 3-adrig, verdrillt, **getrennt von den Phasen** | kurz halten | Stiftleiste am Regler |
+| 6 | Netzteil → ESP32 | USB-C | – | eine der beiden Buchsen |
+
+Zu #2: die Steckerbelegung **jetzt schon** nach §5.4 festlegen, auch wenn Pin 1 (5 V)
+im MVP leer bleibt — dann passt das fünfpolige Modul später unverändert. Schirm als
+kurzen Zopf nur am ESP32-Ende auf GND. Die 100 Ω je Zelleneingang und 100 nF
+differenziell über INA+/INA− gleich mit einlöten; sie kosten nichts und man muss nicht
+nochmal ran, wenn der Regler anfängt zu stören.
+
+Am Steuerkreuz **keine Kondensatoren und keine externen Widerstände** — Entprellung in
+Software, kein RC im Signalpfad ([10-firmware](10-firmware.md) B3), der interne Pull-up
+genügt.
+
+### 12.3 Drei Festlegungen für den MVP
+
+**HX711 komplett auf 3,3 V**, also VCC und VDD gemeinsam an 3V3. Das ist eine bewusste
+Abweichung von §5.2 und gilt nur für die Inbetriebnahme. Gründe: das vorhandene
+Breakout ist womöglich das vierpolige, bei dem beide Pins verbunden sind — dann ist 3,3 V
+der einzige Weg, der GPIO 15 nicht mit 5 V belegt. Es kostet **3,6 dB SNR**, aber
+**keine Counts und keinen Kalibrierfaktor**: die Brücke hängt an AVDD, und AVDD ist
+zugleich die ADC-Referenz, die Messung läuft also ratiometrisch (§5.2). Die heute
+ermittelte Kalibrierung gilt deshalb auch nach dem Wechsel auf ein fünfpoliges Modul.
+Für den Messlauf wird gewechselt — bei 12 N Signal des besten Rennreifens werden die
+3,6 dB nicht verschenkt.
+
+**LCD-Pegel**, Reihenfolge zum Ausprobieren (die Bewertung der drei Wege steht in §5.6,
+offene Frage B3):
+
+1. **Backpack-VCC auf 3,3 V statt 5 V.** Zwei Minuten, kein Bauteil, umkehrbar — und
+   **innerhalb der Spezifikation**, denn die 4k7 auf dem Backpack ziehen dann nach
+   3,3 V und der PCF8574 verlangt nur noch 0,7 · 3,3 = 2,31 V als High. Offen ist, ob
+   der Kontrast des HD44780 bei 3,3 V reicht und wie dunkel die Beleuchtung wird; ihr
+   Vorwiderstand ist für 5 V ausgelegt. Das entscheidet das Exemplar.
+2. Reicht das nicht: **die 4k7 auslöten**, 2 × 3,3 kΩ nach 3,3 V am ESP32, LCD bleibt
+   an 5 V. **Erst auslöten, dann anschließen** — solange die 4k7 nach 5 V am Bus
+   hängen, liegen 5 V an GPIO 8 und 9.
+3. **Pegelwandler** (BSS138), wenn einer da ist: spezifikationstreu und guter Kontrast,
+   kostet zwei Steckstellen.
+
+Vorher am stromlosen Backpack SDA gegen VCC durchmessen — ob die Pull-ups überhaupt
+bestückt sind. Und die I²C-Adresse scannen, `LCD_I2C_ADDR` ist TBD (0x27 oder 0x3F).
+
+**Fünf Taster, nicht vier.** Vier sind das Pflichtminimum
+([10-firmware](10-firmware.md) B1), der fünfte ist dort „soll". Mit vier müsste
+„bestätigen" auf eine Tastenkombination oder einen langen Druck, und B5 verlangt
+ausdrücklich, dass die Schrittweite *nicht* über eine versteckte Kombination geht. Beim
+Fünfwege-Tastschalter ist der fünfte Kontakt ohnehin im Bauteil; er kostet eine Ader und
+GPIO 39. Die Pinzahl geht trotzdem genau auf (§4).
+
+### 12.4 Vor dem ersten Einschalten
+
+1. Regler an seine Micro-USB-Buchse, dann **5 V und Masse an der Leiste `COMM`
+   nachmessen.** Aus der Handbuchzeichnung geht nicht hervor, welches Ende Pin 1 ist
+   (§10.2) — sonst wird sauber spiegelverkehrt verdrahtet.
+2. `COMM 5V` bleibt frei. Zwei speisende Quellen wären ein Kurzschluss (§10.3).
+3. `COMM −` ist die **einzige** Verbindung zwischen Logik- und Leistungsmasse (§5.5).
+   Auf der Werkbank gibt es über das Notebook einen zweiten Massepfad, wenn ESP32 und
+   Regler am selben Rechner hängen — zum Testen harmlos, für den Messlauf kommt das
+   Notebook ab.
+4. Steckverbinder #2 **Ader für Ader auf Durchgang prüfen**, bevor Spannung
+   draufkommt. 5 V und 3,3 V liegen auf demselben Stecker; ein um einen Pin versetzter
+   Stecker zerstört entweder den HX711 oder den ESP32 (§5.4).

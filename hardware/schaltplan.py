@@ -37,7 +37,7 @@ with schemdraw.Drawing(show=False) as d:
     d += elm.Label().at((-2.0, 3.4)).label(
         'Rollwiderstandsprüfstand — Verdrahtung', fontsize=15, color=INK)
     d += elm.Label().at((-2.0, 2.7)).label(
-        'ESP32-S3-DevKitC-1 N16R8  ·  Stand 2026-11-14  ·  Quelle: hardware/schaltplan.py',
+        'ESP32-S3-DevKitC-1 N16R8  ·  Stand 2026-11-15  ·  Quelle: hardware/schaltplan.py',
         fontsize=7.5, color='#4a5560')
 
     # ---------------------------------------------------- Leistungspfad oben
@@ -97,14 +97,14 @@ with schemdraw.Drawing(show=False) as d:
     lcd = box(d, RX+5.4, -4.4, 2.7, 1.0, 'LCD 2004\nPCF8574  5 V', AUX)
     sd  = box(d, RX+2.2, -6.1, 2.7, 1.0, 'microSD\nSPI 3,3 V', AUX)
     tmp = box(d, RX+2.2, -7.8, 2.7, 1.0, 'Temperatur\nI²C   (TBD)', AUX)
-    btn = box(d, RX+2.2, -9.2, 2.7, 1.0, 'Taster + LED', AUX)
+    btn = box(d, RX+2.2, -9.2, 2.7, 1.0, 'Steuerkreuz 5-Wege\n+ Status-LED', AUX)
     ble = box(d, RX+5.4, -9.2, 2.7, 1.0, 'BLE-Drucksensor\n(drahtlos)', AUX)
 
     wire(d, (RX, lvl.W[1]), lvl.W, 'SDA 8 · SCL 9', AUX)
     wire(d, lvl.E, lcd.W, None, AUX)
     wire(d, (RX, sd.W[1]),  sd.W,  'SPI  CS 10', AUX)
     d += elm.Line().at((RX, tmp.W[1])).to(tmp.W).color(AUX).linestyle('--').linewidth(1.1)
-    wire(d, (RX, btn.W[1]), btn.W, 'GPIO14 · 48', AUX)
+    wire(d, (RX, btn.W[1]), btn.W, 'GPIO11…14 · 39', AUX)
     d += elm.Line().at(btn.E).to(ble.W).color(AUX).linestyle(':').linewidth(1.1)
 
     # ------------------------- Signale vom ESP32 nach oben, rechtwinklig
@@ -116,7 +116,7 @@ with schemdraw.Drawing(show=False) as d:
             label, fontsize=7, color=color))
 
     up(ESPX+1.4, ESPY+3.2, reg.S[0], reg.S[1], 'UART1   TX 18 · RX 21', SIG, dy=0.0)
-    up(ESPX+3.6, ESPY+3.2, mot.S[0], mot.S[1], 'Motor-Hall GPIO7 · PTC GPIO1 (ADC1)', SIG, dy=-0.75)
+    up(ESPX+3.6, ESPY+3.2, mot.S[0], mot.S[1], 'Motor-Hall GPIO7  ·  Fuehler: TMP am Regler', SIG, dy=-0.75)
     up(ESPX+0.4, ESPY+3.2, na.S[0],  na.S[1],  'Not-Aus-Rückmeldung GPIO2 (nur Anzeige)', PWR, ls=':', dy=-1.5)
     up(ESPX+4.8, ESPY+3.2, brk.S[0]+1.3, brk.S[1], 'Bremse lösen  GPIO40', SIG, dy=-2.25, lx=2.9)
 
@@ -156,6 +156,12 @@ with schemdraw.Drawing(show=False) as d:
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -15.60)).label(
         '           der Logikteil haengt am USB. Motor-Hall und TMP liegen an der Leiste SENSE (− · H3 · H2 · H1 · TMP · 5V), siehe docs/04-hardware.md §10.',
+        fontsize=7.5, color='#4a5560', halign='left')
+    d += elm.Label().at((-12.0, -17.40)).label(
+        'Motortemperatur:  Fuehler an TMP des REGLERS, nicht am ESP32 \u2014 ein resistiver Fuehler vertraegt nur EINEN Pull-up. Der ESP32 liest den Wert ueber UART.',
+        fontsize=7.5, color='#4a5560', halign='left')
+    d += elm.Label().at((-12.0, -17.85)).label(
+        'Steuerkreuz:  fuenf Kontakte gegen Masse, interner Pull-up, Entprellung in Software \u2014 kein RC im Signalpfad. Not-Aus ist KEIN Taster am Kreuz.',
         fontsize=7.5, color='#4a5560', halign='left')
 
     d.save('hardware/schaltplan.pdf')
