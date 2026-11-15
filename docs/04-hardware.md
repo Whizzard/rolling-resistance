@@ -187,10 +187,19 @@ nötige Reset-Behandlung mitbringt — tut sie das nicht, bleibt esptool mit *�
 data received"* stehen, und der Download-Modus muss von Hand gestellt werden:
 **BOOT halten, RESET antippen, BOOT loslassen.**
 
+Zweiter Grund, das Notebook an `COM` zu stecken: **dort liegt die serielle Konsole.**
+Die PlatformIO-Boarddefinition setzt `ARDUINO_USB_MODE=1`, aber **nicht**
+`ARDUINO_USB_CDC_ON_BOOT`. Damit ist Arduinos `Serial` die UART0 auf GPIO 43/44, also
+die `COM`-Buchse — an der nativen Buchse käme nach dem Flashen nichts heraus. Wer die
+Konsole trotzdem dort haben will, setzt `-DARDUINO_USB_CDC_ON_BOOT=1` in
+`platformio.ini`; dann wandert sie mit, und die Reset-Behandlung kommt gleich mit dazu.
+
 > Nachgesehen am 2026-11-15: an der nativen Buchse meldet sich das Board als
-> Composite-Gerät von Espressif (`VID 0x303A`, `bDeviceClass 0xEF`) unter
-> `/dev/cu.usbmodem*`. Welches Brückenbauteil an `COM` sitzt und unter welchem
-> Gerätenamen es erscheint, ist **TBD** — beim ersten Anstecken nachsehen.
+> `0x303A:0x4001` („Espressif Device", Seriennummer `123456`, Composite-Gerät). Die
+> Boarddefinition erwartet dort `0x303A:0x1001`, also das USB-Serial-JTAG des Chips.
+> Es liegt also eine Firmware auf dem Board, die die native Buchse selbst als USB-CDC
+> belegt — und esptool kommt darüber nicht in den Download-Modus. Welches
+> Brückenbauteil an `COM` sitzt, ist **TBD**.
 
 Bei USB-Speisung ist der **5V-Pin ein Ausgang** (VBUS). Beide Schienen kommen damit
 aus derselben Quelle:
