@@ -198,8 +198,12 @@ Konsole trotzdem dort haben will, setzt `-DARDUINO_USB_CDC_ON_BOOT=1` in
 > `0x303A:0x4001` („Espressif Device", Seriennummer `123456`, Composite-Gerät). Die
 > Boarddefinition erwartet dort `0x303A:0x1001`, also das USB-Serial-JTAG des Chips.
 > Es liegt also eine Firmware auf dem Board, die die native Buchse selbst als USB-CDC
-> belegt — und esptool kommt darüber nicht in den Download-Modus. Welches
-> Brückenbauteil an `COM` sitzt, ist **TBD**.
+> belegt — und esptool kommt darüber nicht in den Download-Modus.
+>
+> An `COM` sitzt ein **WCH CH343** (`0x1A86:0x55D3`, „USB Single Serial"), unter macOS
+> ohne Zusatztreiber als `/dev/cu.usbmodem*`. Über diese Buchse geflasht am
+> 2026-11-15: durchgelaufen ohne jeden Tastendruck, „Hard resetting via RTS pin",
+> Konsole meldet sich mit 115200 Bd.
 
 Bei USB-Speisung ist der **5V-Pin ein Ausgang** (VBUS). Beide Schienen kommen damit
 aus derselben Quelle:
