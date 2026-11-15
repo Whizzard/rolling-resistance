@@ -254,7 +254,7 @@ wird über `neopixelWrite()` angesteuert, das intern RMT benutzt.
 
 | Konstante | Wert | Einheit | Herkunft | Anmerkung |
 |---|---|---|---|---|
-| `PIN_STATUS_LED` | 48 | – | Festlegung | **TBD**: auf DevKitC-1 v1.0 sitzt die LED an GPIO 48, auf v1.1 an GPIO 38. Der Arduino-Core nimmt für den S3 ebenfalls 48 (`RGB_BUILTIN`). Bleibt die LED dunkel, ist es das andere Board — dann hier auf 38 ändern, sonst nichts. |
+| `PIN_STATUS_LED` | 48 | – | **gem** | Am verbauten Board bestätigt (2026-11-15, Regenbogen läuft). Auf DevKitC-1 v1.1 säße die LED an GPIO 38 — dieses Board hat sie an 48, wie auch der Arduino-Core für den S3 annimmt (`RGB_BUILTIN`). |
 | `BOOT_RAINBOW_MS` | 2500 | ms | Festlegung | Dauer des Regenbogens beim Booten. Ein voller Farbkreis, danach bleibt die LED **aus**. |
 | `BOOT_RAINBOW_STEP_MS` | 12 | ms | Festlegung | ≈ 200 Schritte über die Dauer — flüssig, ohne den Bus zu belasten. |
 | `STATUS_LED_DIV` | 6 | – | Festlegung | Helligkeitsteiler. Die LED blendet bei voller Aussteuerung auf dem Tisch. |

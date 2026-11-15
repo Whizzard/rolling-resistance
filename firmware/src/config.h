@@ -196,11 +196,11 @@ constexpr uint8_t PIN_BRAKE_RELEASE = 40;
 // Lebenszeichen beim Einschalten, mehr nicht: im Messbetrieb wäre eine mitlaufende
 // LED am Prüfstand nur Ablenkung.
 //
-// [TBD] Auf DevKitC-1 v1.0 sitzt die LED an GPIO 48, auf v1.1 an GPIO 38. Welche
-// Revision verbaut ist, steht nicht fest; der Arduino-Core nimmt für den S3 ebenfalls
-// 48 (RGB_BUILTIN). Bleibt die LED dunkel, ist es das andere Board — dann
-// PIN_STATUS_LED auf 38 ändern, sonst nichts. Beide Pins nacheinander zu bespielen
-// geht NICHT: neopixelWrite() initialisiert RMT einmalig für den ersten Pin.
+// [gem] GPIO 48 am verbauten Board bestätigt (2026-11-15, Regenbogen läuft). Auf
+// DevKitC-1 v1.1 säße die LED an GPIO 38 — dieses Board ist also v1.0, oder zumindest
+// eine Bestückung mit der LED an 48. Damit ist die frühere TBD erledigt.
+// Hinweis für den Fall eines Boardwechsels: beide Pins nacheinander zu bespielen geht
+// NICHT, neopixelWrite() initialisiert RMT einmalig für den Pin des ersten Aufrufs.
 constexpr uint32_t BOOT_RAINBOW_MS      = 2500;  // [Festlegung] Dauer des Regenbogens
 constexpr uint32_t BOOT_RAINBOW_STEP_MS = 12;    // [Festlegung] ≈ 200 Schritte
 constexpr uint8_t  STATUS_LED_DIV       = 6;     // [Festlegung] Helligkeit teilen; die
