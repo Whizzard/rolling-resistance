@@ -246,3 +246,19 @@ Der MTB-Crr ist selbst gerechnet, weil die Quelle dort nur Watt ausweist:
 | `MAX_DRUM_RPM` | **abgeleitet** → 341 bei U = 2,931 m | 1/min | `V_MAX_KMH / 3,6 / U · 60`. Nicht hart gesetzt: die Grenze bedeutet *60 km/h an der Trommeloberfläche* und muss dem Umfang folgen — der alte feste Wert 333 galt der Ø-955-Trommel und hätte an der gebauten Ø-933-Trommel schon bei 58,4 km/h ausgelöst, mitten im obersten Messplateau. Erhöhung von `V_MAX_KMH` erst nach Freigabe in [07-sicherheit](07-sicherheit.md) §5. |
 | `STALL_TIMEOUT_MS` | 2000 | ms | siehe §3 |
 | `FAULT_SETTLE_MS` | 500 | ms | Entprellung der Fehlerkriterien |
+
+## 8 Status-LED
+
+Die RGB-LED des DevKits ist eine adressierbare **WS2812**, kein einfacher Ausgang; sie
+wird über `neopixelWrite()` angesteuert, das intern RMT benutzt.
+
+| Konstante | Wert | Einheit | Herkunft | Anmerkung |
+|---|---|---|---|---|
+| `PIN_STATUS_LED` | 48 | – | Festlegung | **TBD**: auf DevKitC-1 v1.0 sitzt die LED an GPIO 48, auf v1.1 an GPIO 38. Der Arduino-Core nimmt für den S3 ebenfalls 48 (`RGB_BUILTIN`). Bleibt die LED dunkel, ist es das andere Board — dann hier auf 38 ändern, sonst nichts. |
+| `BOOT_RAINBOW_MS` | 2500 | ms | Festlegung | Dauer des Regenbogens beim Booten. Ein voller Farbkreis, danach bleibt die LED **aus**. |
+| `BOOT_RAINBOW_STEP_MS` | 12 | ms | Festlegung | ≈ 200 Schritte über die Dauer — flüssig, ohne den Bus zu belasten. |
+| `STATUS_LED_DIV` | 6 | – | Festlegung | Helligkeitsteiler. Die LED blendet bei voller Aussteuerung auf dem Tisch. |
+
+Beide Pins nacheinander zu bespielen geht **nicht**: `neopixelWrite()` initialisiert RMT
+einmalig für den Pin des ersten Aufrufs und wechselt danach nicht mehr. Deshalb ein
+Pin, und im Zweifel umstellen statt beides zu versuchen.

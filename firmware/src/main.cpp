@@ -21,6 +21,7 @@
 #include "display.h"
 #include "logger.h"
 #include "state.h"
+#include "statusled.h"
 #include "tirepressure.h"
 
 namespace {
@@ -95,6 +96,8 @@ void setup() {
   logger::begin();
   delay(200);
 
+  statusled::begin();   // Lebenszeichen; laeuft waehrend der uebrigen Initialisierung
+
   speed::begin();
   torque::begin();
   drive().begin();
@@ -110,6 +113,7 @@ void setup() {
 }
 
 void loop() {
+  statusled::service();
   pollSerial();
   tirepressure::service();
   state::service();

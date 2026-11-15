@@ -59,6 +59,17 @@ Joystick-Breakouts: die geben eine Spannung, keine fünf Kontakte.
 | N5 | M | Derselbe Zustand wird von den Abschaltkriterien in [07-sicherheit](07-sicherheit.md) §4 erreicht. |
 | N6 | M | Beim Reset und beim Booten sind die Relais abgefallen, der Stand ist also gebremst. |
 
+## 4.1 Status-LED
+
+| | P | Anforderung |
+|---|---|---|
+| L1 | K | Beim Booten läuft **einmal** ein Regenbogen über die RGB-LED des DevKits, danach bleibt sie **aus**. Lebenszeichen beim Einschalten — man sieht ohne Konsole, dass der Chip läuft und die Firmware angekommen ist. |
+| L2 | K | Im Messbetrieb leuchtet nichts. Eine mitlaufende LED am Prüfstand wäre nur Ablenkung. |
+| L3 | M | Die Animation ist **nicht blockierend** (G1): `statusled::service()` läuft aus `loop()`, es gibt kein `delay()`. |
+
+Konstanten in [03-parameter](03-parameter.md) §8; die Pin-Frage v1.0/v1.1 steht dort
+als TBD.
+
 ## 5 Diagnoseseiten
 
 Eine Seite je Sensor, einzeln anwählbar. Zweck: beim Aufbau prüfen, **ob** ein Geber

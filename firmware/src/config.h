@@ -158,7 +158,7 @@ constexpr uint8_t PIN_SD_CS      = 10;  // microSD, Chip Select (SPI noch nicht 
 constexpr uint8_t PIN_DRIVE_TX   = 18;  // UART1 → Motorregler
 constexpr uint8_t PIN_DRIVE_RX   = 21;  // UART1 ← Motorregler
 constexpr uint8_t PIN_ESTOP_FB   = 2;   // nur Anzeige; Trennung erfolgt in Hardware
-constexpr uint8_t PIN_STATUS_LED = 48;  // Status-LED (auf DevKitC-1 v1.0 die RGB-LED)
+constexpr uint8_t PIN_STATUS_LED = 48;  // adressierbare RGB-LED des DevKits, siehe unten
 
 // Steuerkreuz: fünf Kontakte gegen Masse, interner Pull-up. Entprellung in Software,
 // kein RC im Signalpfad (docs/10-firmware.md B1…B5). Bauform ist ein
@@ -187,6 +187,24 @@ constexpr uint8_t PIN_BRAKE_RELEASE = 40;
 //
 // Frei bleiben damit GPIO 1, 41, 42 und 47. Die microSD braucht davon noch drei
 // (SCK/MOSI/MISO), CS liegt auf PIN_SD_CS — danach ist GPIO 1 der einzige freie Pin.
+
+// --------------------------------------------------------------- Status-LED
+// Die RGB-LED des DevKits ist eine adressierbare WS2812, kein einfacher Ausgang —
+// angesteuert über neopixelWrite(), das intern RMT benutzt.
+//
+// Beim Booten läuft EINMAL ein Regenbogen durch, danach bleibt sie aus. Ein
+// Lebenszeichen beim Einschalten, mehr nicht: im Messbetrieb wäre eine mitlaufende
+// LED am Prüfstand nur Ablenkung.
+//
+// [TBD] Auf DevKitC-1 v1.0 sitzt die LED an GPIO 48, auf v1.1 an GPIO 38. Welche
+// Revision verbaut ist, steht nicht fest; der Arduino-Core nimmt für den S3 ebenfalls
+// 48 (RGB_BUILTIN). Bleibt die LED dunkel, ist es das andere Board — dann
+// PIN_STATUS_LED auf 38 ändern, sonst nichts. Beide Pins nacheinander zu bespielen
+// geht NICHT: neopixelWrite() initialisiert RMT einmalig für den ersten Pin.
+constexpr uint32_t BOOT_RAINBOW_MS      = 2500;  // [Festlegung] Dauer des Regenbogens
+constexpr uint32_t BOOT_RAINBOW_STEP_MS = 12;    // [Festlegung] ≈ 200 Schritte
+constexpr uint8_t  STATUS_LED_DIV       = 6;     // [Festlegung] Helligkeit teilen; die
+                                                 // LED blendet sonst auf dem Tisch
 
 // --------------------------------------------------------------------- LCD
 
