@@ -20,3 +20,4 @@ vesc/
 
 # FreeCAD-Sicherungskopien
 *.FCBak
+firmware/web/serve

@@ -22,6 +22,7 @@
 #include "logger.h"
 #include "state.h"
 #include "statusled.h"
+#include "webui.h"
 #include "tirepressure.h"
 
 namespace {
@@ -29,6 +30,7 @@ namespace {
 void printHelp() {
   logger::note("Befehle: t=Tara b=Baseline m=Messung s=Stop c=Quittieren");
   logger::note("         l<N>=Auflast p<bar>=Druck n=Seite ?=Hilfe");
+  logger::note("         v<kmh>=Sollwert (nur IDLE) d=herunterfahren");
   Serial.print("# Zustand: ");       Serial.print(state::name());
   Serial.print("  Antrieb: ");       Serial.print(drive().name());
   Serial.print("  Zelle: ");         Serial.println(isCalibrated() ? "kalibriert"
@@ -49,6 +51,20 @@ void handleCommand(const String& cmd) {
     case 'c': state::clearFault(); break;
     case 'n': display::nextPage(); break;
     case '?': printHelp(); break;
+
+    // Testmodus: Sollwert direkt vorgeben bzw. geregelt herunterfahren.
+    // Nur im Stillstandszustand IDLE — waehrend eines Laufs fuehrt die
+    // Zustandsmaschine den Sollwert, da darf niemand dazwischenfunken.
+    // TODO: der Testmodus hat noch keinen eigenen Zustand in state::Phase.
+    case 'v': {
+      if (state::phase() != state::IDLE) { logger::note("Sollwert nur im Zustand IDLE"); break; }
+      const float v = cmd.substring(1).toFloat();
+      if (v < 0.0f || v > V_MAX_KMH) { logger::note("Sollwert ausserhalb 0..V_MAX_KMH"); break; }
+      drive().setTargetKmh(v);
+      Serial.print("# Sollwert = "); Serial.print(v, 1); Serial.println(" km/h");
+      break;
+    }
+    case 'd': drive().setTargetKmh(0.0f); logger::note("Sollwert 0 — faehrt herunter"); break;
 
     case 'l': {
       const float v = cmd.substring(1).toFloat();
@@ -97,6 +113,7 @@ void setup() {
   delay(200);
 
   statusled::begin();   // Lebenszeichen; laeuft waehrend der uebrigen Initialisierung
+  webui::begin(handleCommand);
 
   speed::begin();
   torque::begin();
@@ -106,6 +123,8 @@ void setup() {
   state::begin();
 
   logger::header();
+  Serial.print("# WLAN \""); Serial.print(WEBUI_SSID);
+  Serial.println("\" offen — Oberflaeche unter http://192.168.4.1/");
   if (!display::present()) {
     logger::note("LCD nicht gefunden — Betrieb nur ueber die Konsole");
   }
@@ -114,6 +133,7 @@ void setup() {
 
 void loop() {
   statusled::service();
+  webui::service();
   pollSerial();
   tirepressure::service();
   state::service();

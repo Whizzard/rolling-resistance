@@ -74,7 +74,7 @@ Continental Contact Urban, 18,4 W bei 4 bar, 42,5 kg, 28,8 km/h (publiziert):
 Crr      = 18,4 W / (8,0 m/s · 416,9 N)   = 0,00552
 F_roll   = 0,00552 · 416,9 N              = 2,301 N
 M        = 2,301 N · 0,4665 m             = 1,0736 Nm
-F_Zelle  = 1,0736 Nm / 0,040 m            = 26,84 N      (27 % vom Zellenendwert)
+F_Zelle  = 1,0736 Nm / 0,080 m            = 13,42 N      (27 % vom Zellenendwert)
 P_Reifen = 0,00552 · 416,9 · 8,0          = 18,41 W      ✓ stimmt mit der Quelle
 ```
 
@@ -325,7 +325,7 @@ Hebelarm, Zugglied und Wägezelle bilden mit der Masse des Stators ein Feder-Mas
 Steifigkeit aus Sicht der Drehachse:
 
 ```
-k_rot = k_Zelle · L²  =  327 N/mm · (0,040 m)²  =  523 Nm/rad
+k_rot = k_Zelle · L²  =  327 N/mm · (0,080 m)²  =  2092 Nm/rad   [TBD: k der 5-kg-Zelle]
 ```
 
 Das Zugglied (Schaltzug, 1272 N/mm) trägt dazu nur 0,4 % bei und ist vernachlässigbar.

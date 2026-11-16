@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#eef1ef">
+<!-- Vom Homescreen gestartet laeuft die Seite ohne Browserleisten, also wie eine App. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Pruefstand">
+<title>Rollwiderstand Prüfstand</title>
+<style>
+/* --- Grundgeruest. KEINE Schrift aus dem Netz: der Stand hat kein Internet, und
+   der Platzhalter-DNS wuerde fonts.googleapis.com auf uns selbst umbiegen. --- */
+:root{color-scheme:light dark;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px)}
+img{max-width:100%}
+/* Ohne !important gewinnen die display-Regeln der Karten und ALLE Reiter stehen
+   gleichzeitig da. Die Artifact-Umgebung bringt diese Zeile mit, ein ESP32 nicht. */
+[hidden]{display:none!important}
+
+:root{
+  --ground:#eef1ef; --surface:#ffffff; --sunk:#e4e8e5;
+  --ink:#14191b; --muted:#5b6670; --line:#d2d9d5;
+  --signal:#14607e; --signal-soft:#dceaf1;
+  --power:#9e2b12; --power-soft:#f6e0da;
+  --ok:#55761a; --ok-soft:#e5eed4;
+  --shadow:0 1px 2px rgba(20,25,27,.07), 0 4px 14px rgba(20,25,27,.05);
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --cond:"Avenir Next Condensed","Roboto Condensed",system-ui,-apple-system,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#121618; --surface:#1a2023; --sunk:#232a2d;
+    --ink:#e6ebe8; --muted:#97a3a8; --line:#2e3639;
+    --signal:#58b6d8; --signal-soft:#15323f;
+    --power:#e2765a; --power-soft:#3a1d14;
+    --ok:#a3c951; --ok-soft:#232f14;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#121618; --surface:#1a2023; --sunk:#232a2d;
+  --ink:#e6ebe8; --muted:#97a3a8; --line:#2e3639;
+  --signal:#58b6d8; --signal-soft:#15323f;
+  --power:#e2765a; --power-soft:#3a1d14;
+  --ok:#a3c951; --ok-soft:#232f14;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font:400 14px/1.45 var(--sans); -webkit-font-smoothing:antialiased;
+  padding-bottom:84px;
+}
+.wrap{max-width:860px; margin:0 auto; padding-inline:16px}
+h1,h2,h3{font-family:var(--cond); font-weight:600; text-wrap:balance; margin:0}
+.num{font-family:var(--mono); font-variant-numeric:tabular-nums; font-feature-settings:"zero" 1}
+.lbl{font-family:var(--cond); font-size:11px; font-weight:600; letter-spacing:.09em;
+     text-transform:uppercase; color:var(--muted)}
+
+/* ---------- Kopf ---------- */
+header{position:sticky; top:env(safe-area-inset-top,0px); z-index:30;
+  background:color-mix(in srgb, var(--ground) 88%, transparent);
+  backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
+.hrow{display:flex; align-items:center; gap:7px; padding-block:8px; flex-wrap:wrap}
+.hrow .sim{margin-left:auto}
+.solls{margin-left:auto; text-align:right}
+.solls .sv{font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:26px; font-weight:500; color:var(--muted); line-height:1.1}
+.ssid{display:flex; align-items:center; gap:7px; font-family:var(--mono); font-size:12.5px;
+  padding:3px 9px; border:1px solid var(--line); border-radius:999px; background:var(--surface)}
+.dot{width:7px; height:7px; border-radius:50%; background:var(--ok); flex:none;
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent)}
+.sim{font-family:var(--cond); font-size:11px; font-weight:700;
+  letter-spacing:.1em; padding:3px 9px; border-radius:4px;
+  background:var(--power-soft); color:var(--power); border:1px solid color-mix(in srgb,var(--power) 35%,transparent)}
+.ghost{font:inherit; font-family:var(--cond); font-weight:600; font-size:12px; cursor:pointer;
+  background:var(--surface); color:var(--muted); border:1px solid var(--line);
+  border-radius:6px; padding:4px 9px}
+.ghost[aria-pressed="true"]{background:var(--signal); border-color:var(--signal); color:#fff}
+:root[data-theme="dark"] .ghost[aria-pressed="true"]{color:#0e1214}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ghost[aria-pressed="true"]{color:#0e1214}}
+
+/* ---------- Warnbalken ---------- */
+.bar{display:flex; gap:8px; align-items:center; padding:7px 11px; border-radius:7px;
+  font-size:12.5px; line-height:1.4; margin-top:10px}
+.bar.warn{background:var(--power-soft); color:var(--power);
+  border:1px solid color-mix(in srgb,var(--power) 30%,transparent)}
+.bar.info{background:var(--sunk); color:var(--muted); border:1px solid var(--line)}
+.bar b{font-weight:600}
+.bar .ic{font-family:var(--mono); font-weight:600; flex:none}
+
+/* ---------- Anzeige ---------- */
+.readout{background:var(--surface); border:1px solid var(--line); border-radius:12px;
+  box-shadow:var(--shadow); margin-top:12px; overflow:hidden}
+.rtop{display:flex; align-items:baseline; gap:14px; padding:14px 16px 10px; flex-wrap:wrap}
+.vbig{font-family:var(--mono); font-weight:500; font-variant-numeric:tabular-nums;
+  font-size:clamp(46px,15vw,72px); line-height:.92; letter-spacing:-.025em}
+.vunit{font-family:var(--cond); font-size:17px; font-weight:600; color:var(--muted)}
+.pill{display:inline-flex; align-items:center; gap:7px;
+  font-family:var(--cond); font-weight:700; font-size:13px; letter-spacing:.07em;
+  padding:5px 12px; border-radius:999px; background:var(--sunk); color:var(--muted);
+  border:1px solid var(--line); transition:background .25s, color .25s, border-color .25s}
+.pill.run{background:var(--signal-soft); color:var(--signal); border-color:color-mix(in srgb,var(--signal) 35%,transparent)}
+.pill.idle{background:var(--ok-soft); color:var(--ok); border-color:color-mix(in srgb,var(--ok) 35%,transparent)}
+.pill.fault{background:var(--power-soft); color:var(--power); border-color:color-mix(in srgb,var(--power) 40%,transparent)}
+.pill .dot{background:currentColor; box-shadow:none}
+.pill.run .dot{animation:beat 1.1s ease-in-out infinite}
+@keyframes beat{0%,100%{opacity:1}50%{opacity:.25}}
+.rgrid{display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--line)}
+.rcell{padding:9px 16px 11px; border-right:1px solid var(--line)}
+.rcell:last-child{border-right:0}
+.rcell .v{font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:19px; font-weight:500; margin-top:2px}
+.track{height:5px; background:var(--sunk); border-top:1px solid var(--line)}
+.track>i{display:block; height:100%; background:var(--signal); width:0;
+  transform-origin:left; transition:width .18s linear}
+
+/* ---------- Reiter ---------- */
+nav{display:flex; gap:4px; margin-top:14px; background:var(--sunk); padding:4px;
+  border-radius:9px; border:1px solid var(--line)}
+nav button{flex:1; font-family:var(--cond); font-weight:600; font-size:13.5px; cursor:pointer;
+  padding:8px 4px; border:0; border-radius:6px; background:transparent; color:var(--muted);
+  transition:background .18s, color .18s}
+nav button[aria-selected="true"]{background:var(--surface); color:var(--ink); box-shadow:var(--shadow)}
+
+section.panel{margin-top:10px; display:grid; gap:10px}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:11px;
+  box-shadow:var(--shadow); overflow:hidden}
+.card>h2{font-size:13px; letter-spacing:.03em; padding:10px 13px 0; color:var(--muted);
+  text-transform:uppercase; font-weight:700}
+.card>h2 small{font-family:var(--mono); text-transform:none; font-weight:400}
+.card>.sub{font-size:12.5px; color:var(--muted); padding:3px 14px 0; line-height:1.45}
+.card>.body{padding:11px 13px 13px}
+
+/* ---------- Knöpfe ---------- */
+.btns{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px}
+button.act{font-family:var(--cond); font-weight:600; font-size:14.5px; cursor:pointer;
+  padding:12px 10px; border-radius:8px; border:1px solid var(--line);
+  background:var(--sunk); color:var(--ink); transition:transform .07s, filter .15s}
+button.act:active{transform:translateY(1px)}
+button.act:disabled{opacity:.38; cursor:not-allowed}
+button.act.go{background:var(--signal); border-color:var(--signal); color:#fff}
+button.act.ok{background:var(--ok); border-color:var(--ok); color:#fff}
+:root[data-theme="dark"] button.act.go,:root[data-theme="dark"] button.act.ok{color:#0e1214}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.act.go,
+  :root:not([data-theme="light"]) button.act.ok{color:#0e1214}}
+.runrow{display:flex; align-items:center; gap:8px}
+.runrow input{flex:1; min-width:0; font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:22px; font-weight:500; text-align:right; padding:9px 11px;
+  border:1px solid var(--line); border-radius:8px; background:var(--sunk); color:var(--ink)}
+.runrow .unit{font-family:var(--cond); font-weight:600; color:var(--muted); flex:none}
+.runrow button{flex:none; padding-inline:22px}
+.step{display:flex; align-items:stretch; gap:8px; flex-wrap:wrap}
+.step button{flex:1; min-width:62px; font-family:var(--mono); font-size:16px; font-weight:500;
+  padding:13px 6px; border-radius:8px; border:1px solid var(--line); background:var(--sunk);
+  color:var(--ink); cursor:pointer}
+.step button:active{transform:translateY(1px)}
+
+/* ---------- Tabellen ---------- */
+.tw{overflow-x:auto}
+table{width:100%; border-collapse:collapse; font-size:13.5px}
+th,td{text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); white-space:nowrap}
+th{font-family:var(--cond); font-size:11px; font-weight:600; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--muted)}
+td.n{font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right}
+tr:last-child td{border-bottom:0}
+td.blank{color:var(--muted)}
+
+/* Plateauliste */
+.plats{display:flex; flex-wrap:wrap; gap:5px}
+.plat{font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:12.5px;
+  padding:5px 8px; border-radius:6px; background:var(--sunk); color:var(--muted);
+  border:1px solid var(--line); transition:background .3s,color .3s,border-color .3s}
+.plat.done{background:var(--ok-soft); color:var(--ok); border-color:color-mix(in srgb,var(--ok) 35%,transparent)}
+.plat.now{background:var(--signal); color:#fff; border-color:var(--signal)}
+:root[data-theme="dark"] .plat.now{color:#0e1214}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .plat.now{color:#0e1214}}
+
+/* Diagnose */
+.sens{display:grid; gap:7px}
+.srow{display:grid; grid-template-columns:1fr auto auto auto; gap:10px; align-items:center;
+  padding:9px 10px; background:var(--sunk); border:1px solid var(--line); border-radius:8px}
+.srow .nm{font-size:13.5px}
+.srow .lv{font-family:var(--mono); font-size:11px; font-weight:600; padding:2px 7px;
+  border-radius:4px; background:var(--surface); border:1px solid var(--line); color:var(--muted)}
+.srow .lv.hi{background:var(--signal); color:#fff; border-color:var(--signal)}
+:root[data-theme="dark"] .srow .lv.hi{color:#0e1214}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .srow .lv.hi{color:#0e1214}}
+.srow .ct{font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:14px; min-width:68px; text-align:right}
+
+/* Einstellungen */
+.field{display:grid; gap:5px; margin-bottom:12px}
+.field input{font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:16px;
+  padding:9px 11px; border:1px solid var(--line); border-radius:7px;
+  background:var(--sunk); color:var(--ink); width:100%}
+.field .hint{font-size:12px; color:var(--muted); line-height:1.45}
+.kv{display:grid; grid-template-columns:1fr auto; gap:3px 14px; font-size:13.5px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0; font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right}
+
+/* ---------- Stopleiste ---------- */
+.stopbar{position:fixed; left:0; right:0; bottom:0; z-index:40;
+  background:color-mix(in srgb, var(--ground) 92%, transparent); backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+.stopbar .inner{max-width:860px; margin:0 auto; display:flex; gap:12px; align-items:center}
+button.stop{flex:none; font-family:var(--cond); font-weight:700; font-size:17px; letter-spacing:.06em;
+  padding:13px 28px; border-radius:9px; border:1px solid var(--power);
+  background:var(--power); color:#fff; cursor:pointer}
+button.stop:active{transform:translateY(1px)}
+button.stop:disabled{opacity:.4; cursor:not-allowed}
+.stopbar .note{font-size:11.5px; line-height:1.4; color:var(--muted)}
+.stopbar .note b{color:var(--power); font-weight:600}
+
+.dot.off{background:var(--power); box-shadow:0 0 0 3px color-mix(in srgb,var(--power) 22%,transparent);
+  animation:beat .8s ease-in-out infinite}
+#lost .ic{animation:spin 1.3s linear infinite; display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+footer{color:var(--muted); font-size:12.5px; line-height:1.6; padding-block:20px 8px}
+:focus-visible{outline:2px solid var(--signal); outline-offset:2px; border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+@media (min-width:720px){ .rgrid{grid-template-columns:repeat(4,1fr)} }
+</style>
+
+</head>
+<body>
+<header>
+  <div class="wrap hrow">
+    <span class="ssid"><span class="dot" id="ldot"></span><span id="ltxt">Pruefstand</span></span>
+    <span class="pill idle" id="pill"><span class="dot"></span><span id="pillTxt">IDLE</span></span>
+    <span class="sim">SIM</span>
+    <button class="ghost" id="fast" aria-pressed="false">&times;10</button>
+    <button class="ghost" id="cal" aria-pressed="false">kalib.</button>
+    <button class="ghost" id="drop">Link&nbsp;kappen</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="bar warn" id="lost" hidden>
+    <span class="ic">&#8635;</span><span>Verbindung weg &mdash; verbinde neu<span id="lostDots"></span></span>
+  </div>
+
+  <div class="bar warn" id="faultbar" hidden>
+    <span class="ic">!</span><span>FAULT — <span id="faultTxt"></span></span>
+  </div>
+
+  <div class="readout">
+    <div class="rtop">
+      <div>
+        <div class="lbl">ist</div>
+        <div><span class="vbig" id="vIst">0,0</span> <span class="vunit">km/h</span></div>
+      </div>
+      <div class="solls">
+        <div class="lbl">soll</div>
+        <div class="sv"><span id="vSoll">0,0</span></div>
+      </div>
+    </div>
+    <div class="rgrid">
+      <div class="rcell"><div class="lbl">Trommel</div><div class="v"><span id="rpm">0</span> <small>1/min</small></div></div>
+      <div class="rcell"><div class="lbl">Zelle &empty;</div><div class="v"><span id="raw">0</span> <small>cts</small></div></div>
+      <div class="rcell" id="cellCrr"><div class="lbl">Crr</div><div class="v" id="crr">&mdash;</div></div>
+    </div>
+    <div class="track"><i id="trk"></i></div>
+  </div>
+
+  <div class="bar info" id="calbar"><span class="ic">!</span><span>unkalibriert &mdash; nur Rohwerte</span></div>
+
+  <nav role="tablist">
+    <button role="tab" aria-selected="true"  data-t="betrieb">Betrieb</button>
+    <button role="tab" aria-selected="false" data-t="test">Test</button>
+    <button role="tab" aria-selected="false" data-t="diag">Geber</button>
+    <button role="tab" aria-selected="false" data-t="set">Setup</button>
+  </nav>
+
+  <section class="panel" id="p-betrieb">
+    <div class="card"><div class="body btns">
+      <button class="act" id="bTare">Tara</button>
+      <button class="act go" id="bBase">Baseline</button>
+      <button class="act go" id="bMeas">Messung</button>
+      <button class="act ok" id="bClear" disabled>Quittieren</button>
+    </div></div>
+
+    <div class="card">
+      <h2>Plateaus <small id="platN"></small></h2>
+      <div class="body"><div class="plats" id="plats"></div></div>
+    </div>
+
+    <div class="card">
+      <h2>Punkte</h2>
+      <div class="body tw">
+        <table>
+          <thead><tr><th>v</th><th>f_raw</th><th>f</th><th>M</th><th>P</th><th>Crr</th></tr></thead>
+          <tbody id="ptBody"><tr><td colspan="6" class="blank">&mdash;</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-test" hidden>
+    <div class="card"><div class="body">
+      <div class="runrow">
+        <input class="num" id="fV" type="text" readonly autocomplete="off" inputmode="decimal" value="30" aria-label="Sollgeschwindigkeit km/h">
+        <span class="unit">km/h</span>
+        <button class="act go" id="bRun">Start</button>
+      </div>
+      <div class="step" style="margin:9px 0">
+        <button data-d="-5">&minus;5</button><button data-d="-1">&minus;1</button>
+        <button data-d="1">+1</button><button data-d="5">+5</button>
+      </div>
+      <button class="act" id="bRunStop" style="width:100%" disabled>Stop &mdash; geregelt herunterfahren</button>
+    </div></div>
+    <div class="card"><div class="body">
+      <dl class="kv">
+        <dt>Soll / Ist</dt><dd><span id="tSoll">0,0</span> / <span id="tIst">0,0</span></dd>
+        <dt>Trommel</dt><dd><span id="tRpm">0</span> 1/min</dd>
+        <dt>Zelle, &empty; 40</dt><dd><span id="tRaw">0</span> cts</dd>
+        <dt>Rauschen</dt><dd><span id="tRipple">&plusmn; 0</span> cts</dd>
+        <dt>Motor</dt><dd><span id="tTmp">24,0</span> &deg;C</dd>
+        <dt>Schritt</dt><dd id="tStep">1 km/h</dd>
+      </dl>
+    </div></div>
+  </section>
+
+  <section class="panel" id="p-diag" hidden>
+    <div class="card"><div class="body"><div class="sens" id="sens"></div></div></div>
+    <div class="card">
+      <h2>Abschaltpfade</h2>
+      <div class="body"><dl class="kv">
+        <dt>Not-Aus <small>GPIO 2</small></dt><dd id="dEstop">geschlossen</dd>
+        <dt>Bremsrelais <small>GPIO 40</small></dt><dd id="dBrake">gebremst</dd>
+        <dt>Link <small>Totmann, 2000 ms</small></dt><dd id="dLink">steht</dd>
+      </dl></div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-set" hidden>
+    <div class="card"><div class="body">
+      <div class="field">
+        <label class="lbl" for="fLoad">Auflast &mdash; N</label>
+        <input class="num" id="fLoad" type="text" readonly autocomplete="off" inputmode="decimal" value="416.9">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label class="lbl" for="fBar">Reifendruck &mdash; bar</label>
+        <input class="num" id="fBar" type="text" readonly autocomplete="off" inputmode="decimal" value="6.5">
+      </div>
+    </div></div>
+    <div class="card">
+      <h2>config.h</h2>
+      <div class="body"><dl class="kv">
+        <dt>U</dt><dd>2,837 m</dd>
+        <dt>r</dt><dd>0,4515 m</dd>
+        <dt>L</dt><dd>0,0400 m</dd>
+        <dt>Zelle</dt><dd>98,07 N</dd>
+        <dt>MAX_FORCE_N</dt><dd>90,0 N</dd>
+        <dt>MAX_DRUM_RPM</dt><dd>353 1/min</dd>
+        <dt>Warmlauf</dt><dd>30 min</dd>
+        <dt>Mittelung</dt><dd>10 U</dd>
+        <dt>Einschwingen</dt><dd>15 s</dd>
+        <dt>Rampe</dt><dd>0,5 km/h/s</dd>
+      </dl></div>
+    </div>
+  </section>
+</main>
+
+<div class="stopbar">
+  <div class="inner">
+    <button class="stop" id="bStop" disabled>STOP</button>
+    <div class="note">Antrieb aus, Trommel läuft aus.<br><b>Not-Aus ist der Pilzschalter</b>, nicht dieser Knopf.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+// ---- Konstanten, gespiegelt aus firmware/src/config.h -----------------------
+const U = 2.837, R_DRUM = 0.4515, ARM = 0.040;
+const PLATEAUS = [10,15,20,25,28.8,35,40,45,50,55,60];
+const RAMP = 0.5, SETTLE_MS = 15000, REVS = 10, MAX_RPM = 353;
+const SPS = 80;                // HX711_RATE_SPS — schneller gibt es keine neuen Werte
+const AVG_N = 40;              // gleitender Mittelwert ueber 0,5 s
+const UI_HZ = 5;               // Anzeigerate langsamer Werte (docs/10-firmware.md D6)
+const LINK_TIMEOUT_MS = 2000;  // Herzschlag der Bedienverbindung
+const IDLE_NM = 0.51;          // Leerlauf + Laufradverluste, docs/08-staender.md §5.1
+const SIM_CRR = 0.0037;        // "guter Rennreifen" — erzeugter Prüfling
+const CTS_PER_N = 8700;        // erzeugter Maßstab, solange unkalibriert
+
+const $ = s => document.querySelector(s);
+const de1 = v => v.toFixed(1).replace('.', ',');
+const de = (v,d) => v.toFixed(d).replace('.', ',');
+const rpmOf = v => v/3.6/U*60;
+
+// ---- Zustand ---------------------------------------------------------------
+const S = {
+  phase:'IDLE', mode:null, v:0, target:0, motor:false, step:1,
+  plateau:-1, revs:0, tSettle:0, points:[], raw:0, tmp:24,
+  manual:false,
+  fast:false, cal:false, counts:[0,0,0,0], last:performance.now(),
+  link:true, sinceBeat:0, fault:'',
+  sampAcc:0, ring:new Float64Array(AVG_N), ri:0, rn:0, ripple:0, tare:0
+};
+let loadN = 416.9;
+
+// ---- Simulation ------------------------------------------------------------
+function momentNm(v){
+  // Rollmoment des erzeugten Prüflings plus Leerlauf; bei v=0 kein Moment.
+  if (v < 0.2) return 0;
+  return SIM_CRR * loadN * R_DRUM + IDLE_NM;
+}
+function tick(dt){
+  if (API.on) return;        // live fuehrt der Pruefstand, hier wird nichts gerechnet
+  // Totmannschaltung: ohne Herzschlag bricht der Lauf ab.
+  if (S.link) S.sinceBeat = 0;
+  else {
+    S.sinceBeat += dt*1000;
+    if (S.sinceBeat >= LINK_TIMEOUT_MS && S.phase !== 'FAULT'){
+      S.motor = false; S.target = 0; S.fault = 'Bedienverbindung abgerissen';
+      setPhase('FAULT');
+      $('#lost').hidden = false;
+    }
+  }
+  if (S.phase === 'FAULT'){                      // Treiber gesperrt, Trommel laeuft aus
+    S.v = Math.max(0, S.v - 0.35*dt);
+    if (S.v < 0.3) S.v = 0;
+  }
+
+  // Sollwertführung je Zustand
+  if (!S.manual && (S.phase === 'SPINUP' || S.phase === 'SETTLE' || S.phase === 'POINT')){
+    S.target = PLATEAUS[S.plateau];
+  } else if (S.phase === 'RAMPDOWN'){
+    S.target = 0;
+  } else if (S.phase === 'COAST' || S.phase === 'IDLE' || S.phase === 'TARE'){
+    if (!S.motor) S.target = 0;
+  }
+  // Rampe
+  const d = S.target - S.v;
+  const maxd = RAMP * dt;
+  S.v += Math.abs(d) <= maxd ? d : Math.sign(d)*maxd;
+  if (S.phase === 'COAST'){                       // freier Auslauf, kein Antrieb
+    S.v = Math.max(0, S.v - 0.35*dt);
+    if (S.v < 0.3){ S.v = 0; setPhase('IDLE'); S.mode = null; }
+  }
+  if (S.v < 0.05) S.v = 0;
+
+  // Zustandsfortschritt
+  if (S.phase === 'SPINUP' && Math.abs(S.v - S.target) < 0.15){
+    if (S.manual) setPhase('HOLD');
+    else { S.tSettle = 0; setPhase('SETTLE'); }
+  }
+  else if (S.phase === 'RAMPDOWN' && S.v < 0.1){
+    S.v = 0; S.manual = false; S.motor = false; setPhase('IDLE');
+  }
+  else if (S.phase === 'SETTLE'){
+    S.tSettle += dt*1000;
+    if (S.tSettle >= SETTLE_MS){ S.revs = 0; setPhase('POINT'); }
+  } else if (S.phase === 'POINT'){
+    S.revs += rpmOf(S.v)/60 * dt;
+    if (S.revs >= REVS){ recordPoint(); nextPlateau(); }
+  } else if (S.phase === 'TARE'){
+    S.tSettle += dt*1000;
+    if (S.tSettle >= 2500){
+      let s = 0; for (let i = 0; i < S.rn; i++) s += S.ring[i];
+      S.tare = S.rn ? s/S.rn : 0;              // Nullpunkt uebernehmen, nicht Wert loeschen
+      setPhase('IDLE');
+    }
+  }
+
+  // Wägezelle. Der HX711 liefert 80 SPS; dazwischen gibt es nichts Neues, und ein mit
+  // 80 Hz zappelnder Zahlenwert waere ohnehin nicht lesbar. Abgetastet wird deshalb mit
+  // SPS, angezeigt wird der gleitende Mittelwert ueber AVG_N Werte — so wie es die
+  // Firmware auch machen muss.
+  const period = 1/SPS;
+  S.sampAcc += dt;
+  let guard = 0;
+  while (S.sampAcc >= period && guard++ < 4*SPS){
+    S.sampAcc -= period;
+    const f = S.v > 0.2 ? momentNm(S.v)/ARM : 0;
+    const noise = (Math.random()-0.5) * (S.v > 1 ? 900 : 120);
+    S.ring[S.ri] = f*CTS_PER_N + noise;
+    S.ri = (S.ri + 1) % AVG_N;
+    if (S.rn < AVG_N) S.rn++;
+  }
+  let sum = 0, lo = Infinity, hi = -Infinity;
+  for (let i = 0; i < S.rn; i++){
+    const x = S.ring[i]; sum += x; if (x < lo) lo = x; if (x > hi) hi = x;
+  }
+  S.raw = S.rn ? Math.round(sum/S.rn - S.tare) : 0;
+  S.ripple = S.rn ? Math.round(hi - lo) : 0;
+  S.tmp += ((S.v > 1 ? 24 + S.v*0.42 : 24) - S.tmp) * Math.min(1, dt*0.25);
+
+  // Geberzähler
+  if (S.v > 0.2){
+    const rev = rpmOf(S.v)/60*dt;
+    S.counts[0] += rev*8; S.counts[1] += rev; S.counts[2] += rev*15; S.counts[3] += rev*2.1;
+  }
+}
+function recordPoint(){
+  const M = momentNm(S.v), f = M/ARM;
+  S.points.push({
+    v: PLATEAUS[S.plateau], raw: Math.round(f*CTS_PER_N), f, M,
+    P: M * rpmOf(S.v)/60*2*Math.PI,
+    crr: S.mode === 'MEASURE' ? (M - IDLE_NM)/(loadN*R_DRUM) : null
+  });
+  renderPoints();
+}
+function nextPlateau(){
+  if (S.plateau + 1 < PLATEAUS.length){ S.plateau++; setPhase('SPINUP'); }
+  else { setPhase('COAST'); }
+  renderPlats();
+}
+function setPhase(p){ S.phase = p; paintPhase(); }
+
+// ---- Zeichnen --------------------------------------------------------------
+const pill = $('#pill'), pillTxt = $('#pillTxt');
+function paintPhase(){
+  pillTxt.textContent = S.phase + (S.mode ? ' · ' + S.mode : '');
+  pill.className = 'pill ' + (S.phase === 'FAULT' ? 'fault'
+    : (S.phase === 'IDLE' ? 'idle' : 'run'));
+  const busy = S.phase !== 'IDLE' && S.phase !== 'FAULT';
+  $('#bStop').disabled = !busy && !S.motor;
+  $('#bBase').disabled = busy; $('#bMeas').disabled = busy;
+  $('#bRun').disabled = busy;
+  $('#bRunStop').disabled = !S.manual || S.phase === 'RAMPDOWN';
+  $('#fV').disabled = busy;
+  $('#bTare').disabled = busy || S.v > 0.2;
+  $('#bClear').disabled = S.phase !== 'FAULT' || S.v > 0.2;
+  $('#dBrake').textContent = (busy || S.motor) && S.phase !== 'FAULT'
+    ? 'angezogen — Bremse gelöst' : 'abgefallen — gebremst';
+  $('#dLink').textContent = S.link ? 'steht' : 'abgerissen';
+  $('#ldot').className = 'dot' + (S.link ? '' : ' off');
+  // Im Livebetrieb die Adresse zeigen, unter der die Oberflaeche im Browser
+  // erreichbar ist — aus location.hostname, damit sie nicht veralten kann.
+  $('#ltxt').textContent = !S.link ? 'Verbindung weg'
+                         : (API.on ? location.hostname : 'Entwurf');
+  $('#faultbar').hidden = S.phase !== 'FAULT';
+  if (S.phase === 'FAULT') $('#faultTxt').textContent = S.fault;
+}
+function renderPlats(){
+  $('#plats').innerHTML = PLATEAUS.map((p,i) =>
+    `<span class="plat ${i < S.plateau ? 'done' : (i === S.plateau ? 'now' : '')}">${de(p,p%1?1:0)}</span>`
+  ).join('');
+}
+function renderPoints(){
+  const b = $('#ptBody');
+  if (!S.points.length){
+    b.innerHTML = '<tr><td colspan="6" class="blank">Noch kein Punkt aufgenommen.</td></tr>';
+    return;
+  }
+  b.innerHTML = S.points.map(p => {
+    const blank = '<td class="n blank">—</td>';
+    return `<tr><td class="n">${de(p.v,p.v%1?1:0)}</td><td class="n">${p.raw.toLocaleString('de-DE')}</td>`
+      + (S.cal
+          ? `<td class="n">${de(p.f,1)}</td><td class="n">${de(p.M,2)}</td><td class="n">${de(p.P,0)}</td>`
+            + (p.crr !== null ? `<td class="n">${p.crr.toFixed(4).replace('.',',')}</td>` : blank)
+          : blank + blank + blank + blank)
+      + '</tr>';
+  }).join('');
+}
+const SENSORS = [
+  ['Trommelmarken <small>GPIO 4 · 8/U</small>', 0],
+  ['Indexmarke <small>GPIO 5 · 1/U</small>', 1],
+  ['Motor-Hall <small>GPIO 7</small>', 2],
+  ['Prüflaufrad <small>GPIO 6</small>', 3]
+];
+function renderSens(){
+  $('#sens').innerHTML = SENSORS.map(([nm,i]) => {
+    const c = Math.floor(S.counts[i]);
+    const hi = S.v > 0.2 && (Math.floor(S.counts[i]*2) % 2 === 0);
+    return `<div class="srow"><span class="nm">${nm}</span>`
+      + `<span class="lv ${hi?'hi':''}">${hi?'H':'L'}</span>`
+      + `<span class="ct">${c.toLocaleString('de-DE')}</span>`
+      + `<button class="ghost" data-rst="${i}">0</button></div>`;
+  }).join('');
+}
+
+// ---- Schleife --------------------------------------------------------------
+let slowAcc = 0, sensAcc = 0;
+function frame(now){
+  const rdt = Math.min((now - S.last)/1000, 0.1);   // Echtzeit, fuer die Anzeigetakte
+  S.last = now;
+  tick(rdt * (S.fast ? 10 : 1));
+
+  // Schnelle Werte: aendern sich stetig und langsam, dürfen jeden Frame mitlaufen.
+  $('#vIst').textContent = de1(S.v);
+  $('#vSoll').textContent = de1(S.target);
+  $('#rpm').textContent = Math.round(rpmOf(S.v));
+  $('#tSoll').textContent = de1(S.target);
+  $('#tIst').textContent = de1(S.v);
+  $('#tRpm').textContent = Math.round(rpmOf(S.v));
+
+  // Langsame Werte: 5× je Sekunde. Alles darüber flattert nur.
+  slowAcc += rdt;
+  if (slowAcc >= 1/UI_HZ){
+    slowAcc = 0;
+    $('#raw').textContent = S.raw.toLocaleString('de-DE');
+    $('#tRaw').textContent = S.raw.toLocaleString('de-DE');
+    $('#tRipple').textContent = '± ' + Math.round(S.ripple/2).toLocaleString('de-DE');
+    if (API.on){
+      $('#tTmp').textContent = isNaN(S.tmp) ? '—' : de1(S.tmp);
+      $('#crr').textContent = (S.crrLive === null || S.crrLive === undefined)
+        ? '—' : S.crrLive.toFixed(4).replace('.', ',');
+    } else {
+      $('#tTmp').textContent = de1(S.tmp);
+      $('#crr').textContent = S.cal && S.phase === 'POINT' && S.mode === 'MEASURE'
+        ? ((momentNm(S.v)-IDLE_NM)/(loadN*R_DRUM)).toFixed(4).replace('.',',') : '—';
+    }
+  }
+
+  let frac = 0;
+  if (S.phase === 'SETTLE') frac = S.tSettle/SETTLE_MS;
+  else if (S.phase === 'POINT') frac = S.revs/REVS;
+  else if (S.phase === 'SPINUP') frac = S.target ? Math.min(1, S.v/S.target) : 0;
+  $('#trk').style.width = (frac*100).toFixed(1) + '%';
+
+  sensAcc += rdt;
+  if (sensAcc > 0.25){ sensAcc = 0; renderSens(); paintPhase(); }
+  requestAnimationFrame(frame);
+}
+
+// ---- Livebetrieb -----------------------------------------------------------
+// Dieselbe Datei laeuft als Entwurf (simuliert) und auf dem Geraet (live). Antwortet
+// /api/state, uebernimmt der Pruefstand die Fuehrung; sonst simuliert die Seite weiter.
+const API = { on:false, busy:false, lastOk:0 };
+
+function goLive(){
+  const b = document.querySelector('.sim');
+  b.textContent = 'LIVE';
+  b.style.cssText = 'background:var(--ok-soft);color:var(--ok);border-color:var(--ok)';
+  ['fast','cal','drop'].forEach(id => { const e = $('#'+id); if (e) e.hidden = true; });
+}
+function applyLive(j){
+  S.v = j.v; S.target = j.vs; S.raw = j.raw; S.ripple = j.rip|0;
+  S.counts = [j.mk|0, j.ix|0, j.mh|0, j.wh|0];
+  S.cal = !!j.cal;
+  S.tmp = (j.tmp === null || j.tmp === undefined) ? NaN : j.tmp;
+  S.manual = !!j.man;
+  S.fault = j.flt || '';
+  S.crrLive = (j.crr === null || j.crr === undefined) ? null : j.crr;
+  S.plateau = (j.pi === undefined) ? -1 : j.pi;
+  if (j.ph !== S.phase) S.phase = j.ph;
+  paintPhase(); renderPlats();
+  $('#calbar').hidden = S.cal;
+}
+async function poll(){
+  if (API.busy) return;                    // keine ueberlappenden Abrufe
+  API.busy = true;
+  const ctl = new AbortController();
+  const to = setTimeout(() => ctl.abort(), 900);
+  try{
+    const r = await fetch('/api/state', {cache:'no-store', signal:ctl.signal});
+    if (!r.ok) throw new Error('http');
+    applyLive(await r.json());
+    API.lastOk = Date.now();
+    if (!API.on){ API.on = true; goLive(); }
+    if (!S.link){ S.link = true; $('#lost').hidden = true; paintPhase(); }
+  }catch(e){
+    // Einzelne Aussetzer sind normal — ein kleiner Webserver verschluckt mal eine
+    // Anfrage. Verloren ist die Verbindung erst nach LINK_TIMEOUT_MS ohne Antwort,
+    // also nach derselben Grenze, mit der die Firmware den Lauf abbricht.
+    if (API.on && S.link && Date.now() - API.lastOk > LINK_TIMEOUT_MS){
+      S.link = false; $('#lost').hidden = false; paintPhase();
+    }
+  }finally{
+    clearTimeout(to); API.busy = false;
+  }
+}
+function send(c){
+  if (!API.on) return false;
+  fetch('/api/cmd?c=' + encodeURIComponent(c), {cache:'no-store'}).then(poll).catch(()=>{});
+  return true;
+}
+poll();
+setInterval(poll, 1000/UI_HZ);
+
+// ---- Bedienung -------------------------------------------------------------
+function startRun(mode){
+  if (send(mode === 'MEASURE' ? 'm' : 'b')) return;
+  S.mode = mode; S.manual = false; S.points = []; S.plateau = 0; S.motor = true;
+  renderPoints(); renderPlats(); setPhase('SPINUP');
+}
+$('#bBase').onclick = () => startRun('BASELINE');
+$('#bMeas').onclick = () => startRun('MEASURE');
+$('#bTare').onclick = () => { if (send('t')) return; S.tSettle = 0; setPhase('TARE'); };
+$('#bClear').onclick = () => { if (send('c')) return; S.mode = null; S.fault = ''; setPhase('IDLE'); };
+$('#drop').onclick = () => { S.link = false; paintPhase(); };
+// Kein Knopf: poll() laeuft weiter und nimmt die Verbindung von selbst wieder auf,
+// sobald sie da ist. Der Streifen zeigt nur, dass gerade gewartet wird.
+setInterval(() => {
+  if ($('#lost').hidden) return;
+  const d = $('#lostDots');
+  d.textContent = '.'.repeat((d.textContent.length + 1) % 4);
+}, 400);
+$('#bStop').onclick = () => {
+  if (send('s')) return;
+  S.motor = false; S.manual = false; S.target = 0;
+  setPhase(S.v > 0.3 ? 'COAST' : 'IDLE');
+};
+function readV(){
+  const v = parseFloat($('#fV').value.replace(',', '.'));
+  return isFinite(v) ? Math.max(0, Math.min(60, v)) : 0;
+}
+$('#bRun').onclick = () => {
+  const v = readV();
+  if (v <= 0) return;
+  $('#fV').value = de1(v);
+  if (send('v' + v.toFixed(1))) return;
+  S.manual = true; S.motor = true; S.target = v; S.mode = 'TEST';
+  setPhase('SPINUP');
+};
+$('#bRunStop').onclick = () => { if (send('d')) return; if (S.manual) setPhase('RAMPDOWN'); };
+document.querySelectorAll('.step button').forEach(b => b.onclick = () => {
+  const d = +b.dataset.d;
+  S.step = Math.abs(d); $('#tStep').textContent = S.step + ' km/h';
+  S.target = Math.max(0, Math.min(60, +(S.target + d).toFixed(1)));
+  $('#fV').value = de1(S.target);
+  if (send('v' + S.target.toFixed(1))) return;
+  if (S.target > 0 && S.manual){ S.motor = true; paintPhase(); }
+});
+$('#sens').addEventListener('click', e => {
+  const i = e.target.dataset && e.target.dataset.rst;
+  if (i !== undefined) { S.counts[+i] = 0; renderSens(); }
+});
+$('#fLoad').addEventListener('change', e => {
+  const v = parseFloat(e.target.value.replace(',','.'));
+  if (v > 0){ loadN = v; send('l' + v.toFixed(1)); } else e.target.value = loadN.toFixed(1);
+});
+$('#fBar').addEventListener('change', e => {
+  const v = parseFloat(e.target.value.replace(',','.'));
+  if (v > 0) send('p' + v.toFixed(2));
+});
+$('#fast').onclick = e => {
+  S.fast = !S.fast; e.target.setAttribute('aria-pressed', S.fast);
+};
+$('#cal').onclick = e => {
+  S.cal = !S.cal; e.target.setAttribute('aria-pressed', S.cal);
+  $('#calbar').hidden = S.cal;
+  renderPoints();
+};
+
+// Reiter
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x =>
+    x.setAttribute('aria-selected', x === b));
+  ['betrieb','test','diag','set'].forEach(t =>
+    $('#p-' + t).hidden = (t !== b.dataset.t));
+  try { localStorage.setItem('tab', b.dataset.t); } catch(_){}
+});
+try {
+  const t = localStorage.getItem('tab');
+  if (t) { const b = document.querySelector(`nav button[data-t="${t}"]`); if (b) b.click(); }
+} catch(_){}
+
+// Captive-Portal-Webviews halten jede Seite fuer ein Anmeldeformular und fokussieren
+// das erste Textfeld — dann klappt ungefragt die Bildschirmtastatur auf. readonly
+// verhindert das; beim bewussten Antippen wird es kurz aufgehoben.
+document.querySelectorAll('input.num').forEach(inp => {
+  inp.addEventListener('pointerdown', () => { inp.readOnly = false; });
+  inp.addEventListener('blur',        () => { inp.readOnly = true;  });
+});
+
+renderPlats(); renderSens(); renderPoints(); paintPhase();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

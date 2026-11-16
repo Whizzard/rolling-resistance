@@ -11,7 +11,7 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 |---|---|---|---|---|---|
 | U | `DRUM_CIRCUMFERENCE_M` | **2,931** | m | gem | Über die fertige Oberfläche gemessen, Ø 933 mm ([09-messtheorie](09-messtheorie.md) §1.5). Der frühere Wert 3,000 galt der geplanten Ø-955-Trommel und war 2,4 % zu groß. Nach jeder Änderung an der Oberfläche neu messen: Maßband um die Trommel, 3 Messungen mitteln. 1 mm Fehler = 0,03 %. |
 | r | `DRUM_RADIUS_M` | **0,4665** | m | ber | U / 2π |
-| L | `TORQUE_ARM_M` | **0,040** | m | ber | Von 0,070 **verkürzt**, weil `CRR_DESIGN_MAX` auf 0,007 gesunken ist — sonst blieben zwei Drittel des Messbereichs ungenutzt. Auslegungsfall stationär 1,88 Nm → 47,0 N = 48 % FS; samt Rampe 2,51 Nm → 62,7 N = 64 %; ΔCrr 0,0005 → 2,43 N. Herleitung [08-staender](08-staender.md) §5.2. Bohrungen 40,0 mm (Zelle) und 80,0 mm (Kalibrierung), je ±0,1 mm. Nach dem Bau mit bekanntem Gewicht nachmessen (§2). |
+| L | `TORQUE_ARM_M` | **0,080** | m | **TBD** | Gilt für die **5-kg-Zelle**. Auslegungsfall stationär 1,88 Nm → 23,5 N = 48 % FS; samt Rampe 2,51 Nm → 31,4 N = 64 %; ΔCrr 0,0005 → 1,22 N — dieselben Ausnutzungen wie zuvor mit 10 kg bei 0,040 m: halbe Zelle, doppelter Arm. Herleitung [08-staender](08-staender.md) §5.2. Bohrungen 80,0 mm (Zelle) und 160,0 mm (Kalibrierung), je ±0,1 mm. Verbaut sind laut Ansage etwa 80 mm — **ausmessen**, der Arm geht linear in jedes Moment ein (§2). |
 | i | `BELT_RATIO` | 1,00 | – | Festlegung | **Direktantrieb**: Trommel auf dem Motorrotor, keine Übersetzung. Konstante bleibt für den Fall eines späteren Riemens. |
 | J | — | **2,07** | kg·m² | ber | Aus der Geometrie, [09-messtheorie](09-messtheorie.md) §9.1. Der frühere Wert 2,3 galt der Ø-955-Trommel. Geht **nicht** ins Ergebnis ein (gemessen wird stationär, dω/dt = 0), sondern nur in Rampenkorrektur, Hebelarmauslegung und die Energiebilanz. Nachmessen per Auslaufversuch mit bekannter Zusatzmasse. |
 
@@ -19,7 +19,7 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 
 | Symbol | Konstante | Wert | Einheit | Herkunft | Ermittlung |
 |---|---|---|---|---|---|
-| — | `LOADCELL_CAPACITY_N` | 98,07 | N | DB | 10 kg |
+| — | `LOADCELL_CAPACITY_N` | 49,03 | N | Ansage 2026-11-16 | **5 kg**. Die Unterlagen nannten bis dahin 10 kg — Typenschild nachlesen, dann auf DB setzen. |
 | — | `LOADCELL_N_PER_COUNT` | **TBD** | N/count | TBD | Kalibrierung: Wiegeteil in Messlage, bekanntes Gewicht am Kalibrierpunkt anhängen, Rohwerte vorher/nachher mitteln, dividieren. Mindestens 3 Gewichte über den Bereich, Linearität prüfen. |
 | — | `HX711_GAIN_PULSES` | 1 | – | DB | 1 = Kanal A Gain 128, 3 = Kanal B Gain 32 |
 | — | `HX711_RATE_SPS` | 80 | 1/s | DB | RATE-Pin auf VCC. Bei 60 km/h ≈ 14 Samples pro Umdrehung. |
@@ -234,18 +234,23 @@ Der MTB-Crr ist selbst gerechnet, weil die Quelle dort nur Watt ausweist:
 > Die Auslegung gilt für 42,5–50 kg.
 
 > **Wer doch einmal MTB-Reifen messen will**, muss nicht nur `CRR_DESIGN_MAX` wieder
-> anheben, sondern auch `TORQUE_ARM_M` zurück auf 0,070 m setzen — sonst läuft die
-> Wägezelle bei Crr 0,0127 samt Anfahrmoment über ihren Endwert. Beide Werte gehören
+> anheben, sondern auch `TORQUE_ARM_M` verlängern — sonst läuft die Wägezelle bei
+> Crr 0,0127 samt Anfahrmoment über ihren Endwert. Mit der 5-kg-Zelle läge der
+> langsamste MTB-Reifen (2,98 Nm) bei 0,080 m schon bei 76 %. Beide Werte gehören
 > zusammen.
 
 ## 7 Sicherheitsgrenzen
 
 | Konstante | Wert | Einheit | Begründung |
 |---|---|---|---|
-| `MAX_FORCE_N` | 90 | N | 92 % vom Zellenendwert → Abschaltung vor der Sättigung |
+| `MAX_FORCE_N` | 45 | N | 92 % vom Zellenendwert der 5-kg-Zelle → Abschaltung vor der Sättigung |
 | `MAX_DRUM_RPM` | **abgeleitet** → 341 bei U = 2,931 m | 1/min | `V_MAX_KMH / 3,6 / U · 60`. Nicht hart gesetzt: die Grenze bedeutet *60 km/h an der Trommeloberfläche* und muss dem Umfang folgen — der alte feste Wert 333 galt der Ø-955-Trommel und hätte an der gebauten Ø-933-Trommel schon bei 58,4 km/h ausgelöst, mitten im obersten Messplateau. Erhöhung von `V_MAX_KMH` erst nach Freigabe in [07-sicherheit](07-sicherheit.md) §5. |
 | `STALL_TIMEOUT_MS` | 2000 | ms | siehe §3 |
 | `FAULT_SETTLE_MS` | 500 | ms | Entprellung der Fehlerkriterien |
+| `LINK_TIMEOUT_MS` | 2000 | ms | **Totmannschaltung.** Solange ein Lauf fährt, muss der Bedienrechner sich melden; bleibt er länger aus, bricht der Lauf ab. Dieselbe Größenordnung wie `STALL_TIMEOUT_MS`. Die Oberfläche fragt 5×/s ab, es dürfen also zehn Abfragen ausfallen. Gilt **nicht**, solange nie ein Client da war — dann wird über die Konsole gefahren. [07-sicherheit](07-sicherheit.md) §4 |
+
+Die WLAN-Konstanten `WEBUI_*` stehen in [04-hardware](04-hardware.md) §13.1, weil sie
+zum Aufbau gehören und nicht zur Physik.
 
 ## 8 Status-LED
 
@@ -258,6 +263,7 @@ wird über `neopixelWrite()` angesteuert, das intern RMT benutzt.
 | `BOOT_RAINBOW_MS` | 2500 | ms | Festlegung | Dauer des Regenbogens beim Booten. Ein voller Farbkreis, danach bleibt die LED **aus**. |
 | `BOOT_RAINBOW_STEP_MS` | 12 | ms | Festlegung | ≈ 200 Schritte über die Dauer — flüssig, ohne den Bus zu belasten. |
 | `STATUS_LED_DIV` | 6 | – | Festlegung | Helligkeitsteiler. Die LED blendet bei voller Aussteuerung auf dem Tisch. |
+| `STATUS_BLINK_MS` | 700 | ms | Festlegung | Halbe Periode des roten Blinkens, solange auf die Bedienverbindung gewartet wird. Nach dem Regenbogen zeigt die LED deren Zustand: **grün stetig** = ein Bedienrechner meldet sich, **rot blinkend** = es wartet keiner. Damit ist die Totmannschaltung aus drei Metern ablesbar. |
 
 Beide Pins nacheinander zu bespielen geht **nicht**: `neopixelWrite()` initialisiert RMT
 einmalig für den Pin des ersten Aufrufs und wechselt danach nicht mehr. Deshalb ein

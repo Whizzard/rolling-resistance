@@ -5,6 +5,7 @@
 #include "drive.h"
 #include "logger.h"
 #include "tirepressure.h"
+#include "webui.h"
 
 namespace state {
 namespace {
@@ -42,6 +43,7 @@ void checkFaults() {
                                     reason = "FAULT: keine Drehzahlpulse";
   else if (speed::slipDetected())   reason = "FAULT: Riemenschlupf";
   else if (drive().isFaulted())     reason = "FAULT: Leistungsstufe";
+  else if (!webui::linkAlive())     reason = "FAULT: Bedienverbindung weg";
 
   if (reason == nullptr) {
     g_faultSinceMs = 0;
