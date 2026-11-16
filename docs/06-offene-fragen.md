@@ -157,6 +157,28 @@ nach zwanzig Sitzungen wäre das Repo bei 600 MB. Rohstrom bleibt auf der SD-Kar
 Versioniert werden die **gemittelten Messpunkte** — wenige Kilobyte je Lauf. Das ist die
 Datei, auf der die Auswertung läuft.
 
+### B6 Bedienfeld: Portal oder nicht — **entschieden, kein Portal**
+Ein Captive Portal wurde gebaut, am Gerät erprobt und wieder entfernt. Messungen und
+Belege in [04-hardware](04-hardware.md) §13.2: das Portalfenster ist kein Browser und
+lässt sich nicht verlassen, iOS trennt danach das Netz (gemessen 15 s, mit Karenzphase
+40 s), und Android zeigt bei privaten Adressen überhaupt kein Portal. Stattdessen
+beantwortet der Stand die Verbindungsprüfung, bleibt verbunden, und aufgerufen wird
+über QR-Code.
+
+**Offen bleibt:** ob das WLAN offen oder mit WPA2 laufen soll. Zurzeit WPA2, weil sonst
+jeder in Reichweite den Motor fahren kann — das Kennwort steckt im QR-Code, getippt
+wird es nie.
+
+### A12 Hebelarm und Zellenendwert ausmessen
+Die Zelle ist laut Ansage vom 2026-11-16 eine **5-kg-Zelle**, nicht 10 kg wie bis dahin
+dokumentiert. Zusammen mit dem alten 40-mm-Arm hätte das die Zelle beim Anfahren mit
+128 % ihres Endwerts belastet. Arm steht jetzt auf 80 mm, Herleitung in
+[08-staender](08-staender.md) §5.2.
+
+**Zu tun:** Typenschild der Zelle ablesen (dann Herkunft von `LOADCELL_CAPACITY_N` auf
+DB setzen) und die Bohrung am Hebelarm auf ±0,1 mm ausmessen. Verbaut sind laut Ansage
+etwa 80 mm; der Arm geht **linear** in jedes Moment ein.
+
 ## Erledigt
 
 | Frage | Entscheidung | Datum |

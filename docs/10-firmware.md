@@ -59,12 +59,27 @@ Joystick-Breakouts: die geben eine Spannung, keine fünf Kontakte.
 | N5 | M | Derselbe Zustand wird von den Abschaltkriterien in [07-sicherheit](07-sicherheit.md) §4 erreicht. |
 | N6 | M | Beim Reset und beim Booten sind die Relais abgefallen, der Stand ist also gebremst. |
 
+## 3.1 Bedienfeld über WLAN
+
+| | P | Anforderung |
+|---|---|---|
+| W1 | M | Der Stand liefert die Oberfläche **selbst** aus, über den eigenen Accesspoint. Kein Internet, kein Router, keine App ([04-hardware](04-hardware.md) §13). |
+| W2 | M | **Dasselbe Befehlsvokabular wie die serielle Konsole.** `/api/cmd?c=…` reicht die Zeichenkette an denselben Parser weiter — es gibt nur eine Liste von Befehlen (G5). |
+| W3 | M | **Totmannschaltung**: ohne Herzschlag des Bedienrechners bricht ein laufender Lauf ab ([07-sicherheit](07-sicherheit.md) §4). |
+| W4 | S | Dieselbe Datei läuft als Entwurf im Browser (simuliert) und auf dem Gerät (live). Antwortet `/api/state`, führt der Prüfstand; sonst simuliert die Seite sich selbst. |
+| W5 | S | Anzeigewerte höchstens **5× je Sekunde** auffrischen. Der HX711 liefert 80 SPS; angezeigt wird der gleitende Mittelwert über 40 Werte. Ein mit 80 Hz zappelnder Zahlenwert ist weder lesbar noch aussagekräftig. |
+| W6 | K | Ausgelegt für ein **iPad im Querformat** im Kioskmodus, aber bis auf Handybreite benutzbar. |
+
+**Das LCD ist damit optional.** `display::present()` ist false, wenn unter
+`LCD_I2C_ADDR` niemand antwortet; dann läuft alles über Konsole und Bedienfeld. Das LCD
+zeigt dasselbe noch einmal, es ersetzt nichts und wird von nichts vorausgesetzt.
+
 ## 4.1 Status-LED
 
 | | P | Anforderung |
 |---|---|---|
 | L1 | K | Beim Booten läuft **einmal** ein Regenbogen über die RGB-LED des DevKits, danach bleibt sie **aus**. Lebenszeichen beim Einschalten — man sieht ohne Konsole, dass der Chip läuft und die Firmware angekommen ist. |
-| L2 | K | Im Messbetrieb leuchtet nichts. Eine mitlaufende LED am Prüfstand wäre nur Ablenkung. |
+| L2 | M | Nach dem Regenbogen zeigt die LED den Zustand der **Bedienverbindung**: grün stetig = ein Bedienrechner meldet sich, rot blinkend = es wird gewartet. Damit ist die Totmannschaltung aus drei Metern ablesbar. Dies ersetzt die frühere Festlegung, dass die LED im Betrieb aus bleibt. |
 | L3 | M | Die Animation ist **nicht blockierend** (G1): `statusled::service()` läuft aus `loop()`, es gibt kein `delay()`. |
 
 Konstanten in [03-parameter](03-parameter.md) §8; die Pin-Frage v1.0/v1.1 steht dort
@@ -163,7 +178,7 @@ Prüfgewicht an den Hebelarm hängen, daraus `LOADCELL_N_PER_COUNT`.
 | W7 | K | Kriechen: Last 5 min anstehen lassen, Abweichung protokollieren. |
 
 Umrechnung: eine Masse *m* am Radius *b* erzeugt an der Zelle (r = 40 mm)
-`F = m · g · b / 0,040 m`. Am 80-mm-Loch also die **doppelte** Kraft.
+`F = m · g · b / 0,080 m`. Am 160-mm-Loch also die **doppelte** Kraft.
 
 ## 7 Messseite
 

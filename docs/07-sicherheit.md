@@ -61,12 +61,30 @@ bis zur Überspannungsabschaltung. Nötig wären Bremswiderstand mit Chopper (1,
 |---|---|---|
 | Keine Drehzahlpulse trotz Sollwert > 0 | `STALL_TIMEOUT_MS` = 2000 ms | FAULT, Antrieb aus |
 | n_Motor gegen n_Trommel unplausibel | `SLIP_TOLERANCE` = 5 % | FAULT, Antrieb aus |
-| Kraft an der Wägezelle | `MAX_FORCE_N` = 90 N | FAULT, Antrieb aus |
+| Kraft an der Wägezelle | `MAX_FORCE_N` = 45 N | FAULT, Antrieb aus |
 | Wägezelle gesättigt oder HX711 ohne Antwort | — | FAULT, Antrieb aus |
 | Trommeldrehzahl über Grenze | `MAX_DRUM_RPM` = 341 1/min | FAULT, Antrieb aus |
 | Motortemperatur | **TBD**, siehe A5 | FAULT, Antrieb aus |
+| **Bedienverbindung abgerissen** | `LINK_TIMEOUT_MS` = 2000 ms | FAULT, Antrieb aus |
 
-FAULT ist rastend: Quittierung nur im Stillstand über die Konsole.
+FAULT ist rastend: Quittierung nur im Stillstand über die Konsole oder das Bedienfeld.
+
+**Zur Bedienverbindung.** Solange ein Lauf fährt, muss sich der Bedienrechner melden —
+reißt die Verbindung ab, bricht der Lauf ab und die Trommel läuft aus. Drei Festlegungen
+dazu:
+
+- Maßgeblich ist ein **Herzschlag**, nicht die TCP-Verbindung: ein weggelegtes oder
+  eingeschlafenes Telefon merkt TCP erst nach Minuten. Jede Abfrage von `/api/state`
+  zählt als Lebenszeichen, die Oberfläche fragt 5× je Sekunde.
+- Das Kriterium ist **erst scharf, nachdem ein Client da war** (`webui::clientSeen()`).
+  Ohne Bedienfeld lässt sich der Stand weiterhin allein über die serielle Konsole
+  fahren — sonst wäre jeder Konsolenlauf sofort ein Fehlerfall.
+- Es ist **rastend** wie jedes andere Kriterium. Ein Lauf, der nach einem
+  Verbindungsabriss von selbst weiterfährt, sobald das WLAN wiederkommt, wäre die
+  schlechtere Eigenschaft.
+
+Die Status-LED zeigt denselben Zustand: grün stetig = Verbindung steht, rot blinkend =
+es wird gewartet.
 
 Beim Direktantrieb gibt es keinen Schlupf; der Drehzahlvergleich ist eine
 Plausibilitätsprüfung der beiden Aufnehmer.

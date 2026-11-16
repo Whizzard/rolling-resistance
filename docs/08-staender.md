@@ -136,7 +136,7 @@ z=550├─────┼───┤═════╪╫═╪═════
      │     │   │     │║ └─Klemmnabe   Klemmnabe  │   ╰──╯   │ ███ │──┘ 2×6902
      │     │   ╰─────╯╚═══════════════════╝╰─────╯ Kupplung ╰──┬──╯ Abst. 100
      │     │      ◄─ Ø15 ─►◄── Ø30 ──►◄─ Ø15 ─►                │ Hebelarm 70 ↓
-     │     │   ◄────── Lagerabstand 340 ──────►              ══╩══ Zelle 10 kg
+     │     │   ◄────── Lagerabstand 340 ──────►              ══╩══ Zelle 5 kg
      ╰──┬──╯                                                   ╰──┬──╯
  z=40 ══╧══════════════════════════════════════════════════════╧══ Querträger 1000
 ```
@@ -275,21 +275,26 @@ Zellenendwerts. Zwei Drittel des Messbereichs blieben ungenutzt, und die auf den
 bezogenen Zellenfehler (Kriechen, Nichtwiederholbarkeit, typ. 0,02 % FS) gingen voll mit
 ein.
 
-| | L = 0,070 m | **L = 0,040 m** |
+Prozentangaben beziehen sich auf den Zellenendwert, und der ist bei der verbauten
+**5-kg-Zelle 49,03 N** — nicht 98,07 N, wie hier bis zum 2026-11-16 stand.
+
+| | L = 0,040 m | **L = 0,080 m** |
 |---|---|---|
-| Auslegungsfall stationär (1,88 Nm) | 26,8 N / 27 % | **47,0 N / 48 %** |
-| mit Rampe (2,51 Nm) | 35,8 N / 37 % | **62,7 N / 64 %** |
-| ΔCrr = 0,0005 | 1,39 N | **2,43 N** |
-| Zellenfehler 0,02 % FS, als Moment | 0,0014 Nm | **0,0008 Nm** = 0,11 % vom Rennreifensignal |
+| Auslegungsfall stationär (1,88 Nm) | 47,0 N / **96 %** | **23,5 N / 48 %** |
+| mit Rampe (2,51 Nm) | 62,7 N / **128 %** | **31,4 N / 64 %** |
+| ΔCrr = 0,0005 | 2,43 N | **1,22 N** |
+| Zellenfehler 0,02 % FS, als Moment | 0,0004 Nm | **0,0008 Nm** = 0,11 % vom Rennreifensignal |
 
-→ **`TORQUE_ARM_M` von 0,070 auf 0,040 m.** Die Bohrungen am Hebelarm (B4) wandern auf
-**40,0 mm** (Zelle) und **80,0 mm** (Kalibrierung), beide weiterhin auf ±0,1 mm
-auszumessen — bei 40 mm sind das 0,25 % statt 0,14 %, das bleibt unter dem Budget.
-`MAX_FORCE_N` = 90 N bleibt als Sättigungsschutz (entspricht jetzt 3,6 Nm).
+→ **`TORQUE_ARM_M` = 0,080 m.** Mit 0,040 m würde die Zelle schon beim Anfahren mit
+128 % ihres Endwerts belastet — im Normalbetrieb, nicht im Fehlerfall. Die Bohrungen am
+Hebelarm (B4) liegen bei **80,0 mm** (Zelle) und **160,0 mm** (Kalibrierung), beide auf
+±0,1 mm auszumessen; bei 80 mm sind das 0,13 %, also die Hälfte des früheren Budgets.
+`MAX_FORCE_N` = **45 N** als Sättigungsschutz (entspricht 3,6 Nm, unverändert).
 
-> Alternative ohne Umbau: Zelle 5 kg statt 10 kg bei L = 0,070 m. Dann liegt der
-> Auslegungsfall bei 73 % und die FS-bezogenen Fehler halbieren sich ebenfalls. Nur
-> sinnvoll, falls ohnehin eine zweite Zelle beschafft wird.
+> Die Ausnutzungen 48 % / 64 % / 92 % sind dieselben wie in der früheren Rechnung mit
+> einer 10-kg-Zelle bei 0,040 m: **halbe Zelle, doppelter Arm.** Auch alle Spannungen
+> am Zelleneingang ([04-hardware](04-hardware.md) §5.3) bleiben unverändert, weil sie
+> am Verhältnis hängen und nicht am Absolutwert. Was sich halbiert, sind die Kräfte.
 
 ### 5.3 Hochlaufzeit
 
@@ -540,7 +545,8 @@ Signals. Das gehört in die Prüfliste des ersten Laufs.
 ### 7.5 Anschläge und Messzonenerkennung
 
 Der Zug schützt nur gegen Bremsen. In **Zugrichtung** liegt die Gefahr weiter beim
-Spitzenmoment des Motors: 12,6 Nm sind 315 N und damit über der Bruchlast der 10-kg-Zelle.
+Spitzenmoment des Motors: 12,6 Nm sind bei L = 0,080 m **157 N** und damit weit über
+dem Endwert der 5-kg-Zelle (49 N).
 
 | Radius am Hebelarm | Funktion |
 |---|---|

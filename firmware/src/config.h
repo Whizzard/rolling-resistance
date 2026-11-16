@@ -23,17 +23,21 @@ constexpr float DRUM_CIRCUMFERENCE_M = 2.837f;
 // [ber] U / 2π
 constexpr float DRUM_RADIUS_M = DRUM_CIRCUMFERENCE_M / (2.0f * PI);
 
-// [ber] Kurzer Arm = größere Kraft = besseres SNR; die Grenze ist die Überlastreserve.
-// Mit CRR_DESIGN_MAX = 0,007 statt 0,015 ist der ungünstigste Fall halb so groß,
-// deshalb wird der Arm von 0,070 auf 0,040 m VERKÜRZT — sonst blieben zwei Drittel
-// des Messbereichs ungenutzt und die auf den Endwert bezogenen Zellenfehler
-// (Kriechen, Nichtwiederholbarkeit) gingen voll ein. Herleitung docs/08-staender.md §5.2:
-//   Auslegungsfall stationär 1,88 Nm → 47,0 N = 48 % vom Zellenendwert
-//   samt Rampe              2,51 Nm → 62,7 N = 64 %
-//   ΔCrr = 0,0005                            →  2,43 N
-// Bohrungen am Hebelarm: 40,0 mm (Zelle), 80,0 mm (Kalibrierung), beide auf ±0,1 mm
-// auszumessen. Anschlag bei 0,200 m. Nach dem Bau mit bekanntem Gewicht nachmessen.
-constexpr float TORQUE_ARM_M = 0.040f;
+// [TBD] Kurzer Arm = größere Kraft = besseres SNR; die Grenze ist die Überlastreserve.
+// Die Zelle ist eine 5-kg-Zelle (49,03 N). Bei L = 0,040 m läge der Auslegungsfall bei
+// 96 % und der Fall samt Rampe bei 128 % — die Zelle würde im NORMALBETRIEB überfahren,
+// nicht erst im Fehlerfall. Mit L = 0,080 m stimmt die Auslegung wieder:
+//   Auslegungsfall stationär 1,88 Nm → 23,5 N = 48 % vom Zellenendwert
+//   samt Rampe              2,51 Nm → 31,4 N = 64 %
+//   ΔCrr = 0,0005                            →  1,22 N
+// Das sind exakt dieselben Ausnutzungen wie in der früheren 10-kg-Rechnung bei 0,040 m:
+// halbe Zelle, doppelter Arm. Die Begründung in docs/08-staender.md §5.2 trägt also
+// unverändert, nur liegt die Überlastgrenze woanders.
+// Verbaut sind laut Ansage vom 2026-11-16 etwa 80 mm. Der Arm geht LINEAR in jedes
+// Moment ein — vor der ersten Messung die Bohrung auf ±0,1 mm ausmessen und den Wert
+// hier eintragen; bis dahin bleibt er TBD. Die Kalibrierbohrung wandert mit nach außen
+// auf 160 mm, damit das 2:1-Verhältnis erhalten bleibt. Anschlag bei 0,200 m.
+constexpr float TORQUE_ARM_M = 0.080f;
 
 // [Festlegung] DIREKTANTRIEB: die Trommel sitzt auf dem Rotor des Nabenmotors,
 // Motor- und Trommeldrehzahl sind identisch. Der verbaute Hoverboard-Motor dreht mit
@@ -75,8 +79,10 @@ constexpr uint8_t HX711_GAIN_PULSES = 1;   // [DB] 1 = Kanal A / Gain 128
 constexpr uint16_t HX711_RATE_SPS   = 80;  // [DB] RATE-Pin auf VCC
 constexpr uint16_t TARE_SAMPLES     = 200; // [gesch] ≈ 2,5 s bei 80 SPS
 
-// [DB] 10-kg-Zelle
-constexpr float LOADCELL_CAPACITY_N = 98.07f;
+// [Ansage 2026-11-16] 5-kg-Zelle, 5 · 9,80665 = 49,03 N. Die Unterlagen nannten bis
+// dahin 10 kg; das war falsch und hätte zusammen mit dem 40-mm-Arm die Zelle beim
+// Anfahren zerstört. Typenschild noch nachlesen und die Herkunft auf [DB] setzen.
+constexpr float LOADCELL_CAPACITY_N = 49.03f;
 
 // [TBD] KALIBRIERUNG AUSSTEHEND. Solange dieser Wert 0 ist, gibt die Firmware
 // keine Kräfte und kein Crr aus, sondern nur Rohwerte. Das ist Absicht:
@@ -119,7 +125,7 @@ constexpr float CRR_DESIGN_MAX = 0.007f;
 
 // ------------------------------------------------------ Sicherheitsgrenzen
 
-constexpr float MAX_FORCE_N = 90.0f;          // 92 % vom Zellenendwert
+constexpr float MAX_FORCE_N = 45.0f;          // 92 % vom Zellenendwert (5 kg)
 // [ber] ABGELEITET, nicht hart gesetzt: die Grenze bedeutet "60 km/h an der
 // Trommeloberfläche" und muss dem Umfang folgen. Der alte feste Wert 333 galt für die
 // geplante Ø-955-Trommel; an der gebauten Ø-933-Trommel hätte er schon bei 58,4 km/h
@@ -188,6 +194,46 @@ constexpr uint8_t PIN_BRAKE_RELEASE = 40;
 // Frei bleiben damit GPIO 1, 41, 42 und 47. Die microSD braucht davon noch drei
 // (SCK/MOSI/MISO), CS liegt auf PIN_SD_CS — danach ist GPIO 1 der einzige freie Pin.
 
+// ------------------------------------------------------------- Bedienfeld WLAN
+// Der Prüfstand spannt einen eigenen Accesspoint auf und liefert die Oberfläche
+// selbst aus. Kein Internet, kein Router. Begründung docs/04-hardware.md §13.
+constexpr char     WEBUI_SSID[]    = "Pruefstand";  // [Festlegung]
+// [Festlegung] WPA2 statt offen. Nicht aus Geheimhaltung, sondern weil sonst jeder in
+// Reichweite den Motor fahren kann. Eingetippt wird es nie — es steckt im QR-Code
+// (hardware/qr-wlan.png). Mindestens 8 Zeichen, sonst bleibt der AP offen.
+constexpr char     WEBUI_PASSWORD[] = "***REMOVED***";
+constexpr uint8_t  WEBUI_CHANNEL   = 6;             // [Festlegung]
+constexpr uint8_t  WEBUI_MAX_CLIENTS = 4;           // [Festlegung]
+constexpr uint16_t WEBUI_PORT      = 80;            // [Festlegung] Captive Portal braucht 80
+constexpr char     WEBUI_HOSTNAME[] = "pruefstand"; // [Festlegung] mDNS → pruefstand.local
+
+// Adresse des Accesspoints. NICHT 192.168.4.1 — und das ist kein Geschmacksfrage:
+// Androids NetworkMonitor verwirft die Verbindungsprüfung, sobald der DNS einen
+// Prüf-Host auf eine PRIVATE Adresse auflöst, und sendet die HTTP-Anfrage erst gar
+// nicht ab (hasPrivateIpAddress(): 10/8, 172.16/12, 192.168/16, 169.254/16 →
+// CaptivePortalProbeResult.PRIVATE_IP → failed). Ergebnis: "Verbunden, kein
+// Internet", kein Portal, keine Anmeldeaufforderung. Deshalb setzt auch das
+// arduino-esp32-Beispiel 8.8.4.4 und WLED 4.3.2.1.
+// [Festlegung] Belegt fremden Adressraum — unschön, aber ohne Internet am Stand
+// folgenlos, und die einzige Art, auf Android überhaupt erkannt zu werden.
+constexpr uint8_t  WEBUI_AP_IP[4] = {4, 3, 2, 1};
+
+// KEIN Captive Portal. Begründung in docs/04-hardware.md §13: das Portalfenster ist
+// kein Browser, es schließt beim Wegwischen, iOS trennt danach das Netz, und Android
+// zeigt es bei privaten Adressen gar nicht erst. Stattdessen beantwortet der Stand die
+// Verbindungsprüfung so, wie das Betriebssystem es erwartet — dann gilt das Netz als in
+// Ordnung, die Verbindung bleibt stehen, und nichts springt auf. Aufgerufen wird die
+// Oberfläche über den aufgeklebten QR-Code (hardware/qr-ui.png) oder jede beliebige
+// Adresse im Browser; der DNS beantwortet alles mit der eigenen Adresse.
+
+// SICHERHEITSGRENZE. Totmannschaltung: solange ein Lauf fährt, muss der
+// Bedienrechner sich melden. Bleibt er länger aus, bricht der Lauf ab — ein
+// Abschaltkriterium wie jedes andere, docs/07-sicherheit.md §4.
+// [Festlegung] 2000 ms, dieselbe Größenordnung wie STALL_TIMEOUT_MS. Die
+// Oberfläche fragt 5×/s ab, es dürfen also zehn Abfragen ausfallen, bevor es greift.
+// Gilt NICHT, solange nie ein Client da war: dann wird über die Konsole gefahren.
+constexpr uint32_t LINK_TIMEOUT_MS = 2000;
+
 // --------------------------------------------------------------- Status-LED
 // Die RGB-LED des DevKits ist eine adressierbare WS2812, kein einfacher Ausgang —
 // angesteuert über neopixelWrite(), das intern RMT benutzt.
@@ -205,6 +251,10 @@ constexpr uint32_t BOOT_RAINBOW_MS      = 2500;  // [Festlegung] Dauer des Regen
 constexpr uint32_t BOOT_RAINBOW_STEP_MS = 12;    // [Festlegung] ≈ 200 Schritte
 constexpr uint8_t  STATUS_LED_DIV       = 6;     // [Festlegung] Helligkeit teilen; die
                                                  // LED blendet sonst auf dem Tisch
+// Nach dem Regenbogen zeigt die LED den Zustand der BEDIENVERBINDUNG:
+// gruen = ein Bedienrechner meldet sich, rot blinkend = es wird gewartet.
+// Damit sieht man die Totmannschaltung aus drei Metern Entfernung.
+constexpr uint32_t STATUS_BLINK_MS      = 700;   // [Festlegung] halbe Periode rot
 
 // --------------------------------------------------------------------- LCD
 

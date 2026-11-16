@@ -43,7 +43,7 @@ Maßkette und Lagerrechnung in [08-staender](08-staender.md) §1 und §4.
                                         │
                               Statorachse, nur am Hebelarm gehalten
                                         │
-                              L = 0,040 m → Schaltzug → Wägezelle 10 kg
+                              L = 0,080 m → Schaltzug → Wägezelle 5 kg
                                         + Endanschläge bei r = 200 mm
 ```
 
@@ -65,7 +65,7 @@ Als Reibrolle gegen die Trommeloberfläche geht der Motor nicht: dafür bräucht
 
 | Teil | Daten |
 |---|---|
-| Wägezelle | 10 kg, Biegebalken |
+| Wägezelle | **5 kg**, Biegebalken |
 | Messverstärker | HX711-Breakout |
 | Display | HD44780 4×20 Zeichen |
 | Motortreiber | SimpleFOCShield v2 — nur für die Inbetriebnahme, für den Vollausbau zu schwach |
@@ -169,8 +169,18 @@ eine extern eingespeiste 5 V und ein zum Flashen angestecktes Notebook wären ei
 Kurzschluss zweier Quellen. USB schließt den Fehler konstruktiv aus.
 
 Das Board hat zwei USB-C-Buchsen, und **beide dürfen gleichzeitig speisen**
-(„either one or both"). Also: Netzteil dauerhaft an der einen, Notebook zum Flashen
-an der anderen.
+(„either one or both"). Beide Kabel dürfen also dauerhaft stecken; zum Flashen muss
+nichts abgezogen werden.
+
+**Welches Kabel wohin — und zwar nicht beliebig:**
+
+| Buchse | Kabel | warum |
+|---|---|---|
+| `COM` (UART-Brücke) | **Notebook**, nur bei Bedarf | dort flasht esptool ohne Tastendruck, und **nur dort kommt die serielle Konsole heraus** |
+| `USB` (nativ) | **Netzteil**, dauerhaft | speist mit, wird sonst nicht gebraucht |
+
+Andersherum funktioniert es nicht: an der nativen Buchse müsste der Download-Modus von
+Hand gestellt werden, und die Konsole bliebe stumm.
 
 Die beiden Buchsen sind aber **nicht gleichwertig**, auch wenn sie es für die Speisung
 sind:
@@ -257,9 +267,9 @@ digitale Seite gelegt.
 
 | | |
 |---|---|
-| Endwert der 10-kg-Zelle bei 1 mV/V und 5 V Erregung | 5 mV |
-| Auslegungsfall samt Rampe (62,7 N) | 3,2 mV |
-| **ΔCrr = 0,0005 (2,43 N)** | **124 µV** |
+| Endwert der 5-kg-Zelle bei 1 mV/V und 5 V Erregung | 5 mV |
+| Auslegungsfall samt Rampe (31,4 N) | 3,2 mV |
+| **ΔCrr = 0,0005 (1,22 N)** | **124 µV** |
 
 Auf einer Leitung, die 124 µV auflösen soll, ist jede eingekoppelte Störung direkt
 Messfehler — und der PGA verstärkt sie mit 128.
@@ -876,7 +886,7 @@ braucht es dafür noch nicht.
          │ GPIO16  SCK  ──100 Ω─────────────────►  CLK              │
          │ 3V3 ─────────────────────────────────►  VCC + VDD        │
          │ GND ─────────────────────────────────►  GND              │
-         │                        Schraubklemme ──► Wägezelle 10 kg │
+         │                        Schraubklemme ──► Wägezelle 5 kg  │
          │                                                          │
  LCD   ──┤ GPIO8  SDA ──┬── 3,3 kΩ ──┐                              │
          │ GPIO9  SCL ──┼── 3,3 kΩ ──┤                              │
@@ -963,3 +973,99 @@ GPIO 39. Die Pinzahl geht trotzdem genau auf (§4).
 4. Steckverbinder #2 **Ader für Ader auf Durchgang prüfen**, bevor Spannung
    draufkommt. 5 V und 3,3 V liegen auf demselben Stecker; ein um einen Pin versetzter
    Stecker zerstört entweder den HX711 oder den ESP32 (§5.4).
+
+## 13 Bedienfeld über WLAN
+
+Der Prüfstand spannt einen **eigenen Accesspoint** auf und liefert die Oberfläche selbst
+aus — kein Internet, kein Router, keine App. Bedient wird am Telefon oder am iPad; das
+LCD (§5.6) ist damit **optional** und zeigt nur dasselbe noch einmal.
+
+Die Seite ist dieselbe Datei, die auch als Entwurf im Browser läuft:
+`firmware/web/index.html`. `firmware/web/embed.py` backt sie gzip-komprimiert nach
+`src/webui_html.h` (34 KB → 11 KB) und läuft als `pre:`-Skript bei jedem Build, kann
+also nicht veralten. Kein LittleFS, kein zweiter Flashvorgang.
+
+### 13.1 Konstanten
+
+| Konstante | Wert | Anmerkung |
+|---|---|---|
+| `WEBUI_SSID` | `Pruefstand` | |
+| `WEBUI_PASSWORD` | 14 Zeichen | **WPA2**, nicht offen — sonst kann jeder in Reichweite den Motor fahren. Eingetippt wird es nie, es steckt im QR-Code. Unter 8 Zeichen bleibt der AP offen. |
+| `WEBUI_AP_IP` | **4.3.2.1** | **nicht** 192.168.x.x, Begründung §13.3 |
+| `WEBUI_CHANNEL` | 6 | |
+| `WEBUI_MAX_CLIENTS` | 4 | der Vorgabewert von `softAP()` ist ebenfalls 4 |
+| `WEBUI_PORT` | 80 | 443 bleibt **zu**: die HTTPS-Prüfungen von iOS und Android lassen sich ohnehin nicht beantworten, und eine abgewiesene Verbindung ist schneller als ein Zeitablauf |
+| `WEBUI_HOSTNAME` | `pruefstand` | mDNS → `pruefstand.local`, Bequemlichkeit, kein Verlasspfad |
+| `LINK_TIMEOUT_MS` | 2000 ms | **Sicherheitsgrenze**, siehe [07-sicherheit](07-sicherheit.md) §4 |
+
+### 13.2 Kein Captive Portal — und warum
+
+Ein Captive Portal wurde gebaut, erprobt und wieder **entfernt**. Die Messungen vom
+2026-11-15 und die Belegstellen dazu:
+
+- Das Portalfenster von iOS (Captive Network Assistant) **ist kein Browser**: kein
+  Adressfeld, keine Reiter, es gehört der Einstellungen-App. Eine Seite darin kann
+  **nicht** nach Safari übergeben — dafür gibt es keine Schnittstelle. Das Schema
+  `x-safari-http://` wurde am Gerät probiert und greift nicht; in Safaris Plist ist
+  ohnehin nur `x-safari-https` registriert, undokumentiert und versionsabhängig.
+- **iOS trennt das Netz**, sobald das Fenster zugeht, weil ein Netz ohne Internet als
+  entbehrlich gilt. Gemessen: Verbindung hielt 15 s, mit Karenzphase 40 s, dann weg.
+  Für einen 30-Minuten-Warmlauf, dessen Totmannschaltung an genau dieser Verbindung
+  hängt, ist das untauglich.
+- Im Portalfenster **läuft** `fetch`, löst aber keine erneute Prüfung aus — eine
+  Anmeldung per Javascript lässt den Benutzer vor einem *Abbrechen*-Knopf sitzen, und
+  Abbrechen trennt.
+
+**Stattdessen:** Der Stand beantwortet die Verbindungsprüfung so, wie das Betriebssystem
+sie erwartet (Apples Erfolgsseite byte-genau mit abschließendem `\n`, Androids nacktes
+`204`, Microsofts 22 Zeichen). Dann gilt das Netz als in Ordnung, **nichts springt auf,
+und nichts trennt sich**. Aufgerufen wird die Oberfläche über den QR-Code (§13.4) oder
+jede beliebige Adresse im Browser — der DNS beantwortet alles mit der eigenen.
+
+> Der Preis steht in RFC 8952 §1: Solange das Telefon verbunden ist, hält es die
+> Verbindung für brauchbar und schaltet nicht auf Mobilfunk um. Nachrichten und Mail
+> stehen also still. Nach der Messung WLAN aus.
+
+### 13.3 Warum 4.3.2.1 und nicht 192.168.4.1
+
+Androids `NetworkMonitor` verwirft die Verbindungsprüfung, sobald der DNS einen Prüf-Host
+auf eine **private** Adresse auflöst, und sendet die HTTP-Anfrage **gar nicht erst ab**:
+
+```java
+if (mPrivateIpNoInternetEnabled && probeType == PROBE_HTTP
+        && (proxy == null) && hasPrivateIpAddress(resolvedAddr)) {
+    return CaptivePortalProbeResult.PRIVATE_IP;
+}
+```
+
+`hasPrivateIpAddress()` deckt 10/8, 172.16/12, **192.168/16** und 169.254/16 ab. Das
+Ergebnis auf Android wäre „Verbunden, kein Internet" — ohne jede Möglichkeit, das zu
+heilen. Deshalb setzt auch das arduino-esp32-Beispiel `8.8.4.4` und WLED `4.3.2.1`.
+
+Der Adressraum gehört jemand anderem. Unschön, aber ohne Internet am Stand folgenlos.
+
+### 13.4 QR-Codes
+
+Zwei Aufkleber, erzeugt mit `qrencode`, als PNG zum Drucken und SVG zum Skalieren:
+
+| Datei | Nutzlast | tut |
+|---|---|---|
+| `hardware/qr-wlan.png` | `WIFI:T:WPA;S:Pruefstand;P:<Kennwort>;;` | Kamera bietet „Mit WLAN verbinden" an |
+| `hardware/qr-ui.png` | `http://4.3.2.1/` | öffnet die Bedienung im **echten Browser** |
+
+Beim ersten Mal zweimal scannen. Danach verbindet sich das Telefon von allein, und
+**„Zum Home-Bildschirm"** macht aus der Bedienung ein Symbol, das sie im Vollbild ohne
+Browserleisten startet (`apple-mobile-web-app-capable` ist gesetzt).
+
+Ab etwa 3 cm Kantenlänge aus Armlänge lesbar, in Werkstattlicht eher 4–5 cm. Die weiße
+Ruhezone außen muss bleiben, sonst findet die Kamera die Positionsmarken nicht.
+
+### 13.5 Grenzen
+
+- `WebServer` aus dem Arduino-Core kann laut eigenem Quelltextkommentar **nur einen
+  Client gleichzeitig**. Bei einer Prüfungssalve verschluckt er Anfragen; die Oberfläche
+  toleriert das, weil sie Aussetzer erst nach `LINK_TIMEOUT_MS` als Abriss wertet.
+  Erst wenn Livewerte über WebSocket laufen sollen, lohnt ESPAsyncWebServer.
+- **Der Accesspoint ist offen zugänglich**, auch mit WPA2 — wer das Kennwort vom
+  Aufkleber liest, kann fahren. Für einen Stand mit Motor ist das eine bewusste
+  Abwägung, keine Nachlässigkeit: der Not-Aus ist Hardware, die Bremse stromlos zu.

@@ -1,5 +1,6 @@
 #include "statusled.h"
 #include "config.h"
+#include "webui.h"
 
 namespace statusled {
 namespace {
@@ -34,14 +35,37 @@ void begin() {
 
 bool busy() { return !g_done; }
 
+// Nach dem Regenbogen: Zustand der Bedienverbindung.
+//   gruen, stetig  — ein Bedienrechner meldet sich innerhalb LINK_TIMEOUT_MS
+//   rot, blinkend  — es wartet noch keiner, oder er ist weggeblieben
+void showLink() {
+  const bool up = webui::clientSeen() && webui::linkAlive();
+  static bool lastUp = false;
+  static bool lastOn = false;
+
+  if (up) {
+    if (!lastUp || !lastOn) {
+      neopixelWrite(PIN_STATUS_LED, 0, 190 / STATUS_LED_DIV, 0);
+      lastOn = true;
+    }
+  } else {
+    const bool on = (millis() / STATUS_BLINK_MS) % 2 == 0;
+    if (on != lastOn || lastUp) {
+      neopixelWrite(PIN_STATUS_LED, on ? 220 / STATUS_LED_DIV : 0, 0, 0);
+      lastOn = on;
+    }
+  }
+  lastUp = up;
+}
+
 void service() {
-  if (g_done) return;
+  if (g_done) { showLink(); return; }
 
   const uint32_t dt = millis() - g_t0;
 
   if (dt >= BOOT_RAINBOW_MS) {
-    neopixelWrite(PIN_STATUS_LED, 0, 0, 0);
     g_done = true;
+    showLink();
     return;
   }
   if (dt - g_lastStep < BOOT_RAINBOW_STEP_MS) return;
