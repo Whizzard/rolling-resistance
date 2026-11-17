@@ -242,7 +242,7 @@ eingetippt. *Frühere Fassungen dieses Dokuments nannten pauschal alles
 | Auslegungs-Crr | `CRR_DESIGN_MAX` | **0,007** | – | Festlegung | Es werden schnelle Straßenreifen gemessen, keine MTB-Reifen. Langsamster vorgesehener Reifen ist der Continental Contact Urban mit 0,00552, darauf 27 % Luft. Siehe Tabelle unten. |
 | Reifendruck | — | Eingabe | bar | – | Handeingabe, später BLE |
 | Reifentemperatur | — | **TBD** | °C | TBD | Sensor noch nicht festgelegt |
-| Motortemperatur | — | **TBD** | °C | TBD | 6. Ader am Hall-Stecker ausmessen (A5). Fühler hängt am Eingang `TMP` des Reglers, Auslesung über UART — [04-hardware](04-hardware.md) §11.4 |
+| Motortemperatur | — | **vorhanden** | °C | **gem** | 10-k-NTC im Stator, A5 am 2026-11-17 beantwortet. Fühler hängt am Eingang `TMP` des **Reglers**, Auslesung über UART — [04-hardware](04-hardware.md) §11.4. Offen ist nur noch der **Abschaltgrenzwert**, siehe [07-sicherheit](07-sicherheit.md) §4. |
 
 ### Gemessene Crr-Werte als Auslegungsgrundlage
 
