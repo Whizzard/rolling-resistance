@@ -644,7 +644,7 @@ beiliegende Herstellerhandbuch (Specs und Wiring diagram).
 | Hardware | V4.20 | VESC-Projekt, Open Source |
 | Strom | **50 A dauernd, 150 A Spitze** | Auslegungsfall des Prüfstands: 3,3 A (§6) |
 | Zellen | 3–13S LiPo | |
-| Spannung | **8–60 V** | Bus 36 V, mit Rückspeisung bis 42 V — Reserve nach oben |
+| Spannung | **8–60 V** laut Hersteller, **6–57 V** laut Firmware | *siehe Anmerkung unten* |
 | BEC | 5 V / 1,5 A, interner Treiber | **wird nicht benutzt**, siehe §10.3 |
 | Timing | per Software | |
 | Abschaltspannung | programmierbar | relevant nur im Akkubetrieb |
@@ -657,6 +657,26 @@ beiliegende Herstellerhandbuch (Specs und Wiring diagram).
 
 > Zwei Zeilen der Vorlage — „Governor" und das reine Platinenmaß — sind im Druck
 > nicht lesbar und stehen deshalb nicht in der Tabelle.
+
+> **Die 60 V des Herstellers sind nicht die wirksame Grenze.** Die VESC-Firmware klemmt
+> für Hardware 410 auf **57 V** und lässt für `l_max_vin` gar nichts Höheres zu — in der
+> vorgefundenen Konfiguration stand dort genau 57,0, also der Anschlag. Maßgeblich ist
+> die Firmware, nicht das Datenblatt.
+>
+> Für den Stand ohne Folgen: ein volles 13S-Paket hat 54,6 V und bleibt darunter. Bei
+> uns steht `l_max_vin` ohnehin auf **48 V**, bewusst über der Rückspeise-Abdrosselung
+> und weit unter der Hardwaregrenze ([07-sicherheit](07-sicherheit.md) §3.2c).
+
+Zwei Hinweise des Herstellers auf derselben Seite, beide am 2026-11-17 abgerufen
+([Produktseite](https://flipsky.net/products/mini-fsesc4-20-50a-base-on-vesc%C2%AE-4-12-with-aluminum-anodized-heat-sink)):
+
+1. *„The current factory-installed firmware is version 7.0 (the latest version)."* —
+   siehe §10.5a.
+2. *„Please do not remove the shrink to protect the pcb electronics components from
+   impurites or metals which result in short circuit or esc burnt damage."* — der
+   **Schrumpfschlauch über der Platine bleibt drauf**. In einer Werkstatt mit Spänen,
+   Werkzeug und einem Relaisblock daneben ist das keine Floskel: die Platine liegt
+   sonst offen unter einem Aufbau, der Metallteile bewegt.
 
 ### 10.2 Anschlussschema
 
@@ -812,10 +832,23 @@ Am **2026-11-17** von 5.02 auf **7.01** gezogen (VESC Tool 7.01, mitgeliefertes 
 mitgelieferte **Bootloader**, dann die Firmware — der Bootloader ist das Rettungsnetz,
 ohne ihn bleibt nach einem fehlgeschlagenen Flash nur SWD.
 
+**Das Update stellt den Auslieferungszustand her, es verlässt ihn nicht.** Flipsky
+schreibt auf der Produktseite des Mini FSESC 4.20: *„The current factory-installed
+firmware is version 7.0 (the latest version). If you require a different version,
+please specify this in a note when placing your order."* Die Hardware ist für 7.x also
+vorgesehen — einschließlich der Strommessung, und das ist die Frage, die bei Nachbauten
+berechtigt ist.
+
+Dass dieses Exemplar mit **5.02 und einer Erkennung an einem fremden Motor** ankam,
+heißt umgekehrt: es ist kein aktuelles Werksstück. Was sonst noch vom Werkszustand
+abweicht, ist unbekannt — der Vergleich in §10.5 zeigt nur, was *wir* geändert haben.
+
 > Das Abbild meldet `isTestFw: 1`, die Fassung heißt `7.01-1+f83a3ae1`. Es ist also
 > keine als stabil deklarierte Freigabe, sondern die zu diesem VESC Tool passende
-> Entwicklungsfassung. Werkzeug und Firmware werden gemeinsam entwickelt, das Paar
-> passt — erwähnenswert bleibt es.
+> Entwicklungsfassung — das Werkzeug wurde aus dem Quelltext gebaut. Flipsky nennt
+> **7.0**, also dieselbe Generation. Wer die ausgezeichnete Freigabe will, spielt das
+> Abbild der offiziellen VESC-Tool-Veröffentlichung auf; das Zurückschreiben der
+> Konfiguration ist dann unkritisch, weil die XML-Dateien Feldnamen adressieren.
 
 **Zwei Dinge, die den Ausschlag gaben:**
 
