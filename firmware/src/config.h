@@ -266,13 +266,24 @@ constexpr uint32_t VESC_ALIVE_MS = 150;
 // (MOTOR_PULSES_PER_REV ist ebenfalls TBD), also laesst sich MAX_DRUM_RPM = 353
 // NICHT sauber in ERPM umrechnen.
 //
-// Bis das gemessen ist, wird bewusst die UNGUENSTIGE Richtung angenommen: 10 Pol-
-// paare. Sind es in Wirklichkeit mehr — bei Hoverboard-Raedern sind 15 ueblich —,
-// dreht die Trommel LANGSAMER als gedacht, nicht schneller. 353 * 10 = 3530.
+// Die sichere Richtung ist die KLEINSTE plausible Polpaarzahl, nicht die groesste:
+// mech = ERPM / Polpaare, also ergibt eine feste ERPM-Kappung bei WENIGER Polpaaren
+// eine HOEHERE Trommeldrehzahl. (Hier stand zuerst die umgekehrte Begruendung und
+// damit ein zu hoher Wert — korrigiert am 2026-11-17.)
+//
+// Der Regler meldet si_motor_poles = 14, also 7 Polpaare — das ist aber der
+// Werksvorgabewert der VESC-Firmware und KEINE Messung; am 2026-11-17 aus der
+// gesicherten Konfiguration abgelesen (hardware/vesc-backup/). 7 Polpaare sind
+// zugleich der kleinste plausible Wert, also der sichere:
+//
+//     353 1/min * 7 = 2471 ERPM   ->  gekappt auf 2400
+//
+// Sind es in Wirklichkeit 15 Polpaare, wie bei Hoverboard-Raedern ueblich, kommt
+// die Trommel damit nur auf 160 1/min (27 km/h) — langsam, aber ungefaehrlich.
 //
 // Das ist KEIN Ersatz fuer MAX_DRUM_RPM, sondern eine Kappung davor. Sobald die
 // Polpaarzahl gemessen ist, gehoert hier der abgeleitete Wert hin.
-constexpr int32_t VESC_ERPM_MAX = 3500;
+constexpr int32_t VESC_ERPM_MAX = 2400;
 
 constexpr int32_t VESC_ERPM_STEP_SMALL = 100;   // [Festlegung] Feineinstellung
 constexpr int32_t VESC_ERPM_STEP_LARGE = 1000;  // [Festlegung] grobe Annaeherung
