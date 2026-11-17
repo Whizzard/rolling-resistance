@@ -727,6 +727,23 @@ setzen.
 - **Die mitgelieferten Phasen- und Batteriekabel sind zu dünn** für die 60 A Spitze
   der Kurzschlussbremse (§9.1).
 
+### 10.4a USB versorgt die Logik NICHT
+
+Am 2026-11-17 nachgewiesen: mit abgeklemmtem Leistungseingang verschwindet dieser
+Regler **vollständig vom USB-Bus**. Die Logik hängt am Leistungseingang, USB liefert
+nur Daten.
+
+Das ist ein Unterschied zum originalen VESC 4.12, der seine Logik aus den 5 V des USB
+mitversorgt. **Nicht verallgemeinern** — es gilt für dieses Flipsky-Exemplar.
+
+Zwei Folgen:
+
+1. **Für die Diagnose:** nach dem Not-Aus ist der Regler tot, nicht nur blind. Keine
+   Drehzahl, keine Temperatur, kein Fehlercode ([Sicherheit](26_sicherheit.md) §4).
+2. **Fürs Flashen:** der Leistungseingang muss währenddessen anliegen. Ein kleines
+   Paket genügt (2S, 8,4 V wurden benutzt) — ohne Motor gibt es keine Last, also
+   keinen Spannungseinbruch. `l_min_vin` sperrt nur den Antrieb, nicht die Logik.
+
 ### 10.5 Konfiguration, wie sie am 2026-11-17 eingestellt wurde
 
 Im Regler stand eine **fremde Skateboard-Konfiguration** — Übersetzung 2,77,

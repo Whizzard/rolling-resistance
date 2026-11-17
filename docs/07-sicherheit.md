@@ -258,13 +258,22 @@ FAULT ist rastend: Quittierung nur im Stillstand über die Konsole oder das Bedi
 > wieder und die Werte wurden gültig. Genau im Bereich, in dem die Bremse zählt, ist
 > der Regler also keine Drehzahlquelle.
 >
-> **Verschärfung, am 2026-11-17 beobachtet:** beim Auslösen der Relaisbremse aus
+> **Verschärfung, am 2026-11-17 bestätigt:** beim Auslösen der Relaisbremse aus
 > 101 km/h riss gleichzeitig die **USB-Verbindung** zum Regler ab — der letzte Messpunkt
-> lag im selben Augenblick, und abgeschaltet wurde erst danach. Trifft das zu (noch zu
-> bestätigen, möglicherweise hängt der Regler an einer mitabgeschalteten Steckdose),
-> dann liefert der Regler nach dem Not-Aus **überhaupt keine Information** mehr, nicht
-> nur eine falsche Drehzahl. Der eigene Trommelaufnehmer ist dann nicht die zweite
-> Quelle, sondern die einzige. [TBD]
+> lag im selben Augenblick, und abgeschaltet wurde erst danach.
+>
+> Die Ursache ist die Bauart und wurde anschließend am Tisch nachgewiesen: **dieser
+> Regler bekommt über USB keinen Strom.** Mit abgeklemmtem Akku verschwindet er
+> vollständig vom USB-Bus; die Logik hängt am Leistungseingang, USB liefert nur Daten.
+> (Der originale VESC 4.12 versorgt seine Logik aus den 5 V des USB — dieser Flipsky
+> nicht. Nicht verallgemeinern.)
+>
+> **Nach dem Not-Aus ist der Regler also nicht blind, sondern tot.** Er liefert
+> überhaupt keine Information mehr — keine Drehzahl, keine Temperatur, keinen
+> Fehlercode. Der eigene Trommelaufnehmer am ESP32 ist damit **nicht die zweite Quelle,
+> sondern die einzige**, und der ESP32 muss seine Versorgung **unabhängig** vom
+> geschalteten Leistungspfad haben (er hat sie: USB-C, siehe
+> [Hardware](23_hardware.md) §5).
 >
 > Zwei Wege: die **8 Marken an der Trommel** am ESP32 auswerten (unabhängig von allem,
 > was im Leistungspfad passiert), und/oder `foc_sl_erpm` so weit heraufsetzen, dass die
