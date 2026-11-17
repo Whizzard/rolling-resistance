@@ -18,6 +18,13 @@ void begin();
 bool update();
 
 long  lastRaw();
+
+// Gleitender Mittelwert über die letzten DISPLAY_AVG_N Rohwerte, samt Spitze-Spitze.
+// NUR für die ANZEIGE — ein mit 80 Hz zappelnder Zahlenwert ist nicht lesbar
+// (docs/10-firmware.md W5). Die MESSUNG mittelt davon unabhängig umdrehungssynchron
+// über accumulate()/averageRaw(). Gefüllt wird in update(), also genau dann, wenn der
+// HX711 wirklich einen neuen Wert geliefert hat — nicht nach der Uhr.
+void displayStats(long& mean, long& ripple);
 bool  isSaturated();      // Rohwert am Anschlag → Zelle überlastet oder Kabelbruch
 bool  isResponding();     // HX711 liefert überhaupt Werte
 

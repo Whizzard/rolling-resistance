@@ -24,6 +24,7 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 | — | `HX711_GAIN_PULSES` | 1 | – | DB | 1 = Kanal A Gain 128, 3 = Kanal B Gain 32 |
 | — | `HX711_RATE_SPS` | 80 | 1/s | DB | RATE-Pin auf VCC. Bei 60 km/h ≈ 14 Samples pro Umdrehung. |
 | — | `TARE_SAMPLES` | 200 | – | gesch | statische Tara, ≈ 2,5 s bei 80 SPS |
+| — | `DISPLAY_AVG_N` | 40 | – | Festlegung | Gleitender Mittelwert für die **Anzeige**, 0,5 s bei 80 SPS. Ein mit 80 Hz zappelnder Zahlenwert ist weder lesbar noch aussagekräftig ([10-firmware](10-firmware.md) W5, D6). Hat mit der umdrehungssynchronen Mittelung der **Messung** (`AVG_REVS_PER_POINT`) nichts zu tun — die beiden laufen unabhängig. |
 
 > Solange `LOADCELL_N_PER_COUNT` TBD ist, gibt die Firmware keine Crr-Werte aus, sondern
 > nur Rohwerte. Das ist Absicht.
@@ -259,11 +260,9 @@ wird über `neopixelWrite()` angesteuert, das intern RMT benutzt.
 
 | Konstante | Wert | Einheit | Herkunft | Anmerkung |
 |---|---|---|---|---|
-| `PIN_STATUS_LED` | 48 | – | **gem** | Am verbauten Board bestätigt (2026-11-15, Regenbogen läuft). Auf DevKitC-1 v1.1 säße die LED an GPIO 38 — dieses Board hat sie an 48, wie auch der Arduino-Core für den S3 annimmt (`RGB_BUILTIN`). |
-| `BOOT_RAINBOW_MS` | 2500 | ms | Festlegung | Dauer des Regenbogens beim Booten. Ein voller Farbkreis, danach bleibt die LED **aus**. |
-| `BOOT_RAINBOW_STEP_MS` | 12 | ms | Festlegung | ≈ 200 Schritte über die Dauer — flüssig, ohne den Bus zu belasten. |
+| `PIN_STATUS_LED` | 48 | – | **gem** | Am verbauten Board bestätigt (2026-11-15). Auf DevKitC-1 v1.1 säße die LED an GPIO 38 — dieses Board hat sie an 48, wie auch der Arduino-Core für den S3 annimmt (`RGB_BUILTIN`). |
 | `STATUS_LED_DIV` | 6 | – | Festlegung | Helligkeitsteiler. Die LED blendet bei voller Aussteuerung auf dem Tisch. |
-| `STATUS_BLINK_MS` | 700 | ms | Festlegung | Halbe Periode des roten Blinkens, solange auf die Bedienverbindung gewartet wird. Nach dem Regenbogen zeigt die LED deren Zustand: **grün stetig** = ein Bedienrechner meldet sich, **rot blinkend** = es wartet keiner. Damit ist die Totmannschaltung aus drei Metern ablesbar. |
+| `STATUS_BLINK_MS` | 700 | ms | Festlegung | Halbe Periode des roten Blinkens, solange auf die Bedienverbindung gewartet wird. **Grün stetig** = ein Bedienrechner meldet sich, **rot blinkend** = es wartet keiner. Damit ist die Totmannschaltung aus drei Metern ablesbar. |
 
 Beide Pins nacheinander zu bespielen geht **nicht**: `neopixelWrite()` initialisiert RMT
 einmalig für den Pin des ersten Aufrufs und wechselt danach nicht mehr. Deshalb ein

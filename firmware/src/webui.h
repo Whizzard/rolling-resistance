@@ -24,7 +24,15 @@ namespace webui {
 // Konsole (docs/10-firmware.md G5), damit es nur EIN Befehlsvokabular gibt.
 typedef void (*CommandFn)(const String&);
 
-void begin(CommandFn handler);
+// Baut die Antwort auf /api/state. Die jeweilige Firmwarevariante liefert ihn mit;
+// dadurch weiß der Webserver nichts über Messkette oder Antrieb und ist für alle
+// Varianten derselbe. Der Puffer ist vorgegeben, die Funktion schreibt JSON hinein.
+typedef void (*StateJsonFn)(char* buf, size_t len);
+
+// htmlGz zeigt auf die gzip-gebackene Oberfläche im PROGMEM. Auch sie kommt von
+// außen, damit jede Variante ihre eigene Seite ausliefern kann.
+void begin(CommandFn handler, StateJsonFn state,
+           const uint8_t* htmlGz, size_t htmlGzLen);
 void service();
 
 // false, sobald ein Client da war und dann länger als LINK_TIMEOUT_MS schweigt.

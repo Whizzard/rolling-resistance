@@ -37,7 +37,7 @@ with schemdraw.Drawing(show=False) as d:
     d += elm.Label().at((-2.0, 3.4)).label(
         'Rollwiderstandsprüfstand — Verdrahtung', fontsize=15, color=INK)
     d += elm.Label().at((-2.0, 2.7)).label(
-        'ESP32-S3-DevKitC-1 N16R8  ·  Stand 2026-11-15  ·  Quelle: hardware/schaltplan.py',
+        'ESP32-S3-DevKitC-1 N16R8  ·  Stand 2026-11-16  ·  Quelle: hardware/schaltplan.py',
         fontsize=7.5, color='#4a5560')
 
     # ---------------------------------------------------- Leistungspfad oben
@@ -73,7 +73,7 @@ with schemdraw.Drawing(show=False) as d:
     d += elm.Label().at((ESPX+2.6, ESPY-3.65)).label('USB-C → PC', fontsize=7.5, color='#4a5560')
 
     # --------------------------------------------------- Sensorik links
-    zelle = box(d, -12.0, -4.4, 2.8, 1.1, 'Wägezelle 10 kg\nBiegebalken', SIG)
+    zelle = box(d, -12.0, -4.4, 2.8, 1.1, 'Wägezelle 5 kg\nBiegebalken  L = 80 mm', SIG)
     hx1   = box(d,  -8.4, -4.4, 2.4, 1.1, 'HX711 #1  Moment\nVCC 5 V · VDD 3,3 V', SIG)
     zelle2= box(d, -12.0, -6.1, 2.8, 1.1, 'Wägezelle 2\nAuflast (später)', SIG)
     hx2   = box(d,  -8.4, -6.1, 2.4, 1.1, 'HX711 #2  Auflast\nVCC 5 V · VDD 3,3 V', SIG)

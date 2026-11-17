@@ -6,55 +6,21 @@
 #include <ESPmDNS.h>
 
 #include "config.h"
-#include "webui_html.h"
-#include "speed.h"
-#include "torque.h"
-#include "drive.h"
-#include "state.h"
-#include "tirepressure.h"
 
 namespace webui {
 namespace {
 
-WebServer  g_server(WEBUI_PORT);
-DNSServer  g_dns;
-CommandFn  g_cmd = nullptr;
+WebServer     g_server(WEBUI_PORT);
+DNSServer     g_dns;
+CommandFn     g_cmd     = nullptr;
+StateJsonFn   g_state   = nullptr;
+const uint8_t* g_html   = nullptr;
+size_t        g_htmlLen = 0;
 
 const IPAddress AP_IP(WEBUI_AP_IP[0], WEBUI_AP_IP[1], WEBUI_AP_IP[2], WEBUI_AP_IP[3]);
 
 bool     g_seen     = false;   // war überhaupt schon ein Client da?
 uint32_t g_lastSeen = 0;
-// Gleitender Mittelwert der Wägezelle. Der HX711 liefert HX711_RATE_SPS Werte je
-// Sekunde; angezeigt wird das Mittel, weil ein mit 80 Hz zappelnder Zahlenwert
-// weder lesbar ist noch etwas aussagt (docs/10-firmware.md D6: 5 Anzeigen/s).
-constexpr uint8_t RING_N = 40;          // 0,5 s bei 80 SPS
-long     g_ring[RING_N] = {0};
-uint8_t  g_ri = 0, g_rn = 0;
-uint32_t g_lastSample = 0;
-
-void sampleCell() {
-  const uint32_t now = millis();
-  const uint32_t period = 1000 / HX711_RATE_SPS;
-  if (now - g_lastSample < period) return;
-  g_lastSample = now;
-  g_ring[g_ri] = torque::lastRaw();
-  g_ri = (g_ri + 1) % RING_N;
-  if (g_rn < RING_N) g_rn++;
-}
-
-void cellStats(long& mean, long& ripple) {
-  if (g_rn == 0) { mean = 0; ripple = 0; return; }
-  long long sum = 0;
-  long lo = g_ring[0], hi = g_ring[0];
-  for (uint8_t i = 0; i < g_rn; i++) {
-    const long x = g_ring[i];
-    sum += x;
-    if (x < lo) lo = x;
-    if (x > hi) hi = x;
-  }
-  mean = static_cast<long>(sum / g_rn);
-  ripple = hi - lo;
-}
 
 void touch() { g_seen = true; g_lastSeen = millis(); }
 
@@ -109,46 +75,25 @@ void onWiFiEvent(arduino_event_id_t ev, arduino_event_info_t info) {
 // holt die richtige Oberflaeche nach, falls das nicht greift. Kein Knopf: beides
 // laeuft von allein.
 void sendIndex() {
-  logReq("-> Oberflaeche (11 KB gzip)");
+  logReq("-> Oberflaeche");
   g_server.sendHeader("Content-Encoding", "gzip");
   g_server.sendHeader("Cache-Control", "no-store");
   // charset MUSS mit: ohne ihn liest iOS die Seite als Latin-1 und aus "Prüflaufrad"
   // wird "PrÃ¼flaufrad". Das <meta charset> im Dokument kommt zu spaet, wenn der
   // Kopf etwas anderes behauptet.
   g_server.send_P(200, "text/html; charset=utf-8",
-                  reinterpret_cast<const char*>(WEBUI_HTML_GZ), WEBUI_HTML_GZ_LEN);
+                  reinterpret_cast<const char*>(g_html), g_htmlLen);
 }
 
 void handleState() {
   touch();
   g_polls++;
 
-  long mean = 0, ripple = 0;
-  cellStats(mean, ripple);
-
-  const float v   = speed::kmh();
-  const float rps = speed::revPerSec();
-
-  char buf[420];
-  // Keine erfundenen Zahlen: was die Firmware nicht kennt, ist null — die
-  // Oberfläche zeigt dafür einen Gedankenstrich.
-  //   crr  braucht die Kalibrierung UND die Leerlaufkennlinie
-  //   tmp  kommt später über UART vom Regler (docs/04-hardware.md §11.4)
-  snprintf(buf, sizeof(buf),
-    "{\"ph\":\"%s\",\"v\":%.2f,\"vs\":%.2f,\"rpm\":%.0f,"
-    "\"raw\":%ld,\"rip\":%ld,\"cal\":%s,\"crr\":null,\"tmp\":null,"
-    "\"mk\":%lu,\"ix\":%lu,\"mh\":0,\"wh\":0,"
-    "\"pi\":%u,\"rev\":%u,\"load\":%.1f,\"man\":%s,\"flt\":\"%s\"}",
-    state::name(), v, drive().targetKmh(), rps * 60.0f,
-    mean, ripple, isCalibrated() ? "true" : "false",
-    static_cast<unsigned long>(speed::markCount()),
-    static_cast<unsigned long>(speed::revCount()),
-    // mh (Motor-Hall) und wh (Laufrad) bleiben 0: speed.h führt dafür keinen
-    // Zähler. Lieber eine ehrliche Null als eine hergeleitete Zahl.
-    state::plateauIndex(), state::revsInPoint(),
-    state::loadN(),
-    (state::phase() == state::IDLE && drive().targetKmh() > 0.05f) ? "true" : "false",
-    state::faultReason());
+  // Den Inhalt kennt die Variante, nicht der Webserver.
+  char buf[512];
+  buf[0] = '\0';
+  if (g_state) g_state(buf, sizeof(buf));
+  if (buf[0] == '\0') snprintf(buf, sizeof(buf), "{}");
 
   g_server.sendHeader("Cache-Control", "no-store");
   g_server.send(200, "application/json; charset=utf-8", buf);
@@ -191,8 +136,12 @@ void handleProbeMsft()  { probe("Microsoft Connect Test", 200, "text/plain"); }
 
 }  // namespace
 
-void begin(CommandFn handler) {
-  g_cmd = handler;
+void begin(CommandFn handler, StateJsonFn state,
+           const uint8_t* htmlGz, size_t htmlGzLen) {
+  g_cmd     = handler;
+  g_state   = state;
+  g_html    = htmlGz;
+  g_htmlLen = htmlGzLen;
 
   WiFi.persistent(false);
   WiFi.onEvent(onWiFiEvent);
@@ -238,7 +187,6 @@ void begin(CommandFn handler) {
 }
 
 void service() {
-  sampleCell();
   g_dns.processNextRequest();
   g_server.handleClient();
   summary();
