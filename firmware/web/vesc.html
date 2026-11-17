@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#e9edf1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Regler">
+<title>Prüfstand Regler</title>
+<style>
+/* Altmodisch gehalten: Ziel ist auch ein iPad 3 (iOS 9.3 / Safari 9).
+   Kein Grid, kein gap, keine Custom Properties, kein clamp — alles davon kam
+   erst nach Safari 9. Abstände über Margins. */
+html, body { height: 100%; margin: 0; }
+* { -webkit-box-sizing: border-box; box-sizing: border-box; }
+body {
+  background: #e9edf1; color: #16202a;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px; -webkit-text-size-adjust: 100%;
+  padding: 0 12px 96px;
+}
+[hidden] { display: none !important; }
+.wrap { max-width: 720px; margin: 0 auto; }
+
+/* Kopf */
+.top { background: #16202a; color: #fff; border-radius: 0 0 10px 10px;
+       padding: 10px 14px; margin: 0 -12px 12px; }
+.top b { font-size: 15px; letter-spacing: .14em; text-transform: uppercase; }
+.top .st { float: right; font-size: 12px; letter-spacing: .12em;
+           text-transform: uppercase; color: #6fcfa4; padding-top: 3px; }
+.top .st.bad { color: #ff8a7a; }
+
+/* Meldung */
+.note { background: #fdf0ee; border-left: 6px solid #c0392b; color: #a4291f;
+        border-radius: 4px; padding: 8px 12px; font-size: 13px; margin-bottom: 10px; }
+
+/* Kacheln */
+.tiles { margin: -4px; }
+.tile { display: inline-block; vertical-align: top; width: 50%;
+        padding: 4px; }
+.tile > div { background: #fff; border-left: 6px solid #2f6f99;
+              border-radius: 4px; padding: 8px 12px 10px; }
+.tile.red > div { border-left-color: #c0392b; }
+.lab { font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+       color: #64737f; white-space: nowrap; overflow: hidden; }
+.val { font-size: 32px; font-weight: 700; white-space: nowrap;
+       font-variant-numeric: tabular-nums; }
+.val small { font-size: 15px; color: #8795a1; margin-left: 3px; }
+.tile.big { width: 100%; }
+.tile.big .val { font-size: 54px; }
+.dim .val { color: #a6b2bc; }
+
+/* Sollwert */
+h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
+     color: #64737f; margin: 18px 0 6px; }
+.row { margin: -3px; }
+.row button { -webkit-appearance: none; border: 0; cursor: pointer;
+  font-family: inherit; font-size: 20px; font-weight: 700;
+  background: #c3ccd4; color: #16202a; border-radius: 6px;
+  margin: 3px; padding: 16px 0; width: calc(25% - 6px); float: left; }
+.row button.go { background: #2f6f99; color: #fff; width: calc(50% - 6px);
+                 font-size: 18px; letter-spacing: .08em; }
+.row button:active { background: #fff; }
+.row button:disabled { background: #dde3e8; color: #a6b2bc; cursor: default; }
+.row:after { content: ""; display: table; clear: both; }
+.set { background: #fff; border-radius: 6px; padding: 10px 14px;
+       font-variant-numeric: tabular-nums; font-size: 30px; font-weight: 700;
+       text-align: right; margin-bottom: 6px; }
+.set span { font-size: 15px; color: #8795a1; margin-left: 4px; }
+
+/* Stop */
+.stopbar { position: fixed; left: 0; right: 0; bottom: 0;
+  background: #e9edf1; border-top: 1px solid #c3ccd4;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)); }
+.stopbar button { -webkit-appearance: none; border: 0; width: 100%;
+  background: #c0392b; color: #fff; font-family: inherit;
+  font-size: 22px; font-weight: 700; letter-spacing: .14em;
+  padding: 18px 0; border-radius: 8px; cursor: pointer; }
+.stopbar button:active { background: #a4291f; }
+.stopbar p { margin: 6px 0 0; font-size: 11px; color: #64737f; text-align: center; }
+footer { font-size: 11px; color: #8795a1; margin-top: 16px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <span class="st" id="st">verbinde …</span>
+    <b>Prüfstand · Regler</b>
+  </div>
+
+  <div class="note" id="note" hidden></div>
+
+  <div class="tiles">
+    <div class="tile big"><div>
+      <div class="lab">Drehzahl ist</div>
+      <div class="val"><span id="erpm">—</span><small>ERPM</small></div>
+    </div></div>
+    <div class="tile"><div>
+      <div class="lab">Soll</div>
+      <div class="val"><span id="set">0</span><small>ERPM</small></div>
+    </div></div>
+    <div class="tile"><div>
+      <div class="lab">Spannung</div>
+      <div class="val"><span id="vin">—</span><small>V</small></div>
+    </div></div>
+    <div class="tile"><div>
+      <div class="lab">Motorstrom</div>
+      <div class="val"><span id="cur">—</span><small>A</small></div>
+    </div></div>
+    <div class="tile red"><div>
+      <div class="lab">Regler</div>
+      <div class="val"><span id="tfet">—</span><small>°C</small></div>
+    </div></div>
+  </div>
+
+  <h2>Sollwert</h2>
+  <div class="set"><span id="want">0</span><span>ERPM</span></div>
+  <div class="row">
+    <button type="button" data-d="-1000">−1000</button>
+    <button type="button" data-d="-100">−100</button>
+    <button type="button" data-d="100">+100</button>
+    <button type="button" data-d="1000">+1000</button>
+  </div>
+  <div class="row" style="margin-top:6px">
+    <button type="button" class="go" id="run">Start</button>
+    <button type="button" class="go" id="zero">Soll 0</button>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+
+<div class="stopbar">
+  <button type="button" id="stop">STOP</button>
+  <p>Antrieb stromlos, Trommel läuft aus. <b>Der Not-Aus ist der Schalter am Stand</b>, nicht dieser Knopf.</p>
+</div>
+
+<script>
+/* Altmodisch: XMLHttpRequest statt fetch, var statt let — Safari 9 kann beides
+   nicht. Keine Simulation: diese Seite wird nur vom Gerät ausgeliefert. */
+(function () {
+  "use strict";
+  var UI_HZ = 5, LINK_TIMEOUT_MS = 2000;
+  var want = 0, erpmMax = 3500, lastOk = 0, busy = false;
+
+  function $(id) { return document.getElementById(id); }
+  function de(v, d) { return v.toFixed(d).replace(".", ","); }
+
+  function send(cmd) {
+    var x = new XMLHttpRequest();
+    x.open("GET", "/api/cmd?c=" + encodeURIComponent(cmd), true);
+    x.onload = poll;
+    x.send();
+  }
+
+  function paint(j) {
+    $("st").innerHTML = j.link ? "Regler verbunden" : "kein Regler";
+    $("st").className = j.link ? "st" : "st bad";
+
+    $("erpm").innerHTML = j.link ? String(j.erpm) : "—";
+    $("set").innerHTML  = String(j.set);
+    $("vin").innerHTML  = (j.vin  === null) ? "—" : de(j.vin, 1);
+    $("cur").innerHTML  = (j.cur  === null) ? "—" : de(j.cur, 2);
+    $("tfet").innerHTML = (j.tfet === null) ? "—" : de(j.tfet, 1);
+
+    erpmMax = j.erpmMax;
+    $("run").innerHTML = j.drive ? "Übernehmen" : "Start";
+
+    var msg = "";
+    if (!j.link) {
+      msg = "Keine Antwort vom Regler. Verkabelung COMM TX/RX/GND prüfen, " +
+            "und ob im VESC-Tool app_to_use auf UART steht.";
+    } else if (j.fault) {
+      msg = "Reglerfehler " + j.fault + ": " + j.faultTxt;
+    } else if (j.status & 1) {
+      msg = "Der Regler meldet Zeitüberschreitung — er hat abgestellt.";
+    } else if (j.status & 2) {
+      msg = "Kill-Switch des Reglers ist aktiv.";
+    }
+    $("note").innerHTML = msg;
+    $("note").hidden = (msg === "");
+
+    $("foot").innerHTML =
+      "Firmware " + (j.fw || "unbekannt") +
+      " · Grenze ±" + j.erpmMax + " ERPM (vorläufig, Polzahl nicht gemessen)" +
+      " · Messwerte " + j.age + " ms alt";
+  }
+
+  function poll() {
+    if (busy) return;
+    busy = true;
+    var x = new XMLHttpRequest();
+    x.open("GET", "/api/state", true);
+    x.timeout = 900;
+    x.onload = function () {
+      busy = false;
+      try { paint(JSON.parse(x.responseText)); lastOk = Date.now(); } catch (e) {}
+    };
+    x.onerror = x.ontimeout = function () {
+      busy = false;
+      /* Einzelne Aussetzer sind normal; verloren ist die Verbindung erst nach
+         derselben Grenze, mit der die Firmware den Antrieb freigibt. */
+      if (Date.now() - lastOk > LINK_TIMEOUT_MS) {
+        $("st").innerHTML = "Verbindung weg";
+        $("st").className = "st bad";
+      }
+    };
+    x.send();
+  }
+
+  function showWant() { $("want").innerHTML = String(want); }
+
+  var steps = document.querySelectorAll(".row button[data-d]"), i;
+  for (i = 0; i < steps.length; i++) {
+    steps[i].onclick = (function (b) {
+      return function () {
+        want += parseInt(b.getAttribute("data-d"), 10);
+        if (want >  erpmMax) want =  erpmMax;
+        if (want < -erpmMax) want = -erpmMax;
+        showWant();
+      };
+    })(steps[i]);
+  }
+
+  $("run").onclick  = function () { send("r" + want); };
+  $("zero").onclick = function () { want = 0; showWant(); send("r0"); };
+  $("stop").onclick = function () { want = 0; showWant(); send("s"); };
+
+  showWant();
+  poll();
+  setInterval(poll, 1000 / UI_HZ);
+})();
+</script>
+</body>
+</html>

@@ -241,6 +241,42 @@ constexpr uint8_t  WEBUI_AP_IP[4] = {4, 3, 2, 1};
 // Gilt NICHT, solange nie ein Client da war: dann wird über die Konsole gefahren.
 constexpr uint32_t LINK_TIMEOUT_MS = 2000;
 
+// --------------------------------------------------------- Motorregler (VESC)
+// Nur fuer die Reglervariante (env:esp32s3-vesc). Die Hauptfirmware benutzt sie
+// noch nicht.
+
+constexpr uint32_t VESC_BAUD = 115200;   // [DB] Vorgabe der VESC-Firmware
+
+// [Festlegung] Abfrage der Messwerte. Das Intervall IST zugleich das Mittelungs-
+// fenster: der Regler liefert Stroeme als Mittelwert seit der letzten Abfrage und
+// setzt den Akkumulator beim Lesen zurueck. 200 ms = 5 Hz, dieselbe Rate wie die
+// Anzeige (docs/10-firmware.md W5).
+constexpr uint32_t VESC_POLL_MS = 200;
+
+// [Festlegung] Wiederholung des Sollwerts. Der Regler stellt ab, wenn laenger als
+// timeout_msec nichts kommt — Vorgabe dort 1000 ms, eingestellt werden 300 ms.
+// 150 ms laesst zwei Ausfaelle zu, bevor es greift. ACHTUNG: Messwertabfragen
+// setzen den Timeout NICHT zurueck, nur Sollwerte und COMM_ALIVE.
+constexpr uint32_t VESC_ALIVE_MS = 150;
+
+// SICHERHEITSGRENZE, vorlaeufig. [TBD]
+//
+// Der Regler rechnet in ELEKTRISCHEN Umdrehungen; die mechanische Drehzahl ist
+// ERPM / Polpaarzahl. Die Polpaarzahl des verbauten Motors ist nicht gemessen
+// (MOTOR_PULSES_PER_REV ist ebenfalls TBD), also laesst sich MAX_DRUM_RPM = 353
+// NICHT sauber in ERPM umrechnen.
+//
+// Bis das gemessen ist, wird bewusst die UNGUENSTIGE Richtung angenommen: 10 Pol-
+// paare. Sind es in Wirklichkeit mehr — bei Hoverboard-Raedern sind 15 ueblich —,
+// dreht die Trommel LANGSAMER als gedacht, nicht schneller. 353 * 10 = 3530.
+//
+// Das ist KEIN Ersatz fuer MAX_DRUM_RPM, sondern eine Kappung davor. Sobald die
+// Polpaarzahl gemessen ist, gehoert hier der abgeleitete Wert hin.
+constexpr int32_t VESC_ERPM_MAX = 3500;
+
+constexpr int32_t VESC_ERPM_STEP_SMALL = 100;   // [Festlegung] Feineinstellung
+constexpr int32_t VESC_ERPM_STEP_LARGE = 1000;  // [Festlegung] grobe Annaeherung
+
 // --------------------------------------------------------------- Status-LED
 // Die RGB-LED des DevKits ist eine adressierbare WS2812, kein einfacher Ausgang —
 // angesteuert über neopixelWrite(), das intern RMT benutzt.

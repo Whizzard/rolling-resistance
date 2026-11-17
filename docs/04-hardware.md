@@ -1069,3 +1069,89 @@ Ruhezone außen muss bleiben, sonst findet die Kamera die Positionsmarken nicht.
 - **Der Accesspoint ist offen zugänglich**, auch mit WPA2 — wer das Kennwort vom
   Aufkleber liest, kann fahren. Für einen Stand mit Motor ist das eine bewusste
   Abwägung, keine Nachlässigkeit: der Not-Aus ist Hardware, die Bremse stromlos zu.
+
+## 14 Reglervariante
+
+Eigenständige Firmware, die **nur** den Motorregler fährt: keine Wägezelle, keine
+Hall-Geber, kein LCD, keine Zustandsmaschine, kein Messbetrieb. Drei Drähte zum
+Regler — `COMM` TX, RX und Masse (§12.2) —, und er liefert Drehzahl, Busspannung,
+Motorstrom, Reglertemperatur und Fehlercode von selbst.
+
+Zweck: den Antriebsstrang in Betrieb nehmen und kennenlernen, **bevor** ein einziger
+Messwert ansteht. Die Messkette ist in wesentlichen Punkten noch TBD — Zelle
+unkalibriert, Hebelarm nicht ausgemessen, Polzahl nicht gemessen —, der Regler
+dagegen ist vollständig da.
+
+Das ist kein Umweg: [10-firmware](10-firmware.md) §2 (T1…T8) und §5.5 (D23…D28)
+fordern genau diese Funktionen bereits.
+
+    pio run -e esp32s3-vesc -t upload      # Reglervariante
+    pio run -e esp32s3 -t upload           # zurück zur Hauptfirmware
+
+### 14.1 Was sie kann
+
+Bewusst das Nötigste: **Drehzahl in ERPM setzen** (± 100 und ± 1000), **Start**,
+**Stop**. Angezeigt werden fünf Werte — Drehzahl, Sollwert, Busspannung, Motorstrom,
+Reglertemperatur — dazu Fehlercode im Klartext und das Statusbyte.
+
+Befehle, identisch über serielle Konsole und Weboberfläche ([10-firmware](10-firmware.md) G5):
+
+| | |
+|---|---|
+| `r<erpm>` | Sollwert setzen |
+| `s` | Stop — Antrieb stromlos, Trommel läuft aus |
+| `?` | Hilfe |
+
+### 14.2 Warum ERPM und nicht 1/min
+
+Der Regler rechnet in **elektrischen** Umdrehungen. Mechanisch wäre das
+`ERPM / Polpaarzahl` — die ist aber **nicht gemessen** (`MOTOR_PULSES_PER_REV` ist
+TBD). Eine Umrechnung wäre also eine erfundene Zahl. Angezeigt wird deshalb das, was
+wirklich bekannt ist.
+
+Der Regler kennt zwar ein `si_motor_poles` und gibt es auf Nachfrage heraus — aber
+das ist, was jemand im VESC-Tool eingetippt hat, nicht das Ergebnis einer Messung.
+Als Quelle für eine Messgröße taugt es nicht.
+
+`VESC_ERPM_MAX` kappt vorläufig bei 3500 und nimmt dafür bewusst die **ungünstige**
+Richtung an: 10 Polpaare. Sind es in Wirklichkeit mehr — bei Hoverboard-Rädern sind
+15 üblich —, dreht die Trommel **langsamer** als gedacht, nicht schneller.
+
+### 14.3 Motortemperatur fehlt absichtlich
+
+Der Regler meldet sie, aber ohne Fühler am `TMP`-Eingang liefert er dafür eine
+Phantasiezahl **ohne Fehlermeldung** — typisch einen großen negativen Wert. Solange
+A5 offen ist, wird das Feld gar nicht erst abgefragt. Ein Strich ist ehrlicher als
+eine Zahl, die aussieht wie eine Messung.
+
+### 14.4 Zwei Totmannschaltungen
+
+| | greift wenn | Wirkung |
+|---|---|---|
+| **in dieser Firmware** | der Bedienrechner länger als `LINK_TIMEOUT_MS` schweigt | Antrieb wird freigegeben, Trommel läuft aus |
+| **im Regler** | länger als `timeout_msec` kein Sollwert ankommt | der Regler stellt selbst ab |
+
+Die zweite greift auch dann, wenn **diese Firmware** stehenbleibt — deshalb wird der
+Sollwert nur wiederholt, solange gefahren wird, und sonst gar nichts gesendet.
+
+> **`COMM_GET_VALUES` setzt den Timeout des Reglers NICHT zurück.** Nur Sollwerte und
+> `COMM_ALIVE` tun das. Wer meint, mit Messwertabfragen den Antrieb am Leben zu
+> halten, irrt sich — und merkt es erst, wenn der Motor mitten im Lauf abstellt.
+
+### 14.5 Einmalige Einrichtung im VESC-Tool über USB
+
+Ohne diese Schritte antwortet der Regler gar nicht oder falsch:
+
+1. `app_to_use` = **UART** (oder PPM+UART / ADC+UART). Ein konfigurierter externer
+   IMU verhindert den Start der Schnittstelle ebenfalls — gemeinsame Pins.
+2. Baudrate **115200**.
+3. Motortyp **FOC**, Sensormodus **Hall**. Sensorlos gibt es unterhalb
+   `foc_openloop_rpm` keine Momentenkontrolle.
+4. `si_motor_poles` eintragen.
+5. `timeout_msec` auf **300**, `timeout_brake_current` **ausdrücklich über null** —
+   die Vorgabe ist 0,0 A, und das heißt *auslaufen lassen*, nicht bremsen.
+6. Motor- und Hall-Erkennung einmal laufen lassen.
+
+Die Firmwareversion meldet die Variante beim Start selbst (`COMM_FW_VERSION`). Sie
+entscheidet, ob `foc_short_ls_on_zero_duty` und `l_battery_regen_cut_start/end`
+überhaupt existieren — beide erst ab **6.05**.
