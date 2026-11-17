@@ -40,7 +40,7 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 | — | `MIN_PULSE_US` | 800 | µs | ber | Kürzester Abstand: 60 km/h, 8 Marken → 22,5 ms. Bei 100 km/h → 13,5 ms. 800 µs filtert sicher nur Störer. |
 | — | `STALL_TIMEOUT_MS` | 2000 | ms | ber | Grenzfall ist nicht 10 km/h (135 ms bei 8 Marken), sondern der Hochlauf: bei 1 km/h sind es 1,35 s. 2000 ms bedeutet *langsamer als 0,68 km/h gilt als Stillstand*; die Rampe ist nach 1,4 s darüber. |
 | — | `SLIP_TOLERANCE` | 0,05 | – | gesch | zulässige relative Abweichung n_Motor/i gegen n_Trommel |
-| p | `MOTOR_POLE_PAIRS` | **15** | – | **gem** | **Gemessen 2026-11-17** über die Hall-Geber: bei 10 markierten Handumdrehungen stieg der Tachozähler des Reglers um genau **900** Schritte, ohne einen Rückwärtsschritt. 6 Schritte je elektrischer Umdrehung → 900/10/6 = 15 Polpaare (30 Pole). Die Skalierung „6 je elektrischer Umdrehung" ist am selben Datensatz gegen das ERPM-Integral geprüft (6,31; der Überschuss ist Zittern). Ein erster Versuch **sensorlos** gab 16,5 und war nicht reproduzierbar — der Lagebeobachter wackelt bei Handgeschwindigkeit; erst mit Hall-Gebern ist der Zähler eine Messung. Der Regler stand bis dahin auf `si_motor_poles` = 14, ein Erbe der vorgefundenen Skateboard-Konfiguration. Die VESC-Firmware **ermittelt** die Polzahl nicht, sie wird eingetippt. |
+| p | `MOTOR_POLE_PAIRS` | **15** | – | **gem** | **Gemessen 2026-11-17** über die Hall-Geber: bei 10 markierten Handumdrehungen stieg der Tachozähler des Reglers um genau **900** Schritte, ohne einen Rückwärtsschritt. 6 Schritte je elektrischer Umdrehung → 900/10/6 = 15 Polpaare (30 Pole). Die Skalierung „6 je elektrischer Umdrehung" ist am selben Datensatz gegen das ERPM-Integral geprüft (6,31; der Überschuss ist Zittern). Ein erster Versuch **sensorlos** gab 16,5 und war nicht reproduzierbar — der Lagebeobachter wackelt bei Handgeschwindigkeit; erst mit Hall-Gebern ist der Zähler eine Messung. Der Regler stand bis dahin auf `si_motor_poles` = 14 — das ist die **Werkseinstellung** der VESC-Firmware, nachgewiesen am frisch auf 7.01 geflashten Regler (dort steht wieder 14). Die Firmware **ermittelt** die Polzahl nicht, sie wird eingetippt; ohne Eintrag bleibt sie auf 14 stehen, und jede daraus abgeleitete mechanische Drehzahl ist falsch. |
 | — | `MOTOR_PULSES_PER_REV` | **15** | – | ber | = `MOTOR_POLE_PAIRS`. Hallflanken einer Phase pro Motorumdrehung. Beim Direktantrieb zugleich eine hochauflösende Trommeldrehzahlquelle (90 Flanken je Umdrehung über alle drei Phasen). |
 
 ## 4 Antrieb
@@ -55,14 +55,14 @@ dazu ein **FSESC 4.20 / 50 A** als Regler ([04-hardware](04-hardware.md) §10).
 | Leerlaufdrehzahl bei 42 V | **589** | 1/min | gem | nackte Trommel über 100 km/h, 2026-11-03 |
 | Dauermoment `P/ω` | **6,96** | Nm | ber | Faktor 2,8 über dem Auslegungsfall von 2,51 Nm |
 | n → Trommel bei 36 V | 505 1/min → **86 km/h** | – | ber | für 60 km/h sind 353 1/min nötig, also 43 % Reserve |
-| kv | **14,0** | 1/min/V | gem | 589 1/min bei 42 V |
-| kt | 0,68 | Nm/A | ber | 9,55 / kv |
+| kv | **14,0** | 1/min/V | gem | 589 1/min bei 42 V — **das ist eine Systemgröße**, gemessen mit montierter Trommel und damit gegen deren Luftwiderstand, keine Motorkonstante. Die Motorkonstante steht in §4.1: 19,1 1/min je Busvolt am freien Motor. |
+| kt | 0,68 | Nm/A | ber | 9,55 / kv — **überholt**, weil aus der Systemgröße kv gerechnet. Gemessen sind **0,389 Nm/A**, siehe §4.1. |
 | Masse | 2,26 | kg | Angebot | geht in die Eigenfrequenz des Wiegeteils ein |
 | Hallsensoren | ja, 3 Stück auf einer Platine im Stator | – | Foto des geöffneten Motors | 3 Flachstecker (gelb/grün/blau) + weißer JST mit 6 Adern, Belegung in [04-hardware](04-hardware.md) §11 |
-| Temperaturfühler | **TBD** | – | – | weiße Ader am Hall-Stecker, führt ins Wickelpaket — Typ ausmessen, A5 |
-| **Mechanische Bremse** | **nein** | – | – | **kein stromloser Bremspfad**, siehe [07-sicherheit](07-sicherheit.md) §3 und A9 |
-| Polzahl | **TBD** | – | TBD | von Hand eine Umdrehung drehen, Hallflanken zählen |
-| Phasenwiderstand | **TBD** | Ω | TBD | Vierleitermessung zwischen je zwei Phasen |
+| Temperaturfühler | **10-k-NTC** | – | **gem** | Weiße Ader am Hall-Stecker, führt ins Wickelpaket. Am 2026-11-17 dreifach belegt (A5 erledigt): offene Klemme −75,5 °C, 1,6 K Abstand zum bordeigenen FET-Fühler, monotoner Anstieg unter Heißluft gegen flache Referenz. `m_motor_temp_sens_type` = NTC 10K. Offen bleibt nur der **Grenzwert**. |
+| **Mechanische Bremse** | **nein** | – | – | Gebremst wird über **Kurzschluss der drei Phasen** per Relais (verbaut und gemessen: 3,25 Nm) oder über den Regler mit `VESC_BRAKE_CURRENT_STOP`. Die Relais wirken stromlos, siehe [07-sicherheit](07-sicherheit.md) §3. |
+| Polzahl | **30** (15 Polpaare) | – | **gem** | 2026-11-17 über die Hall-Geber ausgezählt, siehe `MOTOR_POLE_PAIRS` in §3 |
+| Phasenwiderstand | **0,2387** | Ω | **gem** | siehe `MOTOR_R_OHM` in §4.1 |
 
 ### Nicht verbaut: Scooter-Motor (DAAO)
 
@@ -194,9 +194,24 @@ Die Achsfrage A6 — beidseitige Lagerung — gilt für beide gleichermaßen und
 
 ## 4.1 Motor, elektrisch gemessen
 
-Alles am **2026-11-17** am verbauten Motor ermittelt, Regler FSESC 4.20 mit Firmware
-5.02. Vorher stand im Regler eine fremde **Skateboard-Konfiguration** (Übersetzung
-2,77, Raddurchmesser 83 mm, sensorlos) — keiner dieser Werte gehörte zu diesem Aufbau.
+Alles am **2026-11-17** am verbauten Motor ermittelt, Regler FSESC 4.20 (damals noch
+Firmware 5.02).
+
+Im Regler stand eine **fremde Konfiguration**. Welche Werte darin wirklich fremd waren,
+ließ sich erst nach dem Flashen auf 7.01 trennen — der Werkszustand ist seither bekannt:
+
+| | vorgefunden | Werk | |
+|---|---|---|---|
+| `si_motor_poles` | 14 | **14** | Werkseinstellung |
+| `si_wheel_diameter` | 0,083 m | **0,083 m** | Werkseinstellung |
+| `s_pid_kp` / `ki` / `kd` / `min_erpm` | 0,004 / 0,004 / 0,0001 / 900 | **gleich** | Werkseinstellung |
+| `si_gear_ratio` | 2,769 | 3,0 | von Hand gesetzt |
+| R / L / λ | 0,0147 Ω / 2,02 µH / 1,65 mWb | 0,015 / 7 µH / 2,45 mWb | **Erkennung an einem anderen Motor** |
+| `foc_openloop_rpm` | 700 | 1500 | von Hand gesetzt |
+
+Es lief also eine Motorerkennung an einem fremden Motor, und zwei Werte wurden
+eingetippt. *Frühere Fassungen dieses Dokuments nannten pauschal alles
+„Skateboard-Konfiguration" — das war zu weit gegriffen.*
 
 | Symbol | Konstante | Wert | Einheit | Herkunft | Ermittlung |
 |---|---|---|---|---|---|
@@ -281,13 +296,11 @@ Nur für die Reglervariante (`env:esp32s3-vesc`), siehe
 | `VESC_BAUD` | 115200 | Bd | DB | Vorgabe der VESC-Firmware |
 | `VESC_POLL_MS` | 200 | ms | Festlegung | Abfrage der Messwerte. Das Intervall **ist** zugleich das Mittelungsfenster: der Regler liefert Ströme als Mittelwert seit der letzten Abfrage und setzt den Akkumulator beim Lesen zurück. |
 | `VESC_ALIVE_MS` | 150 | ms | Festlegung | Wiederholung des Sollwerts. Der Regler stellt ab, wenn länger als `timeout_msec` nichts kommt (dort auf 300 ms eingestellt); 150 ms lässt zwei Ausfälle zu. **Messwertabfragen setzen den Timeout nicht zurück** — nur Sollwerte und `COMM_ALIVE`. |
-| `VESC_ERPM_MAX` | 2400 | ERPM | **TBD** | Vorläufige Kappung. Mechanisch ist ERPM/Polpaarzahl, und die ist **nicht gemessen**. Sicher ist die **kleinste** plausible Polpaarzahl, nicht die größte: weniger Polpaare ergeben bei fester ERPM-Grenze eine **höhere** Trommeldrehzahl. Der Regler meldet 7 Polpaare — das ist der Werksvorgabewert, keine Messung, und zugleich der kleinste plausible Wert: 353 · 7 = 2471, gekappt auf 2400. Bei den bei Hoverboard-Rädern üblichen 15 Polpaaren käme die Trommel damit nur auf 160 1/min. Kein Ersatz für `MAX_DRUM_RPM`, sondern eine Kappung davor. |
+| `VESC_ERPM_MAX` | **abgeleitet** → 5295 | ERPM | ber | `MAX_DRUM_RPM · MOTOR_POLE_PAIRS`. Seit die Polpaarzahl **gemessen** ist (§3), folgt die Kappung direkt aus `V_MAX_KMH` und zieht automatisch mit. Vorher stand hier 2400, abgeleitet aus den `si_motor_poles` = 14 des Reglers unter der Annahme, das sei der kleinste plausible Wert — es waren 30 Pole. Der Antrieb ist **nicht** der begrenzende Faktor: am freien Motor 763 1/min bei Vollaussteuerung, an der Trommel 130 km/h, für 60 km/h genügt Tastverhältnis 0,46. Kein Ersatz für `MAX_DRUM_RPM`, sondern eine Kappung davor. |
 | `VESC_ERPM_STEP_SMALL` | 100 | ERPM | Festlegung | Feineinstellung über ± |
 | `VESC_ERPM_STEP_LARGE` | 1000 | ERPM | Festlegung | grobe Annäherung |
-
-| — | `VESC_DIRECTION_SIGN` | **−1** | – | **gem** | Vorzeichen, mit dem Sollwerte an den Regler gehen, damit die Trommel in **Messrichtung** dreht. Am 2026-11-17 am Aufbau festgestellt, bei geprüfter Phasenzuordnung (Relaisblock 1:1) und gemessener Hall-Tabelle. Steht bewusst **hier** und nicht als `m_invert_direction` im Regler: dort wäre die Festlegung nicht versioniert und ginge bei jeder Neuerkennung verloren. Zwei Fallstricke: zwei vertauschte Phasen im Relaisblock drehen die Richtung **und** entwerten die Hall-Tabelle (der Motor brummt dann stromführend ohne Moment und meldet **keinen** Fehler, [04-hardware](04-hardware.md) §10.6); und ein Richtungswechsel im Lauf ist ein **Bremsbefehl** ([07-sicherheit](07-sicherheit.md) §3.3). |
-
-| — | `VESC_BRAKE_CURRENT_STOP` | **20,0** | A | **gem** / Festlegung | Der **einzige** Bremsstrom. Festlegung des Erbauers: es wird immer der schnellstmögliche Stopp gefahren, nie ein langsamer — Rückgewinnung ist damit kein Auswahlkriterium. Gemessen 50 → 5 km/h in **13,1 s**; 15 A wären mit 13,9 s kaum langsamer und energieneutral, aber die Vorgabe lautet schnellstmöglich. Über 20 A ist die Bremse gesättigt. **Nur mit Akku am Bus** — am Netzteil Abwurf nach 0,61 s mit Fehlercode 1, weil der Regler bei hoher Drehzahl zunächst **zurückspeist**. Vollständige Kurve in [07-sicherheit](07-sicherheit.md) §3.2b, die widerlegte Gegenannahme in §3.2c. |
+| `VESC_DIRECTION_SIGN` | **−1** | – | **gem** | Vorzeichen, mit dem Sollwerte an den Regler gehen, damit die Trommel in **Messrichtung** dreht. Am 2026-11-17 am Aufbau festgestellt, bei geprüfter Phasenzuordnung (Relaisblock 1:1) und gemessener Hall-Tabelle. Steht bewusst **hier** und nicht als `m_invert_direction` im Regler: dort wäre die Festlegung nicht versioniert und ginge bei jeder Neuerkennung verloren. Zwei Fallstricke: zwei vertauschte Phasen im Relaisblock drehen die Richtung **und** entwerten die Hall-Tabelle (der Motor brummt dann stromführend ohne Moment und meldet **keinen** Fehler, [04-hardware](04-hardware.md) §10.6); und ein Richtungswechsel im Lauf ist ein **Bremsbefehl** ([07-sicherheit](07-sicherheit.md) §3.3). |
+| `VESC_BRAKE_CURRENT_STOP` | **20,0** | A | **gem** / Festlegung | Der **einzige** Bremsstrom. Festlegung des Erbauers: es wird immer der schnellstmögliche Stopp gefahren, nie ein langsamer — Rückgewinnung ist damit kein Auswahlkriterium. Gemessen 50 → 5 km/h in **13,1 s**; 15 A wären mit 13,9 s kaum langsamer und energieneutral, aber die Vorgabe lautet schnellstmöglich. Über 20 A ist die Bremse gesättigt. **Nur mit Akku am Bus** — am Netzteil Abwurf nach 0,61 s mit Fehlercode 1, weil der Regler bei hoher Drehzahl zunächst **zurückspeist**. Vollständige Kurve in [07-sicherheit](07-sicherheit.md) §3.2b, die widerlegte Gegenannahme in §3.2c. |
 
 ## 8.1 Status-LED
 

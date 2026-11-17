@@ -97,9 +97,11 @@ constexpr float SLIP_TOLERANCE = 0.05f;
 //
 // Ein erster Versuch im SENSORLOSEN Betrieb gab 16,5 und war nicht reproduzierbar —
 // der Lagebeobachter wackelt bei Handgeschwindigkeit. Erst mit Hall-Gebern ist der
-// Tachozähler eine Messung. Der Regler stand bis dahin auf si_motor_poles = 14;
-// das war ein Erbe der vorgefundenen Skateboard-Konfiguration, keine Erkennung.
-// Die VESC-Firmware ERMITTELT die Polzahl nicht, sie wird eingetippt.
+// Tachozähler eine Messung. Der Regler stand bis dahin auf si_motor_poles = 14 — das
+// ist die WERKSEINSTELLUNG der VESC-Firmware, nachgewiesen am frisch auf 7.01
+// geflashten Regler (dort steht wieder 14). Die Firmware ERMITTELT die Polzahl nicht,
+// sie wird eingetippt; ohne Eintrag bleibt sie auf 14, und jede daraus abgeleitete
+// mechanische Drehzahl ist falsch.
 constexpr uint8_t MOTOR_POLE_PAIRS = 15;
 
 // Motor-Hallflanken pro Motorumdrehung, eine ausgewertete Phase = Polpaarzahl.
@@ -110,7 +112,10 @@ constexpr uint8_t MOTOR_PULSES_PER_REV = MOTOR_POLE_PAIRS;
 
 // --------------------------------------------------- Motor, elektrisch
 // Am 2026-11-17 am verbauten Motor gemessen, Regler FSESC 4.20 mit Firmware 5.02.
-// Vorher stand im Regler eine fremde Skateboard-Konfiguration.
+// Vorher stand im Regler eine fremde Konfiguration: Uebersetzung und Oeffnungsdrehzahl
+// von Hand gesetzt, R/L/Flussverkettung aus einer Erkennung an einem ANDEREN Motor.
+// Polzahl, Raddurchmesser und die Drehzahlreglergewinne darin waren dagegen nur die
+// Werkseinstellungen — siehe docs/03-parameter.md §4.1.
 
 // [gem] Flussverkettung, vom Regler erkannt (foc_detect_apply_all mit 50 W
 // Verlustgrenze). Scheitelwert der Strangverkettung.
