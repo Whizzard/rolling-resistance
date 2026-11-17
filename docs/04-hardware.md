@@ -741,7 +741,7 @@ Zwei Folgen:
 1. **Für die Diagnose:** nur insofern, als ohne Leistungseingang nichts geht. Der
    **Not-Aus trennt den Leistungseingang aber nicht**, nur Regler↔Motor — beim
    Bremsversuch am 2026-11-17 verschwand der Regler trotzdem vom USB-Bus, hat sich also
-   zurückgesetzt. Verdacht und Prüfvorschrift in [Sicherheit](26_sicherheit.md) §4.
+   zurückgesetzt. Verdacht und Prüfvorschrift in [07-sicherheit](07-sicherheit.md) §4.
 2. **Fürs Flashen:** der Leistungseingang muss währenddessen anliegen. Ein kleines
    Paket genügt (2S, 8,4 V wurden benutzt) — ohne Motor gibt es keine Last, also
    keinen Spannungseinbruch. `l_min_vin` sperrt nur den Antrieb, nicht die Logik.
@@ -757,9 +757,11 @@ eingemessen worden.
 > kein Wert darin gehöre zu diesem Aufbau. Zu weit gegriffen:* `si_motor_poles` = 14,
 > `si_wheel_diameter` = 0,083 m und die Drehzahlregler-Gewinne sind
 > **Werkseinstellungen** der VESC-Firmware — nachgewiesen am frisch auf 7.01 geflashten
-> Regler. Aufstellung in [Parameter](22_parameter.md) §4.1. Die vorgefundene Fassung ist byteweise gesichert unter
-`hardware/vesc-backup/` (Firmware 5.02, mcconf 458 B, appconf 419 B) und
-zurückspielbar.
+> Regler. Aufstellung in [03-parameter](03-parameter.md) §4.1.
+
+Die vorgefundene Fassung ist byteweise gesichert unter `hardware/vesc-backup/`
+(Firmware 5.02, mcconf 458 B, appconf 419 B). **Zum Zurückspielen taugt sie nur auf
+5.02** — siehe §10.5a.
 
 **Erkannt** (`foc_detect_apply_all 50`, Motor ohne Trommel):
 
@@ -824,7 +826,7 @@ ohne ihn bleibt nach einem fehlgeschlagenen Flash nur SWD.
 
 Das Erste schaltet bei Tastverhältnis 0 die unteren Schalter dauerhaft ein — der
 **echte Brückenkurzschluss**, dissipativ, ohne Beteiligung des Busses. Genau das fehlte
-bei allen vier Bremsversuchen in [Sicherheit](26_sicherheit.md) §3.1 und §3.2c. Das
+bei allen vier Bremsversuchen in [07-sicherheit](07-sicherheit.md) §3.1 und §3.2c. Das
 Zweite verwandelt den Überspannungsfall von einem Abwurf in eine **Abdrosselung**.
 
 **Beides ist noch nicht erprobt** — der Bremsversuch braucht den Motor. [TBD]
@@ -1235,8 +1237,12 @@ Motorstrom, Reglertemperatur und Fehlercode von selbst.
 
 Zweck: den Antriebsstrang in Betrieb nehmen und kennenlernen, **bevor** ein einziger
 Messwert ansteht. Die Messkette ist in wesentlichen Punkten noch TBD — Zelle
-unkalibriert, Hebelarm nicht ausgemessen, Polzahl nicht gemessen —, der Regler
-dagegen ist vollständig da.
+unkalibriert, Hebelarm nicht ausgemessen —, der Regler dagegen ist vollständig da.
+
+> **Diese Variante hat ihren Zweck erfüllt.** Mit ihr und den Werkzeugen unter `tools/`
+> wurden am 2026-11-17 Polzahl, R, L, Flussverkettung, Hall-Tabelle, Leerlaufkennlinie,
+> Leerlaufverluste der Trommel und vier Bremswege vermessen. Die Abschnitte unten sind
+> deshalb teils überholt und nachgezogen.
 
 Das ist kein Umweg: [10-firmware](10-firmware.md) §2 (T1…T8) und §5.5 (D23…D28)
 fordern genau diese Funktionen bereits.
@@ -1258,27 +1264,42 @@ Befehle, identisch über serielle Konsole und Weboberfläche ([10-firmware](10-f
 | `s` | Stop — Antrieb stromlos, Trommel läuft aus |
 | `?` | Hilfe |
 
-### 14.2 Warum ERPM und nicht 1/min
+### 14.2 ERPM, und warum die Umrechnung jetzt zulässig ist
 
-Der Regler rechnet in **elektrischen** Umdrehungen. Mechanisch wäre das
-`ERPM / Polpaarzahl` — die ist aber **nicht gemessen** (`MOTOR_PULSES_PER_REV` ist
-TBD). Eine Umrechnung wäre also eine erfundene Zahl. Angezeigt wird deshalb das, was
-wirklich bekannt ist.
+Der Regler rechnet in **elektrischen** Umdrehungen; mechanisch ist das
+`ERPM / Polpaarzahl`.
 
-Der Regler kennt zwar ein `si_motor_poles` und gibt es auf Nachfrage heraus — aber
-das ist, was jemand im VESC-Tool eingetippt hat, nicht das Ergebnis einer Messung.
-Als Quelle für eine Messgröße taugt es nicht.
+Ursprünglich wurde hier **nur** ERPM angezeigt, weil die Polpaarzahl nicht gemessen war
+und jede Umrechnung eine erfundene Zahl gewesen wäre. Das `si_motor_poles` des Reglers
+taugte dafür nicht: es ist, was jemand eingetippt hat — und stand auf dem
+**Werkswert 14**, während es in Wirklichkeit 30 Pole sind.
 
-`VESC_ERPM_MAX` kappt vorläufig bei 3500 und nimmt dafür bewusst die **ungünstige**
-Richtung an: 10 Polpaare. Sind es in Wirklichkeit mehr — bei Hoverboard-Rädern sind
-15 üblich —, dreht die Trommel **langsamer** als gedacht, nicht schneller.
+**Seit dem 2026-11-17 ist die Polpaarzahl gemessen: 15** (900 Tachoschritte auf 10
+markierte Handumdrehungen, [03-parameter](03-parameter.md) §3). Die Umrechnung ist damit
+eine Rechnung und keine Schätzung mehr, und `VESC_ERPM_MAX` ist **abgeleitet** statt
+geraten:
 
-### 14.3 Motortemperatur fehlt absichtlich
+```
+VESC_ERPM_MAX = MAX_DRUM_RPM · MOTOR_POLE_PAIRS = 353 · 15 = 5295
+```
 
-Der Regler meldet sie, aber ohne Fühler am `TMP`-Eingang liefert er dafür eine
-Phantasiezahl **ohne Fehlermeldung** — typisch einen großen negativen Wert. Solange
-A5 offen ist, wird das Feld gar nicht erst abgefragt. Ein Strich ist ehrlicher als
-eine Zahl, die aussieht wie eine Messung.
+Vorher stand dort 2400, aus der Annahme, 7 Polpaare seien der kleinste plausible Wert.
+Die Annahme war konservativ gemeint und lag um Faktor 2 daneben — die Trommel hätte
+damit nur 160 1/min erreicht.
+
+### 14.3 Motortemperatur — Fühler bestätigt, Abfrage noch nicht nachgezogen
+
+Ursprünglich wurde das Feld **gar nicht abgefragt**, weil der Regler ohne Fühler am
+`TMP`-Eingang eine Phantasiezahl **ohne Fehlermeldung** liefert, typisch einen großen
+negativen Wert. Ein Strich ist ehrlicher als eine Zahl, die aussieht wie eine Messung.
+
+**A5 ist seit dem 2026-11-17 beantwortet:** es ist ein 10-k-NTC im Stator, dreifach
+belegt ([06-offene-fragen](06-offene-fragen.md) A5), und `m_motor_temp_sens_type` steht
+richtig. Der Wert ist damit echt — eben jene Phantasiezahl von −75,5 °C bei offener
+Klemme war der *Beweis* dafür.
+
+Die Variante fragt das Feld trotzdem noch nicht ab (Bit 1 fehlt in der Maske von
+`vesc/vesc.cpp`). Das ist jetzt ein **Nachtrag**, keine Festlegung mehr. [TBD]
 
 ### 14.4 Zwei Totmannschaltungen
 
@@ -1303,11 +1324,21 @@ Ohne diese Schritte antwortet der Regler gar nicht oder falsch:
 2. Baudrate **115200**.
 3. Motortyp **FOC**, Sensormodus **Hall**. Sensorlos gibt es unterhalb
    `foc_openloop_rpm` keine Momentenkontrolle.
-4. `si_motor_poles` eintragen.
-5. `timeout_msec` auf **300**, `timeout_brake_current` **ausdrücklich über null** —
-   die Vorgabe ist 0,0 A, und das heißt *auslaufen lassen*, nicht bremsen.
-6. Motor- und Hall-Erkennung einmal laufen lassen.
+4. `si_motor_poles` = **30** (gemessen, §10.5).
+5. `timeout_msec` auf **300**.
+6. Motor- und Hall-Erkennung einmal laufen lassen — oder die gesicherten Werte als XML
+   zurückschreiben, das geht **ohne Motor** (§10.5a).
+
+> **Punkt 5 stand hier falsch.** Es hieß: „`timeout_brake_current` ausdrücklich über
+> null — die Vorgabe 0,0 A heißt *auslaufen lassen*, nicht bremsen." Das klingt
+> vorsichtig und ist für diesen Prüfstand **schädlich**. Testweise auf 1,0 A gesetzt und
+> am 2026-11-17 wieder zurückgenommen: der Zustand **rastet ein**, die Endstufe läuft
+> dauerhaft weiter (4,8 W, FET auf 32,9 °C), und ein dauerhaft kurzgeschlossener Motor
+> **lässt sich nicht frei drehen** — der Auslaufversuch ist aber eine Kernmethode dieses
+> Stands. Begründung in §10.5. Der Wert bleibt **0**; gebremst wird über die Relais oder
+> über `VESC_BRAKE_CURRENT_STOP`.
 
 Die Firmwareversion meldet die Variante beim Start selbst (`COMM_FW_VERSION`). Sie
 entscheidet, ob `foc_short_ls_on_zero_duty` und `l_battery_regen_cut_start/end`
-überhaupt existieren — beide erst ab **6.05**.
+überhaupt existieren — beide erst ab **6.05**. Der Regler läuft seit dem 2026-11-17 auf
+**7.01**, beide sind vorhanden und gesetzt (§10.5a).

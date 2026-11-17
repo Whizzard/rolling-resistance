@@ -10,7 +10,7 @@ J = 2,07 kg·m² (aus der Geometrie, durch Auslaufversuch zu bestätigen), U = 2
 > **Diese beiden Zahlen gelten der Ø-933-Trommel.** `config.h` rechnet dagegen mit
 > U = 2,837 m und J = 1,94 kg·m² (Ø 903), und die Messungen vom 2026-11-17 weiter unten
 > benutzen 1,94. Welche Trommel gilt, ist **nicht entschieden** —
-> [Offene Fragen](29_offene_fragen.md) A14. Die Energiewerte in der Tabelle sind damit
+> [06-offene-fragen](06-offene-fragen.md) A14. Die Energiewerte in der Tabelle sind damit
 > um 7 % zu hoch, also auf der sicheren Seite; die Momente aus den Auslaufversuchen
 > wären mit 2,07 entsprechend größer. Vor der ersten Messreihe ausmessen.
 >
@@ -62,7 +62,7 @@ beide in dieselbe Richtung: Bus weg → gebremst, GPIO low → gebremst, Reset �
 
 Die Relais sind seit dem 2026-11-17 verbaut und gemessen. Der freie Auslauf bleibt als
 zweiter Weg: von 100 km/h **160 s**, von 43 km/h etwa 100 s (`DRUM_LOSS_*` in
-[Parameter](22_parameter.md) §1).
+[03-parameter](03-parameter.md) §1).
 
 ### 3.0 Alles in §3.1 bis §3.2c wurde auf Firmware 5.02 gemessen
 
@@ -294,7 +294,7 @@ FAULT ist rastend: Quittierung nur im Stillstand über die Konsole oder das Bedi
 > verallgemeinern.)
 >
 > **Verdacht auf die Ursache**, und er steht als Warnung schon in
-> [Hardware](23_hardware.md) §10.4: *„Erst den Treiber sperren, dann die Relais
+> [04-hardware](04-hardware.md) §10.4: *„Erst den Treiber sperren, dann die Relais
 > abfallen lassen."* Beim Versuch wurde die Phasenverbindung aufgetrennt, **während der
 > Regler mit Tastverhältnis 0,8 trieb** und Strom durch die Wicklungen floss. Einen
 > stromführenden induktiven Kreis zu öffnen erzeugt eine Spannungsspitze — an den
@@ -311,7 +311,7 @@ FAULT ist rastend: Quittierung nur im Stillstand über die Konsole oder das Bedi
 > brauchbare Information. Der eigene Trommelaufnehmer am ESP32 ist damit **nicht die
 > zweite Quelle, sondern die einzige**, und der ESP32 braucht seine Versorgung
 > unabhängig vom geschalteten Leistungspfad — hat er über USB-C
-> ([Hardware](23_hardware.md) §5).
+> ([04-hardware](04-hardware.md) §5).
 >
 > Zwei Wege: die **8 Marken an der Trommel** am ESP32 auswerten (unabhängig von allem,
 > was im Leistungspfad passiert), und/oder `foc_sl_erpm` so weit heraufsetzen, dass die
