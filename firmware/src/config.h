@@ -23,6 +23,27 @@ constexpr float DRUM_CIRCUMFERENCE_M = 2.837f;
 // [ber] U / 2π
 constexpr float DRUM_RADIUS_M = DRUM_CIRCUMFERENCE_M / (2.0f * PI);
 
+// [ber] Traegheitsmoment der Trommel aus der Geometrie (docs/09-messtheorie.md).
+// Bestimmt die Hochlaufzeit und die Energie, die im Notfall abzufuehren ist:
+// bei 100 km/h sind es 3,7 kJ.
+constexpr float DRUM_INERTIA_KGM2 = 1.94f;
+
+// [gem] Leerlaufverlustmoment der Trommel, am 2026-11-17 aus dem FREIEN AUSLAUF
+// bestimmt: 97 -> 29 km/h in 140 s, acht Stuetzstellen, M = I * dw/dt. Anpassung
+//     M_verlust = DRUM_LOSS_CONST_NM + DRUM_LOSS_OMEGA2_NM * w^2     (w in rad/s)
+//
+// Der konstante Anteil ist Lager- und Motorreibung. Er KUERZT SICH in der Pendel-
+// messung heraus, weil Trommellager und Motorreibung beide innerhalb der Wiege
+// liegen. Uebrig bleibt der w^2-Anteil: der Luftwiderstand der Trommel.
+//
+// Bei 60 km/h sind das 0,43 Nm. docs/09-messtheorie.md nennt dafuer 0,27 Nm — der
+// gemessene Wert ist 1,6-fach groesser. Gegen ein Nutzsignal von 1,32 Nm (Crr 0,007
+// bei 417 N Auflast) sind das 33 % statt 20 %, bei 100 km/h sogar 91 %. Abziehbar
+// ist er, weil er sich je Stufe leerlaufend mitmessen laesst — aber er muss
+// gemessen werden, nicht geschaetzt.
+constexpr float DRUM_LOSS_CONST_NM  = 0.472f;
+constexpr float DRUM_LOSS_OMEGA2_NM = 3.178e-4f;
+
 // [TBD] Kurzer Arm = größere Kraft = besseres SNR; die Grenze ist die Überlastreserve.
 // Die Zelle ist eine 5-kg-Zelle (49,03 N). Bei L = 0,040 m läge der Auslegungsfall bei
 // 96 % und der Fall samt Rampe bei 128 % — die Zelle würde im NORMALBETRIEB überfahren,
@@ -65,13 +86,60 @@ constexpr uint32_t STALL_TIMEOUT_MS = 2000;
 // das ist eine PLAUSIBILITÄTSPRÜFUNG der beiden Aufnehmer, kein Schlupfkriterium.
 constexpr float SLIP_TOLERANCE = 0.05f;
 
+// [gem] Polpaarzahl, am 2026-11-17 über die Hall-Geber ausgezählt: bei 10
+// markierten Handumdrehungen stieg der Tachozähler des Reglers um genau 900
+// Schritte, ohne einen einzigen Rückwärtsschritt. 6 Schritte je elektrischer
+// Umdrehung ergeben 900 / 10 / 6 = 15 Polpaare, also 30 Pole.
+//
+// Die Skalierung "6 Schritte je elektrischer Umdrehung" ist am selben Datensatz
+// gegengerechnet: das Integral von |ERPM| über die Zeit ergab 6,31 Schritte je
+// elektrischer Umdrehung, der Überschuss ist Zittern.
+//
+// Ein erster Versuch im SENSORLOSEN Betrieb gab 16,5 und war nicht reproduzierbar —
+// der Lagebeobachter wackelt bei Handgeschwindigkeit. Erst mit Hall-Gebern ist der
+// Tachozähler eine Messung. Der Regler stand bis dahin auf si_motor_poles = 14;
+// das war ein Erbe der vorgefundenen Skateboard-Konfiguration, keine Erkennung.
+// Die VESC-Firmware ERMITTELT die Polzahl nicht, sie wird eingetippt.
+constexpr uint8_t MOTOR_POLE_PAIRS = 15;
+
 // Motor-Hallflanken pro Motorumdrehung, eine ausgewertete Phase = Polpaarzahl.
-// [TBD] Polzahl des DAAO-Motors ausmessen: Motor langsam eine volle Umdrehung von
-// Hand drehen und die Flanken zählen.
 // Beim Direktantrieb ist das zugleich eine hochauflösende Trommeldrehzahlquelle;
 // der Vergleich mit den Trommelmarken bleibt als Plausibilitätsprüfung sinnvoll
 // (erkennt einen ausgefallenen Aufnehmer).
-constexpr uint8_t MOTOR_PULSES_PER_REV = 15;
+constexpr uint8_t MOTOR_PULSES_PER_REV = MOTOR_POLE_PAIRS;
+
+// --------------------------------------------------- Motor, elektrisch
+// Am 2026-11-17 am verbauten Motor gemessen, Regler FSESC 4.20 mit Firmware 5.02.
+// Vorher stand im Regler eine fremde Skateboard-Konfiguration.
+
+// [gem] Flussverkettung, vom Regler erkannt (foc_detect_apply_all mit 50 W
+// Verlustgrenze). Scheitelwert der Strangverkettung.
+constexpr float MOTOR_FLUX_LINKAGE_WB = 0.017287f;
+
+// [ber] Momentenkonstante einer dreiphasigen PMSM in feldorientierter Regelung:
+//     kt = 3/2 * Polpaare * Flussverkettung = 0,389 Nm/A
+// Gegenprobe am Hochlauf: mit 3 A ergaben sich 1,17 Nm, und die Trommel
+// beschleunigte damit so, wie es DRUM_INERTIA erwarten laesst.
+constexpr float MOTOR_KT_NM_PER_A = 1.5f * MOTOR_POLE_PAIRS * MOTOR_FLUX_LINKAGE_WB;
+
+// [gem] Strangwiderstand bei DIREKTER Verdrahtung: measure_res_ind gab 237,2 mOhm,
+// die Erkennung trug 238,7 mOhm ein. Mit dem Kurzschlussrelaisblock im Pfad sind es
+// 251,9 mOhm (Mittel aus vier Laeufen, Streuung +/- 1,5 mOhm), also 14,7 mOhm
+// Kontaktwiderstand. Das ist ein Wirkungsgradposten und erscheint NICHT an der
+// Waegezelle — elektrische Verluste sind kein mechanisches Reaktionsmoment.
+constexpr float MOTOR_R_OHM = 0.2387f;
+
+// [gem] Leerlaufdrehzahl je Busvolt, am FREIEN Motor ueber zehn Stuetzstellen von
+// Tastverhaeltnis 0,50 bis 0,95 bei 40 V, streng linear (11 384 bis 11 450 ERPM je
+// Einheit Tastverhaeltnis).
+//
+// NICHT zu verwechseln mit den "kv = 14", die in docs/06-offene-fragen.md unter A13
+// stehen: das ist die Endgeschwindigkeit des Systems MIT Trommel, also gegen deren
+// Luftwiderstand — eine Systemgroesse, keine Motorkonstante. Die Induktivitaet ist
+// hier bewusst nicht aufgefuehrt: measure_res_ind streute ueber vier Laeufe von
+// 305 bis 377 uH, die Erkennung trug 403,8 uH ein. Dafuer braucht es ein anderes
+// Verfahren, bevor eine Zahl hier etwas behaupten darf. [TBD]
+constexpr float MOTOR_NO_LOAD_RPM_PER_V = 19.1f;
 
 // ------------------------------------------------------------------ HX711
 
@@ -259,31 +327,70 @@ constexpr uint32_t VESC_POLL_MS = 200;
 // setzen den Timeout NICHT zurueck, nur Sollwerte und COMM_ALIVE.
 constexpr uint32_t VESC_ALIVE_MS = 150;
 
-// SICHERHEITSGRENZE, vorlaeufig. [TBD]
+// SICHERHEITSGRENZE. Abgeleitet, seit die Polpaarzahl gemessen ist.
 //
 // Der Regler rechnet in ELEKTRISCHEN Umdrehungen; die mechanische Drehzahl ist
-// ERPM / Polpaarzahl. Die Polpaarzahl des verbauten Motors ist nicht gemessen
-// (MOTOR_PULSES_PER_REV ist ebenfalls TBD), also laesst sich MAX_DRUM_RPM = 353
-// NICHT sauber in ERPM umrechnen.
+// ERPM / Polpaarzahl. Mit MOTOR_POLE_PAIRS = 15 (gemessen, siehe oben) folgt die
+// Kappung direkt aus MAX_DRUM_RPM und zieht damit automatisch mit V_MAX_KMH nach:
 //
-// Die sichere Richtung ist die KLEINSTE plausible Polpaarzahl, nicht die groesste:
-// mech = ERPM / Polpaare, also ergibt eine feste ERPM-Kappung bei WENIGER Polpaaren
-// eine HOEHERE Trommeldrehzahl. (Hier stand zuerst die umgekehrte Begruendung und
-// damit ein zu hoher Wert — korrigiert am 2026-11-17.)
+//     353 1/min * 15 = 5295 ERPM
 //
-// Der Regler meldet si_motor_poles = 14, also 7 Polpaare — das ist aber der
-// Werksvorgabewert der VESC-Firmware und KEINE Messung; am 2026-11-17 aus der
-// gesicherten Konfiguration abgelesen (hardware/vesc-backup/). 7 Polpaare sind
-// zugleich der kleinste plausible Wert, also der sichere:
+// Der Antrieb ist NICHT der begrenzende Faktor. Am 2026-11-17 am freien Motor
+// gemessen: 10 877 ERPM bei Tastverhältnis 0,95 und 40 V, über zehn Stützstellen
+// linear, extrapoliert 11 450 ERPM = 763 1/min bei Vollaussteuerung. An der Trommel
+// wären das 130 km/h; für 60 km/h genügt Tastverhältnis 0,46. Die Grenze ist eine
+// Festlegung aus docs/07-sicherheit.md, keine Eigenschaft der Maschine.
 //
-//     353 1/min * 7 = 2471 ERPM   ->  gekappt auf 2400
+// Vorher stand hier 2400, abgeleitet aus den si_motor_poles = 14 des Reglers unter
+// der Annahme, das sei der kleinste plausible Wert. Es waren 30 Pole.
 //
-// Sind es in Wirklichkeit 15 Polpaare, wie bei Hoverboard-Raedern ueblich, kommt
-// die Trommel damit nur auf 160 1/min (27 km/h) — langsam, aber ungefaehrlich.
+// Das ist KEIN Ersatz fuer MAX_DRUM_RPM, sondern eine Kappung davor.
+constexpr int32_t VESC_ERPM_MAX =
+    static_cast<int32_t>(MAX_DRUM_RPM * MOTOR_POLE_PAIRS);
+
+// DREHRICHTUNG. [gem] Am 2026-11-17 am Aufbau festgestellt und zu bestaetigen.
 //
-// Das ist KEIN Ersatz fuer MAX_DRUM_RPM, sondern eine Kappung davor. Sobald die
-// Polpaarzahl gemessen ist, gehoert hier der abgeleitete Wert hin.
-constexpr int32_t VESC_ERPM_MAX = 2400;
+// Mit der geprueften Phasenzuordnung (Relaisblock 1:1 wie bei direkter Verdrahtung)
+// und der gemessenen Hall-Tabelle dreht die Trommel in MESSRICHTUNG, wenn der Regler
+// NEGATIVE ERPM bekommt. Jeder Sollwert wird daher mit diesem Vorzeichen versehen.
+//
+// Warum nicht `m_invert_direction` im Regler: dann steckt die Festlegung in einer
+// Konfiguration, die bei jeder Neuerkennung oder jedem Zurueckspielen des Backups
+// verlorengehen kann — und sie waere nicht versioniert. Hier steht sie im Repo.
+//
+// ACHTUNG, zwei Fallstricke, beide am 2026-11-17 ausgeloest:
+//   1. Werden im Relaisblock zwei Phasen getauscht, dreht sich die Richtung um, und
+//      die Hall-Tabelle passt nicht mehr — der Motor brummt dann mit Strom, aber ohne
+//      Moment, und meldet KEINEN Fehler (docs/04-hardware.md §10.6).
+//   2. Ein Richtungswechsel im Lauf ist ein BREMSBEFEHL und speist zurueck. Immer
+//      erst Stillstand abwarten (docs/07-sicherheit.md §3.3).
+constexpr int32_t VESC_DIRECTION_SIGN = -1;
+
+// BREMSSTROEME. [gem] Am 2026-11-17 als Kurve aufgenommen: je Stufe aus 50 km/h
+// gebremst (SET_CURRENT_BRAKE), Bremszeit bis 5 km/h und zurueckgewonnene Energie
+// gemessen. Verfuegbar waren 911 J.
+//
+//   3 A  31,4 s  +487 J     10 A  14,9 s  +223 J
+//   6 A  19,6 s  +409 J     15 A  13,9 s   +36 J
+//                           20 A  13,1 s  -140 J
+//
+// Bremsleistung und Rueckgewinnung schliessen sich aus, und der Grund steckt in der
+// Arbeitsweise von SET_CURRENT_BRAKE: der Regler beginnt KURZGESCHLOSSEN und speist
+// erst dann aktiv zurueck, wenn der Kurzschlussstrom den Sollwert UEBERSTEIGT.
+// Unterhalb davon muss er den Kurzschlussstrom herunterregeln — das geht nur ueber
+// den Bus. Oberhalb muss er Strom zusaetzlich treiben, das KOSTET Busleistung.
+//
+// Daraus folgt die wichtigste Konsequenz fuer den Betrieb: ein GROSSER Bremsstrom ist
+// netzteilfreundlich, ein kleiner nicht. Siehe docs/07-sicherheit.md §3.2a.
+
+// Alltagsstopp nach einer Messung. Langsam, aber fuellt den Akku (53 % Rueckgewinn).
+// NUR mit Akku am Bus — am Netzteil wuerde die Rueckspeisung ueberspannen.
+constexpr float VESC_BRAKE_CURRENT_SOFT = 3.0f;
+
+// Vollbremsung. Beim Nulldurchgang der Energiebilanz gemessen (+36 J), also auch mit
+// NETZTEIL unbedenklich. Die Bremswirkung ist hier schon fast am Anschlag: 13,9 s
+// gegen 13,1 s bei 20 A. Mehr Strom bringt kaum Weg, kostet aber Waerme.
+constexpr float VESC_BRAKE_CURRENT_STOP = 15.0f;
 
 constexpr int32_t VESC_ERPM_STEP_SMALL = 100;   // [Festlegung] Feineinstellung
 constexpr int32_t VESC_ERPM_STEP_LARGE = 1000;  // [Festlegung] grobe Annaeherung

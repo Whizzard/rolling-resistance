@@ -12,6 +12,9 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 | U | `DRUM_CIRCUMFERENCE_M` | **2,931** | m | gem | Über die fertige Oberfläche gemessen, Ø 933 mm ([09-messtheorie](09-messtheorie.md) §1.5). Der frühere Wert 3,000 galt der geplanten Ø-955-Trommel und war 2,4 % zu groß. Nach jeder Änderung an der Oberfläche neu messen: Maßband um die Trommel, 3 Messungen mitteln. 1 mm Fehler = 0,03 %. |
 | r | `DRUM_RADIUS_M` | **0,4665** | m | ber | U / 2π |
 | L | `TORQUE_ARM_M` | **0,080** | m | **TBD** | Gilt für die **5-kg-Zelle**. Auslegungsfall stationär 1,88 Nm → 23,5 N = 48 % FS; samt Rampe 2,51 Nm → 31,4 N = 64 %; ΔCrr 0,0005 → 1,22 N — dieselben Ausnutzungen wie zuvor mit 10 kg bei 0,040 m: halbe Zelle, doppelter Arm. Herleitung [08-staender](08-staender.md) §5.2. Bohrungen 80,0 mm (Zelle) und 160,0 mm (Kalibrierung), je ±0,1 mm. Verbaut sind laut Ansage etwa 80 mm — **ausmessen**, der Arm geht linear in jedes Moment ein (§2). |
+| J | `DRUM_INERTIA_KGM2` | **1,94** | kg·m² | ber | Aus der Geometrie der **Ø-903-Trommel**, passend zu `DRUM_CIRCUMFERENCE_M` = 2,837 in `config.h`. **Achtung, offener Widerspruch:** die Zeile `J` weiter unten in diesem Abschnitt nennt **2,07** für die Ø-933-Trommel, und `DRUM_CIRCUMFERENCE_M` steht in diesem Dokument als 2,931. Welche Trommel gilt, ist nicht entschieden — siehe [06-offene-fragen](06-offene-fragen.md) A14. Bis dahin ist `config.h` in sich stimmig (2,837 / 1,94) und dieses Dokument nicht. |
+| — | `DRUM_LOSS_CONST_NM` | **0,472** | Nm | **gem** | Konstanter Anteil des Leerlaufverlustmoments: Lager- und Motorreibung. **Kürzt sich in der Pendelmessung heraus**, weil Trommellager und Motorreibung beide innerhalb der Wiege liegen. |
+| — | `DRUM_LOSS_OMEGA2_NM` | **3,178·10⁻⁴** | Nm·s² | **gem** | Faktor des ω²-Anteils: **Luftwiderstand der Trommel**, der Teil, der sich *nicht* heraus kürzt. Beide Werte am 2026-11-17 aus dem **freien Auslauf** bestimmt: 97 → 29 km/h in 140 s, acht Stützstellen, M = J·dω/dt, Anpassung M = a + b·ω². Bei 60 km/h ergibt das 0,43 Nm Luftwiderstand — [09-messtheorie](09-messtheorie.md) nennt dafür 0,27 Nm, der gemessene Wert ist **1,6-fach größer**. Gegen ein Nutzsignal von 1,32 Nm (Crr 0,007 bei 417 N) sind das 33 % statt 20 %, bei 100 km/h sogar 91 %. Neu aufnehmen, sobald sich an Trommeloberfläche oder Einhausung etwas ändert. |
 | i | `BELT_RATIO` | 1,00 | – | Festlegung | **Direktantrieb**: Trommel auf dem Motorrotor, keine Übersetzung. Konstante bleibt für den Fall eines späteren Riemens. |
 | J | — | **2,07** | kg·m² | ber | Aus der Geometrie, [09-messtheorie](09-messtheorie.md) §9.1. Der frühere Wert 2,3 galt der Ø-955-Trommel. Geht **nicht** ins Ergebnis ein (gemessen wird stationär, dω/dt = 0), sondern nur in Rampenkorrektur, Hebelarmauslegung und die Energiebilanz. Nachmessen per Auslaufversuch mit bekannter Zusatzmasse. |
 
@@ -37,7 +40,8 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 | — | `MIN_PULSE_US` | 800 | µs | ber | Kürzester Abstand: 60 km/h, 8 Marken → 22,5 ms. Bei 100 km/h → 13,5 ms. 800 µs filtert sicher nur Störer. |
 | — | `STALL_TIMEOUT_MS` | 2000 | ms | ber | Grenzfall ist nicht 10 km/h (135 ms bei 8 Marken), sondern der Hochlauf: bei 1 km/h sind es 1,35 s. 2000 ms bedeutet *langsamer als 0,68 km/h gilt als Stillstand*; die Rampe ist nach 1,4 s darüber. |
 | — | `SLIP_TOLERANCE` | 0,05 | – | gesch | zulässige relative Abweichung n_Motor/i gegen n_Trommel |
-| — | `MOTOR_PULSES_PER_REV` | 15 | – | TBD | Hallflanken einer Phase pro Motorumdrehung = Polpaarzahl. Ermittlung: Motor von Hand eine volle Umdrehung drehen und Flanken zählen. |
+| p | `MOTOR_POLE_PAIRS` | **15** | – | **gem** | **Gemessen 2026-11-17** über die Hall-Geber: bei 10 markierten Handumdrehungen stieg der Tachozähler des Reglers um genau **900** Schritte, ohne einen Rückwärtsschritt. 6 Schritte je elektrischer Umdrehung → 900/10/6 = 15 Polpaare (30 Pole). Die Skalierung „6 je elektrischer Umdrehung" ist am selben Datensatz gegen das ERPM-Integral geprüft (6,31; der Überschuss ist Zittern). Ein erster Versuch **sensorlos** gab 16,5 und war nicht reproduzierbar — der Lagebeobachter wackelt bei Handgeschwindigkeit; erst mit Hall-Gebern ist der Zähler eine Messung. Der Regler stand bis dahin auf `si_motor_poles` = 14, ein Erbe der vorgefundenen Skateboard-Konfiguration. Die VESC-Firmware **ermittelt** die Polzahl nicht, sie wird eingetippt. |
+| — | `MOTOR_PULSES_PER_REV` | **15** | – | ber | = `MOTOR_POLE_PAIRS`. Hallflanken einer Phase pro Motorumdrehung. Beim Direktantrieb zugleich eine hochauflösende Trommeldrehzahlquelle (90 Flanken je Umdrehung über alle drei Phasen). |
 
 ## 4 Antrieb
 
@@ -188,6 +192,20 @@ spare dir die beiden Nebenbaustellen Bremse und Temperaturfühler.
 Die Achsfrage A6 — beidseitige Lagerung — gilt für beide gleichermaßen und entscheidet
 über den Direktantrieb, nicht über die Motorwahl.
 
+## 4.1 Motor, elektrisch gemessen
+
+Alles am **2026-11-17** am verbauten Motor ermittelt, Regler FSESC 4.20 mit Firmware
+5.02. Vorher stand im Regler eine fremde **Skateboard-Konfiguration** (Übersetzung
+2,77, Raddurchmesser 83 mm, sensorlos) — keiner dieser Werte gehörte zu diesem Aufbau.
+
+| Symbol | Konstante | Wert | Einheit | Herkunft | Ermittlung |
+|---|---|---|---|---|---|
+| λ | `MOTOR_FLUX_LINKAGE_WB` | **0,017287** | Wb | **gem** | Vom Regler erkannt (`foc_detect_apply_all` mit 50 W Verlustgrenze). Scheitelwert der Strangverkettung. Gegenprobe: 763 1/min ergeben damit 20,7 V Strangspitzenspannung, und 40 V Bus liefern über Raumzeigermodulation höchstens 40/√3 = 23,1 V — Verhältnis 0,90, passend zur Vollaussteuerung. |
+| kt | `MOTOR_KT_NM_PER_A` | **0,389** | Nm/A | ber | kt = 3/2 · p · λ für eine dreiphasige PMSM in feldorientierter Regelung. Gegenprobe am Hochlauf: 3 A ergaben 1,17 Nm, und die Trommel beschleunigte wie aus `DRUM_INERTIA_KGM2` erwartet. |
+| R | `MOTOR_R_OHM` | **0,2387** | Ω | **gem** | `measure_res_ind` bei **direkter** Verdrahtung: 237,2 mΩ; die Erkennung trug 238,7 mΩ ein. **Mit** dem Kurzschlussrelaisblock im Pfad 251,9 mΩ (Mittel aus vier Läufen, Streuung ±1,5 mΩ), also 14,7 mΩ Kontaktwiderstand. Das ist ein Wirkungsgradposten und erscheint **nicht** an der Wägezelle — elektrische Verluste sind kein mechanisches Reaktionsmoment. |
+| — | `MOTOR_NO_LOAD_RPM_PER_V` | **19,1** | 1/min/V | **gem** | Leerlaufdrehzahl je Busvolt, am **freien** Motor über zehn Stützstellen von Tastverhältnis 0,50 bis 0,95 bei 40 V, streng linear (11 384 bis 11 450 ERPM je Einheit Tastverhältnis). Extrapoliert 11 450 ERPM = **763 1/min** bei Vollaussteuerung, an der Trommel 130 km/h. **Nicht** zu verwechseln mit den „kv = 14" aus [06-offene-fragen](06-offene-fragen.md) A13: das ist die Endgeschwindigkeit des Systems **mit** Trommel, also gegen deren Luftwiderstand — eine Systemgröße, keine Motorkonstante. |
+| L | — | *(offen)* | H | **TBD** | `measure_res_ind` streute über vier Läufe von **305 bis 377 µH**, die Erkennung trug 403,8 µH ein. Bei ±13 % Streuung darf hier keine Zahl stehen. Braucht ein anderes Verfahren (LCR-Messbrücke bei 1 kHz, Rotor in definierter Lage). |
+
 ## 5 Messbetrieb
 
 | Konstante | Wert | Einheit | Herkunft | Anmerkung |
@@ -266,6 +284,11 @@ Nur für die Reglervariante (`env:esp32s3-vesc`), siehe
 | `VESC_ERPM_MAX` | 2400 | ERPM | **TBD** | Vorläufige Kappung. Mechanisch ist ERPM/Polpaarzahl, und die ist **nicht gemessen**. Sicher ist die **kleinste** plausible Polpaarzahl, nicht die größte: weniger Polpaare ergeben bei fester ERPM-Grenze eine **höhere** Trommeldrehzahl. Der Regler meldet 7 Polpaare — das ist der Werksvorgabewert, keine Messung, und zugleich der kleinste plausible Wert: 353 · 7 = 2471, gekappt auf 2400. Bei den bei Hoverboard-Rädern üblichen 15 Polpaaren käme die Trommel damit nur auf 160 1/min. Kein Ersatz für `MAX_DRUM_RPM`, sondern eine Kappung davor. |
 | `VESC_ERPM_STEP_SMALL` | 100 | ERPM | Festlegung | Feineinstellung über ± |
 | `VESC_ERPM_STEP_LARGE` | 1000 | ERPM | Festlegung | grobe Annäherung |
+
+| — | `VESC_DIRECTION_SIGN` | **−1** | – | **gem** | Vorzeichen, mit dem Sollwerte an den Regler gehen, damit die Trommel in **Messrichtung** dreht. Am 2026-11-17 am Aufbau festgestellt, bei geprüfter Phasenzuordnung (Relaisblock 1:1) und gemessener Hall-Tabelle. Steht bewusst **hier** und nicht als `m_invert_direction` im Regler: dort wäre die Festlegung nicht versioniert und ginge bei jeder Neuerkennung verloren. Zwei Fallstricke: zwei vertauschte Phasen im Relaisblock drehen die Richtung **und** entwerten die Hall-Tabelle (der Motor brummt dann stromführend ohne Moment und meldet **keinen** Fehler, [04-hardware](04-hardware.md) §10.6); und ein Richtungswechsel im Lauf ist ein **Bremsbefehl** ([07-sicherheit](07-sicherheit.md) §3.3). |
+
+| — | `VESC_BRAKE_CURRENT_SOFT` | **3,0** | A | **gem** | Alltagsstopp nach einer Messung: 50 → 5 km/h in 31,4 s und **53 % Rückgewinn** (487 von 911 J). **Nur mit Akku** am Bus — am Netzteil überspannt die Rückspeisung. |
+| — | `VESC_BRAKE_CURRENT_STOP` | **15,0** | A | **gem** | Vollbremsung: 13,9 s, Moment 7,4 Nm bei 250 1/min. Am **Nulldurchgang** der Energiebilanz gemessen (+36 J, im Rauschen), also **auch mit Netzteil unbedenklich**. Die Bremswirkung ist hier fast am Anschlag — 20 A bringen nur 13,1 s, entnehmen dafür 140 J und erzeugen mehr Wärme. Vollständige Kurve und Begründung in [07-sicherheit](07-sicherheit.md) §3.2a. |
 
 ## 8.1 Status-LED
 

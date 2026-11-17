@@ -37,11 +37,30 @@ Messvorschrift samt Deutungstabelle in [04-hardware](04-hardware.md) §11.3.
 ESP32 — Übertemperatur muss den Treiber sperren, und der Treiber ist der Regler
 ([04-hardware](04-hardware.md) §11.4). `PIN_MOTOR_PTC` ist aus `config.h` entfallen.
 
+**Fühlertyp beantwortet, 2026-11-17: 10-k-NTC im Wickelpaket.** Dreifach belegt,
+jeweils über die Telemetrie des Reglers mitgeschrieben:
+
+1. **Offene Klemme** meldet −75,5 °C, angeschlossen **19,4 °C** — ein NTC an einem
+   Pull-up gegen 3V3 verhält sich genau so. Ein Kurzschluss oder ein PTC gäbe das
+   andere Vorzeichen.
+2. **Plausibilität gegen den bordeigenen FET-Fühler**, der bekannt gut ist: 1,6 K
+   Abstand bei Raumtemperatur. Eine falsche Kennlinie läge zweistellig daneben.
+3. **Heißluft auf den Rotor**: die Motortemperatur stieg monoton 19,4 → 19,6 °C,
+   während die FET-Referenz bei 17,7 °C flach blieb. Ein offener Eingang rauscht,
+   er folgt nicht.
+
+Im Regler stand `m_motor_temp_sens_type` bereits auf **NTC 10K at 25 °C** — die
+Einstellung war also zufällig richtig und bleibt.
+
+> Der Fühler sitzt im **Stator**. Beim Anwärmen von außen wird der **Rotor** warm, und
+> die Masse des Motors verzögert alles. 0,2 K Anstieg in Minuten sind deshalb kein
+> schwaches Signal, sondern das erwartete.
+
 Offen bleibt damit nur noch:
 
-1. **Welcher Fühlertyp** es ist — das entscheidet, welche Kennlinie im VESC-Tool
-   eingestellt wird. Passt keine, muss doch ein eigener Fühler an GPIO 1 (wieder frei).
-2. **Grenzwert festlegen** und in [07-sicherheit](07-sicherheit.md) §4 eintragen.
+1. **Grenzwert festlegen** und in [07-sicherheit](07-sicherheit.md) §4 eintragen.
+   Vorschlag: Warnung 80 °C, Abschaltung 100 °C — der Hoverboard-Motor ist für
+   Dauerbetrieb bei kleiner Last gebaut, nicht für 20 A über Minuten.
 
 ### A7 Eigenfrequenz der Waage — **messen, nicht wiegen**
 Gebraucht wird nicht die Masse des Stators, sondern das **Trägheitsmoment** — und selbst
@@ -92,6 +111,57 @@ kleine Rolle verstärkt ihre eigene Lagerreibung mit `r_Trommel/r_Rolle` — bei
 Linienkontakt mit 417 N drückt beides ein. Nötig wäre also eine Felge mit **POM- oder
 PU-Lauffläche** in Reifengröße, in der vorhandenen Gabel. Dafür Aufwand und Geld gegen
 0,2 % — lohnt nicht.
+
+### A14 Welche Trommel gilt? — **Widerspruch, muss der Mensch entscheiden**
+
+Der Trommelumfang steht an vier Stellen, und sie stimmen nicht überein:
+
+| Quelle | Umfang | Durchmesser | J |
+|---|---|---|---|
+| `firmware/src/config.h` | **2,837 m** | Ø 903 | 1,94 kg·m² |
+| Knowledgebase `20_pruefstand` | **2,837 m** | Ø 900 blank, Ø 903 mit 1,5 mm Tränenblech | 1,94 kg·m² |
+| `docs/03-parameter.md` §1 | **2,931 m** | Ø 933 | 2,07 kg·m² |
+| `README.md` | **2,93 m** | Ø 933 | — |
+
+Das erklärt rückwirkend die seit Wochen notierte Abweichung bei `MAX_DRUM_RPM`:
+**353** in `config.h` folgt aus 2,837, **341** in [07-sicherheit](07-sicherheit.md) §4
+aus 2,931. Es war nie ein Rechenfehler, sondern **zwei Trommeln in einem Projekt**.
+
+Code und Knowledgebase sind sich auf 2,837 einig, nur die beiden Repo-Dokumente hängen
+auf dem alten Wert. **Nicht automatisch zusammengeführt** (CLAUDE.md: bei Konflikt
+entscheidet der Mensch). Zu tun: Maßband um die Trommel, drei Messungen mitteln, und
+dann alle vier Stellen auf das Ergebnis ziehen.
+
+### A15 Drehzahlregler des VESC ist unbrauchbar eingestellt
+
+Am 2026-11-17 gemessen: Sollwert 900 ERPM → 27 ERPM, 1500 → 150, 2400 → 780. Der
+Regler bleibt bei einem Drittel stehen und zieht 0,3 A, also gerade die Lagerreibung.
+Die Gewinne stammen aus der vorgefundenen Skateboard-Konfiguration:
+
+| | Wert |
+|---|---|
+| `s_pid_kp` | 0,004 |
+| `s_pid_ki` | 0,004 |
+| `s_pid_kd` | 0,0001 |
+| `s_pid_min_erpm` | 900 |
+
+Der P-Anteil reicht nur bis zur Reibung, und der I-Anteil ist bei VESCs interner
+Skalierung von 10⁻⁴ praktisch wirkungslos.
+
+**Schwerer wiegt `s_pid_min_erpm` = 900.** Die unterste Prüfstufe aus `config.h` ist
+10 km/h = 58,8 1/min = **881 ERPM** — knapp *unter* der Schwelle, ab der der Regler
+überhaupt regelt. Darunter erzwingt er Tastverhältnis 0. Die niedrigste Stufe des
+Prüfablaufs wäre so nicht fahrbar.
+
+Zu tun: Gewinne **gegen die montierte Trommel** einstellen (frei eingestellte Werte
+wären weggeworfen, der Kreis muss gegen 1,94 kg·m² und deren Reibung arbeiten) und
+`s_pid_min_erpm` so weit herunter, dass 881 ERPM sicher geregelt werden. Arbeitsbereich
+ist **881 ERPM (10 km/h) bis 5287 ERPM (60 km/h)**.
+
+Ersatzweise fährt der Stand über das **Tastverhältnis** — das ist am 2026-11-17 bis
+99,2 km/h erprobt und folgt der Leerlaufkennlinie streng linear. Für eine Messung mit
+stehender Geschwindigkeit genügt das aber nicht; dafür braucht es den geschlossenen
+Kreis.
 
 ## B — Blockiert die Firmware
 
@@ -197,6 +267,12 @@ etwa 80 mm; der Arm geht **linear** in jedes Moment ein.
 | Verzeichnisname (D1) | Heißt korrekt `rolling-resistance`. | 2026-11-03 |
 | **Drehzahlreserve (A13)** | **Erledigt.** Nackte Trommel mit sensorlosem Regler über **100 km/h bei 42 V** = 589 1/min → **kv ≈ 14** (nicht 10, die 400 1/min am BLDC-Tester waren nicht der Anschlag). Bei 36 V sind das 505 1/min = 86 km/h, also **43 % Reserve** über den für 60 km/h nötigen 353 1/min. Netzteil 36 V genügt. | 2026-11-03 |
 | **Auflast (A3)** | **Keine zweite Wägezelle.** Vor der Messung eine Plattformwaage zwischen Trommel und Laufrad schieben, Auflast auf den Zielwert justieren. Die vorhandene 120-kg-Waage mit 20 g Auflösung sind 0,05 % bei 42,5 kg. Laufrad- und Reifenmasse sind damit automatisch enthalten. | 2026-11-03 |
+| **Polpaarzahl (A13b)** | **15 Polpaare, 30 Pole.** Über die Hall-Geber ausgezählt: 10 markierte Handumdrehungen = genau **900** Tachoschritte, kein Rückwärtsschritt. Sensorlos vorher 16,5 und nicht reproduzierbar. Der Regler stand auf `si_motor_poles` = 14 (Skateboard-Erbe) und ist auf 30 korrigiert. `VESC_ERPM_MAX` ist seither **abgeleitet** statt geraten. | 2026-11-17 |
+| **Hall-Geber am Regler (A1b)** | **Vorhanden und erkannt.** `foc_detect_apply_all` meldete „Found hall sensors, using them", `foc_sensor_mode` steht auf Hall, die Tabelle ist mit exakter 60°-Teilung belegt. Damit ist der Tachozähler eine Messung statt einer Schätzung. | 2026-11-17 |
+| **Temperaturfühler (A5, Typ)** | **10-k-NTC im Stator**, dreifach belegt (offene Klemme −75,5 °C, 1,6 K gegen den FET-Fühler, monotoner Anstieg unter Heißluft gegen flache Referenz). `m_motor_temp_sens_type` = NTC 10K war bereits richtig. Offen bleibt nur der Grenzwert. | 2026-11-17 |
+| **Dissipatives Bremsen über den Regler** | **Geht nicht** auf Firmware 5.02. Dreimal gemessen: Bus auf 53,3 bis 55,8 V, Fehlercode 1. Tastverhältnis 0 ist im **FOC**-Betrieb kein Brückenkurzschluss, sondern ein geregelter Arbeitspunkt — der echte Kurzschluss der unteren Schalter braucht `foc_short_ls_on_zero_duty` ab FW 6.05. Die **Kurzschlussrelais sind damit die einzige Bremse**, nicht Zusatzausstattung. Begründung und Zahlen in [07-sicherheit](07-sicherheit.md) §3.1. | 2026-11-17 |
+| **Leerlaufverluste der Trommel** | **Gemessen** aus dem freien Auslauf (97 → 29 km/h in 140 s, acht Stützstellen): M = 0,472 Nm + 3,178·10⁻⁴·ω². Luftwiderstand bei 60 km/h **0,43 Nm** statt der geschätzten 0,27 — Faktor 1,6, und damit 33 % des Nutzsignals. Konstanten in [03-parameter](03-parameter.md) §1. | 2026-11-17 |
+| **Drehzahlreserve, nachgemessen (A13)** | Am **freien** Motor 763 1/min bei Vollaussteuerung und 40 V, über zehn Stützstellen linear → an der Trommel 130 km/h. **Mit** Trommel 99,2 km/h erreicht, bei nur 31,9 V wirksam und 120 W. Ein 36-V-Netzteil genügt also bestätigt. Die früher notierten „kv = 14" sind keine Motorkonstante, sondern die Systemendgeschwindigkeit mit Trommel. | 2026-11-17 |
 | **Reifentemperatur (C3)** | **IR-Sensor** berührungslos auf die Lauffläche, vorhanden. Hängt am bestehenden I²C-Bus (GPIO8/9), kein zusätzlicher Pin. Macht aus dem Warmlauf ein Kriterium statt einer Zeitvorgabe. | 2026-11-03 |
 | Motor | **Hoverboard-Antriebsrad 6,5″, 36 V / 350 W** beschafft. Damit 6,96 Nm Dauermoment (Faktor 2,8 über dem Auslegungsfall), aber **ohne Bremse und ohne Temperaturfühler** — A9 und A5 werden dadurch akut. | 2026-11-01 |
 | Motorregler | **FSESC 4.20 / 50 A** beschafft, VESC-Klasse mit UART. Schließt B1. | 2026-11-01 |

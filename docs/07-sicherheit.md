@@ -51,9 +51,153 @@ beide in dieselbe Richtung: Bus weg → gebremst, GPIO low → gebremst, Reset �
 
 Solange die Relais nicht verbaut sind, bleibt nur der freie Auslauf von 3 bis 6 Minuten.
 
-**Rückspeisung.** Rekuperatives Bremsen treibt die Zwischenkreisspannung am Netzteil
-bis zur Überspannungsabschaltung. Nötig wären Bremswiderstand mit Chopper (1,4 kJ
-über 10 s = 140 W) oder eine Batterie als Puffer.
+### 3.1 Der Regler kann nicht bremsen — gemessen, nicht vermutet
+
+**Stand 2026-11-17: auf Firmware 5.02 gibt es über den Regler keinen Bremsweg.**
+Dreimal belegt, mit montierter Trommel und 40-V-Netzteil:
+
+| Verfahren | Ergebnis |
+|---|---|
+| Tastverhältnis 0 aus 43 km/h | Bus 40 → **55,5 V**, Fehlercode 1 (Überspannung), Abwurf |
+| Tastverhältnis 0 aus 30,7 km/h, Rückspeisegrenze 1 A | Bus 40 → **55,8 V**, Fehlercode 1, Abwurf |
+| Drehzahl geregelt herunterfahren, aus 41 km/h | Bus 40 → **53,3 V** |
+
+In allen drei Fällen verlangsamte sich die Trommel vorher kaum — bei 30,7 km/h von 180
+auf 177 1/min in 0,6 s, dann war Schluss.
+
+**Warum das vorher falsch eingeschätzt wurde.** Die Annahme war: `SET_DUTY(0)` schaltet
+alle drei Halbbrücken auf gleiches Tastverhältnis, also Brückenkurzschluss, Energie
+bleibt im Kupfer. **Das gilt für den BLDC-Betrieb, nicht für FOC.** Im feldorientierten
+Betrieb ist Tastverhältnis 0 ein *geregelter Arbeitspunkt*: der Regler zieht dafür
+Bremsstrom, und der geht in den Bus. Den echten Dauerkurzschluss der unteren Schalter
+macht `foc_short_ls_on_zero_duty` — und das gibt es erst ab **Firmware 6.05**.
+
+Ein erster Versuch **ohne** Trommel zeigte keinen Spannungsanstieg und führte in die
+Irre: ohne die 1,94 kg·m² ist einfach zu wenig Energie im Spiel. Das war kein Beweis,
+sondern ein zu kleiner Versuch.
+
+**Die Rückspeisegrenze hilft nicht.** `l_in_current_min` von 3 auf 1 A herunterzuziehen
+änderte nichts: es flossen nur 0,35 A zurück, und der Bus stand trotzdem in 0,6 s an
+der Grenze. Die Zwischenkreiskondensatoren des Reglers puffern nichts, und ein Netzteil
+nimmt keinen Strom auf.
+
+### 3.2 Was daraus folgt
+
+**Es gibt genau zwei Wege, die Trommel zu verlangsamen:**
+
+1. **Freier Auslauf.** Gemessen am 2026-11-17: 97 → 29 km/h in 140 s, von 43 km/h bis
+   Stillstand etwa 100 s. Verlustmoment `DRUM_LOSS_*` in [03-parameter](03-parameter.md) §1.
+2. **Kurzschluss der drei Phasen über die Relais** ([04-hardware](04-hardware.md) §9).
+   Gemessenes Bremsmoment 3,25 Nm, also dreimal so viel wie der Regler mit 3 A
+   überhaupt aufbringen könnte (0,389 Nm/A · 3 A = 1,17 Nm).
+
+**Die Relais sind damit nicht Zusatzausstattung, sondern die einzige Bremse.** Bis sie
+geprüft verbaut sind, gilt: kein Lauf über die Drehzahl hinaus, deren freier Auslauf
+abgewartet werden kann.
+
+Zwei Wege wären offen, falls eine Reglerbremse gewünscht ist: **Firmware ≥ 6.05**
+(bringt `foc_short_ls_on_zero_duty` und `l_battery_regen_cut_start/end`) oder ein
+**Akku statt des Netzteils**, der die Energie aufnimmt. Beides nicht entschieden.
+
+### 3.2a Mit Akku bremst der Regler — gemessen 2026-11-17
+
+Am selben Tag wurde das 40-V-Netzteil (maximal 5 A) gegen ein **Akkupaket**
+getauscht, 40,55 V im Leerlauf, vermutlich 10S Li-Ion. Damit kehrt sich das Bild aus
+§3.1 um: der Akku **nimmt die Energie auf**, und `SET_CURRENT_BRAKE` arbeitet.
+
+| Bremsstrom | aus | Dauer | Busanstieg | Fehler |
+|---|---|---|---|---|
+| 3 A | 25,5 km/h | 30 s | **+0,4 V** | keiner |
+| 20 A | 51,2 km/h | 22,7 s | **+0,3 V** | keiner |
+
+Mit Netzteil stieg der Bus bei vergleichbarer Drehzahl um **+15 V** bis zum Abwurf.
+Der Unterschied ist nicht der Regler, sondern was am Bus hängt.
+
+**Der Regler bremst mit 20 A so stark wie die Relais:** 6,2 Nm bei 255 1/min gegen
+5,7 Nm beim Kurzschluss über die Relais, und über den ganzen Bereich praktisch
+dieselbe Kurve. **Damit verschiebt sich der Zweck der Relais**: sie sind nicht mehr
+die *stärkere* Bremse, sondern die **unabhängige** — der Pfad, der auch bei Ausfall
+von Firmware, Regler oder Rechner wirkt. Das bleibt ihr Wert.
+
+> **Unter 5 km/h sind Momentenwerte aus der Reglerdrehzahl unbrauchbar.** Bei 0,2 s
+> Abstand reicht die Hall-Auflösung dort nicht mehr; der Mitschrieb zeigte 7,9 Nm bei
+> 18 1/min, was Rechenrauschen ist.
+
+### 3.2b Bremsstromkurve — und warum ein großer Bremsstrom netzteilfreundlich ist
+
+Am 2026-11-17 als Reihe aufgenommen: je Stufe aus 50 km/h mit `SET_CURRENT_BRAKE`
+gebremst, Zeit bis 5 km/h und Energiebilanz gemessen. Verfügbar waren **911 J**.
+
+| Bremsstrom | 50 → 5 km/h | M @ 250 1/min | M @ 150 1/min | Busanstieg | Energie |
+|---|---|---|---|---|---|
+| 3 A | 31,4 s | 2,04 Nm | 2,56 Nm | +0,40 V | **+487 J** (53 %) |
+| 6 A | 19,6 s | 3,27 Nm | 2,54 Nm | +0,70 V | +409 J (45 %) |
+| 10 A | 14,9 s | 4,90 Nm | 4,03 Nm | +0,50 V | +223 J (24 %) |
+| 15 A | 13,9 s | 7,39 Nm | 6,97 Nm | +0,60 V | **+36 J** (4 %) |
+| 20 A | 13,1 s | — | 6,53 Nm | +0,40 V | **−140 J** |
+
+**Bremsleistung und Rückgewinnung schließen sich aus.** Bei 20 A ist das Vorzeichen
+negativ: der Regler hat Energie aus dem Akku *geholt*, um so stark zu bremsen.
+
+Der Grund steckt in der Arbeitsweise von `SET_CURRENT_BRAKE`: der Regler beginnt
+**kurzgeschlossen** und regelt erst dann, wenn Sollwert und Kurzschlussstrom
+auseinandergehen.
+
+- Sollwert **unter** dem Kurzschlussstrom → er muss ihn *herunterregeln*, und das geht
+  nur über den Bus → **Rückspeisung**.
+- Sollwert **über** dem Kurzschlussstrom → er muss Strom *zusätzlich treiben*, und das
+  **kostet** Busleistung → kein Rückfluss.
+
+> **Daraus folgt: mit Netzteil darf gebremst werden, ab etwa 15 A.** Dort liegt der
+> Nulldurchgang der Energiebilanz; darüber entnimmt der Regler. In keinem der beiden
+> Fälle kann der Bus ansteigen, der Überspannungsfall aus §3.1 ist also ausgeschlossen.
+> Die 140 J über 13 s sind 11 W — das leistet auch ein 5-A-Netzteil.
+>
+> Das ist die praktische Umkehrung von §3.1: dort scheiterte das Bremsen am Netzteil,
+> weil `SET_DUTY(0)` und das geregelte Herunterfahren **regeln**. `SET_CURRENT_BRAKE`
+> mit großem Sollwert regelt nicht, es schließt kurz. Noch nicht am Netzteil
+> nachgeprüft — die Aussage stützt sich auf die Energiebilanz am Akku. [TBD]
+
+**Zwei Betriebspunkte** folgen daraus, als `VESC_BRAKE_CURRENT_SOFT` und `_STOP` in
+`config.h`:
+
+| | Strom | wofür |
+|---|---|---|
+| Alltagsstopp | **3 A** | nach einer Messung; langsam, füllt aber den Akku. Nur mit Akku am Bus. |
+| Vollbremsung | **15 A** | Not-Stopp; fast maximale Wirkung, energieneutral, auch mit Netzteil. |
+
+Mehr als 15 A bringt kaum Weg (13,1 gegen 13,9 s), kostet aber Energie und Wärme.
+
+> Die Energiezahlen stehen auf schwächerem Grund als die Momente. Der Eingangsstrom
+> ist im Bremsbetrieb eine **gerechnete** Größe des Reglers, keine Messung; beim
+> 20-A-Lauf stand er durchgehend auf exakt 0,00 A. Für eine belastbare Bilanz braucht
+> es eine Stromzange oder den Zähler des Akkus. [TBD]
+
+**Schutzgrenzen für den Akkubetrieb**, gesetzt am 2026-11-17:
+
+| | Wert | Grund |
+|---|---|---|
+| `l_max_vin` | **43,5 V** | *unter* der Ladeschlussspannung eines 10S-Pakets (42,0 V). Auf FW 5.02 gibt es `l_battery_regen_cut_start/end` **nicht** (erst ab 6.05) — ohne diese Grenze wäre das BMS der einzige Schutz, und ein BMS, das unter Rückspeisung **auftrennt**, lässt den Regler schlagartig in den Leerlauf speisen. Das ist der Fall, der Endstufen zerstört. |
+| `l_battery_cut_start` / `_end` | **32 / 30 V** | 3,20 / 3,00 V je Zelle bei 10S. Vorher standen dort 10,2 / 9,0 V — Werte für ein 3S-Paket, also wirkungslos. |
+| `l_in_current_min` | **−10 A** | Rückspeisestrom. Höher nur, wenn die Ladestromgrenze des Pakets bekannt ist. [TBD] |
+
+> **Noch nicht geprüft:** Zellzahl, Chemie und zulässiger **Ladestrom** des Pakets sind
+> nicht bestätigt, die 10S sind aus 40,55 V erschlossen. Ein **volles** Paket nimmt
+> ebenfalls kaum etwas auf — dann kommt die Überspannung zurück, nur mit dem Paket als
+> Opfer statt dem Netzteil. Vor längeren Bremsreihen klären.
+
+### 3.3 Der Not-Aus nimmt den Antrieb, nicht die Drehung
+
+Das Abschalten des Netzteils entfernt das **treibende Moment**. Die Trommel dreht danach
+weiter und läuft frei aus — Minuten, nicht Sekunden. Als Not-Aus gegen „Motor treibt
+weiter" ist es wirksam, gegen „Trommel dreht noch" nicht.
+
+> **Fallstrick beim Wiederanfahren, am 2026-11-17 ausgelöst.** Ein Sollwert, der
+> *unter* der momentanen Drehzahl liegt, ist ein **Bremsbefehl**. Wird nach einem Stopp
+> mit Stellwert 0 wieder angefahren, während die Trommel noch dreht, speist der Regler
+> zurück und wirft bei Überspannung ab. Jedes Werkzeug, das anfährt, muss den Stellwert
+> aus der **gemessenen** Drehzahl vorbesetzen (`MOTOR_NO_LOAD_RPM_PER_V`). Dasselbe gilt
+> für einen Richtungswechsel: erst Stillstand abwarten.
 
 ## 4 Automatische Abschaltkriterien (Firmware)
 
@@ -68,6 +212,22 @@ bis zur Überspannungsabschaltung. Nötig wären Bremswiderstand mit Chopper (1,
 | **Bedienverbindung abgerissen** | `LINK_TIMEOUT_MS` = 2000 ms | FAULT, Antrieb aus |
 
 FAULT ist rastend: Quittierung nur im Stillstand über die Konsole oder das Bedienfeld.
+
+> **Der eigene Trommelaufnehmer ist Pflicht, nicht Redundanz.** Am 2026-11-17 gemessen:
+> `foc_sl_erpm` = 4000 bedeutet, dass der Regler oberhalb von **4000 ERPM = 267 1/min
+> = 45,4 km/h** auch im Hall-Modus mit dem **Flussbeobachter** rechnet statt mit den
+> Gebern. Der Beobachter braucht Strom und Spannung am Motor — trennen die Not-Aus-Relais
+> den Regler ab, ist er blind, und seine Drehzahlmeldung driftet.
+>
+> Beobachtet: beim Not-Aus aus 550 1/min (93,7 km/h) meldete der Regler anschließend
+> 708 1/min, also 157 1/min **zu viel**. Erst unter 267 1/min übernahmen die Hall-Geber
+> wieder und die Werte wurden gültig. Genau im Bereich, in dem die Bremse zählt, ist
+> der Regler also keine Drehzahlquelle.
+>
+> Zwei Wege: die **8 Marken an der Trommel** am ESP32 auswerten (unabhängig von allem,
+> was im Leistungspfad passiert), und/oder `foc_sl_erpm` so weit heraufsetzen, dass die
+> Hall-Geber über den ganzen Bereich in Betrieb bleiben. Das Zweite ändert die
+> Kommutierung bei Drehzahl und muss erprobt werden. [TBD]
 
 **Zur Bedienverbindung.** Solange ein Lauf fährt, muss sich der Bedienrechner melden —
 reißt die Verbindung ab, bricht der Lauf ab und die Trommel läuft aus. Drei Festlegungen

@@ -165,6 +165,29 @@ Scheiben:  Re_ω = ω·R²/ν = 5,15·10⁵ ,  Cm = 0,146·Re_ω^−0,2 = 0,0105
 Summe ≈ 0,27 Nm ≈ 9,6 W bei 60 km/h, wachsend mit v²
 ```
 
+**Gemessen am 2026-11-17** aus dem freien Auslauf (97 → 29 km/h in 140 s, acht
+Stützstellen, M = J·dω/dt):
+
+```
+M_verlust = 0,472 Nm  +  3,178·10⁻⁴ · ω²          (ω in rad/s)
+
+bei 60 km/h:  0,91 Nm gesamt,  davon 0,43 Nm mit ω²   (Rechnung oben: 0,27 Nm)
+bei 100 km/h: 1,68 Nm gesamt,  davon 1,20 Nm mit ω²
+```
+
+Der ω²-Anteil ist **1,6-fach** so groß wie gerechnet — und die Rechnung nennt den Grund
+selbst eine Zeile weiter: die Trommel hat **Tränenblech**, keine glatte Oberfläche. Für
+eine Luftwiderstandsabschätzung ist ein Faktor 1,6 ein gutes Ergebnis.
+
+Der konstante Anteil von 0,472 Nm ist das **Schleppmoment** (Lager und Motor), also
+genau das `a` aus §8.9 — dort wurde es als unbekannt angesetzt.
+
+> Was davon ins Messergebnis eingeht: **nur der ω²-Anteil.** Trommellager und
+> Motorreibung liegen innerhalb der Pendelwiege und kürzen sich heraus. Die 0,43 Nm bei
+> 60 km/h stehen aber gegen ein Nutzsignal von 1,32 Nm (Crr 0,007 bei 417 N) — das sind
+> **33 %**, bei 100 km/h 91 %. Abziehbar, weil leerlaufend je Stufe messbar; aber zu
+> messen, nicht zu rechnen. Konstanten in [03-parameter](03-parameter.md) §1.
+
 Gilt für eine **glatte, geschlossene** Trommel in ruhender Luft. Offene Speichen, raue
 Oberfläche oder Anbauten können ein Vielfaches ergeben. **Die erste Leerlaufkennlinie
 (§8.4) ersetzt diese Rechnung** — sie ist nur die Erwartung, gegen die man das Messergebnis
