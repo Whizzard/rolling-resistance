@@ -262,18 +262,36 @@ FAULT ist rastend: Quittierung nur im Stillstand über die Konsole oder das Bedi
 > 101 km/h riss gleichzeitig die **USB-Verbindung** zum Regler ab — der letzte Messpunkt
 > lag im selben Augenblick, und abgeschaltet wurde erst danach.
 >
-> Die Ursache ist die Bauart und wurde anschließend am Tisch nachgewiesen: **dieser
-> Regler bekommt über USB keinen Strom.** Mit abgeklemmtem Akku verschwindet er
-> vollständig vom USB-Bus; die Logik hängt am Leistungseingang, USB liefert nur Daten.
-> (Der originale VESC 4.12 versorgt seine Logik aus den 5 V des USB — dieser Flipsky
-> nicht. Nicht verallgemeinern.)
+> **Der Not-Aus trennt nur Regler↔Motor, nicht Netzteil↔Regler** (Auskunft des
+> Erbauers, 2026-11-17). Der Regler hatte also Strom und ist trotzdem vom USB-Bus
+> verschwunden. Er hat sich demnach **zurückgesetzt oder ist abgestürzt**.
 >
-> **Nach dem Not-Aus ist der Regler also nicht blind, sondern tot.** Er liefert
-> überhaupt keine Information mehr — keine Drehzahl, keine Temperatur, keinen
-> Fehlercode. Der eigene Trommelaufnehmer am ESP32 ist damit **nicht die zweite Quelle,
-> sondern die einzige**, und der ESP32 muss seine Versorgung **unabhängig** vom
-> geschalteten Leistungspfad haben (er hat sie: USB-C, siehe
-> [Hardware](23_hardware.md) §5).
+> *Hier stand zuerst, er habe die Versorgung verloren. Das war falsch und ist
+> zurückgenommen.* Richtig bleibt die Teilbeobachtung, die es nahelegte: **dieser
+> Regler bekommt über USB keinen Strom** — mit abgeklemmtem Akku verschwindet er
+> vollständig vom Bus, die Logik hängt am Leistungseingang. (Der originale VESC 4.12
+> versorgt seine Logik aus den 5 V des USB, dieser Flipsky nicht. Nicht
+> verallgemeinern.)
+>
+> **Verdacht auf die Ursache**, und er steht als Warnung schon in
+> [Hardware](23_hardware.md) §10.4: *„Erst den Treiber sperren, dann die Relais
+> abfallen lassen."* Beim Versuch wurde die Phasenverbindung aufgetrennt, **während der
+> Regler mit Tastverhältnis 0,8 trieb** und Strom durch die Wicklungen floss. Einen
+> stromführenden induktiven Kreis zu öffnen erzeugt eine Spannungsspitze — an den
+> Phasenklemmen oder über die Relaisspulen zurück in die Versorgung. Eines von beidem
+> hat den Rechner im Regler umgeworfen. **Das belastet den Regler bei jedem
+> Auslösen.** [TBD]
+>
+> **So ist es zu prüfen:** nach dem nächsten Not-Aus im Reglerterminal `uptime` und
+> `faults` abfragen. Eine kleine Laufzeit beweist den Neustart, die Fehlerliste nennt
+> den Grund. (Am 2026-11-17 nicht mehr möglich — das Firmware-Update hat die Liste
+> gelöscht.)
+>
+> **Unabhängig von der Ursache gilt:** nach dem Not-Aus liefert der Regler keine
+> brauchbare Information. Der eigene Trommelaufnehmer am ESP32 ist damit **nicht die
+> zweite Quelle, sondern die einzige**, und der ESP32 braucht seine Versorgung
+> unabhängig vom geschalteten Leistungspfad — hat er über USB-C
+> ([Hardware](23_hardware.md) §5).
 >
 > Zwei Wege: die **8 Marken an der Trommel** am ESP32 auswerten (unabhängig von allem,
 > was im Leistungspfad passiert), und/oder `foc_sl_erpm` so weit heraufsetzen, dass die

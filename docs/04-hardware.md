@@ -738,8 +738,10 @@ mitversorgt. **Nicht verallgemeinern** — es gilt für dieses Flipsky-Exemplar.
 
 Zwei Folgen:
 
-1. **Für die Diagnose:** nach dem Not-Aus ist der Regler tot, nicht nur blind. Keine
-   Drehzahl, keine Temperatur, kein Fehlercode ([Sicherheit](26_sicherheit.md) §4).
+1. **Für die Diagnose:** nur insofern, als ohne Leistungseingang nichts geht. Der
+   **Not-Aus trennt den Leistungseingang aber nicht**, nur Regler↔Motor — beim
+   Bremsversuch am 2026-11-17 verschwand der Regler trotzdem vom USB-Bus, hat sich also
+   zurückgesetzt. Verdacht und Prüfvorschrift in [Sicherheit](26_sicherheit.md) §4.
 2. **Fürs Flashen:** der Leistungseingang muss währenddessen anliegen. Ein kleines
    Paket genügt (2S, 8,4 V wurden benutzt) — ohne Motor gibt es keine Last, also
    keinen Spannungseinbruch. `l_min_vin` sperrt nur den Antrieb, nicht die Logik.
@@ -793,6 +795,56 @@ Tastverhältnis 0,26 fließen 0,78 A aus dem Netzteil; bei 99 km/h und Tastverh�
 0,85 sind es aus 4,4 A im Motor 3,2 A am Netzteil (beides gemessen und am Netzteil
 gegengeprüft). Wer am Netzteil misst und daraus auf den Motorstrom schließt, unterschätzt
 ihn bei kleiner Drehzahl drastisch.
+
+### 10.5a Firmware 7.01 — und was sie kann, was 5.02 nicht konnte
+
+Am **2026-11-17** von 5.02 auf **7.01** gezogen (VESC Tool 7.01, mitgeliefertes Abbild
+`40_o_47_o_48_o_410_o_411_o_412_o_DAS_RS.bin`, Hardware 410). Ablauf: erst der
+mitgelieferte **Bootloader**, dann die Firmware — der Bootloader ist das Rettungsnetz,
+ohne ihn bleibt nach einem fehlgeschlagenen Flash nur SWD.
+
+> Das Abbild meldet `isTestFw: 1`, die Fassung heißt `7.01-1+f83a3ae1`. Es ist also
+> keine als stabil deklarierte Freigabe, sondern die zu diesem VESC Tool passende
+> Entwicklungsfassung. Werkzeug und Firmware werden gemeinsam entwickelt, das Paar
+> passt — erwähnenswert bleibt es.
+
+**Zwei Dinge, die den Ausschlag gaben:**
+
+| Feld | 5.02 | 7.01 Werk | gesetzt |
+|---|---|---|---|
+| `foc_short_ls_on_zero_duty` | **existiert nicht** | 0 | **1** |
+| `l_battery_regen_cut_start` / `_end` | **existieren nicht** | 1000 / 1100 V | **42,5 / 44 V** |
+
+Das Erste schaltet bei Tastverhältnis 0 die unteren Schalter dauerhaft ein — der
+**echte Brückenkurzschluss**, dissipativ, ohne Beteiligung des Busses. Genau das fehlte
+bei allen vier Bremsversuchen in [Sicherheit](26_sicherheit.md) §3.1 und §3.2c. Das
+Zweite verwandelt den Überspannungsfall von einem Abwurf in eine **Abdrosselung**.
+
+**Beides ist noch nicht erprobt** — der Bremsversuch braucht den Motor. [TBD]
+
+### Konfiguration überlebt den Firmwarewechsel nicht — das XML schon
+
+Die Signatur der Konfigurationsstruktur wechselte von 2211848314 auf 471314414, die
+`mcconf` von 458 auf 493 Byte. Die gesicherten **Binärdateien sind damit wertlos** für
+ein Zurückspielen.
+
+Der Ausweg: VESC Tool liest und schreibt die Konfiguration als **XML über Feldnamen**,
+ohne Oberfläche und ohne Byte-Versätze:
+
+```sh
+"VESC Tool" --offscreen --getMcConf  mcconf.xml
+"VESC Tool" --offscreen --setMcConf  mcconf.xml
+"VESC Tool" --offscreen --getAppConf appconf.xml
+"VESC Tool" --offscreen --setAppConf appconf.xml
+```
+
+So wurden alle am 2026-11-17 gemessenen Werte **ohne Motor** zurückgeschrieben — auch
+Hall-Tabelle, R, L und Flussverkettung, die sonst eine neue Erkennung gebraucht hätten.
+Der Beobachtergewinn ist dabei nicht geraten, sondern abgeleitet: `g = 1e3/λ²`, an zwei
+unabhängigen Datenpunkten der alten Firmware geprüft. **31 Felder gegengelesen, alle
+bestätigt.** Ablage in `hardware/vesc-config-fw7.01/`.
+
+> Ab jetzt ist das **XML** die maßgebliche Sicherung, nicht die Binärdatei.
 
 ### 10.6 Der Relaisblock muss die Phasenfolge erhalten
 
