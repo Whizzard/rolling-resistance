@@ -1,0 +1,306 @@
+
+## mcconf  (458 Bytes, 151 Felder, Laengenprobe ok)
+
+pwm_mode                                Synchronous        PWM Mode
+comm_mode                                 Integrate        Commutation Mode
+motor_type                                      FOC        Motor Type
+sensor_mode                              Sensorless        Sensor Mode
+l_current_max                             63.786621 A      Motor Current Max
+l_current_min                            -63.786621 A      Motor Current Max Brake
+l_in_current_max                               99.0 A      Battery Current Max
+l_in_current_min                              -60.0 A      Battery Current Max Regen
+l_abs_current_max                             130.0 A      Absolute Maximum Current
+l_min_erpm                                -100000.0        Max ERPM Reverse
+l_max_erpm                                 100000.0        Max ERPM
+l_erpm_start                                    0.8        ERPM Limit Start
+l_max_erpm_fbrake                             300.0        Max ERPM Full Brake
+l_max_erpm_fbrake_cc                         1500.0        Max ERPM Full Brake Current Control
+l_min_vin                                       8.0 V      Minimum Input Voltage
+l_max_vin                                      57.0 V      Maximum Input Voltage
+l_battery_cut_start                            10.2 V      Battery Voltage Cutoff Start
+l_battery_cut_end                               9.0 V      Battery Voltage Cutoff End
+l_slow_abs_current                               ja        Slow ABS Current Limit
+l_temp_fet_start                               85.0 °C     MOSFET Temp Cutoff Start
+l_temp_fet_end                                100.0 °C     MOSFET Temp Cutoff End
+l_temp_motor_start                             85.0 °C     Motor Temp Cutoff Start
+l_temp_motor_end                              100.0 °C     Motor Temp Cutoff End
+l_temp_accel_dec                               0.15 %      Acceleration Temperature Decrease
+l_min_duty                                    0.005 %      Minimum Duty Cycle
+l_max_duty                                     0.95 %      Maximum Duty Cycle
+l_watt_max                                1500000.0 W      Maximum Wattage
+l_watt_min                               -1500000.0 W      Maximum Braking Wattage
+l_current_max_scale                             1.0        Max Current Scale
+l_current_min_scale                             1.0        Min Current Scale
+l_duty_start                                    1.0        Duty Cycle Current Limit Start
+sl_min_erpm                                   150.0        Minimum ERPM
+sl_min_erpm_cycle_int_limit                  1100.0        Minimum ERPM Integrator
+sl_max_fullbreak_current_dir_change             10.0 A      Max Brake Current at Direction Change
+sl_cycle_int_limit                             62.0        Cycle Integrator Limit
+sl_phase_advance_at_br                          0.8        Phase Advance at BR ERPM
+sl_cycle_int_rpm_br                         80000.0        BR ERPM
+sl_bemf_coupling_k                            600.0        BEMF Coupling
+hall_table__0                                    -1        Hall Table [0]
+hall_table__1                                     1        Hall Table [1]
+hall_table__2                                     3        Hall Table [2]
+hall_table__3                                     2        Hall Table [3]
+hall_table__4                                     5        Hall Table [4]
+hall_table__5                                     6        Hall Table [5]
+hall_table__6                                     4        Hall Table [6]
+hall_table__7                                    -1        Hall Table [7]
+hall_sl_erpm                                 2000.0        Sensorless ERPM Hybrid
+foc_current_kp                             0.002021        Current KP
+foc_current_ki                            14.746605        Current KI
+foc_f_sw                                    25000.0 kHz    Switching Frequency
+foc_dt_us                                      0.12 µS     Dead Time Compensation
+foc_encoder_inverted                           nein        Encoder Inverted
+foc_encoder_offset                            180.0        Encoder Offset
+foc_encoder_ratio                               7.0        Encoder Ratio
+foc_encoder_sin_gain                            1.0        Sin/Cos Sine Gain Compensation
+foc_encoder_cos_gain                            1.0        Sin/Cos Cosine Gain Compensation
+foc_encoder_sin_offset                         1.65        Sin/Cos Sine Offset
+foc_encoder_cos_offset                         1.65        Sin/Cos Cosine Offset
+foc_encoder_sincos_filter_constant              0.5        Sin/Cos Filter Constant
+foc_sensor_mode                          Sensorless        Sensor Mode
+foc_pll_kp                                   2000.0        Speed Tracker Kp
+foc_pll_ki                                  30000.0        Speed Tracker Ki
+foc_motor_l                                   2e-06 µH     Motor Inductance (L)
+foc_motor_ld_lq_diff                            0.0 µH     Motor Inductance Difference (Ld - Lq)
+foc_motor_r                                0.014747 mΩ     Motor Resistance (R)
+foc_motor_flux_linkage                     0.001654 mWb    Motor Flux Linkage (λ)
+foc_observer_gain                       365379744.0        Observer Gain (x1M)
+foc_observer_gain_slow                         0.05        Observer Gain At Minimum Duty
+foc_duty_dowmramp_kp                           10.0        Duty Downramp Kp
+foc_duty_dowmramp_ki                          200.0        Duty Downramp Ki
+foc_openloop_rpm                              700.0        Openloop ERPM
+foc_openloop_rpm_low                            0.0        Openloop ERPM at Min Current
+foc_d_gain_scale_start                          0.9        D Axis Gain Scaling Start
+foc_d_gain_scale_max_mod                        0.2        D Axis Gain Scaling at Max Mod
+foc_sl_openloop_hyst                            0.1 S      Openloop Hysteresis
+foc_sl_openloop_time_lock                       0.0 S      Openloop Lock Time
+foc_sl_openloop_time_ramp                       0.1 S      Openloop Ramp Time
+foc_sl_openloop_time                           0.05 S      Openloop Time
+foc_hall_table__0                               255        Hall Table [0]
+foc_hall_table__1                               255        Hall Table [1]
+foc_hall_table__2                               255        Hall Table [2]
+foc_hall_table__3                               255        Hall Table [3]
+foc_hall_table__4                               255        Hall Table [4]
+foc_hall_table__5                               255        Hall Table [5]
+foc_hall_table__6                               255        Hall Table [6]
+foc_hall_table__7                               255        Hall Table [7]
+foc_hall_interp_erpm                          500.0        Hall Interpolation ERPM
+foc_sl_erpm                                  4000.0        Sensorless ERPM
+foc_sample_v0_v7                               nein        Sample in V0 and V7
+foc_sample_high_current                        nein        High Current Sampling Mode
+foc_sat_comp                                    0.0        Stator Saturation Compensation
+foc_temp_comp                                  nein        Temp Comp
+foc_temp_comp_base_temp                        25.0 °C     Temp Comp Base Temp
+foc_current_filter_const                        0.1        Current Filter Constant
+foc_cc_decoupling                  FOC_CC_DECOUPLING_BEMF        Current Controller Decoupling
+foc_observer_type                  FOC_OBSERVER_ORTEGA_ORIGINAL        Observer Type
+foc_hfi_voltage_start                          20.0 V      HFI Start Voltage
+foc_hfi_voltage_run                             4.0 V      HFI Run Voltage
+foc_hfi_voltage_max                            10.0 V      HFI Max Voltage
+foc_sl_erpm_hfi                              2000.0        Sensorless ERPM HFI
+foc_hfi_start_samples                            65        HFI Start Samples
+foc_hfi_obs_ovr_sec                           0.001 ms     HFI Observer Override Time
+foc_hfi_samples                                  16        HFI Samples
+gpd_buffer_notify_left                          200        Buffer Notification Length
+gpd_buffer_interpol                               0        Buffer Sampling Interpolation
+gpd_current_filter_const                        0.1        Current Filter Constant
+gpd_current_kp                                 0.03        Current KP
+gpd_current_ki                                 50.0        Current KI
+s_pid_kp                                      0.004        Speed PID Kp
+s_pid_ki                                      0.004        Speed PID Ki
+s_pid_kd                                     0.0001        Speed PID Kd
+s_pid_kd_filter                                 0.2        Speed PID Kd Filer
+s_pid_min_erpm                                900.0        Minimum ERPM
+s_pid_allow_braking                              ja        Allow Braking
+s_pid_ramp_erpms_s                             -1.0        Ramp eRPMs per second
+p_pid_kp                                       0.03        Position PID Kp
+p_pid_ki                                        0.0        Position PID Ki
+p_pid_kd                                     0.0004        Position PID Kd
+p_pid_kd_filter                                 0.2        Position PID Kd Filer
+p_pid_ang_div                                   1.0        Position Angle Division
+cc_startup_boost_duty                          0.01        Startup boost
+cc_min_current                                 0.05 A      Minimum Current
+cc_gain                                      0.0046        Current Controller Gain
+cc_ramp_step_max                               0.04        Current Control Ramp Step Max
+m_fault_stop_time_ms                            500 ms     Fault Stop Time
+m_duty_ramp_step                               0.02        Duty Ramp Step Max
+m_current_backoff_gain                          0.5        Current Backoff Gain
+m_encoder_counts                               8192        ABI Encoder Counts
+m_sensor_port_mode                     Hall Sensors        Sensor Port Mode
+m_invert_direction                             nein        Invert Motor Direction
+m_drv8301_oc_mode                     Current Limit        DRV8301 OC Mode
+m_drv8301_oc_adj                                 16        DRV8301 OC Adjustment
+m_bldc_f_sw_min                              3000.0 kHz    Minimum Switching Frequency
+m_bldc_f_sw_max                             35000.0 kHz    Maximum Switching Frequency
+m_dc_f_sw                                   25000.0 kHz    Switching Frequency
+m_ntc_motor_beta                             3380.0 K      Beta Value for Motor Thermistor
+m_out_aux_mode                                  Off        Auxiliary Output Mode
+m_motor_temp_sens_type              NTC 10K at 25°C        Motor Temperature Sensor Type
+m_ptc_motor_coeff                              0.61 %/K    Coefficient for PTC Motor Thermistor
+m_hall_extra_samples                              1        Hall Sensor Extra Samples
+si_motor_poles                                   14        Motor Poles
+si_gear_ratio                              2.769231        Gear Ratio
+si_wheel_diameter                             0.083 mm     Wheel Diameter
+si_battery_type                    BATTERY_TYPE_LIION_3_0__4_2        Battery Type
+si_battery_cells                                  3        Battery Cells Series
+si_battery_ah                                   6.0 Ah     Battery Capacity
+bms.type                                   VESC BMS        BMS Type
+bms.t_limit_start                              45.0 °C     Temperature Limit Start
+bms.t_limit_end                                65.0 °C     Temperature Limit End
+bms.soc_limit_start                            0.05        SOC Limit Start
+bms.soc_limit_end                               0.0        SOC Limit End
+
+## appconf  (419 Bytes, 149 Felder, Laengenprobe ok)
+
+controller_id                                    54        VESC ID
+timeout_msec                                   1000 ms     Timeout
+timeout_brake_current                           0.0 A      Timeout Brake Current
+send_can_status                    CAN_STATUS_1_2_3_4        Can Status Message Mode
+send_can_status_rate_hz                          50 Hz     Can Status Rate
+can_baud_rate                         CAN_BAUD_500K        CAN Baud Rate
+pairing_done                                   nein        Pairing Done
+permanent_uart_enabled                           ja        Enable Permanent UART
+shutdown_mode                         OFF_AFTER_30M        Shutdown Mode
+can_mode                                       VESC        CAN Mode
+uavcan_esc_index                                  0        UAVCAN ESC Index
+uavcan_raw_mode                     Current Control        UAVCAN Raw Throttle Mode
+app_to_use                                     UART        APP to Use
+app_ppm_conf.ctrl_type             Current No Reverse With Brake        Control Type
+app_ppm_conf.pid_max_erpm                   15000.0        PID Max ERPM
+app_ppm_conf.hyst                              0.15 %      Input Deadband
+app_ppm_conf.pulse_start                      1.138 ms     Pulselength Start
+app_ppm_conf.pulse_end                         1.91 ms     Pulselength End
+app_ppm_conf.pulse_center                      1.54 ms     Pulselength Center
+app_ppm_conf.median_filter                       ja        Median Filter
+app_ppm_conf.safe_start                          ja        Safe Start
+app_ppm_conf.throttle_exp                       0.0        Throttle Expo
+app_ppm_conf.throttle_exp_brake                 0.0        Throttle Expo Brake
+app_ppm_conf.throttle_exp_mode           Polynomial        Throttle Expo Mode
+app_ppm_conf.ramp_time_pos                      0.4 s      Positive Ramping Time
+app_ppm_conf.ramp_time_neg                      0.2 s      Negative Ramping Time
+app_ppm_conf.multi_esc                           ja        Multiple VESCs Over CAN
+app_ppm_conf.tc                                nein        Traction Control
+app_ppm_conf.tc_max_diff                     3000.0        TC Max ERPM Difference
+app_ppm_conf.max_erpm_for_dir                4000.0        Max ERPM for direction switch
+app_ppm_conf.smart_rev_max_duty                0.07        Smart Reverse Max Duty Cycle
+app_ppm_conf.smart_rev_ramp_time                3.0 s      Smart Reverse Ramp Time
+app_adc_conf.ctrl_type                          Off        Control Type
+app_adc_conf.hyst                              0.15 %      Input Deadband
+app_adc_conf.voltage_start                      0.9 V      ADC1 Min Voltage
+app_adc_conf.voltage_end                        3.0 V      ADC1 Max Voltage
+app_adc_conf.voltage_center                     2.0 V      ADC1 Center Voltage
+app_adc_conf.voltage2_start                     0.9 V      ADC2 Min Voltage
+app_adc_conf.voltage2_end                       3.0 V      ADC2 Max Voltage
+app_adc_conf.use_filter                          ja        Use Filter
+app_adc_conf.safe_start                          ja        Safe Start
+app_adc_conf.cc_button_inverted                nein        Invert Cruise Control Button
+app_adc_conf.rev_button_inverted               nein        Invert Reverse Button
+app_adc_conf.voltage_inverted                  nein        Invert ADC1 Voltage
+app_adc_conf.voltage2_inverted                 nein        Invert ADC2 Voltage
+app_adc_conf.throttle_exp                       0.0        Throttle Expo
+app_adc_conf.throttle_exp_brake                 0.0        Throttle Expo Brake
+app_adc_conf.throttle_exp_mode           Polynomial        Throttle Expo Mode
+app_adc_conf.ramp_time_pos                      0.3 s      Positive Ramping Time
+app_adc_conf.ramp_time_neg                      0.1 s      Negative Ramping Time
+app_adc_conf.multi_esc                           ja        Multiple VESCs Over CAN
+app_adc_conf.tc                                nein        Traction Control
+app_adc_conf.tc_max_diff                     3000.0        TC Max ERPM Difference
+app_adc_conf.update_rate_hz                     500 Hz     Update Rate
+app_uart_baudrate                            115200 bps    Baudrate
+app_chuk_conf.ctrl_type                     Current        Control Type
+app_chuk_conf.hyst                             0.15 %      Input Deadband
+app_chuk_conf.ramp_time_pos                     0.4 s      Positive Ramping Time
+app_chuk_conf.ramp_time_neg                     0.2 s      Negative Ramping Time
+app_chuk_conf.stick_erpm_per_s_in_cc           3000.0        ERPM Per Second Cruise Control
+app_chuk_conf.throttle_exp                      0.0        Throttle Expo
+app_chuk_conf.throttle_exp_brake                0.0        Throttle Expo Brake
+app_chuk_conf.throttle_exp_mode          Polynomial        Throttle Expo Mode
+app_chuk_conf.multi_esc                          ja        Multiple VESCs Over CAN
+app_chuk_conf.tc                               nein        Traction Control
+app_chuk_conf.tc_max_diff                    3000.0        TC Max ERPM Difference
+app_chuk_conf.use_smart_rev                      ja        Use Smart Reverse
+app_chuk_conf.smart_rev_max_duty               0.07        Smart Reverse Max Duty Cycle
+app_chuk_conf.smart_rev_ramp_time               3.0 s      Smart Reverse Ramp Time
+app_nrf_conf.speed                         1 MBit/s        Speed
+app_nrf_conf.power                            0 dBm        TX Power
+app_nrf_conf.crc_type                        1 Byte        CRC
+app_nrf_conf.retry_delay                     250 µS        Retry Delay
+app_nrf_conf.retries                              3        Retries
+app_nrf_conf.channel                             76        Radio Channel
+app_nrf_conf.address__0                         198        Address 0
+app_nrf_conf.address__1                         199        Address 1
+app_nrf_conf.address__2                           0        Address 2
+app_nrf_conf.send_crc_ack                        ja        Send ACK
+app_balance_conf.kp                             0.0        P
+app_balance_conf.ki                             0.0        I
+app_balance_conf.kd                             0.0        D
+app_balance_conf.hertz                         1000 Hz     Loop Hertz
+app_balance_conf.fault_pitch                   20.0 °      Pitch Axis Fault Cutoff
+app_balance_conf.fault_roll                    45.0 °      Roll Axis Fault Cutoff
+app_balance_conf.fault_duty                     0.9        Duty Cycle Fault Cutoff
+app_balance_conf.fault_adc1                     0.0 V      ADC1 Switch Voltage
+app_balance_conf.fault_adc2                     0.0 V      ADC2 Switch Voltage
+app_balance_conf.fault_delay_pitch                0 ms     Pitch Fault Delay
+app_balance_conf.fault_delay_roll                 0 ms     Roll Fault Delay
+app_balance_conf.fault_delay_duty                 0 ms     Duty Fault Delay
+app_balance_conf.fault_delay_switch_half                0 ms     Half Switch Fault Delay
+app_balance_conf.fault_delay_switch_full                0 ms     Full Switch Fault Delay
+app_balance_conf.fault_adc_half_erpm             1000 ERPM   ADC Half State Fault ERPM
+app_balance_conf.tiltback_angle                15.0 °      Tiltback Angle
+app_balance_conf.tiltback_speed                 5.0 °/s    Tiltback Speed
+app_balance_conf.tiltback_duty                 0.75        Duty Cycle Tiltback
+app_balance_conf.tiltback_high_voltage            200.0 V      High Voltage Tiltback
+app_balance_conf.tiltback_low_voltage              0.0 V      Low Voltage Tiltback
+app_balance_conf.tiltback_constant              0.0 °      Constant Tiltback
+app_balance_conf.tiltback_constant_erpm              500 ERPM   Constant Tiltback ERPM
+app_balance_conf.startup_pitch_tolerance             20.0 °      Startup Pitch Axis Angle Tolerance
+app_balance_conf.startup_roll_tolerance              8.0 °      Startup Roll Axis Angle Tolerance
+app_balance_conf.startup_speed                 30.0 °/s    Startup Centering Speed
+app_balance_conf.deadzone                       0.0 °      Deadzone
+app_balance_conf.current_boost                  0.0 A      Current Boost
+app_balance_conf.multi_esc                     nein        Multiple VESCs Over CAN
+app_balance_conf.yaw_kp                         0.0        Yaw P
+app_balance_conf.yaw_ki                         0.0        Yaw I
+app_balance_conf.yaw_kd                         0.0        Yaw D
+app_balance_conf.roll_steer_kp                  0.0        Roll Steer KP
+app_balance_conf.roll_steer_erpm_kp              0.0        Roll Steer ERPM KP
+app_balance_conf.brake_current                  0.0 A      Brake Current
+app_balance_conf.yaw_current_clamp              0.0 A      Yaw Current Clamp
+app_balance_conf.setpoint_pitch_filter              0.0        Setpoint Pitch Low Pass Filter
+app_balance_conf.setpoint_target_filter              1.0        Setpoint Target Low Pass Filter
+app_balance_conf.setpoint_filter_clamp              8.0 °      Setpoint Filter Clamp
+app_balance_conf.kd_pt1_frequency                 0 Hz     D term PT1 Filter
+app_pas_conf.ctrl_type                          Off        Control Type
+app_pas_conf.sensor_type                 Quadrature        Sensor Type
+app_pas_conf.pedal_rpm_start                   10.0        Pedal RPM Start
+app_pas_conf.pedal_rpm_end                     10.0        Pedal RPM End
+app_pas_conf.invert_pedal_direction               ja        Invert Pedal Direction
+app_pas_conf.magnets                           2048        Sensor Magnets
+app_pas_conf.use_filter                        nein        Use Filter
+app_pas_conf.current_scaling                  6.145        PAS Max Current
+app_pas_conf.ramp_time_pos                      0.6 s      Positive Ramping Time
+app_pas_conf.ramp_time_neg                      0.3 s      Negative Ramping Time
+app_pas_conf.update_rate_hz                     500 Hz     Update Rate
+imu_conf.type                      IMU_TYPE_INTERNAL        IMU Type
+imu_conf.mode                      AHRS_MODE_MADGWICK        IMU AHRS Mode
+imu_conf.sample_rate_hz                         200 Hz     Sample Rate
+imu_conf.accel_confidence_decay                 1.0        Accelerometer Confidence Decay
+imu_conf.mahony_kp                              0.3        Mahony KP
+imu_conf.mahony_ki                              0.0        Mahony KI
+imu_conf.madgwick_beta                          0.1        Madgwick Beta
+imu_conf.rot_roll                               0.0 °      Imu Rotation Roll
+imu_conf.rot_pitch                              0.0 °      Imu Rotation Pitch
+imu_conf.rot_yaw                                0.0 °      Imu Rotation Yaw
+imu_conf.accel_offsets__0                       0.0 G      Accel Offset X
+imu_conf.accel_offsets__1                       0.0 G      Accel Offset Y
+imu_conf.accel_offsets__2                       0.0 G      Accel Offset Z
+imu_conf.gyro_offsets__0                        0.0 °/s    Gyro Offset X
+imu_conf.gyro_offsets__1                        0.0 °/s    Gyro Offset Y
+imu_conf.gyro_offsets__2                        0.0 °/s    Gyro Offset Z
+imu_conf.gyro_offset_comp_fact__0               0.0 °/s    Gyro Offset Comp X
+imu_conf.gyro_offset_comp_fact__1               0.0 °/s    Gyro Offset Comp Y
+imu_conf.gyro_offset_comp_fact__2               0.0 °/s    Gyro Offset Comp Z
+imu_conf.gyro_offset_comp_clamp                 5.0 °/s    Gyro Offset Comp Clamp
