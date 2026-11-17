@@ -78,8 +78,8 @@ zeigt dasselbe noch einmal, es ersetzt nichts und wird von nichts vorausgesetzt.
 
 | | P | Anforderung |
 |---|---|---|
-| L1 | K | Beim Booten läuft **einmal** ein Regenbogen über die RGB-LED des DevKits, danach bleibt sie **aus**. Lebenszeichen beim Einschalten — man sieht ohne Konsole, dass der Chip läuft und die Firmware angekommen ist. |
-| L2 | M | Nach dem Regenbogen zeigt die LED den Zustand der **Bedienverbindung**: grün stetig = ein Bedienrechner meldet sich, rot blinkend = es wird gewartet. Damit ist die Totmannschaltung aus drei Metern ablesbar. Dies ersetzt die frühere Festlegung, dass die LED im Betrieb aus bleibt. |
+| L1 | M | Die RGB-LED des DevKits zeigt **ausschließlich** den Zustand der Bedienverbindung. Kein Startanimation: die Verbindungsanzeige steht schon wenige Millisekunden nach dem Start und sagt mehr aus. |
+| L2 | M | **Grün stetig** = ein Bedienrechner meldet sich, **rot blinkend** = es wird gewartet. Geschrieben wird nur bei Zustandswechsel — `neopixelWrite()` belegt die RMT und dauert rund 30 µs. |
 | L3 | M | Die Animation ist **nicht blockierend** (G1): `statusled::service()` läuft aus `loop()`, es gibt kein `delay()`. |
 
 Konstanten in [03-parameter](03-parameter.md) §8; die Pin-Frage v1.0/v1.1 steht dort

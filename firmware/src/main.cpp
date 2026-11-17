@@ -23,6 +23,7 @@
 #include "state.h"
 #include "statusled.h"
 #include "webui.h"
+#include "webui_html.h"
 #include "tirepressure.h"
 
 namespace {
@@ -92,6 +93,33 @@ void handleCommand(const String& cmd) {
   }
 }
 
+// Antwort auf /api/state. Steht hier, weil nur die Hauptfirmware weiß, welche
+// Module es gibt — der Webserver ist dadurch für beide Firmwarevarianten derselbe.
+//
+// Keine erfundenen Zahlen: was die Firmware nicht kennt, ist null, und die Oberfläche
+// zeigt dafür einen Gedankenstrich.
+//   crr  braucht die Kalibrierung UND die Leerlaufkennlinie
+//   tmp  kommt später über UART vom Regler (docs/04-hardware.md §11.4)
+//   mh, wh  speed.h führt für Motor-Hall und Laufrad keinen Zähler
+void buildStateJson(char* buf, size_t len) {
+  long mean = 0, ripple = 0;
+  torque::displayStats(mean, ripple);
+
+  snprintf(buf, len,
+    "{\"ph\":\"%s\",\"v\":%.2f,\"vs\":%.2f,\"rpm\":%.0f,"
+    "\"raw\":%ld,\"rip\":%ld,\"cal\":%s,\"crr\":null,\"tmp\":null,"
+    "\"mk\":%lu,\"ix\":%lu,\"mh\":0,\"wh\":0,"
+    "\"pi\":%u,\"rev\":%u,\"load\":%.1f,\"man\":%s,\"flt\":\"%s\"}",
+    state::name(), speed::kmh(), drive().targetKmh(), speed::revPerSec() * 60.0f,
+    mean, ripple, isCalibrated() ? "true" : "false",
+    static_cast<unsigned long>(speed::markCount()),
+    static_cast<unsigned long>(speed::revCount()),
+    state::plateauIndex(), state::revsInPoint(),
+    state::loadN(),
+    (state::phase() == state::IDLE && drive().targetKmh() > 0.05f) ? "true" : "false",
+    state::faultReason());
+}
+
 void pollSerial() {
   static String buf;
   while (Serial.available()) {
@@ -113,7 +141,7 @@ void setup() {
   delay(200);
 
   statusled::begin();   // Lebenszeichen; laeuft waehrend der uebrigen Initialisierung
-  webui::begin(handleCommand);
+  webui::begin(handleCommand, buildStateJson, WEBUI_HTML_GZ, WEBUI_HTML_GZ_LEN);
 
   speed::begin();
   torque::begin();
@@ -123,8 +151,6 @@ void setup() {
   state::begin();
 
   logger::header();
-  Serial.print("# WLAN \""); Serial.print(WEBUI_SSID);
-  Serial.println("\" offen — Oberflaeche unter http://192.168.4.1/");
   if (!display::present()) {
     logger::note("LCD nicht gefunden — Betrieb nur ueber die Konsole");
   }

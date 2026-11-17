@@ -1,5 +1,5 @@
 #pragma once
-// ERZEUGT von firmware/web/embed.py aus firmware/web/index.html — nicht editieren.
+// ERZEUGT von firmware/web/embed.py aus index.html — nicht editieren.
 // Quelle 35439 Bytes, gzip 11096 Bytes (31 %).
 #include <Arduino.h>
 

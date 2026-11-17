@@ -9,6 +9,11 @@ bool g_haveValue = false;
 uint32_t g_lastValueMs = 0;
 long g_offset = 0;
 
+// Ringpuffer für die ANZEIGE. Steht hier und nicht im Webserver, weil er zu den
+// Messwerten gehört und nicht zur Netzwerkschicht.
+long     g_ring[DISPLAY_AVG_N] = {0};
+uint8_t  g_ri = 0, g_rn = 0;
+
 // Akkumulator für die umdrehungssynchrone Mittelung
 double g_sum = 0.0;
 uint32_t g_count = 0;
@@ -59,7 +64,25 @@ bool update() {
   g_raw = readRaw();
   g_haveValue = true;
   g_lastValueMs = millis();
+
+  g_ring[g_ri] = g_raw;
+  g_ri = (g_ri + 1) % DISPLAY_AVG_N;
+  if (g_rn < DISPLAY_AVG_N) g_rn++;
   return true;
+}
+
+void displayStats(long& mean, long& ripple) {
+  if (g_rn == 0) { mean = 0; ripple = 0; return; }
+  long long sum = 0;
+  long lo = g_ring[0], hi = g_ring[0];
+  for (uint8_t i = 0; i < g_rn; i++) {
+    const long x = g_ring[i];
+    sum += x;
+    if (x < lo) lo = x;
+    if (x > hi) hi = x;
+  }
+  mean   = static_cast<long>(sum / g_rn);   // ROH, ohne Tara — die steht in tareOffset()
+  ripple = hi - lo;
 }
 
 long lastRaw() { return g_raw; }

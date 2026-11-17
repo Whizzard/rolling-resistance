@@ -79,6 +79,13 @@ constexpr uint8_t HX711_GAIN_PULSES = 1;   // [DB] 1 = Kanal A / Gain 128
 constexpr uint16_t HX711_RATE_SPS   = 80;  // [DB] RATE-Pin auf VCC
 constexpr uint16_t TARE_SAMPLES     = 200; // [gesch] ≈ 2,5 s bei 80 SPS
 
+// [Festlegung] Gleitender Mittelwert für die ANZEIGE, nicht für die Messung. Der
+// HX711 liefert HX711_RATE_SPS Werte je Sekunde; ein mit 80 Hz zappelnder Zahlenwert
+// ist weder lesbar noch aussagekräftig (docs/10-firmware.md W5, D6). 40 Werte sind
+// 0,5 s bei 80 SPS. Die MESSUNG mittelt davon unabhängig umdrehungssynchron über
+// AVG_REVS_PER_POINT — die beiden Mittelungen haben nichts miteinander zu tun.
+constexpr uint8_t DISPLAY_AVG_N = 40;
+
 // [Ansage 2026-11-16] 5-kg-Zelle, 5 · 9,80665 = 49,03 N. Die Unterlagen nannten bis
 // dahin 10 kg; das war falsch und hätte zusammen mit dem 40-mm-Arm die Zelle beim
 // Anfahren zerstört. Typenschild noch nachlesen und die Herkunft auf [DB] setzen.
@@ -238,20 +245,18 @@ constexpr uint32_t LINK_TIMEOUT_MS = 2000;
 // Die RGB-LED des DevKits ist eine adressierbare WS2812, kein einfacher Ausgang —
 // angesteuert über neopixelWrite(), das intern RMT benutzt.
 //
-// Beim Booten läuft EINMAL ein Regenbogen durch, danach bleibt sie aus. Ein
-// Lebenszeichen beim Einschalten, mehr nicht: im Messbetrieb wäre eine mitlaufende
-// LED am Prüfstand nur Ablenkung.
+// Sie zeigt den Zustand der Bedienverbindung: grün stetig = ein Bedienrechner
+// meldet sich, rot blinkend = es wird gewartet. Damit ist die Totmannschaltung aus
+// drei Metern ablesbar.
 //
-// [gem] GPIO 48 am verbauten Board bestätigt (2026-11-15, Regenbogen läuft). Auf
+// [gem] GPIO 48 am verbauten Board bestätigt (2026-11-15, LED leuchtet). Auf
 // DevKitC-1 v1.1 säße die LED an GPIO 38 — dieses Board ist also v1.0, oder zumindest
 // eine Bestückung mit der LED an 48. Damit ist die frühere TBD erledigt.
 // Hinweis für den Fall eines Boardwechsels: beide Pins nacheinander zu bespielen geht
 // NICHT, neopixelWrite() initialisiert RMT einmalig für den Pin des ersten Aufrufs.
-constexpr uint32_t BOOT_RAINBOW_MS      = 2500;  // [Festlegung] Dauer des Regenbogens
-constexpr uint32_t BOOT_RAINBOW_STEP_MS = 12;    // [Festlegung] ≈ 200 Schritte
 constexpr uint8_t  STATUS_LED_DIV       = 6;     // [Festlegung] Helligkeit teilen; die
                                                  // LED blendet sonst auf dem Tisch
-// Nach dem Regenbogen zeigt die LED den Zustand der BEDIENVERBINDUNG:
+// Die LED zeigt den Zustand der BEDIENVERBINDUNG:
 // gruen = ein Bedienrechner meldet sich, rot blinkend = es wird gewartet.
 // Damit sieht man die Totmannschaltung aus drei Metern Entfernung.
 constexpr uint32_t STATUS_BLINK_MS      = 700;   // [Festlegung] halbe Periode rot
