@@ -253,7 +253,21 @@ Der MTB-Crr ist selbst gerechnet, weil die Quelle dort nur Watt ausweist:
 Die WLAN-Konstanten `WEBUI_*` stehen in [04-hardware](04-hardware.md) §13.1, weil sie
 zum Aufbau gehören und nicht zur Physik.
 
-## 8 Status-LED
+## 8 Motorregler über UART
+
+Nur für die Reglervariante (`env:esp32s3-vesc`), siehe
+[04-hardware](04-hardware.md) §14. Die Hauptfirmware benutzt sie noch nicht.
+
+| Konstante | Wert | Einheit | Herkunft | Anmerkung |
+|---|---|---|---|---|
+| `VESC_BAUD` | 115200 | Bd | DB | Vorgabe der VESC-Firmware |
+| `VESC_POLL_MS` | 200 | ms | Festlegung | Abfrage der Messwerte. Das Intervall **ist** zugleich das Mittelungsfenster: der Regler liefert Ströme als Mittelwert seit der letzten Abfrage und setzt den Akkumulator beim Lesen zurück. |
+| `VESC_ALIVE_MS` | 150 | ms | Festlegung | Wiederholung des Sollwerts. Der Regler stellt ab, wenn länger als `timeout_msec` nichts kommt (dort auf 300 ms eingestellt); 150 ms lässt zwei Ausfälle zu. **Messwertabfragen setzen den Timeout nicht zurück** — nur Sollwerte und `COMM_ALIVE`. |
+| `VESC_ERPM_MAX` | 3500 | ERPM | **TBD** | Vorläufige Kappung. Der Regler rechnet elektrisch; mechanisch ist das ERPM/Polpaarzahl, und die ist **nicht gemessen**. Bis dahin wird die ungünstige Richtung angenommen — 10 Polpaare, also 353 · 10. Sind es in Wirklichkeit mehr (bei Hoverboard-Rädern sind 15 üblich), dreht die Trommel **langsamer** als gedacht, nicht schneller. Kein Ersatz für `MAX_DRUM_RPM`, sondern eine Kappung davor. |
+| `VESC_ERPM_STEP_SMALL` | 100 | ERPM | Festlegung | Feineinstellung über ± |
+| `VESC_ERPM_STEP_LARGE` | 1000 | ERPM | Festlegung | grobe Annäherung |
+
+## 8.1 Status-LED
 
 Die RGB-LED des DevKits ist eine adressierbare **WS2812**, kein einfacher Ausgang; sie
 wird über `neopixelWrite()` angesteuert, das intern RMT benutzt.
