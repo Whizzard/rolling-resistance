@@ -136,7 +136,13 @@ dann alle vier Stellen auf das Ergebnis ziehen.
 
 Am 2026-11-17 gemessen: Sollwert 900 ERPM → 27 ERPM, 1500 → 150, 2400 → 780. Der
 Regler bleibt bei einem Drittel stehen und zieht 0,3 A, also gerade die Lagerreibung.
-Die Gewinne stammen aus der vorgefundenen Skateboard-Konfiguration:
+
+> **Korrektur der Herkunft, am selben Tag.** Hier stand zuerst, die Gewinne seien ein
+> Erbe der vorgefundenen Skateboard-Konfiguration. Das ist falsch: nach dem Flashen auf
+> Firmware 7.01 standen dieselben vier Werte wieder da. Es sind **Werkseinstellungen
+> der VESC-Firmware**. An der Sache ändert das nichts — sie sind für diesen Motor
+> unbrauchbar — aber es heißt, dass hier nichts „aufzuräumen" ist, sondern **erstmals
+> einzustellen**.
 
 | | Wert |
 |---|---|
