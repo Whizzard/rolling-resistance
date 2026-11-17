@@ -1,8 +1,11 @@
 # VESC-Konfiguration nach der Inbetriebnahme (2026-11-17)
 
 Zustand **nach** dem Vermessen des Antriebsstrangs. Der Urzustand liegt daneben in
-`hardware/vesc-backup/` — das war eine fremde **Skateboard-Konfiguration**, von der
-kein Wert zu diesem Aufbau gehoerte.
+`hardware/vesc-backup/` — eine **fremde Konfiguration**: Uebersetzung und
+Oeffnungsdrehzahl von Hand gesetzt, R/L/Flussverkettung aus einer Erkennung an einem
+ANDEREN Motor. Polzahl (14), Raddurchmesser (0,083 m) und die Drehzahlreglergewinne
+darin waren dagegen nur Werkseinstellungen — das liess sich erst nach dem Flashen auf
+7.01 trennen. Siehe `docs/03-parameter.md` §4.1.
 
 Unterschied zum Urzustand: 59 Bytes in neun Bereichen, und jeder davon ist eine
 bewusste Aenderung. Keine unbeabsichtigte dabei.

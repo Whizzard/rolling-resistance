@@ -748,9 +748,16 @@ Zwei Folgen:
 
 ### 10.5 Konfiguration, wie sie am 2026-11-17 eingestellt wurde
 
-Im Regler stand eine **fremde Skateboard-Konfiguration** — Übersetzung 2,77,
-Raddurchmesser 83 mm, sensorlos, fremde R/L/Flussverkettung. Kein Wert davon gehörte zu
-diesem Aufbau. Die vorgefundene Fassung ist byteweise gesichert unter
+Im Regler stand eine **fremde Konfiguration**: Übersetzung 2,77 statt der
+Werkseinstellung 3,0, `foc_openloop_rpm` 700 statt 1500, und R/L/Flussverkettung aus
+einer Erkennung an einem **anderen Motor**. Es war also einmal ein fremder Antrieb
+eingemessen worden.
+
+> *Frühere Fassungen nannten das pauschal „Skateboard-Konfiguration" und behaupteten,
+> kein Wert darin gehöre zu diesem Aufbau. Zu weit gegriffen:* `si_motor_poles` = 14,
+> `si_wheel_diameter` = 0,083 m und die Drehzahlregler-Gewinne sind
+> **Werkseinstellungen** der VESC-Firmware — nachgewiesen am frisch auf 7.01 geflashten
+> Regler. Aufstellung in [Parameter](22_parameter.md) §4.1. Die vorgefundene Fassung ist byteweise gesichert unter
 `hardware/vesc-backup/` (Firmware 5.02, mcconf 458 B, appconf 419 B) und
 zurückspielbar.
 
