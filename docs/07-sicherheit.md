@@ -36,7 +36,7 @@ Ohne Haube tragen Drehzahlgrenze, Wuchtgüte und Sichtprüfung die Last.
 | Gelöster Markenmagnet | 2 g bei 16,7 m/s = 0,28 J. Schutzbrille. Magnetschrauben vor jedem Lauf prüfen. |
 | Einzug zwischen Trommel und Prüflaufrad | Keine losen Kleidungsstücke, keine langen Haare offen, keine Handschuhe. Nicht in den Spalt greifen. |
 | Berührung der Trommeloberfläche im Lauf | Definierter Standplatz seitlich, außerhalb der Rotationsebene. |
-| **Kein Bremspfad** | §3. Trommel lässt sich nur auslaufen lassen, 3 bis 6 Minuten. |
+| Bremspfad | §3. Relais verbaut und gemessen (3,25 Nm, 368 1/min → Stillstand in 26 s). Freier Auslauf dauert dagegen von 100 km/h **160 s**. |
 | Gelöstes Prüflaufrad | Formschlüssig gesichert, nicht nur geklemmt. |
 | Elektrisch: 36–42 V | Sicherung im Leistungspfad, isoliertes Werkzeug, Netzteil abgedeckt. |
 | Überhitzung von Motor oder Regler | Strombegrenzung im Regler, Lauf nicht unbeaufsichtigt. Temperaturfühler siehe A5. |
@@ -60,9 +60,28 @@ beide in dieselbe Richtung: Bus weg → gebremst, GPIO low → gebremst, Reset �
 - Nach jedem Lauf warten, bis die Trommel **sichtbar** steht.
 - Vor Arbeiten am Aufbau Blockierkeil zwischen Rahmen und Speiche.
 
-Solange die Relais nicht verbaut sind, bleibt nur der freie Auslauf von 3 bis 6 Minuten.
+Die Relais sind seit dem 2026-11-17 verbaut und gemessen. Der freie Auslauf bleibt als
+zweiter Weg: von 100 km/h **160 s**, von 43 km/h etwa 100 s (`DRUM_LOSS_*` in
+[Parameter](22_parameter.md) §1).
 
-### 3.1 Der Regler kann nicht bremsen — gemessen, nicht vermutet
+### 3.0 Alles in §3.1 bis §3.2c wurde auf Firmware 5.02 gemessen
+
+> **Der Regler läuft seit dem 2026-11-17 auf Firmware 7.01**, und dort ist
+> `foc_short_ls_on_zero_duty` = **1** gesetzt — der echte Brückenkurzschluss, den 5.02
+> nicht kannte. Dazu drosselt `l_battery_regen_cut_start/end` = 42,5/44 V die
+> Rückspeisung ab, statt den Antrieb fallen zu lassen.
+>
+> **Die Aussage „mit Netzteil gibt es keine Reglerbremse" gilt damit nur noch für
+> 5.02.** Sie ist auf 7.01 **nicht nachgemessen** und könnte überholt sein. Die
+> Versuche aus §3.1 und §3.2c sind zu wiederholen, sobald der Motor wieder angebaut
+> ist. Bis dahin gilt weiter die vorsichtige Annahme: **nur freier Auslauf oder die
+> Relais.** [TBD]
+>
+> Was unverändert gilt, weil es Physik und nicht Firmware ist: ein Netzteil nimmt
+> keinen Strom auf, und die Zwischenkreiskondensatoren puffern nichts. Neu ist
+> lediglich, dass der Regler jetzt einen Weg hat, **ohne** Bus zu bremsen.
+
+### 3.1 Der Regler kann nicht bremsen — gemessen auf Firmware 5.02
 
 **Stand 2026-11-17: auf Firmware 5.02 gibt es über den Regler keinen Bremsweg.**
 Dreimal belegt, mit montierter Trommel und 40-V-Netzteil:
@@ -209,11 +228,12 @@ und der ist ein Alles-oder-nichts-Schalter ohne Zwischenstufen.
 
 **Schutzgrenzen für den Akkubetrieb**, gesetzt am 2026-11-17:
 
-| | Wert | Grund |
-|---|---|---|
-| `l_max_vin` | **43,5 V** | *unter* der Ladeschlussspannung eines 10S-Pakets (42,0 V). Auf FW 5.02 gibt es `l_battery_regen_cut_start/end` **nicht** (erst ab 6.05) — ohne diese Grenze wäre das BMS der einzige Schutz, und ein BMS, das unter Rückspeisung **auftrennt**, lässt den Regler schlagartig in den Leerlauf speisen. Das ist der Fall, der Endstufen zerstört. |
-| `l_battery_cut_start` / `_end` | **32 / 30 V** | 3,20 / 3,00 V je Zelle bei 10S. Vorher standen dort 10,2 / 9,0 V — Werte für ein 3S-Paket, also wirkungslos. |
-| `l_in_current_min` | **−10 A** | Rückspeisestrom. Höher nur, wenn die Ladestromgrenze des Pakets bekannt ist. [TBD] |
+| | auf 5.02 | **jetzt (7.01)** | Grund |
+|---|---|---|---|
+| `l_battery_regen_cut_start` / `_end` | *gibt es nicht* | **42,5 / 44 V** | **Die eigentliche Schutzgrenze.** Drosselt die Rückspeisung ab, statt abzuwerfen. 42,5 V liegt über der Ladeschlussspannung eines 10S-Pakets (42,0 V) und über der Leerlaufspannung des Netzteils. |
+| `l_max_vin` | 43,5 V | **48 V** | harter Fehlerfall, bewusst **über** der Abdrosselung — erst drosseln, dann abwerfen. Auf 5.02 war 43,5 V nötig, weil es die Abdrosselung nicht gab und das BMS sonst der einzige Schutz gewesen wäre. Ein BMS, das unter Rückspeisung **auftrennt**, lässt den Regler schlagartig in den Leerlauf speisen — der Fall, der Endstufen zerstört. |
+| `l_battery_cut_start` / `_end` | 32 / 30 V | **32 / 30 V** | 3,20 / 3,00 V je Zelle bei 10S. Im Werkszustand standen dort 10 / 8 V, also wirkungslos. |
+| `l_in_current_min` | −10 A | **−10 A** | Rückspeisestrom. Höher nur, wenn die Ladestromgrenze des Pakets bekannt ist. [TBD] |
 
 > **Noch nicht geprüft:** Zellzahl, Chemie und zulässiger **Ladestrom** des Pakets sind
 > nicht bestätigt, die 10S sind aus 40,55 V erschlossen. Ein **volles** Paket nimmt
