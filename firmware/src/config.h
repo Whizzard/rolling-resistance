@@ -383,14 +383,21 @@ constexpr int32_t VESC_DIRECTION_SIGN = -1;
 // Daraus folgt die wichtigste Konsequenz fuer den Betrieb: ein GROSSER Bremsstrom ist
 // netzteilfreundlich, ein kleiner nicht. Siehe docs/07-sicherheit.md §3.2a.
 
-// Alltagsstopp nach einer Messung. Langsam, aber fuellt den Akku (53 % Rueckgewinn).
-// NUR mit Akku am Bus — am Netzteil wuerde die Rueckspeisung ueberspannen.
-constexpr float VESC_BRAKE_CURRENT_SOFT = 3.0f;
-
-// Vollbremsung. Beim Nulldurchgang der Energiebilanz gemessen (+36 J), also auch mit
-// NETZTEIL unbedenklich. Die Bremswirkung ist hier schon fast am Anschlag: 13,9 s
-// gegen 13,1 s bei 20 A. Mehr Strom bringt kaum Weg, kostet aber Waerme.
-constexpr float VESC_BRAKE_CURRENT_STOP = 15.0f;
+// [Festlegung 2026-11-17] Es wird IMMER der schnellstmoegliche Stopp gefahren, nie ein
+// langsamer. Rueckgewinnung ist damit kein Auswahlkriterium — sie faellt an oder nicht.
+// Deshalb gibt es nur EINEN Bremsstrom.
+//
+// 20 A statt 15 A, obwohl 15 A energieneutral waeren: der Unterschied in der Bremszeit
+// ist klein (13,1 gegen 13,9 s), aber "schnellstmoeglich" ist die Vorgabe. Mehr als
+// 20 A bringt nichts mehr, die Bremse ist dort gesaettigt.
+//
+// NUR MIT AKKU AM BUS. Am Netzteil wirft der Regler ab: am 2026-11-17 mit 20 A aus
+// 40 km/h nach 0,61 s Fehlercode 1 (Ueberspannung). Bei hoher Drehzahl liegt der
+// Sollwert unter dem Kurzschlussstrom, dort speist der Regler ZURUECK — erst bei
+// kleiner Drehzahl entnimmt er. Die Nettobilanz von -140 J verdeckt diesen
+// Anfangsstoss, und ein Netzteil kann ihn nicht aufnehmen.
+// docs/07-sicherheit.md §3.2b und §3.2c.
+constexpr float VESC_BRAKE_CURRENT_STOP = 20.0f;
 
 constexpr int32_t VESC_ERPM_STEP_SMALL = 100;   // [Festlegung] Feineinstellung
 constexpr int32_t VESC_ERPM_STEP_LARGE = 1000;  // [Festlegung] grobe Annaeherung
