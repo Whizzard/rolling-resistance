@@ -7,6 +7,17 @@ Aufsicht betrieben. Keine Gefährdungsbeurteilung nach Arbeitsschutzrecht.
 
 J = 2,07 kg·m² (aus der Geometrie, durch Auslaufversuch zu bestätigen), U = 2,931 m.
 
+> **Diese beiden Zahlen gelten der Ø-933-Trommel.** `config.h` rechnet dagegen mit
+> U = 2,837 m und J = 1,94 kg·m² (Ø 903), und die Messungen vom 2026-11-17 weiter unten
+> benutzen 1,94. Welche Trommel gilt, ist **nicht entschieden** —
+> [Offene Fragen](29_offene_fragen.md) A14. Die Energiewerte in der Tabelle sind damit
+> um 7 % zu hoch, also auf der sicheren Seite; die Momente aus den Auslaufversuchen
+> wären mit 2,07 entsprechend größer. Vor der ersten Messreihe ausmessen.
+>
+> Der Auslaufversuch vom 2026-11-17 bestätigt J **nicht**: er liefert das Verlustmoment
+> *unter Annahme* von J. Für J selbst braucht es einen Auslauf mit bekannter
+> Zusatzmasse.
+
 | v an der Oberfläche | ω | E = ½Jω² | |
 |---|---|---|---|
 | 30 km/h | 17,9 rad/s | 330 J | 0,09 Wh |
@@ -246,6 +257,14 @@ FAULT ist rastend: Quittierung nur im Stillstand über die Konsole oder das Bedi
 > 708 1/min, also 157 1/min **zu viel**. Erst unter 267 1/min übernahmen die Hall-Geber
 > wieder und die Werte wurden gültig. Genau im Bereich, in dem die Bremse zählt, ist
 > der Regler also keine Drehzahlquelle.
+>
+> **Verschärfung, am 2026-11-17 beobachtet:** beim Auslösen der Relaisbremse aus
+> 101 km/h riss gleichzeitig die **USB-Verbindung** zum Regler ab — der letzte Messpunkt
+> lag im selben Augenblick, und abgeschaltet wurde erst danach. Trifft das zu (noch zu
+> bestätigen, möglicherweise hängt der Regler an einer mitabgeschalteten Steckdose),
+> dann liefert der Regler nach dem Not-Aus **überhaupt keine Information** mehr, nicht
+> nur eine falsche Drehzahl. Der eigene Trommelaufnehmer ist dann nicht die zweite
+> Quelle, sondern die einzige. [TBD]
 >
 > Zwei Wege: die **8 Marken an der Trommel** am ESP32 auswerten (unabhängig von allem,
 > was im Leistungspfad passiert), und/oder `foc_sl_erpm` so weit heraufsetzen, dass die
