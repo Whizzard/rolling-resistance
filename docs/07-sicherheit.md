@@ -148,25 +148,48 @@ auseinandergehen.
 - Sollwert **über** dem Kurzschlussstrom → er muss Strom *zusätzlich treiben*, und das
   **kostet** Busleistung → kein Rückfluss.
 
-> **Daraus folgt: mit Netzteil darf gebremst werden, ab etwa 15 A.** Dort liegt der
-> Nulldurchgang der Energiebilanz; darüber entnimmt der Regler. In keinem der beiden
-> Fälle kann der Bus ansteigen, der Überspannungsfall aus §3.1 ist also ausgeschlossen.
-> Die 140 J über 13 s sind 11 W — das leistet auch ein 5-A-Netzteil.
+> **Hieraus wurde zunächst gefolgert, mit Netzteil dürfe ab 15 A gebremst werden.
+> Diese Folgerung ist am 2026-11-17 durch Messung WIDERLEGT.** Mit Netzteil und einem
+> Sollwert von 20 A aus 40 km/h: **Fehlercode 1 nach 0,61 s.** Der Eingangsstrom zeigte
+> gerade −0,11 A, die Busanzeige 40,2 V — aber die Abfrage lief mit 5 Hz, und ein
+> Rückspeisestoß ist eine Sache von Millisekunden. Zwischen zwei Messpunkten stand der
+> Bus über `l_max_vin`.
 >
-> Das ist die praktische Umkehrung von §3.1: dort scheiterte das Bremsen am Netzteil,
-> weil `SET_DUTY(0)` und das geregelte Herunterfahren **regeln**. `SET_CURRENT_BRAKE`
-> mit großem Sollwert regelt nicht, es schließt kurz. Noch nicht am Netzteil
-> nachgeprüft — die Aussage stützt sich auf die Energiebilanz am Akku. [TBD]
+> **Der Denkfehler:** die Energiebilanz ist eine **Summe über den ganzen Vorgang**. Bei
+> hoher Drehzahl liegt der Sollwert *unter* dem Kurzschlussstrom, dort speist der Regler
+> **zurück**; erst bei kleiner Drehzahl entnimmt er, und netto bleibt Entnahme übrig.
+> Der Akku schluckt den Anfangsstoß, das Netzteil nicht. Eine Summe sagt nichts über
+> den gefährlichsten Augenblick eines Vorgangs.
 
-**Zwei Betriebspunkte** folgen daraus, als `VESC_BRAKE_CURRENT_SOFT` und `_STOP` in
-`config.h`:
+### 3.2c Stand nach vier Versuchen
 
-| | Strom | wofür |
+| Verfahren | Netzteil | Akku |
 |---|---|---|
-| Alltagsstopp | **3 A** | nach einer Messung; langsam, füllt aber den Akku. Nur mit Akku am Bus. |
-| Vollbremsung | **15 A** | Not-Stopp; fast maximale Wirkung, energieneutral, auch mit Netzteil. |
+| `SET_DUTY(0)` | **Überspannung** | — |
+| Drehzahl geregelt herunterfahren | **Überspannung** | — |
+| `SET_CURRENT_BRAKE` 20 A | **Überspannung** | funktioniert |
+| `SET_CURRENT_BRAKE` 3 … 20 A | — | funktioniert, 13–31 s aus 50 km/h |
 
-Mehr als 15 A bringt kaum Weg (13,1 gegen 13,9 s), kostet aber Energie und Wärme.
+**Mit Netzteil gibt es keine Reglerbremse.** Es bleiben freier Auslauf oder die
+Kurzschlussrelais. **Mit Akku** bremst der Regler mit 15–20 A so stark wie die Relais,
+aber steuerbar und stufenlos.
+
+**Festlegung des Erbauers (2026-11-17): es wird immer der schnellstmögliche Stopp
+gefahren**, nie ein langsamer. Rückgewinnung ist damit kein Auswahlkriterium — sie
+fällt an oder nicht. Es gibt deshalb nur **einen** Bremsstrom,
+`VESC_BRAKE_CURRENT_STOP` = 20 A.
+
+Daraus folgt für die Energiequelle: **der Akku ist nicht Zubehör, sondern Voraussetzung
+für einen schnellen, steuerbaren Stopp.** Am Netzteil bliebe dafür nur der Relaispfad,
+und der ist ein Alles-oder-nichts-Schalter ohne Zwischenstufen.
+
+> `l_max_vin` = 43,5 V hat beim Versuch genau das getan, wofür es gesetzt wurde: früh
+> abgeworfen statt an der Hardwaregrenze von 57 V. Die Grenze bleibt.
+>
+> **Die Unterspannungsabschaltung muss der Quelle folgen.** Für das 10S-Paket gehören
+> 32/30 V hin; das Netzteil sackt unter Last aber auf **33,8 V** ab und würde sich damit
+> selbst abdrosseln. Beim Wechsel der Quelle sind `l_battery_cut_start/end`
+> mitzuführen — für das Netzteil 20/18 V. [TBD: in eine Checkliste aufnehmen]
 
 > Die Energiezahlen stehen auf schwächerem Grund als die Momente. Der Eingangsstrom
 > ist im Bremsbetrieb eine **gerechnete** Größe des Reglers, keine Messung; beim
