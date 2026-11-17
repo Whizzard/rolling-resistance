@@ -1,6 +1,6 @@
 # Offene Fragen
 
-Sortiert nach Blockerwirkung. Stand: 2026-10-24.
+Sortiert nach Blockerwirkung. Stand: **2026-11-17**.
 
 ## A — Blockiert den Aufbau
 
