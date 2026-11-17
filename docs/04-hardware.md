@@ -727,6 +727,86 @@ setzen.
 - **Die mitgelieferten Phasen- und Batteriekabel sind zu dünn** für die 60 A Spitze
   der Kurzschlussbremse (§9.1).
 
+### 10.5 Konfiguration, wie sie am 2026-11-17 eingestellt wurde
+
+Im Regler stand eine **fremde Skateboard-Konfiguration** — Übersetzung 2,77,
+Raddurchmesser 83 mm, sensorlos, fremde R/L/Flussverkettung. Kein Wert davon gehörte zu
+diesem Aufbau. Die vorgefundene Fassung ist byteweise gesichert unter
+`hardware/vesc-backup/` (Firmware 5.02, mcconf 458 B, appconf 419 B) und
+zurückspielbar.
+
+**Erkannt** (`foc_detect_apply_all 50`, Motor ohne Trommel):
+
+| | |
+|---|---|
+| Strangwiderstand | 238,7 mΩ |
+| Induktivität | 403,8 µH *(Messung streut, siehe [03-parameter](03-parameter.md) §4.1)* |
+| Flussverkettung | 17,287 mWb |
+| Hall-Geber | **gefunden**, `foc_sensor_mode` = Hall |
+| `foc_hall_table` | 255, **68, 0, 34, 134, 102, 167**, 255 — exakte 60°-Teilung |
+
+**Von Hand gesetzt:**
+
+| Einstellung | vorher | jetzt | Grund |
+|---|---|---|---|
+| `si_motor_poles` | 14 | **30** | gemessen, [06-offene-fragen](06-offene-fragen.md) |
+| `si_gear_ratio` | 2,769 | **1,0** | Direktantrieb |
+| `si_wheel_diameter` | 0,083 m | **0,9030 m** | Trommel, aus `DRUM_CIRCUMFERENCE_M` |
+| `timeout_msec` | 1000 | **300** | zweite Totmannebene; Firmware wiederholt alle 150 ms, Konsolenwerkzeug alle 100 ms |
+| `timeout_brake_current` | 0,0 A | **0,0 A** | *siehe Warnung unten* |
+| `l_current_max` | 63,8 A | **20 A** | Antriebsstrom; 0,389 Nm/A → 7,8 Nm |
+| `l_current_min` | −63,8 A | **−3 A** | Bremsstrom bleibt klein, weil Bremsen zurückspeist |
+| `l_in_current_max` | 99 A | **8 A** | schützt das Netzteil (10 A) **unabhängig** vom Motorstrom |
+| `l_in_current_min` | −60 A | **−1 A** | Rückspeisung eng; hilft allerdings nicht, [07-sicherheit](07-sicherheit.md) §3.1 |
+| `l_abs_current_max` | 130 A | **30 A** | Panikschwelle, muss über dem Stellwert liegen |
+
+> **`timeout_brake_current` muss 0 bleiben.** Testweise auf 1,0 A gesetzt und wieder
+> zurückgenommen, aus zwei Gründen. Erstens **rastet der Zustand ein**: nach dem ersten
+> Timeout ruft der Regler die Bremse dauerhaft auf, die Endstufe läuft permanent weiter
+> (gemessen 120 mA bei 40 V = 4,8 W, FET-Temperatur stieg auf 32,9 °C) und ein Sollwert
+> löst es nicht, weil 300 ms später der nächste Timeout greift. Zweitens, und das wiegt
+> schwerer: **ein dauerhaft kurzgeschlossener Motor lässt sich nicht frei drehen.** Der
+> Auslaufversuch ist eine Kernmethode dieses Prüfstands, und auch die Polzahlmessung
+> wäre damit unmöglich geworden. Die Bremse gehört an die Relais (§9), nicht in den
+> Reglertimeout.
+
+**Motorstrom ist nicht Netzteilstrom.** Die beiden stehen im Verhältnis des
+Tastverhältnisses, weil die Leistung erhalten bleibt. Bei 3 A im Motor und
+Tastverhältnis 0,26 fließen 0,78 A aus dem Netzteil; bei 99 km/h und Tastverhältnis
+0,85 sind es aus 4,4 A im Motor 3,2 A am Netzteil (beides gemessen und am Netzteil
+gegengeprüft). Wer am Netzteil misst und daraus auf den Motorstrom schließt, unterschätzt
+ihn bei kleiner Drehzahl drastisch.
+
+### 10.6 Der Relaisblock muss die Phasenfolge erhalten
+
+Beim ersten Einfügen des Not-Aus-Relaisblocks (§9) **waren zwei Phasen vertauscht**.
+Das Bild: 10 A Motorstrom, 68 W Eingangsleistung, Drehzahl pendelt um ±5 1/min, **kein
+Fehlercode** — der Regler bestromt die falsche Wicklung, es entsteht ein Drehfeld ohne
+Nettomoment. Es brummt und wird warm.
+
+Prüfungen, von harmlos nach aufwendig:
+
+1. **Ohne Messgerät:** Relais abgefallen, Trommel von Hand drehen. Sie muss *deutlich
+   schwerer* gehen als frei — sonst schließen die Öffner die Spulen nicht.
+2. **Messgerät, Relais abgefallen:** zwischen je zwei **Motor**klemmen ≈ 0,2 Ω
+   (Spulen kurz); von jeder **Regler**klemme gegen alles **unendlich**. Durchgang hier
+   heißt: der Kurzschlussknoten liegt auch an der Reglerseite, und der Regler treibt in
+   einen Kurzschluss.
+3. **Messgerät, Relais angezogen:** genau eine Zuordnung eins zu eins, und zwar
+   dieselbe wie bei direkter Verdrahtung.
+4. **Über den Regler:** `measure_res_ind` muss den direkten Wert reproduzieren —
+   251,9 mΩ gegen 237,2 mΩ direkt zeigte die 14,7 mΩ Kontaktwiderstand und belegte,
+   dass alle drei Phasen leiten. Ein *Tausch* fällt dabei **nicht** auf, dafür braucht
+   es `foc_sensors_detect_apply`: ändert sich die Richtung der Winkelfolge in
+   `foc_hall_table`, sind zwei Phasen getauscht.
+
+> **Eine neu erkannte Tabelle heilt den Tausch, ist aber die schlechtere Lösung.** Mit
+> montierter Trommel ruckelt die Erkennung über die Rastmomente, weil sie im offenen
+> Betrieb langsam dreht: die 60°-Teilung streute danach von 40° bis 74°. Winkelfehler
+> machen Momentenwelligkeit, und die landet als Rauschen auf der Wägezelle — dort, wo
+> ΔCrr = 0,0005 aufgelöst werden soll. Richtig ist: Adern tauschen, dann die
+> Referenztabelle zurückschreiben oder **ohne** Trommel neu erkennen.
+
 ## 11 Motoranschluss: Phasen und Hall-Stecker
 
 Aufgenommen am geöffneten Motor (Fotos vom 2026-11-14). **Nichts davon ist
