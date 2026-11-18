@@ -521,7 +521,7 @@ Offene Seite auf das Alublech, eine M6-Schraube. Daraus folgt:
 ### 7.4 Gehäuse für die Wägeplatine (HX711)
 
 Nimmt die SparkFun-Platine *HX711 Load Cell Amp* auf, die am Pendelrahmen neben
-der Wägezelle sitzt. Außenmaß **51,5 × 30,5 × 12,3 mm**, 10,8 cm³.
+der Wägezelle sitzt. Außenmaß **51,5 × 30,5 × 12,3 mm**, 10,5 cm³.
 
 | | |
 |---|---|
@@ -541,7 +541,7 @@ die Wahrheit.
 | Bauteilraum über der Platine | 6,7 mm — 2,7 mm Bauteile, **4,0 mm für die Adern** |
 | Stirnwand am Zellenende | 2,5 mm |
 | Seitenwände / Deckel | 3,0 / 2,0 mm |
-| M4-Durchgang | Ø 4,5, **mittig**, 4,55 mm Abstand zu jedem Kanal |
+| M6-Durchgang | Ø 6,6, **mittig**, 3,50 mm Steg zu jedem Kanal — dieselbe Schraube wie §7.1, damit es am Stand nur einen Schlüssel gibt |
 | Kabelkanäle | zwei D-Nuten 4,4 breit, 3,4 tief, bei y = ±9,0 mm |
 | Restwand neben einem Kanal | 4,05 mm |
 | Kabelmulde am Übergang | dieselbe Nut, 5,2 tief, 5 mm lang |
@@ -579,9 +579,12 @@ Ecken und damit unter dem Absatz.
 
 #### Montage
 
-Offene Seite auf die Montagefläche, eine M4-Schraube. Die Fläche schließt das
+Offene Seite auf die Montagefläche, eine M6-Schraube. Die Fläche schließt das
 Gehäuse und klemmt beide Kabel in ihren Nuten. Der Mantel passt nicht unter die
 Platine; er endet in der Mulde und weiter laufen nur die Adern.
+
+Eine M6-Scheibe (DIN 125, Ø 12) reicht bis 6,0 mm aus der Mitte und bleibt damit
+0,8 mm vor dem Kanal — knapp, aber frei. Größere Scheiben drücken auf den Kanal.
 
 > **Offen:** die Nut ist mit 4,4 × 3,4 mm für Ø 4 bemaßt, übernommen aus §7.1.
 > Die Durchmesser des Zellenkabels und der Leitung zum Rechner sind **nicht
