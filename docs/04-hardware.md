@@ -470,7 +470,7 @@ Erzeuger, nicht die Wahrheit.
 | Lötraum unter der Platine | 2,0 mm |
 | Bauteilraum über der Platine | 6,4 mm |
 | Stirnwand vor dem Geber | 1,2 mm |
-| Seitenwände / Deckel | **2,4** / 2,0 mm — Begründung unten |
+| Seitenwände / Deckel | 3,0 / 2,0 mm |
 | M6-Durchgang | Ø 6,6, 4,5 mm aus der Mitte versetzt |
 | Kabelkanal | D-Nut 4,4 breit, 3,4 tief (Kabel Ø 4, dreiadrig) |
 | Kabelmulde vor der Platine | dieselbe Nut, 5,2 tief, x = 20…26 mm |
@@ -542,7 +542,7 @@ die Wahrheit.
 | Lötraum unter der Platine | 2,0 mm |
 | Bauteilraum über der Platine | 6,7 mm — 2,7 mm Bauteile, **4,0 mm für die Adern** |
 | Stirnwand am Zellenende | 2,0 mm |
-| Seitenwände / Deckel | 3,0 / 2,0 mm |
+| Seitenwände / Deckel | **2,4** / 2,0 mm — Begründung unten |
 | Befestigung | **zwei Laschen** an der Kopfseite, Ø 4,5 durch, Senkung Ø 8 von oben — unten, *Die zwei Laschen* |
 | Kabelkanäle | zwei **Omega-Nuten** Ø 3,9, Maul 3,4, bei y = ±4,5 mm — unten, *Omega-Nut* |
 | Brücke zwischen den beiden Nuten | 4,40 mm |
