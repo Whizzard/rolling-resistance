@@ -45,8 +45,81 @@ void printHelp() {
   Serial.println("#   k<kg>   kalibrieren mit Gewicht am Kalibrierarm");
   Serial.println("#   d<m>    Trommelumfang           a<m>  Zellenarm");
   Serial.println("#   b<m>    Kalibrierarm            r  Einstellungen zuruecksetzen");
+  Serial.println("#   i       Zustand: Regler, Waegezelle, Bedienverbindung");
   Serial.print("# Grenze: "); Serial.print(V_MAX_KMH, 0);
   Serial.println(" km/h (docs/07-sicherheit.md §5)");
+}
+
+// Zustand auf die Konsole. Die Oberflaeche zeigt all das auch, aber beim
+// Anschliessen am Stand steht man mit dem Schraubendreher davor und nicht mit dem
+// Telefon — und wenn eine der beiden Verbindungen fehlt, ist der Browser genau
+// das, was man gerade nicht hat.
+void printStatus() {
+  const vesc::Values& v = vesc::values();
+  long mean = 0, ripple = 0;
+  torque::displayStats(mean, ripple);
+
+  Serial.println("# ---- Zustand ----");
+
+  Serial.print("# Regler   ");
+  if (vesc::connected()) {
+    Serial.print("DA");
+    if (vesc::fwKnown()) {
+      Serial.print(", FW "); Serial.print(vesc::fwMajor());
+      Serial.print('.');     Serial.print(vesc::fwMinor());
+      Serial.print(", HW "); Serial.print(vesc::hwName());
+    }
+    Serial.print(" | "); Serial.print(v.vIn, 1);    Serial.print(" V");
+    Serial.print(" | "); Serial.print(v.erpm);      Serial.print(" ERPM");
+    Serial.print(" | FET "); Serial.print(v.tempFet, 1); Serial.print(" C");
+    Serial.print(" | Fehler "); Serial.print(vesc::faultText(v.fault));
+    if (v.status & 0x01) Serial.print(" | TIMEOUT");
+    if (v.status & 0x02) Serial.print(" | KILL-SWITCH");
+    Serial.println();
+  } else {
+    Serial.print("FEHLT — keine Antwort auf TX GPIO ");
+    Serial.print(PIN_DRIVE_TX);
+    Serial.print(" / RX GPIO ");  Serial.print(PIN_DRIVE_RX);
+    Serial.print(" bei ");        Serial.print(VESC_BAUD);
+    Serial.println(" Bd");
+    if (v.seen) {
+      Serial.print("#          schon einmal geantwortet, letztes Paket vor ");
+      Serial.print(v.ageMs); Serial.println(" ms");
+    } else {
+      Serial.println("#          noch nie geantwortet. Pruefen: TX/RX vertauscht?"
+                     " app_to_use = UART? COMM-Masse?");
+    }
+  }
+
+  Serial.print("# Zelle    ");
+  if (torque::isResponding()) {
+    Serial.print("DA | "); Serial.print(mean);
+    Serial.print(" counts | Spitze-Spitze "); Serial.print(ripple);
+    Serial.print(" | Null ");  Serial.print(torque::tareOffset());
+    if (torque::isSaturated()) Serial.print(" | AM ANSCHLAG");
+    if (!settings::calibrated()) Serial.print(" | nicht kalibriert");
+    Serial.println();
+  } else {
+    Serial.print("FEHLT — HX711 antwortet nicht auf DOUT GPIO ");
+    Serial.print(PIN_HX711_DOUT);
+    Serial.print(" / SCK GPIO "); Serial.println(PIN_HX711_SCK);
+    Serial.println("#          Pruefen: VCC und VDD versorgt? GND gemeinsam?"
+                   " DOUT/SCK vertauscht?");
+  }
+
+  Serial.print("# Bedienung ");
+  Serial.print(webui::linkAlive() ? "Browser verbunden" : "kein Browser");
+  Serial.print(" | WLAN \""); Serial.print(WEBUI_SSID);
+  Serial.print("\" | http://"); Serial.print(WEBUI_HOSTNAME);
+  Serial.print(".local/ oder http://");
+  for (uint8_t i = 0; i < 4; ++i) {
+    Serial.print(WEBUI_AP_IP[i]);
+    if (i < 3) Serial.print('.');
+  }
+  Serial.println("/");
+
+  Serial.print("# Letzte Meldung: ");
+  Serial.println(g_note[0] ? g_note : "\u2014");
 }
 
 // Kalibrierung: ein bekanntes Gewicht haengt am Kalibrierarm und erzeugt dort das
@@ -121,6 +194,7 @@ void handleCommand(const String& cmd) {
       settings::reset();
       note("Einstellungen auf die Vorgaben aus config.h zurueckgesetzt");
       break;
+    case 'i': printStatus(); break;
     case '?': printHelp(); note(""); break;
     default:  note("unbekannter Befehl"); break;
   }
