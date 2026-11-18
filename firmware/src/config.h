@@ -391,6 +391,17 @@ constexpr int32_t VESC_ERPM_MAX =
 //      erst Stillstand abwarten (docs/07-sicherheit.md §3.3).
 constexpr int32_t VESC_DIRECTION_SIGN = -1;
 
+// Unterhalb dieser Motortemperatur ist der Fuehler OFFEN, nicht kalt. Am
+// 2026-11-17 gemessen: offene Klemme meldet -75,5 C, angeschlossen 19,4 C
+// (docs/06-offene-fragen.md A5). Am 2026-11-18 hat eine nicht gesteckte
+// Sensorleitung -82 C gezeigt -- und weil TMP und die drei Hall-Geber im
+// SELBEN Stecker liegen, ist das zugleich der Verdacht auf die Hall-Geber.
+constexpr float MOTOR_TEMP_OPEN_C = -20.0f;
+
+// Anlernen der Drehrichtung von Hand (speedctl::learn).
+constexpr float    SPEEDCTL_LEARN_MIN_KMH    = 2.0f;
+constexpr uint32_t SPEEDCTL_LEARN_TIMEOUT_MS = 20000;
+
 // BREMSSTROEME. [gem] Am 2026-11-17 als Kurve aufgenommen: je Stufe aus 50 km/h
 // gebremst (SET_CURRENT_BRAKE), Bremszeit bis 5 km/h und zurueckgewonnene Energie
 // gemessen. Verfuegbar waren 911 J.

@@ -450,8 +450,14 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       msg = "Wägezelle am Anschlag — überlastet oder Kabelbruch."; bad = true;
     } else if (!j.zelle) {
       msg = "HX711 antwortet nicht."; bad = true;
-    } else if (j.status & 1) {
-      msg = "Der Regler meldet Zeitüberschreitung — er hat abgestellt."; bad = true;
+    } else if (j.tmotOffen) {
+      msg = "Motorfühler offen — der 6-polige Sensorstecker sitzt nicht. "
+          + "Die Hall-Adern liegen im selben Stecker."; bad = true;
+    } else if ((j.status & 1) && j.faehrt) {
+      msg = "Der Regler hat während der Fahrt abgestellt (Zeitüberschreitung)."; bad = true;
+    } else if (j.faehrt && j.rampe > 3 && j.kmh < 1) {
+      msg = "Sollwert steht an, die Trommel dreht nicht — der Regler hat die "
+          + "Kommutierung verloren. Hall-Tabelle erneut erkennen."; bad = true;
     } else if (j.note) {
       msg = j.note;
     }

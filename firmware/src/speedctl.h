@@ -56,4 +56,19 @@ void coast();
 // Grund der letzten Ablehnung, für die Oberfläche. "" wenn alles gut ging.
 const char* lastRefusal();
 
+// Drehrichtung von Hand anlernen.
+//
+// Welches Vorzeichen der Reglerdrehzahl die MESSRICHTUNG ist, haengt an der
+// Phasenreihenfolge und aendert sich, sobald jemand am Motorkabel oder an den
+// Bremsrelais umklemmt. Statt es in config.h festzuschreiben wird es gemessen:
+// Antrieb freigeben, Trommel von Hand in Messrichtung drehen, Vorzeichen in den
+// NVS.
+//
+// Das ersetzt NICHT die Hall-Erkennung des Reglers. Die Kommutierung -- welcher
+// Hall-Zustand zu welchem Winkel gehoert -- kann nur der Regler messen, weil
+// dafuer Strom eingepraegt werden muss. Hier geht es allein um die
+// Vorzeichenkonvention darueber.
+void learn();
+bool learning();
+
 }  // namespace speedctl
