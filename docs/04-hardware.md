@@ -468,7 +468,7 @@ Erzeuger, nicht die Wahrheit.
 | Lötraum unter der Platine | 2,0 mm |
 | Bauteilraum über der Platine | 6,4 mm |
 | Stirnwand vor dem Geber | 1,2 mm |
-| Seitenwände / Deckel | 3,0 / 2,0 mm |
+| Seitenwände / Deckel | **2,4** / 2,0 mm — Begründung unten |
 | M6-Durchgang | Ø 6,6, 4,5 mm aus der Mitte versetzt |
 | Kabelkanal | D-Nut 4,4 breit, 3,4 tief (Kabel Ø 4, dreiadrig) |
 | Kabelmulde vor der Platine | dieselbe Nut, 5,2 tief, x = 20…26 mm |
@@ -521,7 +521,7 @@ Offene Seite auf das Alublech, eine M6-Schraube. Daraus folgt:
 ### 7.4 Gehäuse für die Wägeplatine (HX711)
 
 Nimmt die SparkFun-Platine *HX711 Load Cell Amp* auf, die am Pendelrahmen neben
-der Wägezelle sitzt. Außenmaß **51,5 × 30,5 × 12,3 mm**, 10,5 cm³.
+der Wägezelle sitzt. Außenmaß **50,6 × 28,9 × 12,3 mm**, 9,5 cm³.
 
 | | |
 |---|---|
@@ -535,15 +535,15 @@ die Wahrheit.
 
 | Merkmal | Maß |
 |---|---|
-| Platine | 31,0 × 23,5 mm, 1,6 mm dick, **mit Bauteilen 4,3 mm** |
-| Kavität | 33 × 24,5 × 10,3 mm, nach unten offen |
+| Platine | **30,6 × 23,1 mm** (nachgemessen), 1,6 mm dick, **mit Bauteilen 4,3 mm** |
+| Kavität | 32,6 × 24,1 × 10,3 mm, nach unten offen |
 | Lötraum unter der Platine | 2,0 mm |
 | Bauteilraum über der Platine | 6,7 mm — 2,7 mm Bauteile, **4,0 mm für die Adern** |
-| Stirnwand am Zellenende | 2,5 mm |
+| Stirnwand am Zellenende | 2,0 mm |
 | Seitenwände / Deckel | 3,0 / 2,0 mm |
 | M6-Durchgang | Ø 6,6, **mittig**, 3,50 mm Steg zu jedem Kanal — dieselbe Schraube wie §7.1, damit es am Stand nur einen Schlüssel gibt |
 | Kabelkanäle | zwei D-Nuten 4,4 breit, 3,4 tief, bei y = ±9,0 mm |
-| Restwand neben einem Kanal | 4,05 mm |
+| Restwand neben einem Kanal | 3,25 mm |
 | Kabelmulde am Übergang | dieselbe Nut, 5,2 tief, 5 mm lang |
 | Klemmstrecke dahinter | 11 mm |
 
@@ -562,11 +562,25 @@ zwei Maße, die nicht willkürlich sind:
 Die Schraube steht mittig zwischen den Kanälen: eine Schraube klemmt beide
 Mäntel, und zwar in dem Bereich, in dem das Blech am dichtesten anliegt.
 
+#### Warum 2,4 mm Seitenwand und 2,0 mm Deckel
+
+**2,4 mm sind bei einer 0,4er Düse genau sechs Bahnen.** Eine Wand aus einer ganzen
+Zahl von Bahnen braucht keine Füllnaht in der Mitte — das ist die Stelle, an der
+gedruckte Wände aufreissen. 3,0 mm wären 7,5 Bahnen.
+
+**Der Deckel bleibt bei 2,0 mm.** Er überspannt die Kavität freitragend, und eine
+freitragende Decke hängt dünner sichtbar durch. Gespart wird dort, wo Material nur
+trägt, nicht dort, wo es überbrückt.
+
+**Die Restwand am Federfeld bleibt 0,8 mm**, weil `relief_t` absolut angegeben ist und
+nicht als Anteil der Wand. Die Rastnasen federn also unverändert; nur die Freistellung
+ist mit 1,6 statt 2,2 mm flacher.
+
 #### Platinenaufnahme
 
 | Merkmal | Maß |
 |---|---|
-| Absatz | 1,8 mm Vorsprung je Längsseite, durchgehend 33 mm; Auflage 1,3 mm |
+| Absatz | 1,8 mm Vorsprung je Längsseite, durchgehend 32,6 mm; Auflage 1,3 mm |
 | Unterkante des Absatzes | z = 3,6 mm |
 | Rastnasen | 0,65 mm Vorsprung, 6 mm lang, nur mittig; Überdeckung 0,15 mm |
 | Federfeld, von außen freigestellt | 14 mm lang, 0,8 mm Restwand |

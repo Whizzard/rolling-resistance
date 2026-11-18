@@ -6,8 +6,8 @@ Aufbau wie hall_gehaeuse.py: ein PartDesign-Body mit Featurebaum plus ein
 Spreadsheet "Parameter"; alle Skizzen über Ausdrücke an die Tabelle gebunden.
 Maße ändert man im GUI in der Tabelle, nicht in den Skizzen. Maße in mm.
 
-Die Platine ist 31 x 23,5 mm und mit Bauteilen 4,3 mm dick (Angabe am Stand
-gemessen). Die Lötpads liegen an den beiden SCHMALSEITEN — links die fünf
+Die Platine ist 30,6 x 23,1 mm und mit Bauteilen 4,3 mm dick, am Stand
+nachgemessen. Die Lötpads liegen an den beiden SCHMALSEITEN — links die fünf
 Anschlüsse der Wägezelle, rechts VDD/VCC/DAT/CLK/GND zum Rechner. Daraus
 folgen zwei Dinge:
 
@@ -18,7 +18,7 @@ folgen zwei Dinge:
     EINER Seite hinauslaufen. Deshalb liegen beide Kabelkanäle am selben Ende.
 
 Featurebaum:
-    Grundkoerper      Quader 51,5 x 30,5 x 12,3
+    Grundkoerper      Quader 50,6 x 28,9 x 12,3
     Kavitaet          breiter Teil, z = 0...3,6  (Platinendurchgang)
     Bauteilraum       schmaler Teil, volle Höhe  -> erzeugt den Absatz
     Rastnasen         zwei Keile, mittig, unter der Platine
@@ -31,6 +31,11 @@ Die Klemmstrecke ist 1 mm enger als das Kabel: der Mantel wird zwischen Nut und
 Montagefläche eingeklemmt, und DAS ist die Zugentlastung (docs/04-hardware.md §7).
 Die Mulde am Übergang ist absichtlich tiefer, damit der Mantel dort, wo das Kabel
 nach unten abbiegt, nicht gequetscht wird.
+
+Seitenwand 2,4 mm statt 3,0: bei einer 0,4er Düse sind das genau sechs Bahnen,
+also keine dünne Füllnaht in der Mitte. Der **Deckel bleibt bei 2,0 mm** — er
+überbrückt die Kavität freitragend und hängt dünner durch. Die Restwand am
+Federfeld bleibt 0,8 mm, die Rastnasen federn also unverändert.
 
 Z = 0 ist die offene Unterseite, die auf der Montagefläche liegt.
 """
@@ -48,17 +53,17 @@ from FreeCAD import Vector
 # --------------------------------------------------------------- Parameter
 # (Name, Wert oder Formel, Kommentar). Formeln beginnen mit '='.
 PARAMS = [
-    ('pcb_l',       31.0,  'Platine Laenge'),
-    ('pcb_w',       23.5,  'Platine Breite'),
+    ('pcb_l',       30.6,  'Platine Laenge, gemessen'),
+    ('pcb_w',       23.1,  'Platine Breite, gemessen'),
     ('pcb_t',        1.6,  'Platine Dicke'),
     ('pcb_stack',    4.3,  'Platine mit Bauteilen'),
     ('cable_h',      4.0,  'Platz ueber den Bauteilen fuer die Adern'),
     ('solder_gap',   2.0,  'Loetraum unter der Platine'),
     ('headroom', '=pcb_stack - pcb_t + cable_h', 'Bauteilraum ueber der Platine'),
 
-    ('wall',         3.0,  'Seitenwand'),
-    ('top',          2.0,  'Deckelwand'),
-    ('end_wall',     2.5,  'Stirnwand am Zellenende'),
+    ('wall',         2.4,  'Seitenwand, 6 Bahnen bei 0,4er Duese'),
+    ('top',          2.0,  'Deckelwand, bleibt bei 2,0 (freie Spannweite)'),
+    ('end_wall',     2.0,  'Stirnwand am Zellenende'),
     ('rib',          2.0,  'Steg zur Schraube'),
     ('screw_blk',   14.0,  'Laenge des massiven Blocks'),
 
