@@ -15,6 +15,9 @@ uint32_t g_lastMs = 0;
 const char* g_refusal = "";
 bool     g_learn  = false;  // Drehrichtung wird gerade angelernt
 uint32_t g_learnStart = 0;
+bool     g_brk    = false;  // Losbrechmessung laeuft
+float    g_brkDuty = 0.0f;  // Ergebnis: Tastverhaeltnis beim Losbrechen
+float    g_brkAmps = 0.0f;
 
 // Mechanische Drehzahl der Trommel aus der Reglerdrehzahl. Vorzeichenbehaftet:
 // in Messrichtung ist ERPM negativ (VESC_DIRECTION_SIGN).
@@ -95,6 +98,29 @@ void service() {
     return;
   }
 
+  if (g_brk) {
+    if (!vesc::connected()) { coast(); g_refusal = "kein Regler"; return; }
+    const float ist = kmhSigned();
+    if (fabsf(ist) >= BREAKAWAY_DETECT_KMH) {
+      g_brkDuty = g_duty;
+      g_brkAmps = vesc::values().currentMotor;
+      g_brk = false;
+      coast();
+      return;
+    }
+    g_duty += BREAKAWAY_RATE_PER_S * dt;
+    if (g_duty > BREAKAWAY_DUTY_MAX) {
+      g_brk = false;
+      g_brkDuty = 0.0f;          // nicht losgebrochen -- keine erfundene Zahl
+      g_brkAmps = vesc::values().currentMotor;
+      coast();
+      g_refusal = "nicht losgebrochen bis zur Obergrenze";
+      return;
+    }
+    vesc::setDuty(g_duty * settings::directionSign());
+    return;
+  }
+
   if (!g_run) return;
 
   // Ohne Messwerte vom Regler wird nicht gestellt — blind das Tastverhaeltnis
@@ -143,7 +169,9 @@ void service() {
 float targetKmh() { return g_target; }
 float rampKmh()   { return g_run ? g_ramp : 0.0f; }
 float kmh()       { const float k = kmhSigned(); return k > 0.0f ? k : 0.0f; }
-float duty()      { return g_run ? g_duty : 0.0f; }
+// Auch waehrend der Losbrechmessung liegt ein Stellwert an -- ohne g_brk hier
+// zeigte die Anzeige durchgehend 0, und genau diese Zahl ist das Messergebnis.
+float duty()      { return (g_run || g_brk) ? g_duty : 0.0f; }
 bool  running()   { return g_run; }
 
 void stop() {
@@ -170,6 +198,18 @@ void learn() {
 }
 
 bool learning() { return g_learn; }
+
+void breakaway() {
+  coast();
+  g_duty = 0.0f;
+  g_brkDuty = g_brkAmps = 0.0f;
+  g_brk = true;
+  g_refusal = "";
+}
+
+bool  breakingAway()  { return g_brk; }
+float breakawayDuty() { return g_brkDuty; }
+float breakawayAmps() { return g_brkAmps; }
 
 const char* lastRefusal() { return g_refusal; }
 

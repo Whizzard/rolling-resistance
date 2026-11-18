@@ -47,6 +47,7 @@ void printHelp() {
   Serial.println("#   b<m>    Kalibrierarm            r  Einstellungen zuruecksetzen");
   Serial.println("#   i       Zustand: Regler, Waegezelle, Bedienverbindung");
   Serial.println("#   l       Drehrichtung anlernen (Trommel von Hand drehen)");
+  Serial.println("#   x       Losbrechmoment messen (Tastverhaeltnis steigt langsam)");
   Serial.print("# Grenze: "); Serial.print(V_MAX_KMH, 0);
   Serial.println(" km/h (docs/07-sicherheit.md §5)");
 }
@@ -109,7 +110,13 @@ void printStatus() {
   }
 
   Serial.print("# Antrieb  ");
-  if (speedctl::learning()) {
+  if (speedctl::breakingAway()) {
+    Serial.print("Losbrechmessung | Stellwert ");
+    Serial.print(speedctl::duty(), 4);
+    Serial.print(" | Imot ");  Serial.print(v.currentMotor, 1);
+    Serial.print(" A | Ist "); Serial.print(speedctl::kmh(), 1);
+    Serial.println(" km/h");
+  } else if (speedctl::learning()) {
     Serial.println("lernt Drehrichtung \u2014 Trommel in Messrichtung drehen");
   } else {
     Serial.print(speedctl::running() ? "faehrt" : "steht");
@@ -162,6 +169,16 @@ void printStatus() {
     if (i < 3) Serial.print('.');
   }
   Serial.println("/");
+
+  if (speedctl::breakawayDuty() > 0.0f) {
+    Serial.print("# Losbruch bei Stellwert ");
+    Serial.print(speedctl::breakawayDuty(), 4);
+    Serial.print(", Imot ");  Serial.print(speedctl::breakawayAmps(), 1);
+    Serial.print(" A, Moment ");
+    Serial.print(speedctl::breakawayAmps() * MOTOR_KT_NM_PER_A, 2);
+    Serial.print(" Nm | Laufreibung zum Vergleich ");
+    Serial.print(DRUM_LOSS_CONST_NM, 3); Serial.println(" Nm");
+  }
 
   Serial.print("# Letzte Meldung: ");
   Serial.println(g_note[0] ? g_note : "\u2014");
@@ -245,6 +262,13 @@ void handleCommand(const String& cmd) {
       note("Trommel jetzt von Hand in Messrichtung drehen");
       Serial.println("# Antrieb freigegeben. Trommel in MESSRICHTUNG drehen,"
                      " mindestens 2 km/h.");
+      break;
+    case 'x':
+      if (speedctl::running()) { note("erst anhalten"); break; }
+      speedctl::breakaway();
+      note("Losbrechmessung laeuft \u2014 Trommel nicht anfassen");
+      Serial.println("# Losbrechmessung: Tastverhaeltnis steigt mit 0,01/s,"
+                     " Abbruch bei 0,15 oder sobald sie sich regt.");
       break;
     case 'i': printStatus(); break;
     case '?': printHelp(); note(""); break;
