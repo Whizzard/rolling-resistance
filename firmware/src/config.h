@@ -398,6 +398,19 @@ constexpr int32_t VESC_DIRECTION_SIGN = -1;
 // SELBEN Stecker liegen, ist das zugleich der Verdacht auf die Hall-Geber.
 constexpr float MOTOR_TEMP_OPEN_C = -20.0f;
 
+// Hoechstalter eines Befehls aus der Oberflaeche.
+//
+// GRUND, am 2026-11-18 am Stand passiert: Befehle gingen als GET, und ein GET
+// gilt als wiederholbar -- iOS schickt ihn nach einem Verbindungsabriss von
+// selbst noch einmal. Beim Seitenaufbau riss die Verbindung ab, und ein alter
+// "v20" kam Sekunden spaeter erneut an und setzte den Antrieb in Gang. Jeder
+// Befehl traegt deshalb jetzt den Zeitstempel mit, den die Oberflaeche zuletzt
+// gesehen hat; was aelter ist, wird verworfen.
+//
+// STOP und Auslaufen sind davon AUSGENOMMEN. Ein verspaetetes STOP ist
+// harmlos, ein verworfenes waere es nicht.
+constexpr uint32_t CMD_MAX_AGE_MS = 2000;
+
 // Losbrechmessung (speedctl::breakaway). Das Losbrechmoment der Trommel ist
 // NICHT gemessen -- DRUM_LOSS_CONST_NM ist die LAUFreibung aus dem Auslauf und
 // taugt dafuer nicht. Die Messung hebt das Tastverhaeltnis langsam an, bis sich

@@ -320,6 +320,8 @@ void buildStateJson(char* buf, size_t len) {
     "\"counts\":%ld,\"ripple\":%ld,\"n\":%s,\"pct\":%s,\"kg\":%s,"
     "\"nm\":%s,\"roll\":%s,"
     "\"kal\":%s,\"saturiert\":%s,\"zelle\":%s,"
+    "\"dir\":%d,\"lernt\":%s,\"brk\":%s,\"brkDuty\":%.4f,\"brkAmps\":%.1f,"
+    "\"up\":%lu,"
     "\"drumU\":%.4f,\"arm\":%.4f,\"calArm\":%.4f,\"npc\":%.8f,"
     "\"vmax\":%.0f,\"vmin\":%.0f,\"step\":%.0f,\"fsN\":%.1f}",
     ok ? "true" : "false",
@@ -338,6 +340,11 @@ void buildStateJson(char* buf, size_t len) {
     settings::calibrated() ? "true" : "false",
     torque::isSaturated() ? "true" : "false",
     torque::isResponding() ? "true" : "false",
+    static_cast<int>(settings::directionSign()),
+    speedctl::learning() ? "true" : "false",
+    speedctl::breakingAway() ? "true" : "false",
+    speedctl::breakawayDuty(), speedctl::breakawayAmps(),
+    static_cast<unsigned long>(millis()),
     settings::drumCircumferenceM(), settings::torqueArmM(),
     settings::calibArmM(), settings::loadcellNPerCount(),
     V_MAX_KMH, V_MIN_KMH, SPEED_STEP_KMH, LOADCELL_CAPACITY_N);
