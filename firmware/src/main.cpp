@@ -15,6 +15,7 @@
 //
 #include <Arduino.h>
 #include "config.h"
+#include "settings.h"
 #include "speed.h"
 #include "torque.h"
 #include "drive.h"

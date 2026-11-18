@@ -1261,12 +1261,24 @@ Ruhezone außen muss bleiben, sonst findet die Kamera die Positionsmarken nicht.
   Aufkleber liest, kann fahren. Für einen Stand mit Motor ist das eine bewusste
   Abwägung, keine Nachlässigkeit: der Not-Aus ist Hardware, die Bremse stromlos zu.
 
-## 14 Reglervariante
+## 14 Testlauf-Variante
 
-Eigenständige Firmware, die **nur** den Motorregler fährt: keine Wägezelle, keine
-Hall-Geber, kein LCD, keine Zustandsmaschine, kein Messbetrieb. Drei Drähte zum
-Regler — `COMM` TX, RX und Masse (§12.2) —, und er liefert Drehzahl, Busspannung,
-Motorstrom, Reglertemperatur und Fehlercode von selbst.
+Eigenständige Firmware für die **ersten Testläufe**: Motorregler **und Wägezelle**,
+sonst nichts. Keine Hall-Geber an der Trommel, kein LCD, keine Zustandsmaschine, kein
+Messbetrieb mit Plateaus und Protokoll. Drei Drähte zum Regler — `COMM` TX, RX und
+Masse (§12.2) —, und er liefert Drehzahl, Busspannung, Ströme, beide Temperaturen und
+den Fehlercode von selbst.
+
+> Sie hieß zuerst **Reglervariante** und fuhr nur den Antrieb. Am 2026-11-18 kam die
+> Wägezelle dazu, samt Einrichtungsseite für Trommelumfang, Hebelarme und Kalibrierung.
+> Damit ist sie das Werkzeug für die ersten Läufe, nicht mehr nur für die Inbetriebnahme
+> des Antriebsstrangs.
+
+**Die Geschwindigkeit kommt aus der Reglerdrehzahl**, nicht von den Trommelmarken: die
+Hall-Geber an der Trommel sind noch nicht verdrahtet. Mit der am 2026-11-17 gemessenen
+Polpaarzahl ist `ERPM / 15` die Trommeldrehzahl — eine Rechnung, keine Schätzung. Sobald
+die Marken liegen, ist der Vergleich beider Quellen die Plausibilitätsprüfung, die
+`SLIP_TOLERANCE` vorsieht.
 
 Zweck: den Antriebsstrang in Betrieb nehmen und kennenlernen, **bevor** ein einziger
 Messwert ansteht. Die Messkette ist in wesentlichen Punkten noch TBD — Zelle
@@ -1285,17 +1297,72 @@ fordern genau diese Funktionen bereits.
 
 ### 14.1 Was sie kann
 
-Bewusst das Nötigste: **Drehzahl in ERPM setzen** (± 100 und ± 1000), **Start**,
-**Stop**. Angezeigt werden fünf Werte — Drehzahl, Sollwert, Busspannung, Motorstrom,
-Reglertemperatur — dazu Fehlercode im Klartext und das Statusbyte.
+**Zwei Seiten.** *Messung* zeigt Geschwindigkeit, Wägezelle (kg, Kraft, Moment,
+Rollkraft), Ströme, Leistung, Busspannung und beide Temperaturen; darunter ein Raster
+mit allen Stufen von `V_MIN_KMH` bis 100 km/h in Schritten von `SPEED_STEP_KMH`, dazu
+±5 zum Nachfassen. *Einrichtung* trägt Trommelumfang, beide Hebelarme und die
+Kalibrierung der Zelle.
+
+> **Stufen über `V_MAX_KMH` zeigt die Oberfläche gesperrt an** und die Firmware lehnt
+> sie ab. Die Knöpfe sind trotzdem da, damit sichtbar ist, was fehlt: die Freigabe nach
+> [07-sicherheit](07-sicherheit.md) §5.
+
+**STOP bremst** mit `VESC_BRAKE_CURRENT_STOP` = 20 A — die Festlegung lautet
+*schnellstmöglicher Stopp*. Wirft der Regler dabei ab, weil ein Netzteil statt eines
+Akkus am Bus hängt, läuft die Trommel aus und die Oberfläche sagt es. **Der Fehlerfall
+ist damit zugleich der Rückfallweg.** Daneben steht *Auslaufen*, das immer geht.
 
 Befehle, identisch über serielle Konsole und Weboberfläche ([10-firmware](10-firmware.md) G5):
 
 | | |
 |---|---|
-| `r<erpm>` | Sollwert setzen |
-| `s` | Stop — Antrieb stromlos, Trommel läuft aus |
+| `v<kmh>` | Zielgeschwindigkeit an der Trommeloberfläche |
+| `s` | STOP, bremst mit 20 A |
+| `c` | auslaufen lassen |
+| `t` | Wägezelle nullen (nur im Stillstand) |
+| `k<kg>` | kalibrieren mit bekanntem Gewicht am Kalibrierarm |
+| `d<m>` `a<m>` `b<m>` | Trommelumfang · Zellenarm · Kalibrierarm |
+| `r` | Einstellungen auf die Vorgaben aus `config.h` zurücksetzen |
 | `?` | Hilfe |
+
+### 14.1a Kalibrierung der Wägezelle
+
+Zwei Schritte, beide über die Einrichtungsseite oder die Konsole:
+
+1. **Nullabgleich** bei unbelastetem Arm. Mittelt `TARE_SAMPLES` Rohwerte, rund 2,5 s.
+2. **Bekanntes Gewicht** an den Kalibrierarm hängen und das Gewicht eingeben.
+
+Gerechnet wird
+
+```
+F_Zelle   = m · g · L_kal / L_Zelle
+N_pro_cnt = F_Zelle / (Rohwert − Nullwert)
+```
+
+Das Gewicht hängt am **längeren** Arm, die Zelle sitzt am kürzeren — deshalb erzeugt ein
+handliches Gewicht die doppelte Kraft an der Zelle (§Parameter `CALIB_ARM_M`).
+
+> **Solange nicht kalibriert ist, gibt es keine Kräfte, nur Rohwerte.** Die Oberfläche
+> zeigt dann Gedankenstriche und „nicht kalibriert". Das ist Absicht: eine Zahl, die
+> aussieht wie eine Messung, ist schlimmer als eine Lücke.
+
+### 14.1b Wo die am Aufbau ermittelten Werte liegen
+
+Trommelumfang, beide Hebelarme und der Kalibrierfaktor werden **am Aufbau** gemessen,
+nicht am Schreibtisch. Ein Kalibrierlauf, der zum Übersetzen und Flashen zwingt, wird
+nicht gemacht — und ein nicht gemachter Kalibrierlauf ist genau die Quelle erfundener
+Zahlen, gegen die die Projektregel geschrieben ist.
+
+Deshalb liegen diese vier Werte im **NVS** des ESP32 (`firmware/src/settings.*`).
+
+> **Die Regel bleibt trotzdem gewahrt.** `config.h` liefert die Vorgaben, und die
+> Oberfläche zeigt nach jeder Kalibrierung die fertige Zeile zum Eintragen in `config.h`
+> und [03-parameter](03-parameter.md) §2 an. Der NVS ist der Arbeitsspeicher, **das Repo
+> bleibt die Quelle der Wahrheit**. Wer das Board tauscht, verliert den NVS — und merkt
+> es sofort, weil die Firmware dann wieder „nicht kalibriert" meldet.
+
+Unplausible Werte werden abgewiesen statt übernommen: ein vertippter Trommelumfang von
+28,37 m soll nicht stillschweigend gelten.
 
 ### 14.2 ERPM, und warum die Umrechnung jetzt zulässig ist
 

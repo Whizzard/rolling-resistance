@@ -1,6 +1,7 @@
 #include "display.h"
 #include <Wire.h>
 #include "config.h"
+#include "settings.h"
 #include "speed.h"
 #include "torque.h"
 #include "drive.h"
@@ -103,7 +104,7 @@ void renderSetup() {
   row(0, buf);
   snprintf(buf, sizeof(buf), "Druck %5.2f bar", tirepressure::bar());
   row(1, buf);
-  snprintf(buf, sizeof(buf), "Arm %.3f m i %.2f", TORQUE_ARM_M, BELT_RATIO);
+  snprintf(buf, sizeof(buf), "Arm %.3f m i %.2f", settings::torqueArmM(), BELT_RATIO);
   row(2, buf);
   row(3, isCalibrated() ? "Zelle kalibriert" : "Zelle UNKALIBRIERT");
 }

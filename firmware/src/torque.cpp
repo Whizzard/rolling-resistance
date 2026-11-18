@@ -1,5 +1,6 @@
 #include "torque.h"
 #include "config.h"
+#include "settings.h"
 
 namespace torque {
 namespace {
@@ -98,17 +99,17 @@ bool isResponding() {
 
 float newtons() {
   if (!isCalibrated()) return NAN;
-  return static_cast<float>(g_raw - g_offset) * LOADCELL_N_PER_COUNT;
+  return static_cast<float>(g_raw - g_offset) * settings::loadcellNPerCount();
 }
 
 float momentNm() {
   const float f = newtons();
-  return isnan(f) ? NAN : f * TORQUE_ARM_M;
+  return isnan(f) ? NAN : f * settings::torqueArmM();
 }
 
 float rollForceN() {
   const float m = momentNm();
-  return isnan(m) ? NAN : m / DRUM_RADIUS_M;
+  return isnan(m) ? NAN : m / settings::drumRadiusM();
 }
 
 float powerW(float omega) {
@@ -159,7 +160,7 @@ float averageRaw() {
 
 float averageN() {
   if (!isCalibrated() || g_count == 0) return NAN;
-  return (averageRaw() - static_cast<float>(g_offset)) * LOADCELL_N_PER_COUNT;
+  return (averageRaw() - static_cast<float>(g_offset)) * settings::loadcellNPerCount();
 }
 
 float binAverageRaw(uint8_t bin) {

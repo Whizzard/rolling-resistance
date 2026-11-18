@@ -1,0 +1,145 @@
+#include "speedctl.h"
+#include "config.h"
+#include "settings.h"
+#include "vesc/vesc.h"
+
+namespace speedctl {
+namespace {
+
+float    g_target = 0.0f;   // gewuenschte km/h
+float    g_ramp   = 0.0f;   // gerampter innerer Sollwert
+float    g_duty   = 0.0f;   // Betrag des Stellwerts, Vorzeichen kommt aus config
+bool     g_run    = false;
+bool     g_fresh  = true;   // beim naechsten Durchlauf aus der Istdrehzahl vorbesetzen
+uint32_t g_lastMs = 0;
+const char* g_refusal = "";
+
+// Mechanische Drehzahl der Trommel aus der Reglerdrehzahl. Vorzeichenbehaftet:
+// in Messrichtung ist ERPM negativ (VESC_DIRECTION_SIGN).
+float rpmSigned() {
+  return static_cast<float>(vesc::values().erpm) / MOTOR_POLE_PAIRS;
+}
+
+// km/h in Messrichtung, also positiv, wenn die Trommel richtig herum dreht.
+float kmhSigned() {
+  return kmhFromRevPerSec(rpmSigned() / 60.0f) * VESC_DIRECTION_SIGN;
+}
+
+float rpmFromKmh(float kmh) { return revPerSecFromKmh(kmh) * 60.0f; }
+
+// Leerlaufdrehzahl bei Vollaussteuerung und der MOMENTANEN Busspannung.
+//
+// Dass die Spannung eingeht, ist nicht Feinschliff: am 2026-11-17 brach das Netzteil
+// unter Last von 40,0 auf 33,8 V ein, und eine auf 40 V gerechnete Klemme liess den
+// Hochlauf dann bei 94 km/h haengen.
+float noLoadRpm() {
+  const float v = vesc::values().vIn;
+  return MOTOR_NO_LOAD_RPM_PER_V * (v > 10.0f ? v : 10.0f);
+}
+
+}  // namespace
+
+void begin() {
+  g_target = g_ramp = g_duty = 0.0f;
+  g_run = false;
+  g_fresh = true;
+  g_lastMs = millis();
+  g_refusal = "";
+}
+
+bool setTargetKmh(float kmh) {
+  g_refusal = "";
+
+  if (kmh <= 0.0f) { coast(); return true; }
+
+  if (kmh > V_MAX_KMH) {
+    g_refusal = "ueber V_MAX_KMH — Freigabe nach docs/07-sicherheit.md §5 fehlt";
+    return false;
+  }
+
+  // Richtungswechsel im Lauf ist ein Bremsbefehl (docs/07-sicherheit.md §3.3).
+  if (kmhSigned() < -1.0f) {
+    g_refusal = "Trommel dreht rueckwaerts — erst Stillstand abwarten";
+    return false;
+  }
+
+  if (!g_run) g_fresh = true;   // Anfahren: Stellwert aus der Istdrehzahl vorbesetzen
+  g_target = kmh;
+  g_run    = true;
+  return true;
+}
+
+void service() {
+  const uint32_t now = millis();
+  if (now - g_lastMs < SPEEDCTL_PERIOD_MS) return;
+  const float dt = (now - g_lastMs) / 1000.0f;
+  g_lastMs = now;
+
+  if (!g_run) return;
+
+  // Ohne Messwerte vom Regler wird nicht gestellt — blind das Tastverhaeltnis
+  // hochzufahren waere genau der Fehler, gegen den die Vorsteuerung gebaut ist.
+  if (!vesc::connected()) { coast(); g_refusal = "kein Regler"; return; }
+
+  const float istKmh = kmhSigned();
+
+  if (g_fresh) {
+    // Dort anknuepfen, wo die Trommel dreht. Siehe Regel 1 in speedctl.h.
+    g_fresh = false;
+    g_ramp  = istKmh > 0.0f ? istKmh : 0.0f;
+    g_duty  = rpmFromKmh(g_ramp) / noLoadRpm();
+    if (g_duty < 0.0f) g_duty = 0.0f;
+  }
+
+  // Sollwert rampen
+  if (g_ramp < g_target) {
+    g_ramp += SPEEDCTL_RAMP_KMH_PER_S * dt;
+    if (g_ramp > g_target) g_ramp = g_target;
+  } else if (g_ramp > g_target) {
+    g_ramp -= SPEEDCTL_RAMP_KMH_PER_S * dt;
+    if (g_ramp < g_target) g_ramp = g_target;
+  }
+
+  // Klemme aus der Leerlaufkennlinie des Sollwerts (Regel 3)
+  float klemme = rpmFromKmh(g_ramp) / noLoadRpm() * SPEEDCTL_CLAMP_FACTOR
+                 + SPEEDCTL_CLAMP_OFFSET;
+  if (klemme > 0.95f) klemme = 0.95f;
+
+  // Trimm, asymmetrisch begrenzt (Regel 2)
+  const float err  = g_ramp - istKmh;
+  float       step = SPEEDCTL_KP * err * dt;
+  const float up   = SPEEDCTL_DUTY_UP_PER_S   * dt;
+  const float down = SPEEDCTL_DUTY_DOWN_PER_S * dt;
+  if (step >  up)   step =  up;
+  if (step < -down) step = -down;
+
+  g_duty += step;
+  if (g_duty > klemme) g_duty = klemme;
+  if (g_duty < 0.0f)   g_duty = 0.0f;
+
+  vesc::setDuty(g_duty * VESC_DIRECTION_SIGN);
+}
+
+float targetKmh() { return g_target; }
+float rampKmh()   { return g_run ? g_ramp : 0.0f; }
+float kmh()       { const float k = kmhSigned(); return k > 0.0f ? k : 0.0f; }
+float duty()      { return g_run ? g_duty : 0.0f; }
+bool  running()   { return g_run; }
+
+void stop() {
+  g_run = false;
+  g_target = g_ramp = g_duty = 0.0f;
+  g_fresh = true;
+  vesc::setBrakeCurrent(VESC_BRAKE_CURRENT_STOP);
+}
+
+void coast() {
+  g_run = false;
+  g_target = g_ramp = g_duty = 0.0f;
+  g_fresh = true;
+  vesc::release();
+}
+
+const char* lastRefusal() { return g_refusal; }
+
+}  // namespace speedctl

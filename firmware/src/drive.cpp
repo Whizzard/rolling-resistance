@@ -1,5 +1,6 @@
 #include "drive.h"
 #include "config.h"
+#include "settings.h"
 #include "speed.h"
 
 namespace {

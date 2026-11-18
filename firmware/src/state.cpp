@@ -1,5 +1,6 @@
 #include "state.h"
 #include "config.h"
+#include "settings.h"
 #include "speed.h"
 #include "torque.h"
 #include "drive.h"
@@ -80,9 +81,9 @@ void finishPoint() {
   const float v = speed::kmh();
   const float raw = torque::averageRaw();
   const float fN = torque::averageN();
-  const float mNm = isnan(fN) ? NAN : fN * TORQUE_ARM_M;
+  const float mNm = isnan(fN) ? NAN : fN * settings::torqueArmM();
   const float pW = isnan(mNm) ? NAN : mNm * speed::omega();
-  const float fRoll = isnan(mNm) ? NAN : mNm / DRUM_RADIUS_M;
+  const float fRoll = isnan(mNm) ? NAN : mNm / settings::drumRadiusM();
 
   // Crr nur im Messlauf und nur mit bekannter Auflast. Im BASELINE-Lauf ist es
   // sinnlos; die Subtraktion macht die Auswertung, nicht die Firmware.
