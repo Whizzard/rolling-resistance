@@ -6,8 +6,9 @@ Aufbau wie hall_gehaeuse.py: ein PartDesign-Body mit Featurebaum plus ein
 Spreadsheet "Parameter"; alle Skizzen über Ausdrücke an die Tabelle gebunden.
 Maße ändert man im GUI in der Tabelle, nicht in den Skizzen. Maße in mm.
 
-Die Platine ist 30,6 x 23,1 mm und mit Bauteilen 4,3 mm dick, am Stand
-nachgemessen. Die Lötpads liegen an den beiden SCHMALSEITEN — links die fünf
+Die Platine ist 30,6 x 23,0 mm und mit Bauteilen 4,3 mm dick, am Stand
+nachgemessen. Das Spiel steht als `fit_w` / `fit_l` ausdruecklich in der
+Tabelle — nicht als Aufschlag in der Formel versteckt. Die Lötpads liegen an den beiden SCHMALSEITEN — links die fünf
 Anschlüsse der Wägezelle, rechts VDD/VCC/DAT/CLK/GND zum Rechner. Daraus
 folgen zwei Dinge:
 
@@ -26,6 +27,7 @@ Featurebaum:
     Schraubloch       M6 durch, mittig zwischen den Kanälen
     Kabelhals_p/_m    enger Hals an der offenen Seite — die Kralle
     Kabelnut_p/_m     Kreis darueber, steht ueber den Hals hinaus
+    Maulfasen         vier kleine Fasen an den Maulkanten
     Kabelmulde_p/_m   tiefer, am Übergang, dort wird nicht geklemmt
 
 Die Klemmstrecke ist 1 mm enger als das Kabel: der Mantel wird zwischen Nut und
@@ -43,6 +45,7 @@ Z = 0 ist die offene Unterseite, die auf der Montagefläche liegt.
 
 import os
 import sys
+import math
 
 sys.path.append('/Applications/FreeCAD.app/Contents/Resources/lib')
 
@@ -55,7 +58,9 @@ from FreeCAD import Vector
 # (Name, Wert oder Formel, Kommentar). Formeln beginnen mit '='.
 PARAMS = [
     ('pcb_l',       30.6,  'Platine Laenge, gemessen'),
-    ('pcb_w',       23.1,  'Platine Breite, gemessen'),
+    ('pcb_w',       23.0,  'Platine Breite, gemessen'),
+    ('fit_w',        0.4,  'Spiel in der Breite, GESAMT -> 0,2 je Seite'),
+    ('fit_l',        0.6,  'Spiel in der Laenge, GESAMT -> 0,3 je Ende'),
     ('pcb_t',        1.6,  'Platine Dicke'),
     ('pcb_stack',    4.3,  'Platine mit Bauteilen'),
     ('cable_h',      4.0,  'Platz ueber den Bauteilen fuer die Adern'),
@@ -68,8 +73,8 @@ PARAMS = [
     ('rib',          2.0,  'Steg zur Schraube'),
     ('screw_blk',   14.0,  'Laenge des massiven Blocks'),
 
-    ('cav_l',  '=pcb_l + 2',                     'Kavitaet Laenge'),
-    ('cav_w',  '=pcb_w + 1',                     'Kavitaet Breite'),
+    ('cav_l',  '=pcb_l + fit_l',                 'Kavitaet Laenge'),
+    ('cav_w',  '=pcb_w + fit_w',                 'Kavitaet Breite'),
     ('cav_h',  '=solder_gap + pcb_t + headroom', 'Kavitaet Hoehe'),
     ('cav_x0', '=end_wall',                      'Kavitaet Anfang'),
     ('cav_xm', '=cav_x0 + cav_l / 2',            'Kavitaet Mitte'),
@@ -101,7 +106,8 @@ PARAMS = [
     ('cab_depth',    3.4,  'Nuttiefe, 0,6 unter dem Kabel -> Flaeche klemmt'),
     ('cab_z', '=cab_depth - cab_d / 2', 'Kreismitte ueber der offenen Seite'),
     ('cab_claw', '=(cab_d - cab_mouth) / 2', 'Hinterschnitt je Seite'),
-    ('cab_y',        9.0,  'Kanalmitte, Betrag — je einmal +y und -y'),
+    ('cab_chamfer',  0.3,  'Fase am Nutmaul, Einfuehrhilfe fuers Kabel'),
+    ('cab_y',        8.6,  'Kanalmitte, Betrag — je einmal +y und -y'),
     ('cab_x0', '=cav_x0 + cav_l', 'Kanalanfang, am Ende der Kavitaet'),
     ('cab_len','=l_out - cab_x0 + 1', 'Kanallaenge'),
     ('cab_deep_d',   4.6,  'Mulde Breite, UEBER dem Kabel -> keine Klemmung'),
@@ -335,6 +341,45 @@ def build(doc, sh):
         circle(sk, y, P(sh, 'cab_deep') - rm, rm, 'mulr' + t,
                e_y, 'Parameter.cab_deep - Parameter.cab_deep_d / 2', e_rm)
         pocket(sk, 'Kabelmulde_rund_' + t, 'Parameter.cab_deep_l')
+
+    # 11 Fase am Nutmaul, vier Kanten (zwei je Kanal).
+    #
+    #   Das Kabel muss durch den engeren Hals gedrueckt werden; ohne Fase fasst
+    #   die scharfe Kante in den Mantel. Die runde Form bleibt unberuehrt — die
+    #   Fase sitzt UNTER dem Hinterschnitt und nimmt von der Kralle nichts weg.
+    #
+    #   Dafuer gibt es eine harte Grenze: der Kreis tritt erst bei
+    #       z = cab_depth - R - sqrt(R² - (Hals/2)²)
+    #   aus dem Hals heraus. Bis dahin darf die Fase reichen, nicht weiter.
+    R = P(sh, 'cab_d') / 2
+    halb = P(sh, 'cab_mouth') / 2
+    einsatz = P(sh, 'cab_depth') - R - math.sqrt(R * R - halb * halb)
+    if P(sh, 'cab_chamfer') >= einsatz:
+        raise RuntimeError(
+            'Fase %.2f reicht in den Hinterschnitt (beginnt bei z = %.3f)'
+            % (P(sh, 'cab_chamfer'), einsatz))
+
+    kanten = [sign * P(sh, 'cab_y') + side * halb
+              for sign in (+1, -1) for side in (+1, -1)]
+    tip = body.Tip
+    namen = []
+    for i, e in enumerate(tip.Shape.Edges):
+        if not isinstance(e.Curve, Part.Line):
+            continue
+        d = e.Vertexes[-1].Point - e.Vertexes[0].Point
+        if abs(d.y) > 1e-6 or abs(d.z) > 1e-6:
+            continue                                   # nicht laengs x
+        q = e.Vertexes[0].Point
+        if abs(q.z) > 1e-6:
+            continue                                   # nicht an der offenen Seite
+        if any(abs(q.y - k) < 1e-6 for k in kanten):
+            namen.append('Edge%d' % (i + 1))
+    if len(namen) != 4:
+        raise RuntimeError('Maulkanten nicht eindeutig gefunden: %s' % namen)
+    f = body.newObject('PartDesign::Chamfer', 'Maulfasen')
+    f.Base = (tip, namen)
+    f.setExpression('Size', 'Parameter.cab_chamfer')
+    doc.recompute()
 
     return body
 

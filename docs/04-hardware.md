@@ -524,11 +524,11 @@ Offene Seite auf das Alublech, eine M6-Schraube. Daraus folgt:
 ### 7.4 Gehäuse für die Wägeplatine (HX711)
 
 Nimmt die SparkFun-Platine *HX711 Load Cell Amp* auf, die am Pendelrahmen neben
-der Wägezelle sitzt. Außenmaß **50,6 × 28,9 × 12,3 mm**, 9,6 cm³.
+der Wägezelle sitzt. Außenmaß **49,2 × 28,2 × 12,3 mm**, 9,2 cm³.
 
 | | |
 |---|---|
-| Featurebaum | Grundkoerper · Kavitaet · Bauteilraum · Rastnasen · Federfeld · Schraubloch · Kabelhals · Kabelnut · Kabelmulde (+rund), die drei Nutfeatures je einmal links und rechts |
+| Featurebaum | Grundkoerper · Kavitaet · Bauteilraum · Rastnasen · Federfeld · Schraubloch · Kabelhals · Kabelnut · Kabelmulde (+rund) · Maulfasen |
 | `hardware/hx711_gehaeuse.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
 
 Aufbau, Spreadsheet und Vorbehalt wie oben: das Skript ist der Erzeuger, die FCStd
@@ -538,17 +538,40 @@ die Wahrheit.
 
 | Merkmal | Maß |
 |---|---|
-| Platine | **30,6 × 23,1 mm** (nachgemessen), 1,6 mm dick, **mit Bauteilen 4,3 mm** |
-| Kavität | 32,6 × 24,1 × 10,3 mm, nach unten offen |
+| Platine | **30,6 × 23,0 mm** (nachgemessen), 1,6 mm dick, **mit Bauteilen 4,3 mm** |
+| Kavität | 31,2 × 23,4 × 10,3 mm, nach unten offen |
+| Spiel der Platine | **0,6 mm längs, 0,4 mm quer** — unten, *Passung* |
 | Lötraum unter der Platine | 2,0 mm |
 | Bauteilraum über der Platine | 6,7 mm — 2,7 mm Bauteile, **4,0 mm für die Adern** |
 | Stirnwand am Zellenende | 2,0 mm |
 | Seitenwände / Deckel | **2,4** / 2,0 mm — Begründung unten |
-| M6-Durchgang | Ø 6,6, **mittig**, 3,40 mm Steg zu jeder Kabelmulde |
-| Kabelkanäle | zwei **Omega-Nuten** Ø 3,9, Hals 3,2, bei y = ±9,0 mm — unten, *Omega-Nut* |
-| Restwand neben einem Kanal | 3,15 mm |
+| M6-Durchgang | Ø 6,6, **mittig**, 3,00 mm Steg zu jeder Kabelmulde |
+| Kabelkanäle | zwei **Omega-Nuten** Ø 3,9, Hals 3,2, bei y = ±8,6 mm — unten, *Omega-Nut* |
+| Restwand neben einem Kanal | 3,20 mm |
 | Kabelmulde am Übergang | Ø **4,6** (weiter als das Kabel), 5,2 tief, 5 mm lang |
 | Klemmstrecke dahinter | 11 mm |
+
+#### Passung
+
+Das Spiel steht als **eigene Größe** in der Tabelle (`fit_w`, `fit_l`), nicht als
+Aufschlag in der Formel. Vorher hieß es `cav_w = pcb_w + 1` — übernommen vom
+Gebergehäuse, wo die Platine 13 mm breit ist. Bei 23 mm sind 1,1 mm Spiel kein
+Spiel mehr, sondern Wackeln.
+
+| | vorher | jetzt |
+|---|---|---|
+| Spiel quer | 1,1 mm | **0,4 mm** (0,2 je Seite) |
+| Spiel längs | 2,0 mm | **0,6 mm** (0,3 je Ende) |
+| Auflage auf dem Absatz | 1,3 mm | **1,60 mm** je Längsseite |
+| Bauteilzone um die Mitte | ±10,25 mm | ±9,90 mm |
+
+0,2 mm je Seite ist eine Schiebepassung, die ein FDM-Druck auch trifft; weniger
+wäre Pressen. Die Platine geht von unten hinein, nicht längs — das Längsspiel
+fängt also nur Toleranz, nicht das Einführen.
+
+> Der Preis: die Bauteilzone ist um 0,35 mm schmaler. Bauteile dürfen jetzt nur
+> noch bis **±9,90 mm** um die Platinenmitte reichen, sonst stoßen sie an den
+> Absatz. Die Lötpads liegen an den Schmalseiten und sind davon nicht betroffen.
 
 #### Warum zwei Kanäle an einer Seite
 
@@ -583,7 +606,7 @@ ist mit 1,6 statt 2,2 mm flacher.
 
 | Merkmal | Maß |
 |---|---|
-| Absatz | 1,8 mm Vorsprung je Längsseite, durchgehend 32,6 mm; Auflage 1,3 mm |
+| Absatz | 1,8 mm Vorsprung je Längsseite, durchgehend 31,2 mm; **Auflage 1,60 mm** |
 | Unterkante des Absatzes | z = 3,6 mm |
 | Rastnasen | 0,65 mm Vorsprung, 6 mm lang, nur mittig; Überdeckung 0,15 mm |
 | Federfeld, von außen freigestellt | 14 mm lang, 0,8 mm Restwand |
@@ -606,6 +629,7 @@ einem **Hals von 3,2 mm** sitzt ein **Kreis von Ø 3,9**, der je Seite 0,35 mm
 | auf Höhe der Kreismitte (z = 1,45) | 3,88 mm |
 | Hinterschnitt je Seite | **0,35 mm** |
 | Nuttiefe gesamt | 3,40 mm |
+| Fase am Maul | 0,3 mm — unten, *Die Fase am Maul* |
 
 **Zwei Dinge halten das Kabel, und zwar nacheinander:**
 
@@ -623,6 +647,34 @@ einem **Hals von 3,2 mm** sitzt ein **Kreis von Ø 3,9**, der je Seite 0,35 mm
 
 In der **Mulde** am Übergang ist die Nut mit Ø 4,6 absichtlich 0,6 mm **weiter**
 als das Kabel — dort biegt es ab und darf nicht gequetscht werden.
+
+#### Die Fase am Maul
+
+Durch den engeren Hals muss das Kabel **gedrückt** werden, und ohne Fase fasst die
+scharfe Kante in den Mantel. Vier kleine Fasen von **0,3 mm**, zwei je Kanal,
+machen die Einfahrt weiter, ohne die runde Form anzutasten.
+
+| z | Breite |
+|---|---|
+| 0,01 — offene Seite, mit Fase | **3,76 mm** |
+| 0,35 — Fase zu Ende | 3,22 mm |
+| 1,45 — Kreismitte | 3,89 mm |
+
+**Die Kralle bleibt unverändert 0,35 mm je Seite.** Die Fase sitzt *unter* dem
+Hinterschnitt und nimmt ihm nichts weg — sie macht nur die Öffnung weiter, durch
+die das Kabel an derselben Kralle vorbei muss.
+
+> Dort liegt eine harte Grenze. Der Kreis tritt erst bei
+> z = `cab_depth` − R − √(R² − (Hals/2)²) = **0,335 mm** aus dem Hals heraus; bis
+> dahin darf die Fase reichen, nicht weiter. Bei 0,3 bleiben 0,035 mm. Das Skript
+> rechnet die Grenze selbst und **bricht ab**, wenn eine geänderte Nut sie
+> verletzt — eine Fase in den Hinterschnitt hinein würde die Kralle still und
+> leise abtragen.
+
+Wird es trotzdem noch zu eng, ist `cab_mouth` die Stelle: ein weiterer Hals
+lässt das Kabel leichter hinein **und** schafft mehr Raum für die Fase — kostet
+aber Kralle. Bei Hals 3,4 wären es 0,25 mm Hinterschnitt und 0,495 mm bis zum
+Einsatz.
 
 #### Montage
 
