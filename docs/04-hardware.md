@@ -439,9 +439,10 @@ Bremse gibt es nicht ([07-sicherheit](07-sicherheit.md) §3).
 
 Zwei Gehäuse nach demselben Muster: §7.1–§7.3 das Gebergehäuse für die
 Hall-Sensoren, §7.4 das Gehäuse für die Wägeplatine und §7.5 dessen
-Befestigungsspangen. Gemeinsam sind nach unten
-offene Kavität, Absatz plus Rastnasen als Platinenaufnahme und die Kabelnut, die
-den Mantel gegen die Montagefläche klemmt.
+Befestigungsspangen. Gemeinsam sind die nach unten offene Kavität und die
+Platinenaufnahme aus Absatz plus Rastnasen. Die Kabelnut dagegen ist
+verschieden: beim Gebergehäuse klemmt sie den Mantel gegen die Montagefläche,
+beim Wägeplatinen-Gehäuse hält sie ihn selbst, weil es frei hängt.
 
 **Gebergehäuse für die Hall-Sensoren** — feststehende Seite der
 Drehzahlerfassung, am Rahmen. Gegenstück ist §8.
@@ -562,7 +563,7 @@ zwei Maße, die nicht willkürlich sind:
 
 Die Kanäle flankierten ursprünglich eine mittige Schraube. Die ist entfallen
 (unten, *Die zwei Laschen*), weshalb sie jetzt nahe der Mitte sitzen — beide
-Mantel laufen dicht beieinander zum Kopfende hinaus.
+Mäntel laufen dicht beieinander zum Kopfende hinaus.
 
 #### Warum 2,4 mm Seitenwand und 2,0 mm Deckel
 
@@ -609,7 +610,7 @@ und zur Seite. Dafür ist der Kopfblock beidseitig verbreitert.
 
 **Warum überhaupt verbreitert**, und warum die Kanäle dabei nach innen gewandert
 sind: zwei Ø-4,5-Löcher mit je 6,2 mm Randabstand und zwei Kabelkanäle passen in
-28,9 mm Breite nicht neben-einander. Gerechnet, bevor entschieden wurde:
+28,9 mm Breite nicht nebeneinander. Gerechnet, bevor entschieden wurde:
 
 | Variante | Steg Loch → Mulde | Brücke zwischen den Nuten |
 |---|---|---|
