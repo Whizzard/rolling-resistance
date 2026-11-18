@@ -1039,7 +1039,7 @@ kann** — „der Regler antwortet“ heißt also nicht „der Regler kann fahre
 | `l_battery_cut_start` | **32,0 V** | darunter wird der Strom **zurückgenommen** |
 | `l_battery_cut_end` | **30,0 V** | darunter **null Strom** — der Antrieb tut nichts mehr |
 | `l_max_vin` | 48,0 V | Obergrenze; die Firmware selbst lässt 57 V zu (§10.1) |
-| `l_battery_regen_cut_start` / `_end` | 42,5 / 44,0 V | Rückspeisung wird abgeregelt (§3.3 in [Sicherheit](07-sicherheit.md)) |
+| `l_battery_regen_cut_start` / `_end` | 42,5 / 44,0 V | Rückspeisung wird abgeregelt (§3.3 in [07-sicherheit](07-sicherheit.md)) |
 
 > **Am 2026-11-18 gemessen: 8,2 V am Bus.** Das ist 0,2 V über `l_min_vin` und
 > 21,8 V unter `l_battery_cut_end`. Der Regler antwortete sauber (FW 7.1, HW 410,
