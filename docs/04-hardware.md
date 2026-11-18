@@ -1181,7 +1181,7 @@ also nicht veralten. Kein LittleFS, kein zweiter Flashvorgang.
 | Konstante | Wert | Anmerkung |
 |---|---|---|
 | `WEBUI_SSID` | `Pruefstand` | |
-| `WEBUI_PASSWORD` | 14 Zeichen | **WPA2**, nicht offen — sonst kann jeder in Reichweite den Motor fahren. Eingetippt wird es nie, es steckt im QR-Code. Unter 8 Zeichen bleibt der AP offen. |
+| `WEBUI_PASSWORD` | `Alpha9.2` | **WPA2**, nicht offen — sonst kann jeder in Reichweite den Motor fahren. **Genau 8 Zeichen, das Minimum**; darunter bleibt der AP offen, ohne dass es auffällt. Bewusst trivial: es schützt gegen Zufall, nicht gegen Absicht, und eingetippt wird es nie — es steckt im QR-Code. Wird es geändert, **muss `hardware/qr-wlan.*` neu erzeugt werden**, siehe §13.4. |
 | `WEBUI_AP_IP` | **4.3.2.1** | **nicht** 192.168.x.x, Begründung §13.3 |
 | `WEBUI_CHANNEL` | 6 | |
 | `WEBUI_MAX_CLIENTS` | 4 | der Vorgabewert von `softAP()` ist ebenfalls 4 |
@@ -1239,9 +1239,21 @@ Der Adressraum gehört jemand anderem. Unschön, aber ohne Internet am Stand fol
 
 Zwei Aufkleber, erzeugt mit `qrencode`, als PNG zum Drucken und SVG zum Skalieren:
 
+```sh
+qrencode -o hardware/qr-wlan.png -s 10 -m 2 'WIFI:T:WPA;S:Pruefstand;P:Alpha9.2;;'
+qrencode -t SVG -o hardware/qr-wlan.svg -s 10 -m 2 'WIFI:T:WPA;S:Pruefstand;P:Alpha9.2;;'
+```
+
+> **Das Kennwort steckt im Bild.** Wer `WEBUI_PASSWORD` ändert und den QR-Code stehen
+> lässt, hat einen Aufkleber, der ins Leere führt — und merkt es erst am Stand. Beide
+> Zeilen gehören zusammen ausgeführt. Danach **einmal mit dem Telefon scannen**: die
+> Kamera muss das WLAN anbieten. Maschinell gegengelesen wurde der Inhalt am
+> 2026-11-18 nicht, hier ist kein Decoder installiert.
+
+
 | Datei | Nutzlast | tut |
 |---|---|---|
-| `hardware/qr-wlan.png` | `WIFI:T:WPA;S:Pruefstand;P:<Kennwort>;;` | Kamera bietet „Mit WLAN verbinden" an |
+| `hardware/qr-wlan.png` | `WIFI:T:WPA;S:Pruefstand;P:Alpha9.2;;` | Kamera bietet „Mit WLAN verbinden" an |
 | `hardware/qr-ui.png` | `http://4.3.2.1/` | öffnet die Bedienung im **echten Browser** |
 
 Beim ersten Mal zweimal scannen. Danach verbindet sich das Telefon von allein, und

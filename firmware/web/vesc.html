@@ -31,6 +31,7 @@ body {
 .top .st { float: right; font-size: 12px; letter-spacing: .1em;
            text-transform: uppercase; color: #6fcfa4; padding-top: 3px; }
 .top .st.bad { color: #ff8a7a; }
+.wide { }
 
 /* ---- Reiter ---- */
 .tabs { margin: 0 0 10px; }
@@ -126,13 +127,30 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px;
 .stopbar p { margin: 5px 0 0; font-size: 11px; color: #64737f; text-align: center; }
 footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
-@media (max-width: 560px) {
-  .tile { width: 50%; }
-  .grid button { width: calc(25% - 6px); font-size: 17px; padding: 13px 0; }
-  .tile.full .val { font-size: 46px; }
-  .tile.big .val { font-size: 38px; }
-  .field input { width: 55%; }
-  .field button { width: 42%; }
+/* Telefon. Zwei Kacheln je Reihe, kleinere Zahlen, Eingabefeld und Knopf
+   untereinander statt nebeneinander — nebeneinander wird beides zu schmal. */
+@media (max-width: 620px) {
+  body { font-size: 14px; padding: 0 8px 118px; }
+  .tile { width: 50%; padding: 3px; }
+  .tiles { margin: -3px -3px 3px; }
+  .val { font-size: 25px; }
+  .tile.full .val { font-size: 42px; }
+  .tile.big .val  { font-size: 33px; }
+  .lab { font-size: 10px; letter-spacing: .1em; }
+  .sub { font-size: 11px; }
+  .grid button { width: calc(25% - 6px); font-size: 18px; padding: 15px 0; }
+  .row button { font-size: 17px; padding: 14px 0; }
+  .tabs button { font-size: 13px; padding: 12px 0; }
+  .field input { width: 100%; }
+  .field button { width: 100%; float: none; margin: 7px 0 0 0; }
+  .stopbar button { font-size: 21px; padding: 16px 0; }
+  .wide { display: none; }   /* Kopf soll nicht umbrechen */
+  .top .st { font-size: 11px; letter-spacing: .06em; }
+}
+@media (max-width: 400px) {
+  .tile.big .val { font-size: 28px; }
+  .val { font-size: 22px; }
+  .grid button { width: calc(33.333% - 6px); }
 }
 </style>
 </head>
@@ -141,7 +159,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
   <div class="top">
     <span class="st" id="st">verbinde …</span>
-    <b>Prüfstand · Testlauf</b>
+    <b>Prüfstand<span class="wide"> · Testlauf</span></b>
   </div>
 
   <div class="tabs">
@@ -156,36 +174,37 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
     <div class="tiles">
       <div class="tile half big"><div>
-        <div class="lab">Geschwindigkeit</div>
+        <div class="lab">Ist</div>
         <div class="val"><span id="kmh">—</span><small>km/h</small></div>
       </div></div>
       <div class="tile half big"><div>
-        <div class="lab">Sollwert</div>
+        <div class="lab">Soll</div>
         <div class="val"><span id="soll">—</span><small>km/h</small></div>
       </div></div>
     </div>
 
-    <h2>Wägezelle</h2>
+    <h2>Zelle</h2>
     <div class="tiles">
       <div class="tile half big"><div>
-        <div class="lab">Last an der Zelle</div>
+        <div class="lab">Last</div>
         <div class="val"><span id="kg">—</span><small>kg</small></div>
+        <div class="sub" id="ppSub">—</div>
       </div></div>
       <div class="tile half big"><div>
         <div class="lab">Auslastung</div>
         <div class="val"><span id="pct">—</span><small>%</small></div>
-        <div class="sub" id="pctSub">vom Endwert der Zelle</div>
+        <div class="sub" id="pctSub">—</div>
       </div></div>
     </div>
 
     <h2>Antrieb</h2>
     <div class="tiles">
       <div class="tile"><div>
-        <div class="lab">Motorstrom</div>
+        <div class="lab">Motor</div>
         <div class="val"><span id="imot">—</span><small>A</small></div>
       </div></div>
       <div class="tile"><div>
-        <div class="lab">Eingangsstrom</div>
+        <div class="lab">Eingang</div>
         <div class="val"><span id="iin">—</span><small>A</small></div>
       </div></div>
       <div class="tile"><div>
@@ -193,7 +212,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         <div class="val"><span id="watt">—</span><small>W</small></div>
       </div></div>
       <div class="tile"><div>
-        <div class="lab">Busspannung</div>
+        <div class="lab">Spannung</div>
         <div class="val"><span id="vin">—</span><small>V</small></div>
       </div></div>
     </div>
@@ -210,7 +229,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       </div></div>
     </div>
 
-    <h2>Geschwindigkeit wählen</h2>
+    <h2>km/h</h2>
     <div class="grid" id="grid"></div>
     <div class="row" style="margin-top:7px">
       <button type="button" id="minus">−5</button>
@@ -226,42 +245,37 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
     <h2>Trommel</h2>
     <div class="field">
-      <label for="fDrum">Umfang, über die Lauffläche gemessen (m)</label>
+      <label for="fDrum">Trommelumfang (m)</label>
       <input type="text" id="fDrum" inputmode="decimal">
       <button type="button" id="bDrum">Übernehmen</button>
-      <div class="hint">Maßband um die Trommel, drei Messungen mitteln. Geht direkt in
-        Geschwindigkeit und Rollkraft ein. Daraus folgt der Durchmesser
-        <b id="dia">—</b>.</div>
+      <div class="hint">Maßband, drei Messungen mitteln. Ø <b id="dia">—</b></div>
     </div>
 
     <h2>Hebelarme</h2>
     <div class="field">
-      <label for="fArm">Zellenarm — Pendelachse bis Wägezelle (m)</label>
+      <label for="fArm">Zellenarm (m)</label>
       <input type="text" id="fArm" inputmode="decimal">
       <button type="button" id="bArm">Übernehmen</button>
-      <div class="hint">Geht <b>linear</b> in jedes Moment ein. Auf ±0,1 mm ausmessen.</div>
+      <div class="hint">Geht linear in jedes Moment ein. Auf ±0,1 mm.</div>
     </div>
     <div class="field">
-      <label for="fCal">Kalibrierarm — Pendelachse bis Kalibriergewicht (m)</label>
+      <label for="fCal">Kalibrierarm (m)</label>
       <input type="text" id="fCal" inputmode="decimal">
       <button type="button" id="bCal">Übernehmen</button>
-      <div class="hint">Die zweite Bohrung, weiter außen. Ein Gewicht dort erzeugt das
-        <b id="ratio">—</b>-fache der Kraft an der Zelle.</div>
+      <div class="hint">Zweite Bohrung, weiter außen. <b id="ratio">—</b>-fach an der Zelle.</div>
     </div>
 
     <h2>Wägezelle kalibrieren</h2>
     <div class="field">
-      <label>Schritt 1 — Nullabgleich, Arm unbelastet</label>
-      <div class="hint" style="padding-top:0;margin-top:0">Nimmt
-        <b>alles</b> ab, was am Kalibrierarm hängt, und mittelt rund 2,5 Sekunden.
-        Geht nur im Stillstand.</div>
+      <label>1 — Nullen</label>
+      <div class="hint" style="padding-top:0;margin-top:0">Arm frei machen. Nur im
+        Stillstand.</div>
       <button type="button" class="plain" id="bTare"
               style="float:none;width:100%;margin:8px 0 0 0">Jetzt nullen</button>
-      <div class="hint">Rohwert jetzt: <b id="counts">—</b> counts,
-        Spitze-Spitze <b id="ripple">—</b>.</div>
+      <div class="hint">Roh <b id="counts">—</b> · S-S <b id="ripple">—</b></div>
     </div>
     <div class="field">
-      <label for="fKg">Schritt 2 — bekanntes Gewicht am Kalibrierarm (kg)</label>
+      <label for="fKg">2 — Gewicht am Kalibrierarm (kg)</label>
       <input type="text" id="fKg" inputmode="decimal" value="2,000">
       <button type="button" id="bCalib">Kalibrieren</button>
       <div class="hint" id="calHint">—</div>
@@ -271,8 +285,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     <div class="field">
       <div class="hint" style="padding-top:0" id="npcHint">—</div>
       <button type="button" class="plain" id="bReset"
-              style="float:none;width:100%;margin:9px 0 0 0">Alles auf die Vorgaben aus
-              config.h zurücksetzen</button>
+              style="float:none;width:100%;margin:9px 0 0 0">Zurücksetzen</button>
     </div>
   </div>
 
@@ -280,7 +293,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
 <div class="stopbar">
   <button type="button" id="stop">STOP</button>
-  <p id="stopHint">Bremst mit 20 A. <b>Der Not-Aus ist der Schalter am Stand</b>, nicht dieser Knopf.</p>
+  <p id="stopHint">20 A Bremsstrom · <b>Not-Aus ist der Schalter am Stand</b></p>
 </div>
 
 <script>
@@ -373,7 +386,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     vmax = j.vmax; vmin = j.vmin; step = j.step; soll = j.soll;
     if (!gridBuilt) buildGrid();
 
-    $("st").innerHTML = j.link ? "Regler verbunden" : "kein Regler";
+    $("st").innerHTML = j.link ? "verbunden" : "kein Regler";
     $("st").className = j.link ? "st" : "st bad";
 
     show("kmh", j.link ? j.kmh : null, 1);
@@ -387,9 +400,14 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("pct").className = "val" + (kal ? "" : " dim");
     show("kg",  j.kg,  3);
     show("pct", j.pct, 1);
-    $("pctSub").innerHTML = kal
-      ? ("vom Endwert " + de(j.fsN / 9.80665, 2) + " kg · Mittel über 0,5 s")
-      : ("nicht kalibriert · " + j.counts + " counts roh");
+    /* Spitze-Spitze im selben 0,5-s-Fenster, in dem auch gemittelt wird. Sagt, wie
+       ruhig der Mittelwert wirklich ist — ein sauberer Wert und ein Mittel über
+       wildes Zappeln sehen sonst gleich aus. */
+    $("ppSub").innerHTML = kal
+      ? ("± " + de(j.ripple * j.npc / 9.80665 * 1000 / 2, 0) + " g · Mittel 0,5 s")
+      : (j.counts + " counts roh");
+    $("pctSub").innerHTML = kal ? ("von " + de(j.fsN / 9.80665, 2) + " kg")
+                                : "nicht kalibriert";
 
     /* Antrieb */
     show("imot", j.link ? j.imot : null, 2);
@@ -442,11 +460,8 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("note").hidden = (msg === "");
 
     $("foot").innerHTML =
-      "Firmware " + (j.fw || "unbekannt") + " · Grenze " + de(j.vmax, 0)
-      + " km/h; darüber fehlt die Freigabe nach docs/07-sicherheit.md §5"
-      + " · Geschwindigkeit aus der Reglerdrehzahl (" + j.erpm + " ERPM = "
-      + de(j.rpm, 0) + " 1/min), nicht von den Trommelmarken"
-      + " · Messwerte " + j.age + " ms alt";
+      "FW " + (j.fw || "?") + " · max " + de(j.vmax, 0) + " km/h · "
+      + de(j.rpm, 0) + " 1/min · " + j.age + " ms";
   }
 
   function poll() {

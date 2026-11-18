@@ -290,7 +290,7 @@ constexpr char     WEBUI_SSID[]    = "Pruefstand";  // [Festlegung]
 // [Festlegung] WPA2 statt offen. Nicht aus Geheimhaltung, sondern weil sonst jeder in
 // Reichweite den Motor fahren kann. Eingetippt wird es nie — es steckt im QR-Code
 // (hardware/qr-wlan.png). Mindestens 8 Zeichen, sonst bleibt der AP offen.
-constexpr char     WEBUI_PASSWORD[] = "rollwiderstand";
+constexpr char     WEBUI_PASSWORD[] = "Alpha9.2";
 constexpr uint8_t  WEBUI_CHANNEL   = 6;             // [Festlegung]
 constexpr uint8_t  WEBUI_MAX_CLIENTS = 4;           // [Festlegung]
 constexpr uint16_t WEBUI_PORT      = 80;            // [Festlegung] Captive Portal braucht 80
