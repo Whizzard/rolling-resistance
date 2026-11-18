@@ -435,9 +435,15 @@ schaltet mit Überspannung ab. Lösungen: Bremswiderstand mit Chopper (1,4 kJ ü
 sind 140 W, ein 100-W-Widerstand reicht) oder eine Batterie als Puffer. Eine mechanische
 Bremse gibt es nicht ([07-sicherheit](07-sicherheit.md) §3).
 
-## 7 Gebergehäuse für die Hall-Sensoren
+## 7 Gedruckte Gehäuse
 
-Feststehende Seite der Drehzahlerfassung, am Rahmen. Gegenstück ist §8.
+Zwei Gehäuse nach demselben Muster: §7.1–§7.3 das Gebergehäuse für die
+Hall-Sensoren, §7.4 das Gehäuse für die Wägeplatine. Gemeinsam sind nach unten
+offene Kavität, Absatz plus Rastnasen als Platinenaufnahme und die Kabelnut, die
+den Mantel gegen die Montagefläche klemmt.
+
+**Gebergehäuse für die Hall-Sensoren** — feststehende Seite der
+Drehzahlerfassung, am Rahmen. Gegenstück ist §8.
 
 3D-Druck, Außenmaß **37,2 × 20,0 × 12,0 mm**, 5,6 cm³.
 
@@ -511,6 +517,77 @@ Offene Seite auf das Alublech, eine M6-Schraube. Daraus folgt:
    Rückfallebene, nicht Voraussetzung.
 3. Eine Schraube heißt verdrehbar — die Ausrichtung zur Trommelmarke wird beim
    Anziehen mit eingestellt.
+
+### 7.4 Gehäuse für die Wägeplatine (HX711)
+
+Nimmt die SparkFun-Platine *HX711 Load Cell Amp* auf, die am Pendelrahmen neben
+der Wägezelle sitzt. Außenmaß **51,5 × 30,5 × 12,3 mm**, 10,8 cm³.
+
+| | |
+|---|---|
+| Featurebaum | Grundkoerper · Kavitaet · Bauteilraum · Rastnasen · Federfeld · Schraubloch · Kabelnut (+rund) · Kabelmulde (+rund), die beiden Nuten je einmal links und rechts |
+| `hardware/hx711_gehaeuse.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
+
+Aufbau, Spreadsheet und Vorbehalt wie oben: das Skript ist der Erzeuger, die FCStd
+die Wahrheit.
+
+#### Maße
+
+| Merkmal | Maß |
+|---|---|
+| Platine | 31,0 × 23,5 mm, 1,6 mm dick, **mit Bauteilen 4,3 mm** |
+| Kavität | 33 × 24,5 × 10,3 mm, nach unten offen |
+| Lötraum unter der Platine | 2,0 mm |
+| Bauteilraum über der Platine | 6,7 mm — 2,7 mm Bauteile, **4,0 mm für die Adern** |
+| Stirnwand am Zellenende | 2,5 mm |
+| Seitenwände / Deckel | 3,0 / 2,0 mm |
+| M4-Durchgang | Ø 4,5, **mittig**, 4,55 mm Abstand zu jedem Kanal |
+| Kabelkanäle | zwei D-Nuten 4,4 breit, 3,4 tief, bei y = ±9,0 mm |
+| Restwand neben einem Kanal | 4,05 mm |
+| Kabelmulde am Übergang | dieselbe Nut, 5,2 tief, 5 mm lang |
+| Klemmstrecke dahinter | 11 mm |
+
+#### Warum zwei Kanäle an einer Seite
+
+Die Lötpads der Platine liegen an den beiden **Schmalseiten** — links die fünf
+Anschlüsse der Wägezelle, rechts VDD/VCC/DAT/CLK/GND zum Rechner. Beide
+Leitungen sollen zu derselben Seite hinaus, also laufen die Adern von den Pads
+nach oben, über die Platine hinweg und gemeinsam zum Schraubblock. Daraus folgen
+zwei Maße, die nicht willkürlich sind:
+
+1. Die 4,0 mm über den Bauteilen sind der Weg der Adern, nicht Reserve.
+2. Der tragende Absatz läuft an den **Längsseiten**. An den Schmalseiten würde er
+   auf den Lötstellen sitzen.
+
+Die Schraube steht mittig zwischen den Kanälen: eine Schraube klemmt beide
+Mäntel, und zwar in dem Bereich, in dem das Blech am dichtesten anliegt.
+
+#### Platinenaufnahme
+
+| Merkmal | Maß |
+|---|---|
+| Absatz | 1,8 mm Vorsprung je Längsseite, durchgehend 33 mm; Auflage 1,3 mm |
+| Unterkante des Absatzes | z = 3,6 mm |
+| Rastnasen | 0,65 mm Vorsprung, 6 mm lang, nur mittig; Überdeckung 0,15 mm |
+| Federfeld, von außen freigestellt | 14 mm lang, 0,8 mm Restwand |
+
+Dieselbe Aufteilung wie in §7.2: der Absatz trägt, die Nasen halten gegen das
+Herausfallen, kein Hinterschnitt, gehalten durch Vorspannung.
+
+Die vier Befestigungslöcher der Platine bleiben ungenutzt — sie liegen in den
+Ecken und damit unter dem Absatz.
+
+#### Montage
+
+Offene Seite auf die Montagefläche, eine M4-Schraube. Die Fläche schließt das
+Gehäuse und klemmt beide Kabel in ihren Nuten. Der Mantel passt nicht unter die
+Platine; er endet in der Mulde und weiter laufen nur die Adern.
+
+> **Offen:** die Nut ist mit 4,4 × 3,4 mm für Ø 4 bemaßt, übernommen aus §7.1.
+> Die Durchmesser des Zellenkabels und der Leitung zum Rechner sind **nicht
+> gemessen**. Ein dünneres Kabel wird in dieser Nut nicht geklemmt, also auch
+> nicht zugentlastet. Vor dem Druck messen und `cab_d` / `cab_depth` im
+> Spreadsheet nachziehen — Nut 1 mm enger als das Kabel.
 
 ## 8 Markenaufnahme an der Trommel
 
