@@ -19,29 +19,31 @@ body {
   background: #eef1f4; color: #16202a;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 15px; -webkit-text-size-adjust: 100%;
-  padding: 0 10px 120px;   /* Platz fuer den festen STOP-Balken */
+  padding: 58px 10px 120px;  /* oben die festen Reiter, unten der STOP-Balken */
 }
 [hidden] { display: none !important; }
 .wrap { max-width: 980px; margin: 0 auto; }
 
 /* ---- Kopf ---- */
-.top { background: #16202a; color: #fff; border-radius: 0 0 10px 10px;
-       padding: 9px 14px; margin: 0 -10px 10px; }
-.top b { font-size: 15px; letter-spacing: .14em; text-transform: uppercase; }
-.top .st { float: right; font-size: 12px; letter-spacing: .1em;
-           text-transform: uppercase; color: #6fcfa4; padding-top: 3px; }
-.top .st.bad { color: #ff8a7a; }
-.wide { }
+/* ---- Reiter: bleiben oben stehen ----
+   position: sticky kann Safari 9 nicht, also fest positioniert und dafuer
+   oben am body Platz gelassen. */
+.tabs { position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+        background: #eef1f4; padding: 8px 10px 9px;
+        box-shadow: 0 2px 6px rgba(22,32,42,.16); }
 
-/* ---- Reiter ---- */
-.tabs { margin: 0 0 10px; }
+/* Punkt rechts neben den Reitern: rot, solange keine Verbindung steht. */
+.dot { float: right; width: 15px; height: 15px; border-radius: 50%;
+       background: #e23c22; margin-top: 10px;
+       box-shadow: inset 0 0 0 2px rgba(0,0,0,.14); }
+.dot.ok { background: #35c184; }
 .tabs:after { content: ""; display: table; clear: both; }
 .tabs button { float: left; -webkit-appearance: none; border: 0; cursor: pointer;
   font-family: inherit; font-size: 14px; font-weight: 700;
   letter-spacing: .1em; text-transform: uppercase;
   background: #d7dde3; color: #51606d; border-radius: 6px;
-  padding: 11px 0; width: 49%; margin-right: 2%; }
-.tabs button:last-child { margin-right: 0; }
+  padding: 11px 0; width: 45%; margin-right: 2%; }
+.tabs button + button { margin-right: 0; }
 .tabs button.on { background: #16202a; color: #fff; }
 
 /* ---- Meldungen ---- */
@@ -144,8 +146,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   .field input { width: 100%; }
   .field button { width: 100%; float: none; margin: 7px 0 0 0; }
   .stopbar button { font-size: 21px; padding: 16px 0; }
-  .wide { display: none; }   /* Kopf soll nicht umbrechen */
-  .top .st { font-size: 11px; letter-spacing: .06em; }
+  body { padding-top: 54px; }
 }
 @media (max-width: 400px) {
   .tile.big .val { font-size: 28px; }
@@ -157,14 +158,10 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 <body>
 <div class="wrap">
 
-  <div class="top">
-    <span class="st" id="st">verbinde …</span>
-    <b>Prüfstand<span class="wide"> · Testlauf</span></b>
-  </div>
-
   <div class="tabs">
     <button type="button" id="tabMess" class="on">Messung</button>
     <button type="button" id="tabSetup">Einrichtung</button>
+    <span class="dot" id="st"></span>
   </div>
 
   <div class="note" id="note" hidden></div>
@@ -415,8 +412,8 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     vmax = j.vmax; vmin = j.vmin; step = j.step; soll = j.soll;
     if (!gridBuilt) buildGrid();
 
-    $("st").innerHTML = j.link ? "verbunden" : "kein Regler";
-    $("st").className = j.link ? "st" : "st bad";
+    $("st").className = j.link ? "dot ok" : "dot";
+    $("st").title = j.link ? "Regler verbunden" : "kein Regler";
 
     show("kmh", j.link ? j.kmh : null, 1);
     $("soll").innerHTML = j.faehrt ? de(j.soll, 0) : "—";
@@ -530,8 +527,8 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       /* Einzelne Aussetzer sind normal; verloren ist die Verbindung erst nach
          derselben Grenze, mit der die Firmware den Antrieb freigibt. */
       if (Date.now() - lastOk > LINK_TIMEOUT_MS) {
-        $("st").innerHTML = "Verbindung weg";
-        $("st").className = "st bad";
+        $("st").className = "dot";
+        $("st").title = "Verbindung weg";
       }
     };
     x.send();
