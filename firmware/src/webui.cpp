@@ -74,6 +74,59 @@ void onWiFiEvent(arduino_event_id_t ev, arduino_event_info_t info) {
 // Winzige Seite fuer das Portalfenster. Sie versucht, an Safari zu uebergeben, und
 // holt die richtige Oberflaeche nach, falls das nicht greift. Kein Knopf: beides
 // laeuft von allein.
+// --------------------------------------------- Umleitung auf den Namen
+//
+// Wer einen fremden Namen eintippt, landet ueber den Wildcard-DNS hier und soll
+// danach den merkbaren Namen in der Adresszeile sehen.
+//
+// ZWEI DINGE WERDEN NIE UMGELEITET, und beide aus gutem Grund:
+//
+//   1. Die IP. Sie ist der Weg, der von NICHTS abhaengt — kein DNS, kein mDNS.
+//      Sie auf einen Namen umzubiegen hiesse, ausgerechnet den Notnagel von einer
+//      Namensaufloesung abhaengig zu machen.
+//   2. Die Hostnamen der Verbindungspruefungen. Eine Umleitung dort ist genau das
+//      Signal "Captive Portal" — und dann faengt iOS wieder an, das Netz nach
+//      kurzer Zeit wegzuwerfen (docs/04-hardware.md §13.2). Die Pruefpfade haben
+//      zwar eigene Behandler, aber ein unbekannter Pfad auf einem Pruef-Host
+//      liefe sonst hier hinein.
+
+bool isIpLiteral(const String& h) {
+  if (h.length() == 0) return true;      // ohne Host-Kopf lieber nichts tun
+  for (size_t i = 0; i < h.length(); i++) {
+    const char c = h[i];
+    if (c == ':') break;                 // Port abschneiden
+    if ((c < '0' || c > '9') && c != '.') return false;
+  }
+  return true;
+}
+
+bool isProbeHost(const String& h) {
+  static const char* const HOSTS[] = {
+    "captive.apple.com", "apple.com", "www.apple.com",          // iOS, macOS
+    "connectivitycheck.gstatic.com", "clients3.google.com",     // Android
+    "www.msftconnecttest.com", "www.msftncsi.com",              // Windows
+    "detectportal.firefox.com",
+  };
+  for (size_t i = 0; i < sizeof(HOSTS) / sizeof(HOSTS[0]); i++)
+    if (h.equalsIgnoreCase(HOSTS[i])) return true;
+  return false;
+}
+
+// true, wenn umgeleitet wurde — der Aufrufer ist dann fertig.
+bool redirectedToName() {
+  const String host = g_server.hostHeader();
+  if (isIpLiteral(host)) return false;
+  if (isProbeHost(host)) return false;
+  if (host.endsWith(".local") || host.endsWith(".local.")) return false;  // schon da
+
+  const String ziel = String("http://") + WEBUI_HOSTNAME + ".local/";
+  Serial.print("# "); Serial.print(host); Serial.print(" -> "); Serial.println(ziel);
+  g_server.sendHeader("Location", ziel);
+  g_server.sendHeader("Cache-Control", "no-store");
+  g_server.send(302, "text/plain", "");
+  return true;
+}
+
 void sendIndex() {
   logReq("-> Oberflaeche");
   g_server.sendHeader("Content-Encoding", "gzip");
@@ -116,6 +169,7 @@ void handleCmd() {
 // der eigenen Adresse — was immer jemand eintippt, er will hierher.
 void handleNotFound() {
   g_other++;
+  if (redirectedToName()) return;
   sendIndex();
 }
 
@@ -169,8 +223,8 @@ void begin(CommandFn handler, StateJsonFn state,
 
   // "/" entscheidet sich zur Laufzeit: im Portalfenster der Uebergabeversuch,
   // sonst gleich die Oberflaeche. "/ui" ist immer die Oberflaeche.
-  g_server.on("/", sendIndex);
-  g_server.on("/ui", sendIndex);
+  g_server.on("/", []() { if (!redirectedToName()) sendIndex(); });
+  g_server.on("/ui", sendIndex);   // immer die Oberflaeche, nie umgeleitet
   g_server.on("/api/state", handleState);
   g_server.on("/api/cmd", handleCmd);
 
@@ -181,8 +235,8 @@ void begin(CommandFn handler, StateJsonFn state,
   g_server.on("/connecttest.txt", handleProbeMsft);          // Windows
   g_server.on("/ncsi.txt", handleProbeMsft);
 
-  const char* collect[] = {"User-Agent"};
-  g_server.collectHeaders(collect, 1);
+  const char* collect[] = {"User-Agent", "Host"};
+  g_server.collectHeaders(collect, 2);
   g_server.onNotFound(handleNotFound);
   g_server.begin();
   Serial.print("# Bedienfeld: http://"); Serial.print(AP_IP);

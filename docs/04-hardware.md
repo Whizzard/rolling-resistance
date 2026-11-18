@@ -1270,6 +1270,46 @@ funktionieren.
 **Jeder unbekannte Pfad** zeigt die Oberfläche (`onNotFound`). Was immer jemand hinter
 der Adresse eintippt, er will hierher.
 
+**Ein fremder Name wird auf `tire.local` umgeleitet** (302), damit danach ein merkbarer
+Name in der Adresszeile steht. **Zwei Fälle werden dabei nie umgeleitet:**
+
+1. **Die IP.** Sie hängt von nichts ab — kein DNS, kein mDNS. Sie auf einen Namen
+   umzubiegen hieße, ausgerechnet den Notnagel von einer Namensauflösung abhängig zu
+   machen. `http://4.3.2.1/` liefert immer direkt die Oberfläche.
+2. **Die Hostnamen der Verbindungsprüfungen** (`captive.apple.com` und Verwandte). Eine
+   Umleitung dort ist genau das Signal „Captive Portal" — und dann fängt iOS wieder an,
+   das Netz nach kurzer Zeit wegzuwerfen (§13.2). Die Prüfpfade haben zwar eigene
+   Behandler, aber ein *unbekannter* Pfad auf einem Prüf-Host liefe sonst hier hinein.
+
+### 13.6 Warum „auf alle IP-Adressen reagieren" nicht geht
+
+Die naheliegende Idee ist, den Webserver auf jeder Adresse lauschen zu lassen und von
+dort umzuleiten. **Der Webserver tut das bereits** — er bindet an `0.0.0.0:80`, also an
+alle Adressen des Geräts. Das ist nicht die Einschränkung.
+
+Die Einschränkung liegt zwei Schichten tiefer:
+
+1. Jemand tippt `1.2.3.4`. Das Gerät sieht: nicht im eigenen Netz → an den Router.
+2. Router ist der Prüfstand. Der Rahmen kommt an **seine MAC-Adresse**, trägt aber
+   **Zieladresse 1.2.3.4** im Paket.
+3. lwIP prüft: „Ist das eine meiner Adressen?" Nein → **verworfen, auf der IP-Schicht**.
+4. TCP sieht das Paket nie. Kein Lauscher kann es annehmen.
+
+Am 2026-11-18 im ausgelieferten Netzwerkstapel nachgesehen, was es dagegen gäbe:
+
+| Mechanismus | Befund |
+|---|---|
+| `LWIP_HOOK_IP4_INPUT` — klinkt sich **vor** der Zieladressprüfung ein | existiert nur als leere Vorlage in `opt.h`. **Übersetzungszeitschalter von lwIP selbst**, und der Arduino-Kern liefert `liblwip.a` mit 4,3 MB **vorkompiliert**. |
+| IP-Weiterleitung | `CONFIG_LWIP_IP_FORWARD is not set` — und ohne Uplink gäbe es ohnehin kein Ziel. |
+| NAPT (`ip_napt_enable`) | Kopfdateien vorhanden, aber hinter `#if IP_NAPT` in derselben vorkompilierten Bibliothek. Hülfe auch nicht: übersetzt wird nur, wohin es keinen Weg gibt. |
+| Proxy-ARP (bei Netzmaske 0.0.0.0) | in lwIP nur für PPP vorhanden, nicht für Ethernet/WLAN. |
+
+**Also nein, nicht ohne eigene SDK** — und gebraucht wird es auch nicht: der
+Wildcard-DNS deckt jeden *Namen* ab, und Namen sind das, was getippt wird.
+
+> **Getestet am 2026-11-18, iPhone:** `1.2.3.4` bleibt hängen, bis der Browser aufgibt —
+> genau das vorhergesagte Verhalten. Das Paket geht hin und wird verworfen.
+
 > **Das Kennwort steckt im Bild.** Wer `WEBUI_PASSWORD` ändert und den QR-Code stehen
 > lässt, hat einen Aufkleber, der ins Leere führt — und merkt es erst am Stand. Beide
 > Zeilen gehören zusammen ausgeführt. Danach **einmal mit dem Telefon scannen**: die
