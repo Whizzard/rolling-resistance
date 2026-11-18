@@ -294,7 +294,18 @@ constexpr char     WEBUI_PASSWORD[] = "Alpha9.2";
 constexpr uint8_t  WEBUI_CHANNEL   = 6;             // [Festlegung]
 constexpr uint8_t  WEBUI_MAX_CLIENTS = 4;           // [Festlegung]
 constexpr uint16_t WEBUI_PORT      = 80;            // [Festlegung] Captive Portal braucht 80
-constexpr char     WEBUI_HOSTNAME[] = "pruefstand"; // [Festlegung] mDNS → pruefstand.local
+// [Festlegung] mDNS-Name → http://tire.local/. Kurz, weil er von Hand getippt wird.
+//
+// WAS WORAUF ANTWORTET, damit das nicht durcheinandergeht:
+//   tire.local   → mDNS (Bonjour). Apple und Windows fragen fuer ".local"
+//                  AUSSCHLIESSLICH per mDNS und NIE den DNS-Server des Netzes.
+//   jeder andere → der eigene DNS-Server, der alles auf WEBUI_AP_IP beantwortet
+//                  Name        (webui.cpp: g_dns.start(53, "*", AP_IP)).
+//   4.3.2.1      → direkt, ohne Namensaufloesung. Der Weg, der immer geht.
+//
+// ANDROID kann im Browser kein mDNS — dort fuehrt "tire.local" ins Leere. Deshalb
+// steht im QR-Code die IP und nicht der Name (docs/04-hardware.md §13.4).
+constexpr char     WEBUI_HOSTNAME[] = "tire";
 
 // Adresse des Accesspoints. NICHT 192.168.4.1 — und das ist kein Geschmacksfrage:
 // Androids NetworkMonitor verwirft die Verbindungsprüfung, sobald der DNS einen

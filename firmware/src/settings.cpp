@@ -28,6 +28,13 @@ inline bool okNpc(float x)   { return x > 0.0f && x < 10.0f; }
 }  // namespace
 
 void begin() {
+  // Beim allerersten Start gibt es den Namensraum noch nicht, und ein nur lesendes
+  // Oeffnen meldet dann "nvs_open failed: NOT_FOUND" als FEHLER auf die Konsole.
+  // Abgefangen wird das zwar, aber eine rote Fehlerzeile beim Start, die gar keiner
+  // ist, kostet beim naechsten Mal Zeit mit Suchen. Deshalb einmal schreibend
+  // oeffnen: das legt den Namensraum an, ohne etwas hineinzuschreiben.
+  if (g_nvs.begin(NS, false)) g_nvs.end();
+
   // Nur lesend oeffnen und gleich wieder schliessen — der NVS-Handle soll nicht
   // ueber die ganze Laufzeit offen bleiben.
   if (g_nvs.begin(NS, true)) {

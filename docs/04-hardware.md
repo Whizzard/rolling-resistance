@@ -1244,6 +1244,32 @@ qrencode -o hardware/qr-wlan.png -s 10 -m 2 'WIFI:T:WPA;S:Pruefstand;P:Alpha9.2;
 qrencode -t SVG -o hardware/qr-wlan.svg -s 10 -m 2 'WIFI:T:WPA;S:Pruefstand;P:Alpha9.2;;'
 ```
 
+### 13.5 Wie der Stand erreichbar ist
+
+Drei Wege, und sie nutzen **verschiedene** Mechanismen — das ist der Grund, warum
+einer immer geht:
+
+| Eingabe | wer löst auf | funktioniert |
+|---|---|---|
+| `http://4.3.2.1/` | niemand, direkt | **immer**, auf jedem Gerät |
+| `http://tire.local/` | **mDNS/Bonjour** im Gerät | Apple, Windows 10+. **Android im Browser nicht.** |
+| irgendein anderer Name | der **DNS-Server des Stands**, der alles auf 4.3.2.1 beantwortet | überall, wo der Browser die Eingabe als Adresse und nicht als Suche behandelt |
+
+> **`.local` geht nie über den DNS-Server.** Apple und Windows behandeln diese Endung
+> gesondert und fragen ausschließlich per mDNS. Der Wildcard-DNS des Stands kann dort
+> also nicht aushelfen — beide Mechanismen laufen nebeneinander und decken zusammen
+> mehr ab als jeder für sich.
+
+**Eine getippte fremde IP-Adresse geht nicht und kann nicht gehen.** Sie fragt keinen
+DNS: das Gerät schickt das Paket an den Router — also an den Stand —, aber die
+Zieladresse darin ist eine fremde, und der Netzwerkstapel verwirft es. Dagegen hülfe
+nur, Pakete für fremde Zieladressen anzunehmen; das bietet der Arduino-Stapel nicht,
+und es wäre das Gegenteil von einfach. Gebraucht wird es auch nicht, solange Namen
+funktionieren.
+
+**Jeder unbekannte Pfad** zeigt die Oberfläche (`onNotFound`). Was immer jemand hinter
+der Adresse eintippt, er will hierher.
+
 > **Das Kennwort steckt im Bild.** Wer `WEBUI_PASSWORD` ändert und den QR-Code stehen
 > lässt, hat einen Aufkleber, der ins Leere führt — und merkt es erst am Stand. Beide
 > Zeilen gehören zusammen ausgeführt. Danach **einmal mit dem Telefon scannen**: die
@@ -1254,7 +1280,7 @@ qrencode -t SVG -o hardware/qr-wlan.svg -s 10 -m 2 'WIFI:T:WPA;S:Pruefstand;P:Al
 | Datei | Nutzlast | tut |
 |---|---|---|
 | `hardware/qr-wlan.png` | `WIFI:T:WPA;S:Pruefstand;P:Alpha9.2;;` | Kamera bietet „Mit WLAN verbinden" an |
-| `hardware/qr-ui.png` | `http://4.3.2.1/` | öffnet die Bedienung im **echten Browser** |
+| `hardware/qr-ui.png` | `http://4.3.2.1/` | öffnet die Bedienung im **echten Browser**. Bewusst die **IP**, nicht `tire.local`: Android kann im Browser kein mDNS, und ein QR-Code, der auf der Hälfte der Geräte ins Leere führt, ist schlimmer als eine Zahl. |
 
 Beim ersten Mal zweimal scannen. Danach verbindet sich das Telefon von allein, und
 **„Zum Home-Bildschirm"** macht aus der Bedienung ein Symbol, das sie im Vollbild ohne
