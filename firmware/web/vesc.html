@@ -67,6 +67,7 @@ body {
 .val small { font-size: 14px; color: #8795a1; margin-left: 3px; font-weight: 400; }
 .val.dim { color: #aab4bd; }
 .tile.full .val { font-size: 58px; }
+.tile.big .val { font-size: 50px; }
 .sub { font-size: 12px; color: #7d8a95; margin-top: 2px; white-space: nowrap; }
 
 /* ---- Abschnittsüberschrift (nicht klickbar) ---- */
@@ -79,19 +80,17 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
   font-family: inherit; font-size: 19px; font-weight: 700;
   font-variant-numeric: tabular-nums;
   background: #fff; color: #16202a; border-radius: 6px;
-  margin: 3px; padding: 14px 0; width: calc(10% - 6px);
+  margin: 3px; padding: 16px 0; width: calc(16.666% - 6px);
   float: left; border-bottom: 3px solid #c3ccd4; }
 .grid button:active { background: #2f6f99; color: #fff; }
 .grid button.on { background: #2f6f99; color: #fff; border-bottom-color: #1d4b69; }
-.grid button.locked { background: #e3e7eb; color: #aab4bd;
-                      border-bottom-color: #d4dade; cursor: not-allowed; }
 .grid:after { content: ""; display: table; clear: both; }
 
 .row { margin: -3px; }
 .row button { -webkit-appearance: none; border: 0; cursor: pointer;
   font-family: inherit; font-size: 19px; font-weight: 700;
   background: #c3ccd4; color: #16202a; border-radius: 6px;
-  margin: 3px; padding: 15px 0; width: calc(25% - 6px); float: left; }
+  margin: 3px; padding: 15px 0; width: calc(33.333% - 6px); float: left; }
 .row button.go { background: #2f6f99; color: #fff; }
 .row button:active { background: #16202a; color: #fff; }
 .row:after { content: ""; display: table; clear: both; }
@@ -129,8 +128,9 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
 @media (max-width: 560px) {
   .tile { width: 50%; }
-  .grid button { width: calc(20% - 6px); font-size: 17px; padding: 12px 0; }
+  .grid button { width: calc(25% - 6px); font-size: 17px; padding: 13px 0; }
   .tile.full .val { font-size: 46px; }
+  .tile.big .val { font-size: 38px; }
   .field input { width: 55%; }
   .field button { width: 42%; }
 }
@@ -155,31 +155,26 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   <div id="pageMess">
 
     <div class="tiles">
-      <div class="tile full"><div>
+      <div class="tile half big"><div>
         <div class="lab">Geschwindigkeit</div>
         <div class="val"><span id="kmh">—</span><small>km/h</small></div>
-        <div class="sub" id="sollSub">kein Sollwert</div>
+      </div></div>
+      <div class="tile half big"><div>
+        <div class="lab">Sollwert</div>
+        <div class="val"><span id="soll">—</span><small>km/h</small></div>
       </div></div>
     </div>
 
     <h2>Wägezelle</h2>
     <div class="tiles">
-      <div class="tile"><div>
+      <div class="tile half big"><div>
         <div class="lab">Last an der Zelle</div>
         <div class="val"><span id="kg">—</span><small>kg</small></div>
-        <div class="sub" id="pctSub">—</div>
       </div></div>
-      <div class="tile"><div>
-        <div class="lab">Kraft</div>
-        <div class="val"><span id="n">—</span><small>N</small></div>
-      </div></div>
-      <div class="tile"><div>
-        <div class="lab">Moment</div>
-        <div class="val"><span id="nm">—</span><small>Nm</small></div>
-      </div></div>
-      <div class="tile"><div>
-        <div class="lab">Rollkraft</div>
-        <div class="val"><span id="roll">—</span><small>N</small></div>
+      <div class="tile half big"><div>
+        <div class="lab">Auslastung</div>
+        <div class="val"><span id="pct">—</span><small>%</small></div>
+        <div class="sub" id="pctSub">vom Endwert der Zelle</div>
       </div></div>
     </div>
 
@@ -221,7 +216,6 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       <button type="button" id="minus">−5</button>
       <button type="button" id="plus">+5</button>
       <button type="button" class="go" id="coast">Auslaufen</button>
-      <button type="button" class="go" id="tare2">Nullen</button>
     </div>
 
     <footer id="foot"></footer>
@@ -324,18 +318,14 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   /* ---------- Geschwindigkeitsraster ---------- */
   function buildGrid() {
     var html = "", v;
-    for (v = vmin; v <= 100; v += step) {
+    for (v = vmin; v <= vmax; v += step) {
       html += '<button type="button" data-v="' + v + '">' + v + "</button>";
     }
     $("grid").innerHTML = html;
     var bs = $("grid").getElementsByTagName("button"), i;
     for (i = 0; i < bs.length; i++) {
       bs[i].onclick = (function (b) {
-        return function () {
-          var want = parseInt(b.getAttribute("data-v"), 10);
-          if (want > vmax) return;            /* gesperrt, siehe paintGrid */
-          send("v" + want);
-        };
+        return function () { send("v" + b.getAttribute("data-v")); };
       })(bs[i]);
     }
     gridBuilt = true;
@@ -345,7 +335,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     var bs = $("grid").getElementsByTagName("button"), i, v;
     for (i = 0; i < bs.length; i++) {
       v = parseInt(bs[i].getAttribute("data-v"), 10);
-      bs[i].className = (v > vmax) ? "locked" : (v === istSoll ? "on" : "");
+      bs[i].className = (v === istSoll) ? "on" : "";
     }
   }
 
@@ -358,7 +348,6 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     send("v" + v);
   };
   $("coast").onclick = function () { send("c"); };
-  $("tare2").onclick = function () { send("t"); };
   $("stop").onclick  = function () { send("s"); };
 
   /* ---------- Einrichtung ---------- */
@@ -380,6 +369,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
   /* ---------- Anzeige ---------- */
   function paint(j) {
+    if (vmax !== j.vmax || vmin !== j.vmin || step !== j.step) gridBuilt = false;
     vmax = j.vmax; vmin = j.vmin; step = j.step; soll = j.soll;
     if (!gridBuilt) buildGrid();
 
@@ -387,25 +377,19 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("st").className = j.link ? "st" : "st bad";
 
     show("kmh", j.link ? j.kmh : null, 1);
-    $("sollSub").innerHTML = j.faehrt
-      ? ("Soll " + de(j.soll, 0) + " km/h · Rampe " + de(j.rampe, 1)
-         + " · Tastverhältnis " + de(j.duty, 2))
-      : "kein Sollwert";
+    $("soll").innerHTML = j.faehrt ? de(j.soll, 0) : "—";
+    $("soll").className  = "val" + (j.faehrt ? "" : " dim");
     paintGrid(j.faehrt ? j.soll : -1);
 
     /* Wägezelle */
     var kal = j.kal;
-    $("kg").className   = "val" + (kal ? "" : " dim");
-    $("n").className    = "val" + (kal ? "" : " dim");
-    $("nm").className   = "val" + (kal ? "" : " dim");
-    $("roll").className = "val" + (kal ? "" : " dim");
-    show("kg",   j.kg,   3);
-    show("n",    j.n,    2);
-    show("nm",   j.nm,   3);
-    show("roll", j.roll, 3);
+    $("kg").className  = "val" + (kal ? "" : " dim");
+    $("pct").className = "val" + (kal ? "" : " dim");
+    show("kg",  j.kg,  3);
+    show("pct", j.pct, 1);
     $("pctSub").innerHTML = kal
-      ? (de(j.pct, 1) + " % vom Endwert (" + de(j.fsN, 1) + " N)")
-      : ("nicht kalibriert · " + j.counts + " counts");
+      ? ("vom Endwert " + de(j.fsN / 9.80665, 2) + " kg · Mittel über 0,5 s")
+      : ("nicht kalibriert · " + j.counts + " counts roh");
 
     /* Antrieb */
     show("imot", j.link ? j.imot : null, 2);
