@@ -27,6 +27,13 @@ float torqueArmM();             // Hebelarm der Wägezelle
 float calibArmM();              // Hebelarm des Kalibriergewichts
 float loadcellNPerCount();
 
+// Welches Vorzeichen der Reglerdrehzahl die MESSRICHTUNG ist. +1 oder -1.
+//
+// Das haengt an der Phasenreihenfolge und aendert sich, sobald jemand am
+// Motorkabel oder an den Bremsrelais umklemmt. Es gehoert deshalb hierher und
+// nicht in config.h: anlernbar durch Drehen von Hand, siehe speedctl::learn().
+int8_t directionSign();
+
 // false, solange nicht kalibriert. Dann liefert torque:: keine Kräfte, nur Rohwerte.
 bool calibrated();
 
@@ -36,6 +43,7 @@ bool setDrumCircumferenceM(float m);
 bool setTorqueArmM(float m);
 bool setCalibArmM(float m);
 bool setLoadcellNPerCount(float nPerCount);
+bool setDirectionSign(int8_t sign);   // nur +1 oder -1
 
 // Zurück auf die Vorgaben aus config.h, NVS wird geleert.
 void reset();

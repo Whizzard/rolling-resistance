@@ -13,11 +13,13 @@ constexpr char K_DRUM[]  = "drum_u";
 constexpr char K_ARM[]   = "arm";
 constexpr char K_CALIB[] = "calib_arm";
 constexpr char K_NPC[]   = "n_per_count";
+constexpr char K_DIR[]   = "dir_sign";
 
 float g_drum  = DRUM_CIRCUMFERENCE_M;
 float g_arm   = TORQUE_ARM_M;
 float g_cal   = CALIB_ARM_M;
 float g_npc   = LOADCELL_N_PER_COUNT;
+int8_t g_dir  = static_cast<int8_t>(VESC_DIRECTION_SIGN);
 
 // Grenzen der Plausibilitaet. Absichtlich weit: sie sollen Tippfehler um
 // Zehnerpotenzen abfangen, nicht die Konstruktion bevormunden.
@@ -42,6 +44,7 @@ void begin() {
     g_arm  = g_nvs.getFloat(K_ARM,   TORQUE_ARM_M);
     g_cal  = g_nvs.getFloat(K_CALIB, CALIB_ARM_M);
     g_npc  = g_nvs.getFloat(K_NPC,   LOADCELL_N_PER_COUNT);
+    g_dir  = g_nvs.getChar(K_DIR, static_cast<int8_t>(VESC_DIRECTION_SIGN));
     g_nvs.end();
   }
   // Ein im NVS gelandeter Unsinnswert darf den Stand nicht vergiften.
@@ -49,11 +52,13 @@ void begin() {
   if (!okArm(g_arm))   g_arm  = TORQUE_ARM_M;
   if (!okArm(g_cal))   g_cal  = CALIB_ARM_M;
   if (g_npc != 0.0f && !okNpc(g_npc)) g_npc = LOADCELL_N_PER_COUNT;
+  if (g_dir != 1 && g_dir != -1) g_dir = static_cast<int8_t>(VESC_DIRECTION_SIGN);
 
   Serial.print("# Einstellungen: Trommel "); Serial.print(g_drum, 4);
   Serial.print(" m, Zellenarm ");            Serial.print(g_arm, 4);
   Serial.print(" m, Kalibrierarm ");         Serial.print(g_cal, 4);
-  Serial.print(" m, Kalibrierfaktor ");
+  Serial.print(" m, Drehrichtung ");         Serial.print(g_dir);
+  Serial.print(", Kalibrierfaktor ");
   if (g_npc > 0.0f) Serial.println(g_npc, 8);
   else              Serial.println("NICHT KALIBRIERT");
 }
@@ -64,6 +69,7 @@ float torqueArmM()         { return g_arm; }
 float calibArmM()          { return g_cal; }
 float loadcellNPerCount()  { return g_npc; }
 bool  calibrated()         { return g_npc > 0.0f; }
+int8_t directionSign()     { return g_dir; }
 
 namespace {
 bool store(const char* key, float value) {
@@ -98,6 +104,15 @@ bool setLoadcellNPerCount(float x) {
   return store(K_NPC, x);
 }
 
+bool setDirectionSign(int8_t sign) {
+  if (sign != 1 && sign != -1) return false;
+  g_dir = sign;
+  if (!g_nvs.begin(NS, false)) return false;
+  const size_t n = g_nvs.putChar(K_DIR, sign);
+  g_nvs.end();
+  return n > 0;
+}
+
 void reset() {
   if (g_nvs.begin(NS, false)) {
     g_nvs.clear();
@@ -107,11 +122,13 @@ void reset() {
   g_arm  = TORQUE_ARM_M;
   g_cal  = CALIB_ARM_M;
   g_npc  = LOADCELL_N_PER_COUNT;
+  g_dir  = static_cast<int8_t>(VESC_DIRECTION_SIGN);
 }
 
 bool anyOverridden() {
   return g_drum != DRUM_CIRCUMFERENCE_M || g_arm != TORQUE_ARM_M ||
-         g_cal  != CALIB_ARM_M          || g_npc != LOADCELL_N_PER_COUNT;
+         g_cal  != CALIB_ARM_M          || g_npc != LOADCELL_N_PER_COUNT ||
+         g_dir  != static_cast<int8_t>(VESC_DIRECTION_SIGN);
 }
 
 }  // namespace settings

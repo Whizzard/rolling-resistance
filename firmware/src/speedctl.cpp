@@ -13,6 +13,8 @@ bool     g_run    = false;
 bool     g_fresh  = true;   // beim naechsten Durchlauf aus der Istdrehzahl vorbesetzen
 uint32_t g_lastMs = 0;
 const char* g_refusal = "";
+bool     g_learn  = false;  // Drehrichtung wird gerade angelernt
+uint32_t g_learnStart = 0;
 
 // Mechanische Drehzahl der Trommel aus der Reglerdrehzahl. Vorzeichenbehaftet:
 // in Messrichtung ist ERPM negativ (VESC_DIRECTION_SIGN).
@@ -22,7 +24,7 @@ float rpmSigned() {
 
 // km/h in Messrichtung, also positiv, wenn die Trommel richtig herum dreht.
 float kmhSigned() {
-  return kmhFromRevPerSec(rpmSigned() / 60.0f) * VESC_DIRECTION_SIGN;
+  return kmhFromRevPerSec(rpmSigned() / 60.0f) * settings::directionSign();
 }
 
 float rpmFromKmh(float kmh) { return revPerSecFromKmh(kmh) * 60.0f; }
@@ -75,6 +77,24 @@ void service() {
   const float dt = (now - g_lastMs) / 1000.0f;
   g_lastMs = now;
 
+  if (g_learn) {
+    // Vorzeichenfrei messen: welches Vorzeichen hat die Reglerdrehzahl, wenn
+    // der Mensch in Messrichtung dreht? Genau das ist directionSign().
+    const float roh = kmhFromRevPerSec(rpmSigned() / 60.0f);
+    if (fabsf(roh) >= SPEEDCTL_LEARN_MIN_KMH) {
+      const int8_t neu = (roh > 0.0f) ? 1 : -1;
+      g_learn = false;
+      g_refusal = settings::setDirectionSign(neu)
+                    ? "" : "Vorzeichen nicht gespeichert";
+      return;
+    }
+    if (now - g_learnStart > SPEEDCTL_LEARN_TIMEOUT_MS) {
+      g_learn = false;
+      g_refusal = "nichts gedreht \u2014 Anlernen abgebrochen";
+    }
+    return;
+  }
+
   if (!g_run) return;
 
   // Ohne Messwerte vom Regler wird nicht gestellt — blind das Tastverhaeltnis
@@ -117,7 +137,7 @@ void service() {
   if (g_duty > klemme) g_duty = klemme;
   if (g_duty < 0.0f)   g_duty = 0.0f;
 
-  vesc::setDuty(g_duty * VESC_DIRECTION_SIGN);
+  vesc::setDuty(g_duty * settings::directionSign());
 }
 
 float targetKmh() { return g_target; }
@@ -139,6 +159,17 @@ void coast() {
   g_fresh = true;
   vesc::release();
 }
+
+void learn() {
+  // Nur im Stillstand und nur mit freigegebenem Antrieb: wer von Hand dreht,
+  // soll nicht gegen ein Haltemoment arbeiten.
+  coast();
+  g_learn = true;
+  g_learnStart = millis();
+  g_refusal = "";
+}
+
+bool learning() { return g_learn; }
 
 const char* lastRefusal() { return g_refusal; }
 

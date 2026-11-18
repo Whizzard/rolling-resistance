@@ -46,6 +46,7 @@ void printHelp() {
   Serial.println("#   d<m>    Trommelumfang           a<m>  Zellenarm");
   Serial.println("#   b<m>    Kalibrierarm            r  Einstellungen zuruecksetzen");
   Serial.println("#   i       Zustand: Regler, Waegezelle, Bedienverbindung");
+  Serial.println("#   l       Drehrichtung anlernen (Trommel von Hand drehen)");
   Serial.print("# Grenze: "); Serial.print(V_MAX_KMH, 0);
   Serial.println(" km/h (docs/07-sicherheit.md §5)");
 }
@@ -71,7 +72,13 @@ void printStatus() {
     }
     Serial.print(" | "); Serial.print(v.vIn, 1);    Serial.print(" V");
     Serial.print(" | "); Serial.print(v.erpm);      Serial.print(" ERPM");
+    Serial.print(" | Imot "); Serial.print(v.currentMotor, 1);
+    Serial.print(" A | Iin "); Serial.print(v.currentIn, 1);
+    Serial.print(" A | Duty "); Serial.print(v.duty, 3);
     Serial.print(" | FET "); Serial.print(v.tempFet, 1); Serial.print(" C");
+    Serial.print(" | Motor ");
+    if (v.tempMotor < MOTOR_TEMP_OPEN_C) Serial.print("FUEHLER OFFEN");
+    else { Serial.print(v.tempMotor, 1); Serial.print(" C"); }
     Serial.print(" | Fehler "); Serial.print(vesc::faultText(v.fault));
     // Das Timeout-Bit ist im STILLSTAND der Normalfall und keine Stoerung: der
     // Sollwert wird nur wiederholt, solange gefahren wird (vesc.h). Wird nicht
@@ -100,6 +107,34 @@ void printStatus() {
                      " app_to_use = UART? COMM-Masse?");
     }
   }
+
+  Serial.print("# Antrieb  ");
+  if (speedctl::learning()) {
+    Serial.println("lernt Drehrichtung \u2014 Trommel in Messrichtung drehen");
+  } else {
+    Serial.print(speedctl::running() ? "faehrt" : "steht");
+    Serial.print(" | Soll ");  Serial.print(speedctl::targetKmh(), 0);
+    Serial.print(" | Rampe "); Serial.print(speedctl::rampKmh(), 1);
+    Serial.print(" | Ist ");   Serial.print(speedctl::kmh(), 1);
+    Serial.print(" km/h | Stellwert "); Serial.print(speedctl::duty(), 3);
+    Serial.print(" | Richtung "); Serial.print(settings::directionSign());
+    Serial.println();
+  }
+
+  // Sollwert steht an, Trommel dreht nicht: der Regler hat die Kommutierung
+  // verloren. Mit der unebenen Hall-Tabelle passiert das unterhalb von
+  // foc_hall_interp_erpm, wo die rohe Tabelle gilt (docs/04-hardware.md 11.2).
+  if (speedctl::running() && speedctl::rampKmh() > 3.0f && speedctl::kmh() < 1.0f)
+    Serial.println("#          ACHTUNG Sollwert steht an, Trommel dreht nicht."
+                   " Kommutierung verloren \u2014 Hall-Tabelle erneut erkennen.");
+
+  // Der offene Fuehler ist zugleich der Verdacht auf die Hall-Geber: TMP und die
+  // drei Hall-Adern liegen im SELBEN 6-poligen Stecker (docs/04-hardware.md
+  // 11.5). Am 2026-11-18 war genau das der Fall -- Stecker nicht gesteckt,
+  // -82 C am Fuehler, und der Motor zuckte nur.
+  if (vesc::connected() && v.tempMotor < MOTOR_TEMP_OPEN_C)
+    Serial.println("#          ACHTUNG Sensorstecker: TMP offen. Die Hall-Adern"
+                   " liegen im selben Stecker, also auch verdaechtig.");
 
   Serial.print("# Zelle    ");
   if (torque::isResponding()) {
@@ -204,6 +239,13 @@ void handleCommand(const String& cmd) {
       settings::reset();
       note("Einstellungen auf die Vorgaben aus config.h zurueckgesetzt");
       break;
+    case 'l':
+      if (speedctl::running()) { note("erst anhalten"); break; }
+      speedctl::learn();
+      note("Trommel jetzt von Hand in Messrichtung drehen");
+      Serial.println("# Antrieb freigegeben. Trommel in MESSRICHTUNG drehen,"
+                     " mindestens 2 km/h.");
+      break;
     case 'i': printStatus(); break;
     case '?': printHelp(); note(""); break;
     default:  note("unbekannter Befehl"); break;
@@ -231,6 +273,12 @@ void buildStateJson(char* buf, size_t len) {
   const float mNm  = torque::momentNm();
   const float roll = torque::rollForceN();
 
+  // Offene Klemme ist keine Temperatur. Der Wert geht als null heraus, damit die
+  // Oberflaeche einen Gedankenstrich zeigt, und der Grund als eigenes Merkmal.
+  const bool tmotOffen = ok && v.tempMotor < MOTOR_TEMP_OPEN_C;
+  char sTmot[16];
+  num(sTmot, sizeof(sTmot), (!ok || tmotOffen) ? NAN : v.tempMotor, 1);
+
   char sN[16], sPct[16], sKg[16], sM[16], sRoll[16];
   num(sN,   sizeof(sN),   fN,   2);
   num(sPct, sizeof(sPct), pct,  1);
@@ -244,7 +292,7 @@ void buildStateJson(char* buf, size_t len) {
     "\"kmh\":%.1f,\"soll\":%.0f,\"rampe\":%.1f,\"duty\":%.3f,\"faehrt\":%s,"
     "\"erpm\":%ld,\"rpm\":%.1f,"
     "\"vin\":%.1f,\"imot\":%.2f,\"iin\":%.2f,\"watt\":%.0f,"
-    "\"tfet\":%.1f,\"tmot\":%.1f,"
+    "\"tfet\":%.1f,\"tmot\":%s,\"tmotOffen\":%s,"
     "\"counts\":%ld,\"ripple\":%ld,\"n\":%s,\"pct\":%s,\"kg\":%s,"
     "\"nm\":%s,\"roll\":%s,"
     "\"kal\":%s,\"saturiert\":%s,\"zelle\":%s,"
@@ -261,7 +309,7 @@ void buildStateJson(char* buf, size_t len) {
     ok ? fabsf(static_cast<float>(v.erpm)) / MOTOR_POLE_PAIRS : 0.0f,
     ok ? v.vIn : 0.0f, ok ? v.currentMotor : 0.0f, ok ? v.currentIn : 0.0f,
     ok ? v.vIn * v.currentIn : 0.0f,
-    ok ? v.tempFet : 0.0f, ok ? v.tempMotor : 0.0f,
+    ok ? v.tempFet : 0.0f, sTmot, tmotOffen ? "true" : "false",
     counts, ripple, sN, sPct, sKg, sM, sRoll,
     settings::calibrated() ? "true" : "false",
     torque::isSaturated() ? "true" : "false",
