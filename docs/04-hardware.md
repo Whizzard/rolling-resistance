@@ -1031,7 +1031,7 @@ Zwei Folgen:
 
 Aus der eingespielten Konfiguration (`hardware/vesc-config-fw7.01/mcconf.xml`).
 **Der Regler meldet sich schon weit unterhalb der Spannung, bei der er fahren
-kann** — ‚der Regler antwortet“ heißt also nicht ‚der Regler kann fahren“:
+kann** — „der Regler antwortet“ heißt also nicht „der Regler kann fahren“:
 
 | Grenze | Wert | Wirkung |
 |---|---|---|
@@ -1696,9 +1696,16 @@ die GPIOs und die Verdächtigen dazu.
 > sich die Konsole auf demselben Port. §5.1 beschreibt den umgekehrten Fall vom
 > 2026-11-15, als `COM` funktionierte.
 
-> **Erster Anschlusstest, 2026-11-18:** Wägezelle **antwortet** (−6871 counts,
-> Spitze-Spitze 369, unkalibriert). Regler **antwortet nicht**, und zwar noch nie
-> seit dem Start — also kein verlorenes Paket, sondern keine Verbindung.
+> **Erster Anschlusstest, 2026-11-18**, in zwei Schritten:
+>
+> 1. Wägezelle **antwortet** (−6871 counts, Spitze-Spitze 369, unkalibriert).
+>    Regler **nicht** — und zwar noch nie seit dem Start, also kein verlorenes
+>    Paket, sondern keine Verbindung. Ursache war zu geringe Akkuspannung: unter
+>    `l_min_vin` läuft nicht einmal seine Logik.
+> 2. Mit mehr Spannung antwortet er sofort (FW 7.1, HW 410, kein Fehler) — bei
+>    8,2 V aber immer noch ohne jede Fähigkeit zu fahren, siehe §10.4b. Genau
+>    dafür unterscheidet `i` beides nicht: er zeigt die Spannung, und die
+>    Beurteilung bleibt beim Menschen.
 
 ### 14.1a Kalibrierung der Wägezelle
 
