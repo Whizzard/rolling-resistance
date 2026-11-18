@@ -71,4 +71,12 @@ const char* lastRefusal();
 void learn();
 bool learning();
 
+// Losbrechmessung: Tastverhaeltnis langsam anheben, bis sich die Trommel regt,
+// dann sofort freigeben. Liefert die Zahl, die in docs/03-parameter.md fehlt --
+// und beantwortet, ob die Klemme beim Anfahren ueberhaupt Reserve braucht.
+void breakaway();
+bool breakingAway();
+float breakawayDuty();      // Tastverhaeltnis beim Losbrechen, 0 = noch keins
+float breakawayAmps();      // Motorstrom in diesem Moment
+
 }  // namespace speedctl

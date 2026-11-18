@@ -398,6 +398,14 @@ constexpr int32_t VESC_DIRECTION_SIGN = -1;
 // SELBEN Stecker liegen, ist das zugleich der Verdacht auf die Hall-Geber.
 constexpr float MOTOR_TEMP_OPEN_C = -20.0f;
 
+// Losbrechmessung (speedctl::breakaway). Das Losbrechmoment der Trommel ist
+// NICHT gemessen -- DRUM_LOSS_CONST_NM ist die LAUFreibung aus dem Auslauf und
+// taugt dafuer nicht. Die Messung hebt das Tastverhaeltnis langsam an, bis sich
+// die Trommel bewegt, und bricht dann sofort ab.
+constexpr float BREAKAWAY_RATE_PER_S  = 0.01f;   // Anstieg des Tastverhaeltnisses
+constexpr float BREAKAWAY_DUTY_MAX    = 0.15f;   // Obergrenze, dann Abbruch
+constexpr float BREAKAWAY_DETECT_KMH  = 0.5f;    // ab hier gilt sie als bewegt
+
 // Anlernen der Drehrichtung von Hand (speedctl::learn).
 constexpr float    SPEEDCTL_LEARN_MIN_KMH    = 2.0f;
 constexpr uint32_t SPEEDCTL_LEARN_TIMEOUT_MS = 20000;
