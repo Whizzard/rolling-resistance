@@ -23,7 +23,7 @@ Featurebaum:
     Bauteilraum       schmaler Teil, volle Höhe  -> erzeugt den Absatz
     Rastnasen         zwei Keile, mittig, unter der Platine
     Federfeld         Freistellung aussen, damit die Wand an den Nasen federt
-    Schraubloch       M4 durch, mittig zwischen den Kanälen
+    Schraubloch       M6 durch, mittig zwischen den Kanälen
     Kabelnut_p/_m     Klemmstrecke je Kanal, D-Profil (Rechteck + Rundung)
     Kabelmulde_p/_m   tiefer, am Übergang, dort wird nicht geklemmt
 
@@ -85,7 +85,7 @@ PARAMS = [
     ('relief_t',     0.8,  'Federfeld Restwand'),
     ('relief_h', '=pcb_z1 + 2', 'Federfeld Hoehe'),
 
-    ('screw_d',      4.5,  'M4 Durchgang'),
+    ('screw_d',      6.6,  'M6 Durchgang, wie das Hall-Gehaeuse'),
     ('screw_y',      0.0,  'Schraube mittig, zwischen den Kanaelen'),
     ('screw_x', '=cav_x0 + cav_l + rib + screw_blk / 2', 'Schraube Lage'),
 
