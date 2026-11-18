@@ -1,5 +1,6 @@
 #include "logger.h"
 #include "config.h"
+#include "settings.h"
 #include "torque.h"
 
 namespace logger {
@@ -17,11 +18,11 @@ void begin() { Serial.begin(115200); }
 void header() {
   Serial.println();
   Serial.println("# Fahrrad-Reifenpruefstand — Rohdaten");
-  Serial.print("# U=");  Serial.print(DRUM_CIRCUMFERENCE_M, 4);
-  Serial.print(" m  r="); Serial.print(DRUM_RADIUS_M, 4);
-  Serial.print(" m  L="); Serial.print(TORQUE_ARM_M, 4);
+  Serial.print("# U=");  Serial.print(settings::drumCircumferenceM(), 4);
+  Serial.print(" m  r="); Serial.print(settings::drumRadiusM(), 4);
+  Serial.print(" m  L="); Serial.print(settings::torqueArmM(), 4);
   Serial.print(" m  i="); Serial.print(BELT_RATIO, 3);
-  Serial.print("  N_per_count="); Serial.println(LOADCELL_N_PER_COUNT, 8);
+  Serial.print("  N_per_count="); Serial.println(settings::loadcellNPerCount(), 8);
   if (!isCalibrated()) {
     Serial.println("# WARNUNG: Waegezelle unkalibriert — Kraftspalten bleiben leer.");
   }

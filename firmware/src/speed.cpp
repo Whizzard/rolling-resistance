@@ -1,5 +1,6 @@
 #include "speed.h"
 #include "config.h"
+#include "settings.h"
 
 namespace speed {
 namespace {

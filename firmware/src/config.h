@@ -60,6 +60,15 @@ constexpr float DRUM_LOSS_OMEGA2_NM = 3.178e-4f;
 // auf 160 mm, damit das 2:1-Verhältnis erhalten bleibt. Anschlag bei 0,200 m.
 constexpr float TORQUE_ARM_M = 0.080f;
 
+// [Festlegung] Hebelarm des KALIBRIERGEWICHTS, die zweite Bohrung im Arm. Das
+// 2:1-Verhaeltnis zum Zellenarm ist Absicht: ein Gewicht am laengeren Arm erzeugt das
+// doppelte Moment und damit die doppelte Kraft an der Zelle, also laesst sich mit
+// handlichen Gewichten bis in den oberen Messbereich kalibrieren.
+//
+// Beide Arme sind zur Laufzeit ueberschreibbar (settings.h) — sie werden AM AUFBAU
+// ausgemessen, und ein Kalibrierlauf, der zum Uebersetzen zwingt, wird nicht gemacht.
+constexpr float CALIB_ARM_M = 0.160f;
+
 // [Festlegung] DIREKTANTRIEB: die Trommel sitzt auf dem Rotor des Nabenmotors,
 // Motor- und Trommeldrehzahl sind identisch. Der verbaute Hoverboard-Motor dreht mit
 // etwa 480 1/min allein schon 84 km/h an der Trommel, eine Übersetzung ist also
@@ -404,6 +413,47 @@ constexpr int32_t VESC_DIRECTION_SIGN = -1;
 // docs/07-sicherheit.md §3.2b und §3.2c.
 constexpr float VESC_BRAKE_CURRENT_STOP = 20.0f;
 
+// ------------------------------------------- Geschwindigkeitsregelung der Trommel
+//
+// Der Drehzahlregler des VESC ist fuer diesen Motor unbrauchbar eingestellt, und
+// s_pid_min_erpm = 900 sperrt die unterste Pruefstufe (881 ERPM bei 10 km/h) —
+// docs/06-offene-fragen.md A15. Gefahren wird deshalb ueber das TASTVERHAELTNIS,
+// mit Vorsteuerung aus der Leerlaufkennlinie und langsamem Trimm darueber.
+// Am 2026-11-17 so bis 99,2 km/h erprobt.
+
+// [Festlegung] Rampe des inneren Sollwerts. 2 km/h je Sekunde sind 30 s von 0 auf 60
+// und langsam genug, dass ein Fehlgriff auffaellt, bevor es schnell wird.
+constexpr float SPEEDCTL_RAMP_KMH_PER_S = 2.0f;
+
+// [Festlegung] Trimmverstaerkung: Tastverhaeltnis je (km/h Abweichung · Sekunde).
+// Die Vorsteuerung traegt die Hauptlast, der Trimm holt nur Reibung und
+// Spannungsabfall nach.
+constexpr float SPEEDCTL_KP = 0.02f;
+
+// [Festlegung] Hoechste Aenderung des Tastverhaeltnisses je Sekunde.
+//
+// ACHTUNG, die Asymmetrie ist der Kern: HERUNTERstellen ist ein BREMSBEFEHL. Ein
+// Tastverhaeltnis unter dem, was die momentane Drehzahl braucht, laesst den Regler
+// zurueckspeisen — am Netzteil endet das in Ueberspannung (docs/07-sicherheit.md
+// §3.3). Deshalb darf der Stellwert nur ein Fuenftel so schnell fallen wie steigen.
+constexpr float SPEEDCTL_DUTY_UP_PER_S   = 0.30f;
+constexpr float SPEEDCTL_DUTY_DOWN_PER_S = 0.06f;
+
+// [Festlegung] Klemme gegen Weglaufen des Stellwerts. Solange die Stromgrenze die
+// Beschleunigung bestimmt, bleibt die Regelabweichung gross und der Trimm wuerde bis
+// an den Anschlag integrieren — die Trommel schiesst dann ueber den Sollwert hinaus,
+// sobald der Strom frei wird. Am 2026-11-17 genau so passiert.
+// Obergrenze ist die Leerlaufkennlinie des SOLLWERTS plus Reibungszuschlag.
+constexpr float SPEEDCTL_CLAMP_FACTOR = 1.08f;
+constexpr float SPEEDCTL_CLAMP_OFFSET = 0.02f;
+
+// [Festlegung] Takt des Regelkreises. Schneller bringt nichts: die Drehzahl kommt
+// mit VESC_POLL_MS = 200 ms herein.
+constexpr uint32_t SPEEDCTL_PERIOD_MS = 20;
+
+// [Festlegung] Schrittweite der Bedienknoepfe.
+constexpr float SPEED_STEP_KMH = 5.0f;
+
 constexpr int32_t VESC_ERPM_STEP_SMALL = 100;   // [Festlegung] Feineinstellung
 constexpr int32_t VESC_ERPM_STEP_LARGE = 1000;  // [Festlegung] grobe Annaeherung
 
@@ -438,10 +488,9 @@ constexpr uint8_t LCD_ROWS = 4;
 constexpr float KMH_TO_MS = 1.0f / 3.6f;
 constexpr float MS_TO_KMH = 3.6f;
 
-// Trommelumdrehungen pro Sekunde ↔ Geschwindigkeit
-inline float kmhFromRevPerSec(float rps) { return rps * DRUM_CIRCUMFERENCE_M * MS_TO_KMH; }
-inline float revPerSecFromKmh(float kmh) { return kmh * KMH_TO_MS / DRUM_CIRCUMFERENCE_M; }
 inline float omegaFromRevPerSec(float rps) { return rps * 2.0f * PI; }
 
-// Ist der Kraftpfad kalibriert?
-inline bool isCalibrated() { return LOADCELL_N_PER_COUNT > 0.0f; }
+// kmhFromRevPerSec(), revPerSecFromKmh() und isCalibrated() stehen in settings.h.
+// Sie haengen am Trommelumfang bzw. am Kalibrierfaktor, und die sind zur Laufzeit
+// ueberschreibbar — hier koennten sie nur den Vorgabewert sehen und damit still
+// etwas anderes rechnen als der Rest der Firmware.

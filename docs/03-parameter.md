@@ -15,6 +15,7 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 | J | `DRUM_INERTIA_KGM2` | **1,94** | kg·m² | ber | Aus der Geometrie der **Ø-903-Trommel**, passend zu `DRUM_CIRCUMFERENCE_M` = 2,837 in `config.h`. **Achtung, offener Widerspruch:** die Zeile `J` weiter unten in diesem Abschnitt nennt **2,07** für die Ø-933-Trommel, und `DRUM_CIRCUMFERENCE_M` steht in diesem Dokument als 2,931. Welche Trommel gilt, ist nicht entschieden — siehe [06-offene-fragen](06-offene-fragen.md) A14. Bis dahin ist `config.h` in sich stimmig (2,837 / 1,94) und dieses Dokument nicht. |
 | — | `DRUM_LOSS_CONST_NM` | **0,472** | Nm | **gem** | Konstanter Anteil des Leerlaufverlustmoments: Lager- und Motorreibung. **Kürzt sich in der Pendelmessung heraus**, weil Trommellager und Motorreibung beide innerhalb der Wiege liegen. |
 | — | `DRUM_LOSS_OMEGA2_NM` | **3,178·10⁻⁴** | Nm·s² | **gem** | Faktor des ω²-Anteils: **Luftwiderstand der Trommel**, der Teil, der sich *nicht* heraus kürzt. Beide Werte am 2026-11-17 aus dem **freien Auslauf** bestimmt: 97 → 29 km/h in 140 s, acht Stützstellen, M = J·dω/dt, Anpassung M = a + b·ω². Bei 60 km/h ergibt das 0,43 Nm Luftwiderstand — [09-messtheorie](09-messtheorie.md) nennt dafür 0,27 Nm, der gemessene Wert ist **1,6-fach größer**. Gegen ein Nutzsignal von 1,32 Nm (Crr 0,007 bei 417 N) sind das 33 % statt 20 %, bei 100 km/h sogar 91 %. Neu aufnehmen, sobald sich an Trommeloberfläche oder Einhausung etwas ändert. |
+| L_kal | `CALIB_ARM_M` | **0,160** | m | **TBD** | Hebelarm des **Kalibriergewichts**, die zweite Bohrung im Arm. Das 2:1-Verhältnis zum Zellenarm ist Absicht: ein Gewicht dort erzeugt das doppelte Moment und damit die doppelte Kraft an der Zelle, also lässt sich mit handlichen Gewichten bis in den oberen Messbereich kalibrieren. Beide Arme sind **zur Laufzeit überschreibbar** (`settings.h`) — sie werden am Aufbau ausgemessen. Wie `TORQUE_ARM_M` auf ±0,1 mm nachzumessen. |
 | i | `BELT_RATIO` | 1,00 | – | Festlegung | **Direktantrieb**: Trommel auf dem Motorrotor, keine Übersetzung. Konstante bleibt für den Fall eines späteren Riemens. |
 | J | — | **2,07** | kg·m² | ber | Aus der Geometrie, [09-messtheorie](09-messtheorie.md) §9.1. Der frühere Wert 2,3 galt der Ø-955-Trommel. Geht **nicht** ins Ergebnis ein (gemessen wird stationär, dω/dt = 0), sondern nur in Rampenkorrektur, Hebelarmauslegung und die Energiebilanz. Nachmessen per Auslaufversuch mit bekannter Zusatzmasse. |
 
@@ -301,6 +302,33 @@ Nur für die Reglervariante (`env:esp32s3-vesc`), siehe
 | `VESC_ERPM_STEP_LARGE` | 1000 | ERPM | Festlegung | grobe Annäherung |
 | `VESC_DIRECTION_SIGN` | **−1** | – | **gem** | Vorzeichen, mit dem Sollwerte an den Regler gehen, damit die Trommel in **Messrichtung** dreht. Am 2026-11-17 am Aufbau festgestellt, bei geprüfter Phasenzuordnung (Relaisblock 1:1) und gemessener Hall-Tabelle. Steht bewusst **hier** und nicht als `m_invert_direction` im Regler: dort wäre die Festlegung nicht versioniert und ginge bei jeder Neuerkennung verloren. Zwei Fallstricke: zwei vertauschte Phasen im Relaisblock drehen die Richtung **und** entwerten die Hall-Tabelle (der Motor brummt dann stromführend ohne Moment und meldet **keinen** Fehler, [04-hardware](04-hardware.md) §10.6); und ein Richtungswechsel im Lauf ist ein **Bremsbefehl** ([07-sicherheit](07-sicherheit.md) §3.3). |
 | `VESC_BRAKE_CURRENT_STOP` | **20,0** | A | **gem** / Festlegung | Der **einzige** Bremsstrom. Festlegung des Erbauers: es wird immer der schnellstmögliche Stopp gefahren, nie ein langsamer — Rückgewinnung ist damit kein Auswahlkriterium. Gemessen 50 → 5 km/h in **13,1 s**; 15 A wären mit 13,9 s kaum langsamer und energieneutral, aber die Vorgabe lautet schnellstmöglich. Über 20 A ist die Bremse gesättigt. **Nur mit Akku am Bus** — am Netzteil Abwurf nach 0,61 s mit Fehlercode 1, weil der Regler bei hoher Drehzahl zunächst **zurückspeist**. Vollständige Kurve in [07-sicherheit](07-sicherheit.md) §3.2b, die widerlegte Gegenannahme in §3.2c. |
+
+## 8.2 Geschwindigkeitsregelung der Trommel
+
+Gilt für die **Testlauf-Variante** (`env:esp32s3-vesc`). Gefahren wird über das
+**Tastverhältnis**, nicht über den Drehzahlregler des VESC: der ist für diesen Motor
+unbrauchbar eingestellt, und `s_pid_min_erpm` = 900 sperrt die unterste Prüfstufe
+(10 km/h sind 881 ERPM) — [06-offene-fragen](06-offene-fragen.md) A15.
+
+Die Vorsteuerung kommt aus `MOTOR_NO_LOAD_RPM_PER_V` (§4.1) mal der **gemessenen**
+Busspannung, darüber liegt ein langsamer Trimm. So ist der Stand am 2026-11-17 bis
+99,2 km/h gefahren worden.
+
+| Konstante | Wert | Einheit | Herkunft | Anmerkung |
+|---|---|---|---|---|
+| `SPEEDCTL_RAMP_KMH_PER_S` | 2,0 | km/h/s | Festlegung | Rampe des inneren Sollwerts: 30 s von 0 auf 60. Langsam genug, dass ein Fehlgriff auffällt, bevor es schnell wird. |
+| `SPEEDCTL_KP` | 0,02 | 1/(km/h·s) | Festlegung | Trimmverstärkung. Die Vorsteuerung trägt die Hauptlast; der Trimm holt nur Reibung und Spannungsabfall nach. |
+| `SPEEDCTL_DUTY_UP_PER_S` | 0,30 | 1/s | Festlegung | Höchste Änderung des Tastverhältnisses nach **oben**. |
+| `SPEEDCTL_DUTY_DOWN_PER_S` | 0,06 | 1/s | Festlegung | …und nach **unten**, ein Fünftel davon. **Die Asymmetrie ist der Kern:** herunterstellen ist ein Bremsbefehl. Ein Tastverhältnis unter dem, was die momentane Drehzahl braucht, lässt den Regler zurückspeisen — am Netzteil endet das in Überspannung ([07-sicherheit](07-sicherheit.md) §3.3). |
+| `SPEEDCTL_CLAMP_FACTOR` | 1,08 | – | Festlegung | Klemme gegen Weglaufen des Stellwerts, als Vielfaches der Leerlaufkennlinie des **Sollwerts**. |
+| `SPEEDCTL_CLAMP_OFFSET` | 0,02 | – | Festlegung | Zuschlag derselben Klemme für die Reibung. Ohne diese Klemme integriert der Trimm bis an den Anschlag, solange die Stromgrenze die Beschleunigung bestimmt — und die Trommel schießt über den Sollwert hinaus, sobald der Strom frei wird. Am 2026-11-17 genau so passiert: Stellwert 0,95 bei tatsächlichen 0,26. |
+| `SPEEDCTL_PERIOD_MS` | 20 | ms | Festlegung | Takt des Regelkreises. Schneller bringt nichts — die Drehzahl kommt mit `VESC_POLL_MS` = 200 ms herein. |
+| `SPEED_STEP_KMH` | 5 | km/h | Festlegung | Schrittweite der Bedienknöpfe. Das Raster reicht von `V_MIN_KMH` bis 100; Stufen über `V_MAX_KMH` zeigt die Oberfläche **gesperrt** an, weil die Freigabe nach [07-sicherheit](07-sicherheit.md) §5 fehlt. |
+
+> **Drei dieser Werte stehen nicht aus Geschmack dort.** Vorbesetzung des Stellwerts
+> aus der gemessenen Drehzahl, asymmetrische Änderungsrate und die Klemme sind jeweils
+> die Antwort auf einen Fehler, der am 2026-11-17 am laufenden Aufbau passiert ist.
+> Die Begründungen stehen vollständig in `firmware/src/speedctl.h`.
 
 ## 8.1 Status-LED
 

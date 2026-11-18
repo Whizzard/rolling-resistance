@@ -3,82 +3,137 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#e9edf1">
+<meta name="theme-color" content="#eef1f4">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Regler">
-<title>Prüfstand Regler</title>
+<meta name="apple-mobile-web-app-title" content="Prüfstand">
+<title>Prüfstand · Testlauf</title>
 <style>
 /* Altmodisch gehalten: Ziel ist auch ein iPad 3 (iOS 9.3 / Safari 9).
    Kein Grid, kein gap, keine Custom Properties, kein clamp — alles davon kam
-   erst nach Safari 9. Abstände über Margins. */
-html, body { height: 100%; margin: 0; }
+   erst nach Safari 9. Abstände über Margins, Spalten über inline-block. */
+/* KEIN height:100% am body — das deckelt die Hoehe, und der Inhalt unter
+   dem festen STOP-Balken waere nicht mehr erreichbar. */
+html, body { margin: 0; }
 * { -webkit-box-sizing: border-box; box-sizing: border-box; }
 body {
-  background: #e9edf1; color: #16202a;
+  background: #eef1f4; color: #16202a;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 15px; -webkit-text-size-adjust: 100%;
-  padding: 0 12px 96px;
+  padding: 0 10px 120px;   /* Platz fuer den festen STOP-Balken */
 }
 [hidden] { display: none !important; }
-.wrap { max-width: 720px; margin: 0 auto; }
+.wrap { max-width: 980px; margin: 0 auto; }
 
-/* Kopf */
+/* ---- Kopf ---- */
 .top { background: #16202a; color: #fff; border-radius: 0 0 10px 10px;
-       padding: 10px 14px; margin: 0 -12px 12px; }
+       padding: 9px 14px; margin: 0 -10px 10px; }
 .top b { font-size: 15px; letter-spacing: .14em; text-transform: uppercase; }
-.top .st { float: right; font-size: 12px; letter-spacing: .12em;
+.top .st { float: right; font-size: 12px; letter-spacing: .1em;
            text-transform: uppercase; color: #6fcfa4; padding-top: 3px; }
 .top .st.bad { color: #ff8a7a; }
 
-/* Meldung */
-.note { background: #fdf0ee; border-left: 6px solid #c0392b; color: #a4291f;
-        border-radius: 4px; padding: 8px 12px; font-size: 13px; margin-bottom: 10px; }
+/* ---- Reiter ---- */
+.tabs { margin: 0 0 10px; }
+.tabs:after { content: ""; display: table; clear: both; }
+.tabs button { float: left; -webkit-appearance: none; border: 0; cursor: pointer;
+  font-family: inherit; font-size: 14px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  background: #d7dde3; color: #51606d; border-radius: 6px;
+  padding: 11px 0; width: 49%; margin-right: 2%; }
+.tabs button:last-child { margin-right: 0; }
+.tabs button.on { background: #16202a; color: #fff; }
 
-/* Kacheln */
-.tiles { margin: -4px; }
-.tile { display: inline-block; vertical-align: top; width: 50%;
-        padding: 4px; }
+/* ---- Meldungen ---- */
+.note { border-radius: 4px; padding: 8px 12px; font-size: 13px; margin-bottom: 9px;
+        background: #e4ecf2; border-left: 6px solid #2f6f99; color: #28475c; }
+.note.bad { background: #fdf0ee; border-left-color: #c0392b; color: #a4291f; }
+
+/* ---- Kacheln ---- */
+.tiles { margin: -4px -4px 4px; }
+.tiles:after { content: ""; display: table; clear: both; }
+/* float statt inline-block: zwischen inline-block-Elementen zaehlt der Leerraum
+   im Quelltext als Breite mit, und vier 25%-Kacheln passen dann nicht mehr in
+   eine Zeile. */
+.tile { float: left; width: 25%; padding: 4px; }
 .tile > div { background: #fff; border-left: 6px solid #2f6f99;
-              border-radius: 4px; padding: 8px 12px 10px; }
-.tile.red > div { border-left-color: #c0392b; }
-.lab { font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+              border-radius: 4px; padding: 7px 11px 9px; }
+.tile.warn > div { border-left-color: #c0392b; }
+.tile.half { width: 50%; }
+.tile.full { width: 100%; }
+.lab { font-size: 11px; letter-spacing: .13em; text-transform: uppercase;
        color: #64737f; white-space: nowrap; overflow: hidden; }
-.val { font-size: 32px; font-weight: 700; white-space: nowrap;
-       font-variant-numeric: tabular-nums; }
-.val small { font-size: 15px; color: #8795a1; margin-left: 3px; }
-.tile.big { width: 100%; }
-.tile.big .val { font-size: 54px; }
-.dim .val { color: #a6b2bc; }
+.val { font-size: 29px; font-weight: 700; white-space: nowrap;
+       font-variant-numeric: tabular-nums; line-height: 1.15; }
+.val small { font-size: 14px; color: #8795a1; margin-left: 3px; font-weight: 400; }
+.val.dim { color: #aab4bd; }
+.tile.full .val { font-size: 58px; }
+.sub { font-size: 12px; color: #7d8a95; margin-top: 2px; white-space: nowrap; }
 
-/* Sollwert */
+/* ---- Abschnittsüberschrift (nicht klickbar) ---- */
 h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
-     color: #64737f; margin: 18px 0 6px; }
+     color: #64737f; margin: 16px 0 6px; font-weight: 700; }
+
+/* ---- Geschwindigkeitsraster ---- */
+.grid { margin: -3px; }
+.grid button { -webkit-appearance: none; border: 0; cursor: pointer;
+  font-family: inherit; font-size: 19px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: #fff; color: #16202a; border-radius: 6px;
+  margin: 3px; padding: 14px 0; width: calc(10% - 6px);
+  float: left; border-bottom: 3px solid #c3ccd4; }
+.grid button:active { background: #2f6f99; color: #fff; }
+.grid button.on { background: #2f6f99; color: #fff; border-bottom-color: #1d4b69; }
+.grid button.locked { background: #e3e7eb; color: #aab4bd;
+                      border-bottom-color: #d4dade; cursor: not-allowed; }
+.grid:after { content: ""; display: table; clear: both; }
+
 .row { margin: -3px; }
 .row button { -webkit-appearance: none; border: 0; cursor: pointer;
-  font-family: inherit; font-size: 20px; font-weight: 700;
+  font-family: inherit; font-size: 19px; font-weight: 700;
   background: #c3ccd4; color: #16202a; border-radius: 6px;
-  margin: 3px; padding: 16px 0; width: calc(25% - 6px); float: left; }
-.row button.go { background: #2f6f99; color: #fff; width: calc(50% - 6px);
-                 font-size: 18px; letter-spacing: .08em; }
-.row button:active { background: #fff; }
-.row button:disabled { background: #dde3e8; color: #a6b2bc; cursor: default; }
+  margin: 3px; padding: 15px 0; width: calc(25% - 6px); float: left; }
+.row button.go { background: #2f6f99; color: #fff; }
+.row button:active { background: #16202a; color: #fff; }
 .row:after { content: ""; display: table; clear: both; }
-.set { background: #fff; border-radius: 6px; padding: 10px 14px;
-       font-variant-numeric: tabular-nums; font-size: 30px; font-weight: 700;
-       text-align: right; margin-bottom: 6px; }
-.set span { font-size: 15px; color: #8795a1; margin-left: 4px; }
 
-/* Stop */
+/* ---- Einrichtung ---- */
+.field { background: #fff; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+.field label { display: block; font-size: 11px; letter-spacing: .13em;
+               text-transform: uppercase; color: #64737f; margin-bottom: 5px; }
+.field input { -webkit-appearance: none; border: 1px solid #c3ccd4;
+  border-radius: 5px; padding: 11px 10px; font-family: inherit; font-size: 21px;
+  font-variant-numeric: tabular-nums; width: 62%; color: #16202a; background: #fbfcfd; }
+.field button { -webkit-appearance: none; border: 0; cursor: pointer;
+  font-family: inherit; font-size: 15px; font-weight: 700;
+  background: #2f6f99; color: #fff; border-radius: 5px;
+  padding: 12px 0; width: 35%; margin-left: 2%; float: right; }
+.field button.plain { background: #c3ccd4; color: #16202a; }
+.field:after { content: ""; display: table; clear: both; }
+.field .hint { font-size: 12px; color: #7d8a95; margin-top: 6px; clear: both;
+               padding-top: 6px; line-height: 1.45; }
+code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px;
+       background: #eef1f4; padding: 2px 5px; border-radius: 3px;
+       word-break: break-all; }
+
+/* ---- STOP ---- */
 .stopbar { position: fixed; left: 0; right: 0; bottom: 0;
-  background: #e9edf1; border-top: 1px solid #c3ccd4;
-  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  background: #eef1f4; border-top: 1px solid #c3ccd4;
+  padding: 7px 10px calc(7px + env(safe-area-inset-bottom, 0px)); }
 .stopbar button { -webkit-appearance: none; border: 0; width: 100%;
   background: #c0392b; color: #fff; font-family: inherit;
-  font-size: 22px; font-weight: 700; letter-spacing: .14em;
-  padding: 18px 0; border-radius: 8px; cursor: pointer; }
-.stopbar button:active { background: #a4291f; }
-.stopbar p { margin: 6px 0 0; font-size: 11px; color: #64737f; text-align: center; }
-footer { font-size: 11px; color: #8795a1; margin-top: 16px; line-height: 1.5; }
+  font-size: 23px; font-weight: 700; letter-spacing: .14em;
+  padding: 17px 0; border-radius: 8px; cursor: pointer; }
+.stopbar button:active { background: #8e2117; }
+.stopbar p { margin: 5px 0 0; font-size: 11px; color: #64737f; text-align: center; }
+footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
+
+@media (max-width: 560px) {
+  .tile { width: 50%; }
+  .grid button { width: calc(20% - 6px); font-size: 17px; padding: 12px 0; }
+  .tile.full .val { font-size: 46px; }
+  .field input { width: 55%; }
+  .field button { width: 42%; }
+}
 </style>
 </head>
 <body>
@@ -86,65 +141,168 @@ footer { font-size: 11px; color: #8795a1; margin-top: 16px; line-height: 1.5; }
 
   <div class="top">
     <span class="st" id="st">verbinde …</span>
-    <b>Prüfstand · Regler</b>
+    <b>Prüfstand · Testlauf</b>
+  </div>
+
+  <div class="tabs">
+    <button type="button" id="tabMess" class="on">Messung</button>
+    <button type="button" id="tabSetup">Einrichtung</button>
   </div>
 
   <div class="note" id="note" hidden></div>
 
-  <div class="tiles">
-    <div class="tile big"><div>
-      <div class="lab">Drehzahl ist</div>
-      <div class="val"><span id="erpm">—</span><small>ERPM</small></div>
-    </div></div>
-    <div class="tile"><div>
-      <div class="lab">Soll</div>
-      <div class="val"><span id="set">0</span><small>ERPM</small></div>
-    </div></div>
-    <div class="tile"><div>
-      <div class="lab">Spannung</div>
-      <div class="val"><span id="vin">—</span><small>V</small></div>
-    </div></div>
-    <div class="tile"><div>
-      <div class="lab">Motorstrom</div>
-      <div class="val"><span id="cur">—</span><small>A</small></div>
-    </div></div>
-    <div class="tile red"><div>
-      <div class="lab">Regler</div>
-      <div class="val"><span id="tfet">—</span><small>°C</small></div>
-    </div></div>
+  <!-- ===================== MESSUNG ===================== -->
+  <div id="pageMess">
+
+    <div class="tiles">
+      <div class="tile full"><div>
+        <div class="lab">Geschwindigkeit</div>
+        <div class="val"><span id="kmh">—</span><small>km/h</small></div>
+        <div class="sub" id="sollSub">kein Sollwert</div>
+      </div></div>
+    </div>
+
+    <h2>Wägezelle</h2>
+    <div class="tiles">
+      <div class="tile"><div>
+        <div class="lab">Last an der Zelle</div>
+        <div class="val"><span id="kg">—</span><small>kg</small></div>
+        <div class="sub" id="pctSub">—</div>
+      </div></div>
+      <div class="tile"><div>
+        <div class="lab">Kraft</div>
+        <div class="val"><span id="n">—</span><small>N</small></div>
+      </div></div>
+      <div class="tile"><div>
+        <div class="lab">Moment</div>
+        <div class="val"><span id="nm">—</span><small>Nm</small></div>
+      </div></div>
+      <div class="tile"><div>
+        <div class="lab">Rollkraft</div>
+        <div class="val"><span id="roll">—</span><small>N</small></div>
+      </div></div>
+    </div>
+
+    <h2>Antrieb</h2>
+    <div class="tiles">
+      <div class="tile"><div>
+        <div class="lab">Motorstrom</div>
+        <div class="val"><span id="imot">—</span><small>A</small></div>
+      </div></div>
+      <div class="tile"><div>
+        <div class="lab">Eingangsstrom</div>
+        <div class="val"><span id="iin">—</span><small>A</small></div>
+      </div></div>
+      <div class="tile"><div>
+        <div class="lab">Leistung</div>
+        <div class="val"><span id="watt">—</span><small>W</small></div>
+      </div></div>
+      <div class="tile"><div>
+        <div class="lab">Busspannung</div>
+        <div class="val"><span id="vin">—</span><small>V</small></div>
+      </div></div>
+    </div>
+
+    <h2>Temperatur</h2>
+    <div class="tiles">
+      <div class="tile half" id="tileMot"><div>
+        <div class="lab">Motor</div>
+        <div class="val"><span id="tmot">—</span><small>°C</small></div>
+      </div></div>
+      <div class="tile half" id="tileFet"><div>
+        <div class="lab">Regler</div>
+        <div class="val"><span id="tfet">—</span><small>°C</small></div>
+      </div></div>
+    </div>
+
+    <h2>Geschwindigkeit wählen</h2>
+    <div class="grid" id="grid"></div>
+    <div class="row" style="margin-top:7px">
+      <button type="button" id="minus">−5</button>
+      <button type="button" id="plus">+5</button>
+      <button type="button" class="go" id="coast">Auslaufen</button>
+      <button type="button" class="go" id="tare2">Nullen</button>
+    </div>
+
+    <footer id="foot"></footer>
   </div>
 
-  <h2>Sollwert</h2>
-  <div class="set"><span id="want">0</span><span>ERPM</span></div>
-  <div class="row">
-    <button type="button" data-d="-1000">−1000</button>
-    <button type="button" data-d="-100">−100</button>
-    <button type="button" data-d="100">+100</button>
-    <button type="button" data-d="1000">+1000</button>
-  </div>
-  <div class="row" style="margin-top:6px">
-    <button type="button" class="go" id="run">Start</button>
-    <button type="button" class="go" id="zero">Soll 0</button>
+  <!-- ===================== EINRICHTUNG ===================== -->
+  <div id="pageSetup" hidden>
+
+    <h2>Trommel</h2>
+    <div class="field">
+      <label for="fDrum">Umfang, über die Lauffläche gemessen (m)</label>
+      <input type="text" id="fDrum" inputmode="decimal">
+      <button type="button" id="bDrum">Übernehmen</button>
+      <div class="hint">Maßband um die Trommel, drei Messungen mitteln. Geht direkt in
+        Geschwindigkeit und Rollkraft ein. Daraus folgt der Durchmesser
+        <b id="dia">—</b>.</div>
+    </div>
+
+    <h2>Hebelarme</h2>
+    <div class="field">
+      <label for="fArm">Zellenarm — Pendelachse bis Wägezelle (m)</label>
+      <input type="text" id="fArm" inputmode="decimal">
+      <button type="button" id="bArm">Übernehmen</button>
+      <div class="hint">Geht <b>linear</b> in jedes Moment ein. Auf ±0,1 mm ausmessen.</div>
+    </div>
+    <div class="field">
+      <label for="fCal">Kalibrierarm — Pendelachse bis Kalibriergewicht (m)</label>
+      <input type="text" id="fCal" inputmode="decimal">
+      <button type="button" id="bCal">Übernehmen</button>
+      <div class="hint">Die zweite Bohrung, weiter außen. Ein Gewicht dort erzeugt das
+        <b id="ratio">—</b>-fache der Kraft an der Zelle.</div>
+    </div>
+
+    <h2>Wägezelle kalibrieren</h2>
+    <div class="field">
+      <label>Schritt 1 — Nullabgleich, Arm unbelastet</label>
+      <div class="hint" style="padding-top:0;margin-top:0">Nimmt
+        <b>alles</b> ab, was am Kalibrierarm hängt, und mittelt rund 2,5 Sekunden.
+        Geht nur im Stillstand.</div>
+      <button type="button" class="plain" id="bTare"
+              style="float:none;width:100%;margin:8px 0 0 0">Jetzt nullen</button>
+      <div class="hint">Rohwert jetzt: <b id="counts">—</b> counts,
+        Spitze-Spitze <b id="ripple">—</b>.</div>
+    </div>
+    <div class="field">
+      <label for="fKg">Schritt 2 — bekanntes Gewicht am Kalibrierarm (kg)</label>
+      <input type="text" id="fKg" inputmode="decimal" value="2,000">
+      <button type="button" id="bCalib">Kalibrieren</button>
+      <div class="hint" id="calHint">—</div>
+    </div>
+
+    <h2>Stand</h2>
+    <div class="field">
+      <div class="hint" style="padding-top:0" id="npcHint">—</div>
+      <button type="button" class="plain" id="bReset"
+              style="float:none;width:100%;margin:9px 0 0 0">Alles auf die Vorgaben aus
+              config.h zurücksetzen</button>
+    </div>
   </div>
 
-  <footer id="foot"></footer>
 </div>
 
 <div class="stopbar">
   <button type="button" id="stop">STOP</button>
-  <p>Antrieb stromlos, Trommel läuft aus. <b>Der Not-Aus ist der Schalter am Stand</b>, nicht dieser Knopf.</p>
+  <p id="stopHint">Bremst mit 20 A. <b>Der Not-Aus ist der Schalter am Stand</b>, nicht dieser Knopf.</p>
 </div>
 
 <script>
-/* Altmodisch: XMLHttpRequest statt fetch, var statt let — Safari 9 kann beides
-   nicht. Keine Simulation: diese Seite wird nur vom Gerät ausgeliefert. */
+/* Altmodisch: XMLHttpRequest statt fetch, var statt let, keine Pfeilfunktionen —
+   Safari 9 kann das alles nicht. Diese Seite wird nur vom Gerät ausgeliefert. */
 (function () {
   "use strict";
   var UI_HZ = 5, LINK_TIMEOUT_MS = 2000;
-  var want = 0, erpmMax = 3500, lastOk = 0, busy = false;
+  var lastOk = 0, busy = false, soll = 0, vmax = 60, vmin = 10, step = 5;
+  var gridBuilt = false;
 
   function $(id) { return document.getElementById(id); }
   function de(v, d) { return v.toFixed(d).replace(".", ","); }
+  function show(id, v, d) {
+    $(id).innerHTML = (v === null || v === undefined) ? "—" : de(v, d);
+  }
 
   function send(cmd) {
     var x = new XMLHttpRequest();
@@ -153,37 +311,158 @@ footer { font-size: 11px; color: #8795a1; margin-top: 16px; line-height: 1.5; }
     x.send();
   }
 
+  /* ---------- Reiter ---------- */
+  function tab(mess) {
+    $("pageMess").hidden = !mess;
+    $("pageSetup").hidden = mess;
+    $("tabMess").className = mess ? "on" : "";
+    $("tabSetup").className = mess ? "" : "on";
+  }
+  $("tabMess").onclick  = function () { tab(true); };
+  $("tabSetup").onclick = function () { tab(false); };
+
+  /* ---------- Geschwindigkeitsraster ---------- */
+  function buildGrid() {
+    var html = "", v;
+    for (v = vmin; v <= 100; v += step) {
+      html += '<button type="button" data-v="' + v + '">' + v + "</button>";
+    }
+    $("grid").innerHTML = html;
+    var bs = $("grid").getElementsByTagName("button"), i;
+    for (i = 0; i < bs.length; i++) {
+      bs[i].onclick = (function (b) {
+        return function () {
+          var want = parseInt(b.getAttribute("data-v"), 10);
+          if (want > vmax) return;            /* gesperrt, siehe paintGrid */
+          send("v" + want);
+        };
+      })(bs[i]);
+    }
+    gridBuilt = true;
+  }
+
+  function paintGrid(istSoll) {
+    var bs = $("grid").getElementsByTagName("button"), i, v;
+    for (i = 0; i < bs.length; i++) {
+      v = parseInt(bs[i].getAttribute("data-v"), 10);
+      bs[i].className = (v > vmax) ? "locked" : (v === istSoll ? "on" : "");
+    }
+  }
+
+  $("minus").onclick = function () {
+    var v = Math.max(vmin, soll - step);
+    send(soll <= vmin ? "c" : "v" + v);
+  };
+  $("plus").onclick = function () {
+    var v = Math.min(vmax, (soll < vmin ? vmin - step : soll) + step);
+    send("v" + v);
+  };
+  $("coast").onclick = function () { send("c"); };
+  $("tare2").onclick = function () { send("t"); };
+  $("stop").onclick  = function () { send("s"); };
+
+  /* ---------- Einrichtung ---------- */
+  function numOf(id) {
+    return parseFloat(($(id).value || "").replace(",", "."));
+  }
+  $("bDrum").onclick  = function () { send("d" + numOf("fDrum")); };
+  $("bArm").onclick   = function () { send("a" + numOf("fArm")); };
+  $("bCal").onclick   = function () { send("b" + numOf("fCal")); };
+  $("bTare").onclick  = function () { send("t"); };
+  $("bCalib").onclick = function () { send("k" + numOf("fKg")); };
+  $("bReset").onclick = function () { send("r"); };
+
+  /* Eingabefelder nur dann überschreiben, wenn gerade nicht darin getippt wird —
+     sonst springt der Wert dem Daumen davon. */
+  function fill(id, v, d) {
+    if (document.activeElement !== $(id)) $(id).value = de(v, d);
+  }
+
+  /* ---------- Anzeige ---------- */
   function paint(j) {
+    vmax = j.vmax; vmin = j.vmin; step = j.step; soll = j.soll;
+    if (!gridBuilt) buildGrid();
+
     $("st").innerHTML = j.link ? "Regler verbunden" : "kein Regler";
     $("st").className = j.link ? "st" : "st bad";
 
-    $("erpm").innerHTML = j.link ? String(j.erpm) : "—";
-    $("set").innerHTML  = String(j.set);
-    $("vin").innerHTML  = (j.vin  === null) ? "—" : de(j.vin, 1);
-    $("cur").innerHTML  = (j.cur  === null) ? "—" : de(j.cur, 2);
-    $("tfet").innerHTML = (j.tfet === null) ? "—" : de(j.tfet, 1);
+    show("kmh", j.link ? j.kmh : null, 1);
+    $("sollSub").innerHTML = j.faehrt
+      ? ("Soll " + de(j.soll, 0) + " km/h · Rampe " + de(j.rampe, 1)
+         + " · Tastverhältnis " + de(j.duty, 2))
+      : "kein Sollwert";
+    paintGrid(j.faehrt ? j.soll : -1);
 
-    erpmMax = j.erpmMax;
-    $("run").innerHTML = j.drive ? "Übernehmen" : "Start";
+    /* Wägezelle */
+    var kal = j.kal;
+    $("kg").className   = "val" + (kal ? "" : " dim");
+    $("n").className    = "val" + (kal ? "" : " dim");
+    $("nm").className   = "val" + (kal ? "" : " dim");
+    $("roll").className = "val" + (kal ? "" : " dim");
+    show("kg",   j.kg,   3);
+    show("n",    j.n,    2);
+    show("nm",   j.nm,   3);
+    show("roll", j.roll, 3);
+    $("pctSub").innerHTML = kal
+      ? (de(j.pct, 1) + " % vom Endwert (" + de(j.fsN, 1) + " N)")
+      : ("nicht kalibriert · " + j.counts + " counts");
 
-    var msg = "";
+    /* Antrieb */
+    show("imot", j.link ? j.imot : null, 2);
+    show("iin",  j.link ? j.iin  : null, 2);
+    show("watt", j.link ? j.watt : null, 0);
+    show("vin",  j.link ? j.vin  : null, 1);
+    show("tmot", j.link ? j.tmot : null, 1);
+    show("tfet", j.link ? j.tfet : null, 1);
+    $("tileMot").className = "tile half" + (j.tmot > 80 ? " warn" : "");
+    $("tileFet").className = "tile half" + (j.tfet > 80 ? " warn" : "");
+
+    /* Einrichtung */
+    fill("fDrum", j.drumU,  4);
+    fill("fArm",  j.arm,    4);
+    fill("fCal",  j.calArm, 4);
+    $("dia").innerHTML   = de(j.drumU / Math.PI, 4) + " m";
+    $("ratio").innerHTML = de(j.calArm / j.arm, 2);
+    $("counts").innerHTML = j.counts;
+    $("ripple").innerHTML = j.ripple;
+    $("calHint").innerHTML = kal
+      ? "Erneutes Kalibrieren überschreibt den Faktor. Vorher nullen."
+      : "Noch nicht kalibriert — bis dahin gibt es nur Rohwerte, keine Kräfte.";
+    $("npcHint").innerHTML = kal
+      ? ("Kalibrierfaktor <b>" + j.npc.toFixed(8) + "</b> N/count."
+         + " In <code>config.h</code> eintragen:<br><code>constexpr float "
+         + "LOADCELL_N_PER_COUNT = " + j.npc.toFixed(8) + "f;</code>"
+         + "<br>Dazu die Zeile in <code>docs/03-parameter.md</code> §2.")
+      : "Wägezelle nicht kalibriert.";
+
+    /* Meldungen */
+    var msg = "", bad = false;
     if (!j.link) {
-      msg = "Keine Antwort vom Regler. Verkabelung COMM TX/RX/GND prüfen, " +
-            "und ob im VESC-Tool app_to_use auf UART steht.";
+      msg = "Keine Antwort vom Regler. Verkabelung COMM TX/RX/GND prüfen und ob "
+          + "app_to_use auf UART steht."; bad = true;
     } else if (j.fault) {
-      msg = "Reglerfehler " + j.fault + ": " + j.faultTxt;
+      msg = "Reglerfehler " + j.fault + ": " + j.faultTxt
+          + (j.fault === 1 ? " — beim Bremsen am Netzteil erwartet, die Trommel läuft aus."
+                           : ""); bad = true;
+    } else if (j.saturiert) {
+      msg = "Wägezelle am Anschlag — überlastet oder Kabelbruch."; bad = true;
+    } else if (!j.zelle) {
+      msg = "HX711 antwortet nicht."; bad = true;
     } else if (j.status & 1) {
-      msg = "Der Regler meldet Zeitüberschreitung — er hat abgestellt.";
-    } else if (j.status & 2) {
-      msg = "Kill-Switch des Reglers ist aktiv.";
+      msg = "Der Regler meldet Zeitüberschreitung — er hat abgestellt."; bad = true;
+    } else if (j.note) {
+      msg = j.note;
     }
     $("note").innerHTML = msg;
+    $("note").className = bad ? "note bad" : "note";
     $("note").hidden = (msg === "");
 
     $("foot").innerHTML =
-      "Firmware " + (j.fw || "unbekannt") +
-      " · Grenze ±" + j.erpmMax + " ERPM (vorläufig, Polzahl nicht gemessen)" +
-      " · Messwerte " + j.age + " ms alt";
+      "Firmware " + (j.fw || "unbekannt") + " · Grenze " + de(j.vmax, 0)
+      + " km/h; darüber fehlt die Freigabe nach docs/07-sicherheit.md §5"
+      + " · Geschwindigkeit aus der Reglerdrehzahl (" + j.erpm + " ERPM = "
+      + de(j.rpm, 0) + " 1/min), nicht von den Trommelmarken"
+      + " · Messwerte " + j.age + " ms alt";
   }
 
   function poll() {
@@ -208,25 +487,6 @@ footer { font-size: 11px; color: #8795a1; margin-top: 16px; line-height: 1.5; }
     x.send();
   }
 
-  function showWant() { $("want").innerHTML = String(want); }
-
-  var steps = document.querySelectorAll(".row button[data-d]"), i;
-  for (i = 0; i < steps.length; i++) {
-    steps[i].onclick = (function (b) {
-      return function () {
-        want += parseInt(b.getAttribute("data-d"), 10);
-        if (want >  erpmMax) want =  erpmMax;
-        if (want < -erpmMax) want = -erpmMax;
-        showWant();
-      };
-    })(steps[i]);
-  }
-
-  $("run").onclick  = function () { send("r" + want); };
-  $("zero").onclick = function () { want = 0; showWant(); send("r0"); };
-  $("stop").onclick = function () { want = 0; showWant(); send("s"); };
-
-  showWant();
   poll();
   setInterval(poll, 1000 / UI_HZ);
 })();
