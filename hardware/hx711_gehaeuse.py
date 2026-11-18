@@ -23,10 +23,9 @@ Featurebaum:
     Bauteilraum       schmaler Teil, volle Höhe  -> erzeugt den Absatz
     Rastnasen         zwei Keile, mittig, unter der Platine
     Federfeld         Freistellung aussen, damit die Wand an den Nasen federt
-    Laschen           Kopfblock beidseitig verbreitert
-    Laschenloecher    2x Ø 4,5 durch, 6,2 mm von beiden Kanten
-    Senkungen         Ø 8 von oben fuer den M4-Kopf
-    Kabelnut_p/_m     Klemmstrecke je Kanal, Omega (Kreis mit Anschnitt)
+    Schraubloch       M6 durch, mittig zwischen den Kanälen
+    Kabelhals_p/_m    enger Hals an der offenen Seite — die Kralle
+    Kabelnut_p/_m     Kreis darueber, steht ueber den Hals hinaus
     Kabelmulde_p/_m   tiefer, am Übergang, dort wird nicht geklemmt
 
 Die Klemmstrecke ist 1 mm enger als das Kabel: der Mantel wird zwischen Nut und
@@ -92,26 +91,17 @@ PARAMS = [
     ('relief_t',     0.8,  'Federfeld Restwand'),
     ('relief_h', '=pcb_z1 + 2', 'Federfeld Hoehe'),
 
-    # Befestigung: zwei Laschen an der Kopfseite, je eine Spange darunter
-    # (hx711_spange.py). Die mittige M6 ist dadurch entfallen.
-    ('lug_hole_d',   4.5,  'Durchgang fuer M4 in die Spange'),
-    ('lug_edge',     6.2,  'Lochmitte bis Aussenkante, Vorgabe'),
-    ('lug_clear',    2.5,  'Material zwischen Loch und Kabelmulde'),
-    ('lug_y',  '=cab_y + cab_deep_d / 2 + lug_clear + lug_hole_d / 2',
-               'Lochmitte in y'),
-    ('lug_y_out', '=lug_y + lug_edge', 'Aussenkante der Lasche'),
-    ('lug_x',  '=l_out - lug_edge',    'Lochmitte in x, 6,2 auch zur Stirn'),
-    ('lug_l',  '=2 * lug_edge',        'Laschenlaenge, Loch mittig darin'),
-    ('lug_cb_d',     8.0,  'Senkung fuer den M4-Kopf'),
-    ('lug_cb_depth', 6.3,  'Senkungstiefe: Klemmweg 13,0 -> M4 x 14 mit 1 mm Luft'),
+    ('screw_d',      6.6,  'M6 Durchgang, wie das Hall-Gehaeuse'),
+    ('screw_y',      0.0,  'Schraube mittig, zwischen den Kanaelen'),
+    ('screw_x', '=cav_x0 + cav_l + rib + screw_blk / 2', 'Schraube Lage'),
 
     ('cab_cable_d',  4.0,  'Kabel-Durchmesser, gemessen'),
     ('cab_d',        3.9,  'Nutdurchmesser, 0,1 unter dem Kabel -> klemmt'),
-    ('cab_mouth',    3.4,  'Maulweite am Anschnitt -> Kralle, Omega statt U'),
-    ('cab_z', '=sqrt(cab_d / 2 * cab_d / 2 - cab_mouth / 2 * cab_mouth / 2)',
-              'Kreismitte ueber der offenen Seite, aus dem Anschnitt'),
-    ('cab_depth', '=cab_z + cab_d / 2', 'Nuttiefe, ergibt sich'),
-    ('cab_y',        4.5,  'Kanalmitte, Betrag — je einmal +y und -y'),
+    ('cab_mouth',    3.2,  'Halsweite an der offenen Seite -> Kralle'),
+    ('cab_depth',    3.4,  'Nuttiefe, 0,6 unter dem Kabel -> Flaeche klemmt'),
+    ('cab_z', '=cab_depth - cab_d / 2', 'Kreismitte ueber der offenen Seite'),
+    ('cab_claw', '=(cab_d - cab_mouth) / 2', 'Hinterschnitt je Seite'),
+    ('cab_y',        9.0,  'Kanalmitte, Betrag — je einmal +y und -y'),
     ('cab_x0', '=cav_x0 + cav_l', 'Kanalanfang, am Ende der Kavitaet'),
     ('cab_len','=l_out - cab_x0 + 1', 'Kanallaenge'),
     ('cab_deep_d',   4.6,  'Mulde Breite, UEBER dem Kabel -> keine Klemmung'),
@@ -295,41 +285,11 @@ def build(doc, sh):
          e_x0, '-Parameter.w_out / 2', 'Parameter.relief_l', e_depth)
     pocket(sk, 'Federfeld', 'Parameter.relief_h')
 
-    # 6 Laschen: der Kopfblock wird beidseitig verbreitert, damit das Loch
-    #   die vorgegebenen 6,2 mm Randabstand bekommt. Volle Hoehe, weil das
-    #   Loch durch die ganze Hoehe geht und sonst oberhalb der Lasche nur
-    #   1 mm Material neben dem Loch bliebe.
-    e_ll = 'Parameter.l_out - Parameter.lug_l'
-    e_lb = 'Parameter.lug_y_out - Parameter.w_out / 2'
-    x0l = P(sh, 'l_out') - P(sh, 'lug_l')
-    bl  = P(sh, 'lug_y_out') - P(sh, 'w_out') / 2
-    sk = sketch_on(body, xy, 'Sk_Laschen')
-    rect(sk, x0l, P(sh, 'w_out') / 2, P(sh, 'lug_l'), bl, 'lasp',
-         e_ll, 'Parameter.w_out / 2', 'Parameter.lug_l', e_lb)
-    rect(sk, x0l, -P(sh, 'lug_y_out'), P(sh, 'lug_l'), bl, 'lasm',
-         e_ll, '-Parameter.lug_y_out', 'Parameter.lug_l', e_lb)
-    pad(sk, 'Laschen', 'Parameter.h_out')
-
-    # 7 Durchgangsloecher
-    sk = sketch_on(body, xy, 'Sk_Laschenloecher')
-    for sign, t in ((+1, 'p'), (-1, 'm')):
-        circle(sk, P(sh, 'lug_x'), sign * P(sh, 'lug_y'),
-               P(sh, 'lug_hole_d') / 2, 'lh' + t,
-               'Parameter.lug_x', '%d * Parameter.lug_y' % sign,
-               'Parameter.lug_hole_d / 2')
-    pocket(sk, 'Laschenloecher', 'Parameter.h_out + 1')
-
-    # 8 Senkungen von oben, damit eine M4 x 12 reicht und der Kopf nicht aufsteht
-    #   Die Skizze liegt auf der Deckelebene: eine XY-Skizze bei z = 0 wuerde
-    #   mit Reversed nach OBEN schneiden, also von der offenen Unterseite her.
-    sk = sketch_on(body, xy, 'Sk_Senkungen', P(sh, 'h_out'))
-    sk.setExpression('AttachmentOffset.Base.z', 'Parameter.h_out')
-    for sign, t in ((+1, 'p'), (-1, 'm')):
-        circle(sk, P(sh, 'lug_x'), sign * P(sh, 'lug_y'),
-               P(sh, 'lug_cb_d') / 2, 'cb' + t,
-               'Parameter.lug_x', '%d * Parameter.lug_y' % sign,
-               'Parameter.lug_cb_d / 2')
-    pocket(sk, 'Senkungen', 'Parameter.lug_cb_depth', reversed_=False)
+    # 6 Schraubloch, mittig — die beiden Kanäle liegen rechts und links davon
+    sk = sketch_on(body, xy, 'Sk_Schraubloch')
+    circle(sk, P(sh, 'screw_x'), P(sh, 'screw_y'), P(sh, 'screw_d') / 2, 'schr',
+           'Parameter.screw_x', 'Parameter.screw_y', 'Parameter.screw_d / 2')
+    pocket(sk, 'Schraubloch', 'Parameter.h_out + 1')
 
     # 7...10 Die zwei Kabelkanäle, je D-Profil (Rechteck + Rundung).
     #   Erst die Klemmstrecke über die ganze Länge, dann die tiefere Mulde am
@@ -341,8 +301,20 @@ def build(doc, sh):
         e_xm = '%d * Parameter.cab_y - Parameter.cab_deep_d / 2' % sign
         y = sign * P(sh, 'cab_y')
 
-        # Klemmstrecke: EIN Kreis, dessen Mitte ueber der offenen Seite liegt.
-        # Der Anschnitt an z = 0 ist dadurch enger als der Kreis -> Kralle.
+        # Klemmstrecke, Omega: ein HALS, der enger ist als der Kreis darueber.
+        # Der Kreis steht je Seite um cab_claw ueber den Hals hinaus — das ist
+        # der Hinterschnitt, der das Kabel haelt, bevor die Flaeche darunter ist.
+        # Ein blosser Anschnitt des Kreises koennte das nicht: ein enges Maul
+        # zoege zwangslaeufig eine tiefe Nut nach sich, und die Nut muss bei
+        # cab_depth bleiben, damit die Flaeche noch klemmt.
+        e_hals = '%d * Parameter.cab_y - Parameter.cab_mouth / 2' % sign
+        sk = sketch_on(body, yz, 'Sk_Kabelhals_' + t, P(sh, 'cab_x0'))
+        sk.setExpression('AttachmentOffset.Base.z', 'Parameter.cab_x0')
+        rect(sk, y - P(sh, 'cab_mouth') / 2, 0.0,
+             P(sh, 'cab_mouth'), P(sh, 'cab_z'), 'hals' + t,
+             e_hals, '0', 'Parameter.cab_mouth', 'Parameter.cab_z')
+        pocket(sk, 'Kabelhals_' + t, 'Parameter.cab_len')
+
         sk = sketch_on(body, yz, 'Sk_Kabelnut_' + t, P(sh, 'cab_x0'))
         sk.setExpression('AttachmentOffset.Base.z', 'Parameter.cab_x0')
         circle(sk, y, P(sh, 'cab_z'), P(sh, 'cab_d') / 2, 'nut' + t,

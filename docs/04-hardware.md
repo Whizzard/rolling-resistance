@@ -438,11 +438,9 @@ Bremse gibt es nicht ([07-sicherheit](07-sicherheit.md) §3).
 ## 7 Gedruckte Gehäuse
 
 Zwei Gehäuse nach demselben Muster: §7.1–§7.3 das Gebergehäuse für die
-Hall-Sensoren, §7.4 das Gehäuse für die Wägeplatine und §7.5 dessen
-Befestigungsspangen. Gemeinsam sind die nach unten offene Kavität und die
-Platinenaufnahme aus Absatz plus Rastnasen. Die Kabelnut dagegen ist
-verschieden: beim Gebergehäuse klemmt sie den Mantel gegen die Montagefläche,
-beim Wägeplatinen-Gehäuse hält sie ihn selbst, weil es frei hängt.
+Hall-Sensoren, §7.4 das Gehäuse für die Wägeplatine. Gemeinsam sind die nach
+unten offene Kavität, die Platinenaufnahme aus Absatz plus Rastnasen und die
+Kabelnut, die den Mantel gegen die Montagefläche klemmt.
 
 **Gebergehäuse für die Hall-Sensoren** — feststehende Seite der
 Drehzahlerfassung, am Rahmen. Gegenstück ist §8.
@@ -523,11 +521,11 @@ Offene Seite auf das Alublech, eine M6-Schraube. Daraus folgt:
 ### 7.4 Gehäuse für die Wägeplatine (HX711)
 
 Nimmt die SparkFun-Platine *HX711 Load Cell Amp* auf, die am Pendelrahmen neben
-der Wägezelle sitzt. Außenmaß **50,6 × 35,5 × 12,3 mm** (an den Laschen), 10,2 cm³.
+der Wägezelle sitzt. Außenmaß **50,6 × 28,9 × 12,3 mm**, 9,6 cm³.
 
 | | |
 |---|---|
-| Featurebaum | Grundkoerper · Kavitaet · Bauteilraum · Rastnasen · Federfeld · Laschen · Laschenloecher · Senkungen · Kabelnut · Kabelmulde (+rund), die Nuten je einmal links und rechts |
+| Featurebaum | Grundkoerper · Kavitaet · Bauteilraum · Rastnasen · Federfeld · Schraubloch · Kabelhals · Kabelnut · Kabelmulde (+rund), die drei Nutfeatures je einmal links und rechts |
 | `hardware/hx711_gehaeuse.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
 
 Aufbau, Spreadsheet und Vorbehalt wie oben: das Skript ist der Erzeuger, die FCStd
@@ -543,9 +541,9 @@ die Wahrheit.
 | Bauteilraum über der Platine | 6,7 mm — 2,7 mm Bauteile, **4,0 mm für die Adern** |
 | Stirnwand am Zellenende | 2,0 mm |
 | Seitenwände / Deckel | **2,4** / 2,0 mm — Begründung unten |
-| Befestigung | **zwei Laschen** an der Kopfseite, Ø 4,5 durch, Senkung Ø 8 von oben — unten, *Die zwei Laschen* |
-| Kabelkanäle | zwei **Omega-Nuten** Ø 3,9, Maul 3,4, bei y = ±4,5 mm — unten, *Omega-Nut* |
-| Brücke zwischen den beiden Nuten | 4,40 mm |
+| M6-Durchgang | Ø 6,6, **mittig**, 3,40 mm Steg zu jeder Kabelmulde |
+| Kabelkanäle | zwei **Omega-Nuten** Ø 3,9, Hals 3,2, bei y = ±9,0 mm — unten, *Omega-Nut* |
+| Restwand neben einem Kanal | 3,15 mm |
 | Kabelmulde am Übergang | Ø **4,6** (weiter als das Kabel), 5,2 tief, 5 mm lang |
 | Klemmstrecke dahinter | 11 mm |
 
@@ -561,9 +559,8 @@ zwei Maße, die nicht willkürlich sind:
 2. Der tragende Absatz läuft an den **Längsseiten**. An den Schmalseiten würde er
    auf den Lötstellen sitzen.
 
-Die Kanäle flankierten ursprünglich eine mittige Schraube. Die ist entfallen
-(unten, *Die zwei Laschen*), weshalb sie jetzt nahe der Mitte sitzen — beide
-Mäntel laufen dicht beieinander zum Kopfende hinaus.
+Die Schraube steht mittig zwischen den Kanälen: eine Schraube klemmt beide
+Mäntel, und zwar in dem Bereich, in dem die Fläche am dichtesten anliegt.
 
 #### Warum 2,4 mm Seitenwand und 2,0 mm Deckel
 
@@ -594,109 +591,44 @@ Herausfallen, kein Hinterschnitt, gehalten durch Vorspannung.
 Die vier Befestigungslöcher der Platine bleiben ungenutzt — sie liegen in den
 Ecken und damit unter dem Absatz.
 
-#### Die zwei Laschen
+#### Omega-Nut: Hals enger als der Kreis
 
-| Merkmal | Maß |
-|---|---|
-| Lochmitte | x = 44,40 (**6,20** zur Stirn), y = ±11,55 (**6,20** zur Kante) |
-| Durchgang | Ø 4,5 für M4, durch die volle Höhe |
-| Senkung | Ø 8 von oben, 6,3 tief — Klemmweg 13,0 mm, also **M4 × 14** |
-| Lasche steht vor | 3,30 mm je Seite, über 12,4 mm Länge |
-| Steg Loch → Kabelmulde | 2,50 mm |
-| Restwand neben der Senkung | 2,20 mm |
-
-Die vorgegebenen 6,2 mm Randabstand gelten **zu beiden Kanten** — zur Stirnfläche
-und zur Seite. Dafür ist der Kopfblock beidseitig verbreitert.
-
-**Warum überhaupt verbreitert**, und warum die Kanäle dabei nach innen gewandert
-sind: zwei Ø-4,5-Löcher mit je 6,2 mm Randabstand und zwei Kabelkanäle passen in
-28,9 mm Breite nicht nebeneinander. Gerechnet, bevor entschieden wurde:
-
-| Variante | Steg Loch → Mulde | Brücke zwischen den Nuten |
-|---|---|---|
-| Löcher im alten Umriss (±8,25), Kanäle ±3,0 | 0,70 mm | 1,40 mm |
-| dieselbe, Kanäle ±3,5 | 0,20 mm | 2,40 mm |
-| | | |
-| **Laschen nach außen, Kanäle ±4,5** | **2,50 mm** | **4,40 mm** |
-
-0,2 bis 0,7 mm ist keine Wand, sondern eine Sollbruchstelle. Die Laschen kosten
-3,3 mm Breite je Seite — an dem Ende, an dem die Spange ohnehin sitzt.
-
-Die frühere mittige M6 ist damit **entfallen**; die Kanäle flankieren nichts mehr
-und sitzen deshalb nahe der Mitte.
-
-Die Lasche geht durch die **volle Höhe**, nicht nur als flacher Flansch unten: das
-Loch geht durch die ganze Höhe, und oberhalb eines flachen Flansches bliebe neben
-dem Loch nur 1 mm Material.
-
-#### Omega-Nut: das Kabel wird von der Nut gehalten
-
-Das Kabel ist **Ø 4,0 mm** (gemessen). Die Nut ist kein U mit D-Profil mehr,
-sondern ein **Kreis mit Anschnitt**: Kreis Ø 3,9, dessen Mitte 0,955 mm über der
-offenen Seite liegt. Der Anschnitt an der offenen Seite ist dadurch **enger als
-der Kreis** — eine Kralle.
+Das Kabel ist **Ø 4,0 mm** (gemessen). Die Nut ist deshalb kein U mehr: über
+einem **Hals von 3,2 mm** sitzt ein **Kreis von Ø 3,9**, der je Seite 0,35 mm
+über den Hals hinaussteht. Dieser Hinterschnitt ist die Kralle.
 
 | Stelle | Breite |
 |---|---|
-| Maul, an der offenen Seite | **3,40 mm** |
-| auf Höhe der Kreismitte | 3,88 mm |
-| Nuttiefe gesamt | 2,905 mm |
+| Hals, an der offenen Seite | **3,20 mm** |
+| auf Höhe der Kreismitte (z = 1,45) | 3,88 mm |
+| Hinterschnitt je Seite | **0,35 mm** |
+| Nuttiefe gesamt | 3,40 mm |
 
-Das Kabel wird durch das 0,6 mm engere Maul gedrückt und sitzt dann in einer
-0,1 mm engeren Bohrung: gehalten **und** geklemmt. Das ist die Zugentlastung, und
-sie braucht keine Gegenfläche.
+**Zwei Dinge halten das Kabel, und zwar nacheinander:**
+
+1. **Beim Zusammenbauen** die Kralle. Das Kabel wird durch den 0,8 mm engeren
+   Hals gedrückt und fällt dann nicht wieder heraus, während man die Platine
+   einlegt und das Gehäuse umdreht. Vorher ist genau das passiert.
+2. **Danach die Montagefläche.** Die Nut ist 3,4 tief, das Kabel 4,0 dick —
+   0,6 mm Klemmung, wie in §7.1. Das ist die Zugentlastung.
+
+> **Warum nicht einfach den Kreis anschneiden**, also seine Mitte so hoch legen,
+> dass die Öffnung selbst enger wird? Weil dann Maulweite und Nuttiefe aneinander
+> hängen: ein Maul von 3,2 bräuchte eine Nut von nur 2,9 mm Tiefe, und damit
+> würde das Kabel von der Fläche um 1,1 mm gequetscht statt um 0,6. Hals und Kreis
+> getrennt zu führen macht beide Maße unabhängig.
 
 In der **Mulde** am Übergang ist die Nut mit Ø 4,6 absichtlich 0,6 mm **weiter**
 als das Kabel — dort biegt es ab und darf nicht gequetscht werden.
 
-> Das Kabel steht dadurch **1,04 mm unter der offenen Unterseite** vor. Deshalb hat
-> die Spange einen erhöhten Sockel (§7.5) und keine durchgehend flache Auflage.
-
 #### Montage
 
-Das Gehäuse hängt an **zwei Spangen** (§7.5) an der Schiene, offene Seite nach
-unten. Es liegt damit auf keiner Fläche mehr auf — und das ist der Grund für die
-Omega-Nut unten: das Kabel muss von der Nut selbst gehalten werden, nicht von
-einem Blech darunter.
+Offene Seite auf die Montagefläche, eine M6-Schraube. Die Fläche schließt das
+Gehäuse und klemmt beide Kabel in ihren Nuten. Der Mantel passt nicht unter die
+Platine; er endet in der Mulde und weiter laufen nur die Adern.
 
-### 7.5 Befestigungsspange (2 Stück)
-
-Verbindet je eine Lasche des Gehäuses mit der Schiene. Außenmaß
-**12,4 × 24,4 × 7,0 mm**, 1,3 cm³ je Stück.
-
-| | |
-|---|---|
-| Featurebaum | Platte · Sockel · Mutterloch · M4_Durchgang · M6_Durchgang |
-| `hardware/hx711_spange.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
-
-| Merkmal | Maß |
-|---|---|
-| Platte | 5,0 mm dick, Trapez: außen 12,4 → innen 11,0 mm breit |
-| Sockel | 2,0 mm über der Platte, Oberkante 7,0 mm — liegt an der Lasche |
-| Muttertasche | Sechskant, 7,2 über Flächen (8,31 über Ecken), 3,4 tief, **von unten** |
-| Material über der Mutter | 3,6 mm |
-| Wand neben der Tasche | 1,90 mm |
-| M4-Durchgang | Ø 4,5, in der Sockelachse |
-| M6-Durchgang | Ø 6,6, 12,0 mm von der M4-Achse, **mittig im Rand** — 2,90 mm Rand in beiden Richtungen |
-
-**Zwei Schrauben mit getrennten Aufgaben**, wie bei der Platinenaufnahme:
-
-- Die **M4** kommt von oben durch die Lasche in die eingelassene Mutter. Sie hält
-  das Gehäuse. Klemmweg 13,0 mm, also M4 × 14.
-- Die **M6** geht durch den überstehenden Rand auf die Schiene. Sie hält die
-  Spange. Sie liegt 5,80 mm hinter der Laschenkante, damit der Schlüssel
-  freikömmt.
-
-**Warum der Sockel erhöht ist:** in der Klemmstrecke steht das Kabel 1,04 mm unter
-der Gehäuseunterseite vor (§7.4, *Omega-Nut*). Eine flach anliegende Spange drückte darauf.
-Der Sockel schafft 2,0 mm und lässt damit **0,96 mm Luft**.
-
-**Warum die Verjüngung nur 12,4 → 11,0 mm geht:** die Muttertasche braucht über
-Eck 8,31 mm plus Wand. Weiter nach innen schlanker ginge nur mit einer kleineren
-Mutter.
-
-> **Druckrichtung:** mit der **Sockelfläche nach unten** aufs Bett. Dann öffnet
-> sich die Muttertasche nach oben und braucht keine Stütze.
+Eine M6-Scheibe (DIN 125, Ø 12) reicht bis 6,0 mm aus der Mitte und bleibt damit
+0,7 mm vor der Kabelmulde — knapp, aber frei. Größere Scheiben drücken darauf.
 
 ## 8 Markenaufnahme an der Trommel
 
