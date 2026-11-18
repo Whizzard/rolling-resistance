@@ -73,8 +73,18 @@ void printStatus() {
     Serial.print(" | "); Serial.print(v.erpm);      Serial.print(" ERPM");
     Serial.print(" | FET "); Serial.print(v.tempFet, 1); Serial.print(" C");
     Serial.print(" | Fehler "); Serial.print(vesc::faultText(v.fault));
-    if (v.status & 0x01) Serial.print(" | TIMEOUT");
+    // Das Timeout-Bit ist im STILLSTAND der Normalfall und keine Stoerung: der
+    // Sollwert wird nur wiederholt, solange gefahren wird (vesc.h). Wird nicht
+    // gefahren, laeuft der reglereigene Timeout ab -- und genau so soll es sein,
+    // denn ein blosser Herzschlag haette den Regler scharf gehalten, ohne dass
+    // ein Sollwert dahinterstand.
+    if (v.status & 0x01)
+      Serial.print(speedctl::running() ? " | TIMEOUT IM LAUF!"
+                                       : " | Timeout (erwartet im Stillstand)");
     if (v.status & 0x02) Serial.print(" | KILL-SWITCH");
+    Serial.println();
+    Serial.print("#          Fahren erst ueber l_battery_cut_end des Reglers;"
+                 " die Grenzen stehen in hardware/vesc-config-fw7.01/mcconf.xml");
     Serial.println();
   } else {
     Serial.print("FEHLT — keine Antwort auf TX GPIO ");
