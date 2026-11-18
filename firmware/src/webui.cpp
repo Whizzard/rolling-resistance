@@ -155,10 +155,34 @@ void handleState() {
   g_server.send(200, "application/json; charset=utf-8", buf);
 }
 
+// Befehl annehmen -- aber nur, wenn er frisch ist.
+//
+// Die Oberflaeche haengt an jeden Befehl den Zeitstempel, den sie zuletzt aus
+// /api/state gesehen hat. Eine Browser-Wiederholung traegt einen alten mit und
+// fliegt damit heraus. Siehe CMD_MAX_AGE_MS in config.h -- das ist nicht
+// theoretisch, es ist am 2026-11-18 am laufenden Stand passiert.
 void handleCmd() {
   touch();
   g_cmds++;
   const String c = g_server.arg("c");
+  const bool haltend = c.length() && (c[0] == 's' || c[0] == 'c');
+
+  if (!haltend) {
+    const String t = g_server.arg("t");
+    const uint32_t alter = t.length()
+        ? (millis() - static_cast<uint32_t>(strtoul(t.c_str(), nullptr, 10)))
+        : 0xFFFFFFFFu;
+    if (alter > CMD_MAX_AGE_MS) {
+      Serial.print("# CMD '"); Serial.print(c);
+      Serial.print("' VERWORFEN, ");
+      if (t.length()) { Serial.print(alter); Serial.println(" ms alt"); }
+      else            Serial.println("ohne Zeitstempel");
+      g_server.sendHeader("Cache-Control", "no-store");
+      g_server.send(409, "text/plain", "veraltet");
+      return;
+    }
+  }
+
   Serial.print("# CMD '"); Serial.print(c); Serial.println("'");
   if (c.length() && g_cmd) g_cmd(c);
   g_server.sendHeader("Cache-Control", "no-store");
@@ -226,7 +250,9 @@ void begin(CommandFn handler, StateJsonFn state,
   g_server.on("/", []() { if (!redirectedToName()) sendIndex(); });
   g_server.on("/ui", sendIndex);   // immer die Oberflaeche, nie umgeleitet
   g_server.on("/api/state", handleState);
-  g_server.on("/api/cmd", handleCmd);
+  // Nur POST. Ein vom Browser wiederholter GET landet damit in onNotFound und
+  // zeigt die Oberflaeche -- statt den Antrieb in Gang zu setzen.
+  g_server.on("/api/cmd", HTTP_POST, handleCmd);
 
   g_server.on("/hotspot-detect.html", handleProbeApple);     // iOS, macOS
   g_server.on("/library/test/success.html", handleProbeApple);

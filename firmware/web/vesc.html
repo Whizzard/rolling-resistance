@@ -281,6 +281,26 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       <div class="hint" id="calHint">—</div>
     </div>
 
+    <h2>Antrieb einmessen</h2>
+    <div class="field">
+      <label>Drehrichtung anlernen</label>
+      <div class="hint" style="padding-top:0;margin-top:0">Antrieb wird
+        freigegeben. Trommel dann <b>von Hand in Messrichtung</b> drehen,
+        mindestens 2 km/h.</div>
+      <button type="button" class="plain" id="bLearn"
+              style="float:none;width:100%;margin:8px 0 0 0">Anlernen</button>
+      <div class="hint" id="learnHint">Vorzeichen jetzt <b id="dirSign">&mdash;</b></div>
+    </div>
+    <div class="field">
+      <label>Losbrechmoment messen</label>
+      <div class="hint" style="padding-top:0;margin-top:0">Tastverh&auml;ltnis
+        steigt mit 0,01/s, Abbruch sobald sich die Trommel regt oder bei 0,15.
+        <b>Trommel nicht anfassen.</b></div>
+      <button type="button" class="plain" id="bBreak"
+              style="float:none;width:100%;margin:8px 0 0 0">Messen</button>
+      <div class="hint" id="brkHint">&mdash;</div>
+    </div>
+
     <h2>Stand</h2>
     <div class="field">
       <div class="hint" style="padding-top:0" id="npcHint">—</div>
@@ -303,6 +323,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   "use strict";
   var UI_HZ = 5, LINK_TIMEOUT_MS = 2000;
   var lastOk = 0, busy = false, soll = 0, vmax = 60, vmin = 10, step = 5;
+  var lastUp = 0;   /* Laufzeit des Geräts aus der letzten Abfrage */
   var gridBuilt = false;
 
   function $(id) { return document.getElementById(id); }
@@ -311,9 +332,15 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $(id).innerHTML = (v === null || v === undefined) ? "—" : de(v, d);
   }
 
+  /* POST, nicht GET: ein GET gilt als wiederholbar, und iOS schickt ihn nach
+     einem Verbindungsabriss von selbst nochmal. Am 2026-11-18 kam dadurch beim
+     Seitenaufbau ein alter "v20" erneut an und setzte den Antrieb in Gang.
+     Dazu der Zeitstempel: das Gerät verwirft Befehle, die älter sind als
+     CMD_MAX_AGE_MS. STOP ist davon ausgenommen. */
   function send(cmd) {
     var x = new XMLHttpRequest();
-    x.open("GET", "/api/cmd?c=" + encodeURIComponent(cmd), true);
+    x.open("POST", "/api/cmd?c=" + encodeURIComponent(cmd)
+                 + "&t=" + encodeURIComponent(lastUp), true);
     x.onload = poll;
     x.send();
   }
@@ -373,6 +400,8 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   $("bTare").onclick  = function () { send("t"); };
   $("bCalib").onclick = function () { send("k" + numOf("fKg")); };
   $("bReset").onclick = function () { send("r"); };
+  $("bLearn").onclick = function () { send("l"); };
+  $("bBreak").onclick = function () { send("x"); };
 
   /* Eingabefelder nur dann überschreiben, wenn gerade nicht darin getippt wird —
      sonst springt der Wert dem Daumen davon. */
@@ -418,6 +447,22 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     show("tfet", j.link ? j.tfet : null, 1);
     $("tileMot").className = "tile half" + (j.tmot > 80 ? " warn" : "");
     $("tileFet").className = "tile half" + (j.tfet > 80 ? " warn" : "");
+
+    if (typeof j.up === "number") lastUp = j.up;
+
+    /* Antrieb einmessen */
+    $("dirSign").innerHTML = (j.dir > 0 ? "+1" : "\u22121");
+    $("learnHint").innerHTML = j.lernt
+      ? "<b>Jetzt drehen</b> \u2014 Trommel in Messrichtung"
+      : ("Vorzeichen jetzt <b>" + (j.dir > 0 ? "+1" : "\u22121") + "</b>");
+    $("brkHint").innerHTML = j.brk
+      ? ("l\u00e4uft \u2014 Stellwert <b>" + de(j.duty, 3) + "</b>, "
+         + de(j.imot, 1) + " A")
+      : (j.brkDuty > 0
+         ? ("Losbruch bei <b>" + de(j.brkDuty, 4) + "</b> \u00b7 "
+            + de(j.brkAmps, 1) + " A \u00b7 "
+            + de(j.brkAmps * 0.389, 2) + " Nm")
+         : "\u2014");
 
     /* Einrichtung */
     fill("fDrum", j.drumU,  4);

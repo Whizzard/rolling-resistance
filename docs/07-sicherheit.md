@@ -409,3 +409,30 @@ Vielfachen der Drehfrequenz.
 
 - [ ] Antrieb aus, Trommel **sichtbar** zum Stillstand gekommen
 - [ ] Vor Arbeiten am Aufbau: Blockierkeil zwischen Rahmen und Speiche
+
+## 9 Kein Befehl darf sich von selbst wiederholen
+
+Am 2026-11-18 setzte sich der Antrieb beim **Seitenaufbau** von selbst auf
+20 km/h. Kein Fehlgriff, kein Fehler im Regler — eine Eigenschaft von HTTP:
+
+Die Oberfläche schickte Befehle als **GET**. Ein GET gilt als wiederholbar, und
+iOS schickt ihn nach einem Verbindungsabriss von selbst noch einmal. Der
+`WebServer` des Arduino-Kerns kann laut eigenem Quelltextkommentar nur **einen**
+Client gleichzeitig; beim Seitenaufbau reißt deshalb etwas ab. Der Browser
+wiederholte den letzten Befehl — Sekunden später, als `v20`.
+
+**Zwei Sperren, nicht eine:**
+
+1. Befehle gehen nur noch als **POST**. Ein wiederholter GET landet in
+   `onNotFound` und zeigt die Oberfläche, statt zu fahren.
+2. Jeder Befehl trägt den **Zeitstempel** mit, den die Oberfläche zuletzt aus
+   `/api/state` gesehen hat. Was älter ist als `CMD_MAX_AGE_MS` = 2000 ms, wird
+   mit **409** abgewiesen und auf der Konsole als `VERWORFEN` vermerkt.
+
+> **STOP und Auslaufen sind von der Altersprüfung ausgenommen.** Ein
+> verspätetes STOP ist harmlos; ein verworfenes wäre eine Sperre gegen das
+> Anhalten, und das ist genau die falsche Richtung.
+
+Die allgemeine Lehre: **eine Bedienhandlung an einer Maschine ist nicht
+idempotent.** Sie darf nicht über ein Verfahren laufen, das Wiederholung als
+unschädlich annimmt.
