@@ -435,12 +435,15 @@ schaltet mit Überspannung ab. Lösungen: Bremswiderstand mit Chopper (1,4 kJ ü
 sind 140 W, ein 100-W-Widerstand reicht) oder eine Batterie als Puffer. Eine mechanische
 Bremse gibt es nicht ([07-sicherheit](07-sicherheit.md) §3).
 
-## 7 Gedruckte Gehäuse
+## 7 Gedruckte Teile
 
 Zwei Gehäuse nach demselben Muster: §7.1–§7.3 das Gebergehäuse für die
 Hall-Sensoren, §7.4 das Gehäuse für die Wägeplatine. Gemeinsam sind die nach
 unten offene Kavität, die Platinenaufnahme aus Absatz plus Rastnasen und die
 Kabelnut, die den Mantel gegen die Montagefläche klemmt.
+
+Dazu §7.5, die Befestigungsspange für das ESP-Gehäuse — kein Gehäuse, sondern
+ein Halter.
 
 **Gebergehäuse für die Hall-Sensoren** — feststehende Seite der
 Drehzahlerfassung, am Rahmen. Gegenstück ist §8.
@@ -629,6 +632,94 @@ Platine; er endet in der Mulde und weiter laufen nur die Adern.
 
 Eine M6-Scheibe (DIN 125, Ø 12) reicht bis 6,0 mm aus der Mitte und bleibt damit
 0,7 mm vor der Kabelmulde — knapp, aber frei. Größere Scheiben drücken darauf.
+
+### 7.5 Befestigungsspange für das ESP-Gehäuse
+
+Das **ESP-Gehäuse** nimmt den ESP32, gegebenenfalls das Display und die
+Verschaltung auf; primär den ESP. Es ist **kein Teil dieses Repos** — ein
+vorhandenes Gehäuse. Dokumentiert wird hier nur, was die Spange von ihm wissen
+muss:
+
+| Merkmal | Maß |
+|---|---|
+| Bohrungen je Kopfseite | **zwei, Ø 4,5** am Rand |
+| Abstand Mitte zu Mitte | **50,0 mm** (am Gehäuse gemessen, 2026-11-18) |
+| Lochmitte bis Außenkante | **6,2 mm** |
+| Kopfseiten | zwei |
+
+Zwei Spangen nötig, eine je Kopfseite. **Konstruiert wird nur eine**: sie ist
+symmetrisch zur M6-Achse und passt an beide Enden.
+
+Außenmaß **61,3 × 32,9 × 6,0 mm**, 9,0 cm³.
+
+| | |
+|---|---|
+| Featurebaum | Platte · Mutterloecher · M4_Durchgaenge · M6_Durchgang · Verrundung |
+| `hardware/esp_spange.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
+
+#### Drei Löcher im Dreieck
+
+```
+     o-----------------o     zwei M4, Mutter von unten eingelassen,
+      \               /      50,0 mm auseinander
+       \             /
+        \           /        Kontur läuft zur Mitte hin zusammen
+         \  +---+  /
+          \ |(O)| /          eine M6, mittig, 16,2 mm nach aussen
+           -+---+-            versetzt — Platz für eine Karosseriescheibe
+```
+
+| Merkmal | Maß |
+|---|---|
+| Platte | **6,0 mm** dick, Oberseite **glatt** |
+| M4-Durchgänge | Ø 4,5, auf den Bohrungen des Gehäuses |
+| Muttertaschen | Sechskant, 7,2 über Flächen (8,31 über Eck), 3,4 tief, **von unten** |
+| Material über einer Mutter | 2,60 mm |
+| M6-Durchgang | Ø 6,6, Achse 16,2 mm von der M4-Linie |
+| Verjüngung | 61,3 → 21,0 mm, Knick bei y = 6,2 (an der Gehäusekante) |
+| Verrundung | r = 3,0 an den **sechs senkrechten** Umrisskanten |
+
+**Zwei Schrauben mit getrennten Aufgaben**, wie bei der Platinenaufnahme in §7.2:
+
+- Die **beiden M4** kommen von oben durch die Gehäusebohrungen in die
+  eingelassenen Muttern. Sie halten das Gehäuse.
+- Die **M6** geht durch die Spitze auf die Schiene. Sie hält die Spange.
+
+#### Warum die M6 so weit aussen sitzt
+
+Bemessen wurde sie nach der **Karosseriescheibe**, nicht nach dem Schraubenkopf:
+DIN 9021 für M6 ist Ø 18, ein Zylinderkopf nur Ø 10. Danach richten sich
+Versatz *und* Spitze, damit die Scheibe vollflächig trägt und nicht an die
+Gehäusekante stößt:
+
+| | |
+|---|---|
+| M6-Achse hinter der Gehäusekante | **10,0 mm** |
+| Scheibenrand vor der Gehäusekante | 1,0 mm |
+| Auflage neben der Scheibe | 1,5 mm je Seite |
+
+Am Modell geprüft: die Scheibe liegt auf dem ganzen Umfang (36 Punkte) auf der
+Platte.
+
+#### Oberseite glatt, Ecken verrundet
+
+Keine erhöhten Auflagen — die Platte liegt vollflächig an der Kopfseite. Am
+Modell nachgesehen: **genau eine ebene Fläche** bei z = 6,0 mit 1533 mm², und die
+Bauhöhe ist 6,00 mm. Deshalb sitzen die Muttern in der Platte selbst, die dafür
+6,0 mm dick ist: 3,4 für die Mutter, 2,6 darüber.
+
+Verrundet werden **nur die senkrechten** Umrisskanten, nicht die oben und unten:
+dort gewinnt der Druck nichts, die Düse muss nur an den senkrechten Ecken
+abbremsen.
+
+> Die Kanten werden im Skript über ihre **Lage** gesucht, nicht über ihren Index.
+> Ein Index verschiebt sich bei jeder Änderung am Baum, eine Koordinate nicht —
+> und die senkrechten Kanten der Muttertaschen bleiben so zuverlässig scharf. Eine
+> verrundete Sechskanttasche hält keine Mutter. Findet das Skript nicht genau
+> sechs Kanten, bricht es ab, statt irgendwelche zu verrunden.
+
+> **Druckrichtung:** mit der **glatten Oberseite nach unten** aufs Bett. Dann
+> öffnen sich die Muttertaschen nach oben und brauchen keine Stütze.
 
 ## 8 Markenaufnahme an der Trommel
 
