@@ -1263,7 +1263,7 @@ also nicht veralten. Kein LittleFS, kein zweiter Flashvorgang.
 | `WEBUI_CHANNEL` | 6 | |
 | `WEBUI_MAX_CLIENTS` | 4 | der Vorgabewert von `softAP()` ist ebenfalls 4 |
 | `WEBUI_PORT` | 80 | 443 bleibt **zu**: die HTTPS-Prüfungen von iOS und Android lassen sich ohnehin nicht beantworten, und eine abgewiesene Verbindung ist schneller als ein Zeitablauf |
-| `WEBUI_HOSTNAME` | `pruefstand` | mDNS → `pruefstand.local`, Bequemlichkeit, kein Verlasspfad |
+| `WEBUI_HOSTNAME` | `tire` | mDNS → `tire.local`. **Kurz, weil es getippt wird** — auf einem Telefon ist jedes Zeichen eines zu viel. Bequemlichkeit, kein Verlasspfad: Android kann im Browser kein mDNS (§13.5). |
 | `LINK_TIMEOUT_MS` | 2000 ms | **Sicherheitsgrenze**, siehe [07-sicherheit](07-sicherheit.md) §4 |
 
 ### 13.2 Kein Captive Portal — und warum
