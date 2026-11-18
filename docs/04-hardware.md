@@ -1321,6 +1321,24 @@ qrencode -o hardware/qr-wlan.png -s 10 -m 2 'WIFI:T:WPA;S:Pruefstand;P:Alpha9.2;
 qrencode -t SVG -o hardware/qr-wlan.svg -s 10 -m 2 'WIFI:T:WPA;S:Pruefstand;P:Alpha9.2;;'
 ```
 
+| Datei | Nutzlast | tut |
+|---|---|---|
+| `hardware/qr-wlan.png` | `WIFI:T:WPA;S:Pruefstand;P:Alpha9.2;;` | Kamera bietet „Mit WLAN verbinden" an |
+| `hardware/qr-ui.png` | `http://4.3.2.1/` | öffnet die Bedienung im **echten Browser**. Bewusst die **IP**, nicht `tire.local`: Android kann im Browser kein mDNS, und ein QR-Code, der auf der Hälfte der Geräte ins Leere führt, ist schlimmer als eine Zahl. |
+
+Beim ersten Mal zweimal scannen. Danach verbindet sich das Telefon von allein, und
+**„Zum Home-Bildschirm"** macht aus der Bedienung ein Symbol, das sie im Vollbild ohne
+Browserleisten startet (`apple-mobile-web-app-capable` ist gesetzt).
+
+Ab etwa 3 cm Kantenlänge aus Armlänge lesbar, in Werkstattlicht eher 4–5 cm. Die weiße
+Ruhezone außen muss bleiben, sonst findet die Kamera die Positionsmarken nicht.
+
+> **Das Kennwort steckt im Bild.** Wer `WEBUI_PASSWORD` ändert und den QR-Code stehen
+> lässt, hat einen Aufkleber, der ins Leere führt — und merkt es erst am Stand. Beide
+> Zeilen gehören zusammen ausgeführt. Danach **einmal mit dem Telefon scannen**: die
+> Kamera muss das WLAN anbieten. Maschinell gegengelesen wurde der Inhalt am
+> 2026-11-18 nicht, hier ist kein Decoder installiert.
+
 ### 13.5 Wie der Stand erreichbar ist
 
 Drei Wege, und sie nutzen **verschiedene** Mechanismen — das ist der Grund, warum
@@ -1387,26 +1405,7 @@ Wildcard-DNS deckt jeden *Namen* ab, und Namen sind das, was getippt wird.
 > **Getestet am 2026-11-18, iPhone:** `1.2.3.4` bleibt hängen, bis der Browser aufgibt —
 > genau das vorhergesagte Verhalten. Das Paket geht hin und wird verworfen.
 
-> **Das Kennwort steckt im Bild.** Wer `WEBUI_PASSWORD` ändert und den QR-Code stehen
-> lässt, hat einen Aufkleber, der ins Leere führt — und merkt es erst am Stand. Beide
-> Zeilen gehören zusammen ausgeführt. Danach **einmal mit dem Telefon scannen**: die
-> Kamera muss das WLAN anbieten. Maschinell gegengelesen wurde der Inhalt am
-> 2026-11-18 nicht, hier ist kein Decoder installiert.
-
-
-| Datei | Nutzlast | tut |
-|---|---|---|
-| `hardware/qr-wlan.png` | `WIFI:T:WPA;S:Pruefstand;P:Alpha9.2;;` | Kamera bietet „Mit WLAN verbinden" an |
-| `hardware/qr-ui.png` | `http://4.3.2.1/` | öffnet die Bedienung im **echten Browser**. Bewusst die **IP**, nicht `tire.local`: Android kann im Browser kein mDNS, und ein QR-Code, der auf der Hälfte der Geräte ins Leere führt, ist schlimmer als eine Zahl. |
-
-Beim ersten Mal zweimal scannen. Danach verbindet sich das Telefon von allein, und
-**„Zum Home-Bildschirm"** macht aus der Bedienung ein Symbol, das sie im Vollbild ohne
-Browserleisten startet (`apple-mobile-web-app-capable` ist gesetzt).
-
-Ab etwa 3 cm Kantenlänge aus Armlänge lesbar, in Werkstattlicht eher 4–5 cm. Die weiße
-Ruhezone außen muss bleiben, sonst findet die Kamera die Positionsmarken nicht.
-
-### 13.5 Grenzen
+### 13.7 Grenzen
 
 - `WebServer` aus dem Arduino-Core kann laut eigenem Quelltextkommentar **nur einen
   Client gleichzeitig**. Bei einer Prüfungssalve verschluckt er Anfragen; die Oberfläche
