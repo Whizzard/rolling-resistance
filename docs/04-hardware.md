@@ -1661,7 +1661,24 @@ Befehle, identisch über serielle Konsole und Weboberfläche ([10-firmware](10-f
 | `k<kg>` | kalibrieren mit bekanntem Gewicht am Kalibrierarm |
 | `d<m>` `a<m>` `b<m>` | Trommelumfang · Zellenarm · Kalibrierarm |
 | `r` | Einstellungen auf die Vorgaben aus `config.h` zurücksetzen |
+| `i` | **Zustand**: Regler, Wägezelle, Bedienverbindung |
 | `?` | Hilfe |
+
+`i` ist der Befehl fürs Anschließen. Die Oberfläche zeigt dasselbe, aber am Stand
+steht man mit dem Schraubendreher davor — und wenn eine der beiden Verbindungen
+fehlt, ist der Browser genau das, was man gerade nicht hat. Fehlt etwas, nennt `i`
+die GPIOs und die Verdächtigen dazu.
+
+> **Die Konsole liegt bei dieser Variante auf der nativen USB-Buchse**, nicht auf
+> UART0: `ARDUINO_USB_CDC_ON_BOOT=1` in `platformio.ini`. Am 2026-11-18 war nur
+> ein Port da, esptool redete darüber mit dem Chip, aber `Serial` ging an die
+> Buchse `COM`, an der kein Kabel steckte — also kam nichts. Mit dem Flag meldet
+> sich die Konsole auf demselben Port. §5.1 beschreibt den umgekehrten Fall vom
+> 2026-11-15, als `COM` funktionierte.
+
+> **Erster Anschlusstest, 2026-11-18:** Wägezelle **antwortet** (−6871 counts,
+> Spitze-Spitze 369, unkalibriert). Regler **antwortet nicht**, und zwar noch nie
+> seit dem Start — also kein verlorenes Paket, sondern keine Verbindung.
 
 ### 14.1a Kalibrierung der Wägezelle
 
