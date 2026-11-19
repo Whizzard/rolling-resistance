@@ -20,8 +20,10 @@ import re
 import sys
 
 # Maximal zulässige Abweichung zwischen Vor- und Nachlauf der Leerlaufkennlinie,
-# bezogen auf F_roll. Siehe docs/05-pruefablauf.md §7.
-BASELINE_DRIFT_LIMIT_N = 0.10
+# bezogen auf F_roll. Siehe docs/09-messtheorie.md §8.8 und docs/05-pruefablauf.md §B9.
+# Der frühere Wert 0,10 N stammte aus der MTB-Auslegung und wäre bei einem Rennreifen
+# 6,5 % des Signals.
+BASELINE_DRIFT_LIMIT_N = 0.02
 
 
 class Meta:
@@ -176,7 +178,7 @@ def main():
     if not meta.n_per_count:
         sys.exit("Fehler: Die Wägezelle war unkalibriert (N_per_count=0). "
                  "Es liegen nur Rohwerte vor, aus denen sich kein Crr ergibt. "
-                 "Kalibrierung: docs/05-pruefablauf.md §2.")
+                 "Kalibrierung: docs/05-pruefablauf.md §A2.")
 
     baseline, measure = [], []
     for row in rows:
@@ -210,7 +212,7 @@ def main():
 
     if len(runs) < 2:
         print("WARNUNG: nur ein Baseline-Lauf. Eine Temperaturdrift der Lagerreibung "
-              "lässt sich damit nicht erkennen (docs/05-pruefablauf.md §7).")
+              "lässt sich damit nicht erkennen (docs/05-pruefablauf.md §B9).")
     else:
         worst, worst_v = check_baseline_drift(runs)
         if worst_v is None:

@@ -4,9 +4,15 @@ Die geschlossene Darstellung: welche Formeln gelten, welche Größen einmal und 
 jeder Messung bestimmt werden, wo die Sensoren sitzen, wie kalibriert wird und was der
 ESP32 braucht, um Watt und Crr live zu rechnen.
 
-Ersetzt das frühere 02-messkonzept (Herleitung und Fallstricke) und
-[05-prüfablauf](05-pruefablauf.md) (Checklisten). Zahlenwerte gelten für den Stand vom
-2026-10-30: Trommel Ø 933 mm, Hebelarm 40 mm, Auslegung auf schnelle Straßenreifen.
+Ersetzt das frühere 02-messkonzept (Herleitung und Fallstricke). Die abhakbare
+Schrittliste steht in [05-prüfablauf](05-pruefablauf.md) — hier stehen die Gründe dazu.
+
+Zahlenwerte gelten für den Stand vom 2026-10-30: Trommel Ø 933 mm, Hebelarm 40 mm,
+Auslegung auf schnelle Straßenreifen. **Der Hebelarm ist seither 80 mm** (5-kg-Zelle,
+Kalibrierarm 160 mm) und das Trommelmaß ist offen — verbindlich sind `config.h` und
+[03-parameter](03-parameter.md) §1, offene Punkte in
+[06-offene-fragen](06-offene-fragen.md) A14. Wo unten 40 mm steht, ist die Rechnung noch
+nicht nachgezogen.
 
 ## 1 Die Formelkette
 
@@ -118,7 +124,7 @@ Nimm als System alles, was auf der Wiege sitzt. Im stationären Zustand ist die 
 | Luftwiderstand der Trommel | nein | ja → Leerlaufkennlinie |
 | Lager und Aerodynamik des Prüflaufrads | nein | ja → Laufrad-Auslaufversuch |
 | Reifen am Latsch | nein | ja → **das Signal** |
-| Reibung Rotor ↔ Stator (= das „Pendellager") | ja | **nein** — kürzt sich exakt heraus, §7.2 in 08-staender |
+| Reibung Rotor ↔ Stator (= das „Pendellager") | ja | **nein** — kürzt sich exakt heraus, [08-staender](08-staender.md) §7.2 |
 
 Daraus folgt der ganze Rest des Verfahrens: zwei Korrekturkurven (Leerlauf, Laufrad), ein
 Restfehler (Trommellager), und ein Pendellager, das so reibungsarm wie möglich sein muss.
@@ -205,11 +211,11 @@ auf Plausibilität prüft.
 | Trommelumfang | `U` | Maßband **über die fertige Oberfläche**, 3 Messungen mitteln | ±1 mm (0,03 %) |
 | Trommelradius | `r = U/2π` | gerechnet | — |
 | Hebelarm Drehmomentwaage | `L` | Achsmitte Pendel → Krafteinleitung, Messschieber | ±0,1 mm (0,25 %) |
-| Kalibrierradius | `L_cal` | zweite Bohrung, hier 80,0 mm | ±0,1 mm |
+| Kalibrierradius | `L_cal` | zweite Bohrung, 160,0 mm | ±0,1 mm |
 | Zellenkennwert | `N_PER_COUNT` | §5.1, mindestens 3 Gewichte | ±0,2 % |
 | Hebel der Auflast | `a` | Pivotachse → Radachse, waagerecht | ±0,5 mm (0,25 %) |
 | Marken pro Umdrehung | `MARKS_PER_REV` | Festlegung, 6 + Index | exakt |
-| Trommelträgheit | `J_Trommel` | Auslaufversuch, [05-prüfablauf](05-pruefablauf.md) | ±5 % (nur für die Rampenkorrektur) |
+| Trommelträgheit | `J_Trommel` | Auslaufversuch, §9.1 | ±5 % (nur für die Rampenkorrektur) |
 | Leerlaufmodell | `A₀, B₀` | Baseline-Lauf, gefittet | siehe §3 |
 
 ### 2.2 Pro Laufrad — einmal je Laufrad, nicht je Reifen
@@ -319,8 +325,8 @@ nur, wenn die drei großen Posten wirklich klein gehalten werden.
 
 ### 3.3 Das alte Baseline-Kriterium ist zu weich geworden
 
-[05-prüfablauf](05-pruefablauf.md) §7 verwirft eine Reihe bei mehr als **0,10 N**
-Abweichung zwischen Vor- und Nachlauf. Das war bei MTB-Reifen (F_roll bis 6,3 N) ein
+Das frühere Kriterium verwarf eine Reihe bei mehr als **0,10 N** Abweichung zwischen Vor-
+und Nachlauf. Das war bei MTB-Reifen (F_roll bis 6,3 N) ein
 Prozentwert von 1,6 %. Bei einem guten Rennreifen sind dieselben 0,10 N **6,5 %** des
 Signals, beim besten Reifen 9,6 %.
 
@@ -463,10 +469,13 @@ erspart die getrennte Unsicherheit von Zelle und Hebelarm.
 
 1. Wiegeteil in Messlage, Trommel steht, Kabel wie im Betrieb verlegt.
 2. Statische Tara (`t`), 200 Samples.
-3. Bekanntes Gewicht an die **Kalibrierbohrung** bei `L_cal` = 80,0 mm hängen.
+3. Bekanntes Gewicht an die **Kalibrierbohrung** bei `L_cal` = 160,0 mm hängen.
    Moment `M_cal = m · g · L_cal`. Rohwert über 200 Samples mitteln.
-4. Mit mindestens **drei** Massen über den Bereich wiederholen — bei L = 40 mm deckt der
-   Auslegungsfall 2,51 Nm ab, also z. B. 1 / 2 / 3 kg an 80 mm = 0,785 / 1,57 / 2,35 Nm.
+4. Mit mindestens **drei** Massen über den Bereich wiederholen. An `L_cal` = 160 mm sieht
+   die Zelle am Arm L = 80 mm die **doppelte** Kraft, also `F = m · g · 2`: 0,5 / 1,0 /
+   2,0 kg ergeben 0,785 / 1,57 / 3,14 Nm und 20 / 40 / 80 % vom Endwert der 5-kg-Zelle.
+   Der Auslegungsfall 2,51 Nm liegt damit innen. **Mehr als 2,4 kg nicht anhängen** — das
+   ist der Endwert. (gerechnet)
 5. Geradenfit `M = k · (raw − offset)`. **Linearitätsabweichung < 0,2 %** verlangen.
 6. Hysterese prüfen: aufsteigend und absteigend belasten. Die Differenz bei gleicher Last
    ist die Hysterese der Pendellagerung — sie gehört ins Protokoll, nicht in den Fit.
@@ -586,26 +595,26 @@ die Effekte, die ein ausgelassener Schritt verursacht. Zur Einordnung — die Ke
 über der Geschwindigkeit ändert sich zwischen 14 und 36 km/h um ganze 11,6 %, und zwei
 gute Rennreifen trennen 0,2 N Umfangskraft.
 
-| # | Schritt | Dauer | warum an dieser Stelle |
-|---|---|---|---|
-| 1 | Sichtprüfung, Not-Aus | 5 min | [07-sicherheit](07-sicherheit.md) |
-| 2 | Laufrad einsetzen, Drehpunkt auf Radachshöhe | 10 min | bestimmt die Geometrie aller Folgeschritte |
-| 3 | Reifen wiegen, Druck setzen, `J_Rad` korrigieren | 5 min | vor der Tara, weil es die Wiege nicht berührt |
-| 4 | Statische Tara `t` | 1 min | nach jedem mechanischen Eingriff |
-| 5 | **Baseline Vorlauf** `b`, Rad abgehoben | 15 min | kalt → unterer Eckwert der Drift |
-| 6 | Rad absenken, **Warmlauf** 30 min bei 28,8 km/h | 30 min | Crr sinkt mit der Reifentemperatur |
-| 7 | **Messlauf** `m` | 15 min | thermisch eingeschwungener Zustand |
-| 8 | **Baseline Nachlauf** `b` | 15 min | warm → oberer Eckwert, Differenz ist das Abbruchkriterium |
-| 9 | Auslaufen lassen, nicht bremsen | 5–30 min | §8.9 |
-| 10 | Auswertung `analysis/crr.py` | 2 min | interpoliert die Baseline zeitlich zwischen 5 und 8 |
+**Die Schrittliste selbst steht in [05-prüfablauf](05-pruefablauf.md)** — dort nackt und
+abhakbar. Hier steht nur, warum die Reihenfolge so ist und was die Zahlen bedeuten.
+
+| Schritt (05) | warum an dieser Stelle |
+|---|---|
+| B0 Sichtprüfung, Not-Aus | [07-sicherheit](07-sicherheit.md) |
+| B1 Laufrad einsetzen, Drehpunkt auf Radachshöhe | bestimmt die Geometrie aller Folgeschritte |
+| B2 Reifen wiegen, Druck setzen, `J_Rad` korrigieren | vor der Tara, weil es die Wiege nicht berührt |
+| B3 Statische Tara `t` | nach jedem mechanischen Eingriff |
+| B4 Baseline Vorlauf `b`, Rad abgehoben | kalt → unterer Eckwert der Drift |
+| B5 Warmlauf | Crr sinkt mit der Reifentemperatur |
+| B6 Messlauf `m` | thermisch eingeschwungener Zustand |
+| B7 Baseline Nachlauf `b` | warm → oberer Eckwert, Differenz ist das Abbruchkriterium |
+| B8 Auslaufen lassen, nicht bremsen | §8.9 |
+| B9 Auswertung `analysis/crr.py` | interpoliert die Baseline zeitlich zwischen B4 und B7 |
 
 ### 8.0 Vor dem Einschalten
 
-- [ ] Not-Aus erreichbar und funktionsgeprüft
-- [ ] Trommel sichtgeprüft: Risse, Stoßstelle des Mantelblechs, lose Schrauben
-- [ ] Wiegeteil frei beweglich, Endanschläge nicht anliegend, nichts klemmt am Kabel
-- [ ] Kupplung und Pendellager spielfrei
-- [ ] Umgebungstemperatur notiert
+Checkliste in [05-prüfablauf](05-pruefablauf.md) §B0, Sicherheitsteil in
+[07-sicherheit](07-sicherheit.md) §7.
 
 > Eine schleifende Bremse — falls eine nachgerüstet wird — erzeugt ein
 > temperaturabhängiges Schleppmoment und lässt
@@ -623,23 +632,19 @@ der Auslegerhöhe oder dem Verlegen eines Kabels.
 
 ### 8.2 Laufrad einsetzen und Geometrie einstellen
 
-- [ ] Steckachse Ø12 mit passenden Buchsen, Rad **formschlüssig** gesichert
-- [ ] Laufrad **mittig zur Trommel** — bei 100 mm Trommelbreite und 57 mm Reifen bleiben
-      nur 21 mm je Seite
-- [ ] Ausleger am Mast so klemmen, dass der Gabelholm **waagerecht** steht
-      (Wasserwaage): dann liegt der Drehpunkt auf Radachshöhe und die Umfangskraft hat
-      keinen Hebel
-- [ ] Radachse senkrecht über der Trommelachse, x = 0 ± 2 mm
-- [ ] Rad von Hand drehen: freier Lauf, kein Schlag, Reifen läuft nicht über die
-      Trommelkante
+Checkliste in [05-prüfablauf](05-pruefablauf.md) §B1. Die drei Maße dahinter:
+
+- **mittig**: bei 100 mm Trommelbreite und 57 mm Reifen bleiben nur 21 mm je Seite.
+- **Gabelholm waagerecht** (Wasserwaage): dann liegt der Drehpunkt auf Radachshöhe und
+  die Umfangskraft hat keinen Hebel, der Korrekturterm aus §1.3 entfällt.
+- **x = 0 ± 2 mm**: Radachse senkrecht über der Trommelachse, sonst wandert die
+  Latschnormale.
 
 ### 8.3 Reifen vorbereiten
 
-- [ ] Reifen wiegen → `J_Rad = J_ref + (m_Reifen − m_ref) · r_Reifen²`
-- [ ] Druck einstellen und über `p<wert>` eingeben
-- [ ] Reifenumfang belastet messen → `r<wert>`
-- [ ] Auflast über die Laufgewichtstellung setzen, `l<wert>` eingeben —
-      **Standard 417 N (42,5 kg)**, die Last der publizierten Crr-Datenbank
+Checkliste in [05-prüfablauf](05-pruefablauf.md) §B2. Vor der Tara, weil kein Schritt
+davon die Wiege berührt. Die Standardauflast `STANDARD_LOAD_N` = **416,9 N
+(42,5 kg)** ist die Last der publizierten Crr-Datenbank — nur so sind die Werte vergleichbar.
 
 ### 8.4 Baseline Vorlauf
 
@@ -664,11 +669,9 @@ A/B/A-Protokoll in §8.10 kein Extra, sondern tragend.
 `m` auf der Konsole, **dieselben Plateaus** wie im Baseline-Lauf — die Auswertung
 subtrahiert punktweise, die Stützstellen müssen übereinstimmen.
 
-Während des Laufs:
-
-- [ ] nicht an den Aufbau fassen, nicht anlehnen
-- [ ] Türen und Lüftung nicht verändern — die Trommelaerodynamik reagiert auf Luftzug
-- [ ] bei Bedarf Druckreihe anhängen: je Stufe 5 min Angleichzeit, dann messen
+Während des Laufs nicht an den Aufbau fassen und **Türen und Lüftung nicht verändern** —
+die Trommelaerodynamik reagiert auf Luftzug, und sie steckt über die Leerlaufkennlinie
+direkt im Ergebnis. Druck- und Lastreihen brauchen je Stufe 5 min Angleichzeit (§7.1).
 
 ### 8.7 Baseline Nachlauf
 
