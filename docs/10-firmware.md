@@ -170,15 +170,16 @@ Prüfgewicht an den Hebelarm hängen, daraus `LOADCELL_N_PER_COUNT`.
 | | P | Anforderung |
 |---|---|---|
 | W1 | M | Nullpunkt aufnehmen (Arm unbelastet), Mittelwert über ≥ 200 Werte. |
-| W2 | M | Masse des Prüfgewichts und **Anhängeradius** eingeben: 40 mm (direkt) oder 80 mm (doppelter Hebel). |
+| W2 | M | Masse des Prüfgewichts eingeben. Die **Hebelarme** stehen als eigene Felder auf derselben Seite (Zellenarm 80 mm, Kalibrierarm 160 mm) und werden am Aufbau ausgemessen, nicht je Wägung eingetippt. |
 | W3 | M | Mit Gewicht messen, Mittelwert über ≥ 200 Werte, Faktor berechnen und anzeigen. |
 | W4 | M | Faktor wird **angezeigt, nicht automatisch übernommen** — er gehört von Hand in `config.h` und [03-parameter](03-parameter.md). |
 | W5 | S | **Mehrere Massen** nacheinander, Linearität über den Bereich prüfen und die Abweichung anzeigen. |
 | W6 | S | Dieselbe Masse an beiden Radien als Gegenprobe der Hebelarmmaße. |
 | W7 | K | Kriechen: Last 5 min anstehen lassen, Abweichung protokollieren. |
 
-Umrechnung: eine Masse *m* am Radius *b* erzeugt an der Zelle (r = 40 mm)
-`F = m · g · b / 0,080 m`. Am 160-mm-Loch also die **doppelte** Kraft.
+Umrechnung: eine Masse *m* am Radius *b* erzeugt an der Zelle (Arm L = 80 mm)
+`F = m · g · b / L`. Am 160-mm-Loch also die **doppelte** Kraft — Endwert der 5-kg-Zelle
+bei 2,4 kg, [09-messtheorie](09-messtheorie.md) §5.1.
 
 ## 7 Messseite
 
