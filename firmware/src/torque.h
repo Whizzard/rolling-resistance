@@ -36,9 +36,15 @@ float rollForceN();                 // Tangentialkraft an der Trommeloberfläche
 float powerW(float omega);
 
 // Statische Tara im Stillstand: mittelt TARE_SAMPLES Rohwerte.
-// Blockiert bis zu ~3 s — nur im Zustand IDLE aufrufen.
-void tareStatic();
-long tareOffset();
+//
+// NICHT BLOCKIEREND. tareBegin() kehrt sofort zurück, gesammelt wird in update(),
+// und tareBusy() sagt, wann es vorbei ist. Die frühere Fassung hielt bis zu 3 s die
+// Schleife auf — damit stand auch der Webserver, die Oberfläche sah einen Abriss,
+// und es verstieß gegen docs/10-firmware.md G1 (kein delay() im Hauptpfad).
+void     tareBegin();
+bool     tareBusy();
+uint16_t tareCount();      // 0..TARE_SAMPLES, für den Fortschritt
+long     tareOffset();
 
 // --- Umdrehungssynchrone Mittelung ------------------------------------------
 // Jeder Rohwert wird mit der Markennummer in einen Winkel-Bin einsortiert.

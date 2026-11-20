@@ -15,6 +15,12 @@ long g_offset = 0;
 long     g_ring[DISPLAY_AVG_N] = {0};
 uint8_t  g_ri = 0, g_rn = 0;
 
+// Statische Tara, nicht blockierend: gesammelt wird in update().
+double   g_tareSum = 0.0;
+uint16_t g_tareN = 0;
+bool     g_tareBusy = false;
+uint32_t g_tareStartMs = 0;
+
 // Akkumulator für die umdrehungssynchrone Mittelung
 double g_sum = 0.0;
 uint32_t g_count = 0;
@@ -69,6 +75,18 @@ bool update() {
   g_ring[g_ri] = g_raw;
   g_ri = (g_ri + 1) % DISPLAY_AVG_N;
   if (g_rn < DISPLAY_AVG_N) g_rn++;
+
+  // Laufende Tara mitnehmen. Abbruch nach TARE_TIMEOUT_MS, damit ein stummer
+  // HX711 den Zustand nicht auf Dauer besetzt.
+  if (g_tareBusy) {
+    g_tareSum += static_cast<double>(g_raw);
+    g_tareN++;
+    if (g_tareN >= TARE_SAMPLES || (millis() - g_tareStartMs) > TARE_TIMEOUT_MS) {
+      if (g_tareN > 0) g_offset = static_cast<long>(g_tareSum / g_tareN);
+      g_tareBusy = false;
+      resetAccumulator();
+    }
+  }
   return true;
 }
 
@@ -117,19 +135,15 @@ float powerW(float omega) {
   return isnan(m) ? NAN : m * omega;
 }
 
-void tareStatic() {
-  double sum = 0.0;
-  uint16_t n = 0;
-  const uint32_t deadline = millis() + 5000;
-  while (n < TARE_SAMPLES && millis() < deadline) {
-    if (update()) {
-      sum += static_cast<double>(g_raw);
-      n++;
-    }
-  }
-  if (n > 0) g_offset = static_cast<long>(sum / n);
-  resetAccumulator();
+void tareBegin() {
+  g_tareSum = 0.0;
+  g_tareN = 0;
+  g_tareBusy = true;
+  g_tareStartMs = millis();
 }
+
+bool     tareBusy()  { return g_tareBusy; }
+uint16_t tareCount() { return g_tareN; }
 
 long tareOffset() { return g_offset; }
 

@@ -2,8 +2,10 @@
 #include "config.h"
 #include "settings.h"
 #include "speed.h"
+#include "revsrc.h"
 #include "torque.h"
-#include "drive.h"
+#include "speedctl.h"
+#include "vesc/vesc.h"
 #include "logger.h"
 #include "tirepressure.h"
 #include "webui.h"
@@ -26,7 +28,7 @@ void enterFault(const char* reason) {
   g_faultReason = reason;
   g_phase = FAULT;
   g_run = RUN_NONE;
-  drive().stop();
+  speedctl::stop();
   logger::note(reason);
 }
 
@@ -34,16 +36,29 @@ void enterFault(const char* reason) {
 void checkFaults() {
   const char* reason = nullptr;
 
+  // Stillstand trotz Sollwert. Ohne Trommelmarken kann speed::stalled() das nicht
+  // sehen, und eine aus der Reglerdrehzahl gerechnete Umdrehung "stallt" nie —
+  // deshalb hier über Stellwert und Drehzahl. Der Befund vom 2026-11-18: 0,045
+  // Stellwert, 2,5 A Motorstrom, Trommel still. Das ist Kommutierung.
+  const bool stillstand =
+      speedctl::running() && speedctl::rampKmh() > 1.0f &&
+      speedctl::duty() > STALL_DUTY_MIN && revsrc::kmh() < 1.0f;
+
   if (torque::isSaturated())        reason = "FAULT: Waegezelle gesaettigt";
   else if (!torque::isResponding()) reason = "FAULT: HX711 antwortet nicht";
   else if (isCalibrated() && fabsf(torque::newtons()) > MAX_FORCE_N)
                                     reason = "FAULT: Kraftgrenze ueberschritten";
-  else if (speed::revPerSec() * 60.0f > MAX_DRUM_RPM)
+  else if (revsrc::revPerSec() * 60.0f > MAX_DRUM_RPM)
                                     reason = "FAULT: Drehzahlgrenze ueberschritten";
-  else if (drive().targetKmh() > 1.0f && speed::stalled())
+  else if (!vesc::connected())      reason = "FAULT: kein Regler";
+  else if (vesc::values().fault != 0) reason = "FAULT: Regler meldet Fehler";
+  else if (stillstand)              reason = "FAULT: treibt, Trommel dreht nicht";
+  // Riemenschlupf und fehlende Drehzahlpulse prüfen nur, wenn die Trommelmarken
+  // wirklich zählen. Gegen die eigene Rechenquelle wären beide tautologisch.
+  else if (revsrc::angleReference() && speedctl::rampKmh() > 1.0f && speed::stalled())
                                     reason = "FAULT: keine Drehzahlpulse";
-  else if (speed::slipDetected())   reason = "FAULT: Riemenschlupf";
-  else if (drive().isFaulted())     reason = "FAULT: Leistungsstufe";
+  else if (revsrc::angleReference() && speed::slipDetected())
+                                    reason = "FAULT: Riemenschlupf";
   else if (!webui::linkAlive())     reason = "FAULT: Bedienverbindung weg";
 
   if (reason == nullptr) {
@@ -58,7 +73,10 @@ void checkFaults() {
 
 void gotoPlateau(uint8_t idx) {
   g_plateau = idx;
-  drive().setTargetKmh(PLATEAUS_KMH[idx]);
+  if (!speedctl::setTargetKmh(PLATEAUS_KMH[idx])) {
+    enterFault(speedctl::lastRefusal());
+    return;
+  }
   g_phase = SPINUP;
 }
 
@@ -68,21 +86,26 @@ void startRun(RunMode mode) {
     return;
   }
   if (mode == RUN_MEASURE && isnan(g_loadN)) {
-    logger::note("Start abgelehnt: Auflast nicht gesetzt (Befehl 'l<wert>')");
+    logger::note("Start abgelehnt: Auflast nicht gesetzt (Befehl 'l<N>')");
     return;
   }
   g_run = mode;
   logger::note(mode == RUN_BASELINE ? "Lauf BASELINE (Laufrad abgehoben)"
                                     : "Lauf MEASURE");
+  // Woher die Drehzahl kommt, steht EINMAL je Lauf im Protokoll — nicht je Punkt.
+  if (!revsrc::angleReference()) {
+    logger::note("Drehzahlquelle: Regler (ERPM/Polpaare). Keine Winkelreferenz, "
+                 "die Winkel-Bins bleiben leer.");
+  }
   gotoPlateau(0);
 }
 
 void finishPoint() {
-  const float v = speed::kmh();
+  const float v = revsrc::kmh();
   const float raw = torque::averageRaw();
   const float fN = torque::averageN();
   const float mNm = isnan(fN) ? NAN : fN * settings::torqueArmM();
-  const float pW = isnan(mNm) ? NAN : mNm * speed::omega();
+  const float pW = isnan(mNm) ? NAN : mNm * revsrc::omega();
   const float fRoll = isnan(mNm) ? NAN : mNm / settings::drumRadiusM();
 
   // Crr nur im Messlauf und nur mit bekannter Auflast. Im BASELINE-Lauf ist es
@@ -92,16 +115,16 @@ void finishPoint() {
     crr = fRoll / g_loadN;
   }
 
-  logger::point(name(), speed::revCount(), v, raw, fN, mNm, pW, crr,
+  logger::point(name(), revsrc::revCount(), v, raw, fN, mNm, pW, crr,
                 g_loadN, tirepressure::bar(),
                 g_run == RUN_BASELINE ? "baseline" : "measure");
-  logger::angleBins();
+  if (revsrc::angleReference()) logger::angleBins();
 
   if (g_plateau + 1 < PLATEAU_COUNT) {
     gotoPlateau(g_plateau + 1);
   } else {
     logger::note("Lauf beendet — Trommel laeuft aus");
-    drive().stop();
+    speedctl::coast();   // frei auslaufen, nicht bremsen (docs/05-pruefablauf.md §B8)
     g_run = RUN_NONE;
     g_phase = COAST;
   }
@@ -115,15 +138,11 @@ void begin() {
 }
 
 void service() {
-  drive().service();
-
-  // Neue Kraftwerte einsammeln und im Messzustand akkumulieren.
-  if (torque::update() && g_phase == POINT) {
-    torque::accumulate(speed::markIndexInRev());
-  }
-
+  // Die Kraftwerte liest und akkumuliert die Hauptschleife — sie ruft
+  // torque::update() und weiß damit als Einzige, wann ein neuer Rohwert da ist.
+  //
   // Indexmarke zählt die Umdrehungen des laufenden Messpunkts.
-  const bool indexSeen = speed::consumeIndexFlag();
+  const bool indexSeen = revsrc::consumeIndexFlag();
 
   if (g_phase != IDLE && g_phase != FAULT && g_phase != TARE) checkFaults();
 
@@ -133,13 +152,14 @@ void service() {
       break;
 
     case TARE:
-      torque::tareStatic();
-      logger::note("Statische Tara gesetzt");
-      g_phase = IDLE;
+      if (!torque::tareBusy()) {
+        logger::note("Statische Tara gesetzt");
+        g_phase = IDLE;
+      }
       break;
 
     case SPINUP:
-      if (fabsf(speed::kmh() - drive().targetKmh()) < SPEED_TOLERANCE_KMH) {
+      if (fabsf(revsrc::kmh() - speedctl::rampKmh()) < SPEED_TOLERANCE_KMH) {
         g_settleStartMs = millis();
         g_phase = SETTLE;
       }
@@ -152,7 +172,7 @@ void service() {
         torque::resetAccumulator();
         g_revs = 0;
         g_phase = POINT;
-      } else if (fabsf(speed::kmh() - drive().targetKmh()) > SPEED_TOLERANCE_KMH * 2) {
+      } else if (fabsf(revsrc::kmh() - speedctl::rampKmh()) > SPEED_TOLERANCE_KMH * 2) {
         g_phase = SPINUP;   // wieder ausgeschert
       }
       break;
@@ -165,7 +185,7 @@ void service() {
       break;
 
     case COAST:
-      if (speed::revPerSec() < 0.05f) {
+      if (revsrc::revPerSec() < 0.05f) {
         logger::note("Trommel steht");
         g_phase = IDLE;
       }
@@ -194,19 +214,26 @@ void startMeasure()  { startRun(RUN_MEASURE); }
 
 void startTare() {
   if (g_phase != IDLE) { logger::note("Tara nur im Stillstand"); return; }
-  if (speed::revPerSec() > 0.05f) { logger::note("Tara nur im Stillstand"); return; }
+  if (revsrc::revPerSec() > 0.05f) { logger::note("Tara nur im Stillstand"); return; }
+  torque::tareBegin();
   g_phase = TARE;
 }
 
 void stopRun() {
-  drive().stop();
+  speedctl::stop();
+  g_run = RUN_NONE;
+  if (g_phase != FAULT) g_phase = COAST;
+}
+
+void coastRun() {
+  speedctl::coast();
   g_run = RUN_NONE;
   if (g_phase != FAULT) g_phase = COAST;
 }
 
 void clearFault() {
   if (g_phase != FAULT) return;
-  if (speed::revPerSec() > 0.05f) {
+  if (revsrc::revPerSec() > 0.05f) {
     logger::note("Quittierung nur im Stillstand");
     return;
   }

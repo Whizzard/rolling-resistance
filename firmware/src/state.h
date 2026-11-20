@@ -34,7 +34,8 @@ RunMode runMode();
 void startBaseline();   // Laufrad ABGEHOBEN — Leerlaufkennlinie
 void startMeasure();    // Laufrad aufgelegt — Messung
 void startTare();       // nur im Stillstand
-void stopRun();         // kontrolliert beenden, Trommel läuft aus
+void stopRun();         // beenden und BREMSEN (20 A)
+void coastRun();        // beenden und freigeben — Trommel läuft frei aus
 void clearFault();      // nur im Stillstand
 
 // Parameter aus der Bedienung

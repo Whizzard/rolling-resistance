@@ -28,6 +28,7 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 | — | `HX711_GAIN_PULSES` | 1 | – | DB | 1 = Kanal A Gain 128, 3 = Kanal B Gain 32 |
 | — | `HX711_RATE_SPS` | 80 | 1/s | DB | RATE-Pin auf VCC. Bei 60 km/h ≈ 14 Samples pro Umdrehung. |
 | — | `TARE_SAMPLES` | 200 | – | gesch | statische Tara, ≈ 2,5 s bei 80 SPS |
+| `TARE_TIMEOUT_MS` | 5000 | ms | Festlegung | Abbruch der Tara, wenn nicht genug Werte kommen. Die Tara läuft seit dem 2026-11-20 **nicht blockierend** (`tareBegin`/`tareBusy`/`tareCount`); ohne Abbruch würde ein stummer HX711 den Zustand `TARE` auf Dauer besetzen. |
 | — | `DISPLAY_AVG_N` | 40 | – | Festlegung | Gleitender Mittelwert für die **Anzeige**, 0,5 s bei 80 SPS. Ein mit 80 Hz zappelnder Zahlenwert ist weder lesbar noch aussagekräftig ([10-firmware](10-firmware.md) W5, D6). Hat mit der umdrehungssynchronen Mittelung der **Messung** (`AVG_REVS_PER_POINT`) nichts zu tun — die beiden laufen unabhängig. |
 
 > Solange `LOADCELL_N_PER_COUNT` TBD ist, gibt die Firmware keine Crr-Werte aus, sondern
@@ -233,6 +234,11 @@ eingetippt. *Frühere Fassungen dieses Dokuments nannten pauschal alles
 | `SETTLE_MS` | 15000 | ms | gesch | Einschwingen nach Plateauwechsel; nach ersten Messungen prüfen |
 | `AVG_REVS_PER_POINT` | 10 | – | gesch | bei 60 km/h ≈ 1,8 s, bei 10 km/h ≈ 10,8 s |
 | `WARMUP_MS` | 1800000 | ms | Literatur | **30 min**, wie beim Referenzprüfstand. Crr sinkt mit der Reifentemperatur deutlich. |
+| `WARMUP_KMH` | 28,8 | km/h | Festlegung | Geschwindigkeit, bei der die Warmlaufzeit zählt. Identisch mit `PLATEAUS_KMH[4]` und aus demselben Grund: es ist die Stützstelle der veröffentlichten Datenbank. Vorher stand die Zahl nur im Fließtext. |
+| `WARMUP_TOL_KMH` | 1,0 | km/h | gesch | Band um `WARMUP_KMH`, innerhalb dessen Zeit angerechnet wird. Breiter als `SPEED_TOLERANCE_KMH`, weil hier nicht gemessen, sondern gewärmt wird. |
+| `DVDT_WINDOW_MS` | 1000 | ms | Festlegung | Fenster für dv/dt. `revsrc.cpp` legt acht Proben darin ab und fittet eine Gerade — eine Differenz aus zwei Proben rauscht zu stark für eine Gültigkeitsentscheidung. |
+| `DVDT_CONST_KMH_PER_S` | 0,010 | km/h/s | **ber** | Grenze für „konstant". Ein Rest an Beschleunigung erzeugt über `M = J·dω/dt` ein Scheinmoment: 1 % vom Signal eines guten Rennreifens sind 0,012 Nm, über `J` = 1,94 kg·m² also 0,0062 rad/s² und damit 0,010 km/h/s ([10-firmware](10-firmware.md) §7.1, L9). Punkte außerhalb werden als ungültig markiert, nicht verworfen. |
+| `DVDT_STRICT_KMH_PER_S` | 0,002 | km/h/s | **ber** | Dieselbe Rechnung für 0,2 % Fehler (L11), wählbar für schärfere Läufe. |
 
 ## 6 Prüfling und Last
 
@@ -280,7 +286,8 @@ Der MTB-Crr ist selbst gerechnet, weil die Quelle dort nur Watt ausweist:
 |---|---|---|---|
 | `MAX_FORCE_N` | 45 | N | 92 % vom Zellenendwert der 5-kg-Zelle → Abschaltung vor der Sättigung |
 | `MAX_DRUM_RPM` | **abgeleitet** → 341 bei U = 2,931 m | 1/min | `V_MAX_KMH / 3,6 / U · 60`. Nicht hart gesetzt: die Grenze bedeutet *60 km/h an der Trommeloberfläche* und muss dem Umfang folgen — der alte feste Wert 333 galt der Ø-955-Trommel und hätte an der gebauten Ø-933-Trommel schon bei 58,4 km/h ausgelöst, mitten im obersten Messplateau. Erhöhung von `V_MAX_KMH` erst nach Freigabe in [07-sicherheit](07-sicherheit.md) §5. |
-| `STALL_TIMEOUT_MS` | 2000 | ms | siehe §3 |
+| `STALL_TIMEOUT_MS` | 2000 | ms | siehe §3. Dient zugleich als Grenze, ab der `revsrc` von den Trommelmarken auf die Reglerdrehzahl umschaltet. |
+| `STALL_DUTY_MIN` | 0,05 | – | gesch | Stellwert, ab dem „treibt, Trommel dreht nicht" ein Befund ist und kein Rauschen. Am 2026-11-18 lagen 0,045 Stellwert und 2,5 A Motorstrom an, während die Trommel stillstand — das ist Kommutierung, nicht Last ([04-hardware](04-hardware.md) §11). Ohne eigene Trommelmarken ist das der einzige Weg, Stillstand trotz Sollwert zu erkennen. |
 | `FAULT_SETTLE_MS` | 500 | ms | Entprellung der Fehlerkriterien |
 | `LINK_TIMEOUT_MS` | 2000 | ms | **Totmannschaltung.** Solange ein Lauf fährt, muss der Bedienrechner sich melden; bleibt er länger aus, bricht der Lauf ab. Dieselbe Größenordnung wie `STALL_TIMEOUT_MS`. Die Oberfläche fragt 5×/s ab, es dürfen also zehn Abfragen ausfallen. Gilt **nicht**, solange nie ein Client da war — dann wird über die Konsole gefahren. [07-sicherheit](07-sicherheit.md) §4 |
 

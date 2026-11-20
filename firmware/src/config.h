@@ -160,6 +160,10 @@ constexpr float MOTOR_NO_LOAD_RPM_PER_V = 19.1f;
 constexpr uint8_t HX711_GAIN_PULSES = 1;   // [DB] 1 = Kanal A / Gain 128
 constexpr uint16_t HX711_RATE_SPS   = 80;  // [DB] RATE-Pin auf VCC
 constexpr uint16_t TARE_SAMPLES     = 200; // [gesch] ≈ 2,5 s bei 80 SPS
+// [Festlegung] Abbruch der Tara, wenn nicht genug Werte kommen. 200 Werte sind bei
+// 80 SPS rund 2,5 s; 5000 ms lassen Luft und verhindern, dass ein stummer HX711 den
+// Zustand TARE auf Dauer besetzt.
+constexpr uint32_t TARE_TIMEOUT_MS  = 5000;
 
 // [Festlegung] Gleitender Mittelwert für die ANZEIGE, nicht für die Messung. Der
 // HX711 liefert HX711_RATE_SPS Werte je Sekunde; ein mit 80 Hz zappelnder Zahlenwert
@@ -199,6 +203,20 @@ constexpr uint8_t AVG_REVS_PER_POINT = 10;    // [gesch] ganze Umdrehungen
 // Crr sinkt mit der Reifentemperatur deutlich; ohne definierten Warmlauf sind
 // Vergleiche zwischen Reifen nicht belastbar.
 constexpr uint32_t WARMUP_MS = 1800000;
+// [Festlegung] Geschwindigkeit, bei der der Warmlauf zählt, und das Band darum.
+// WARMUP_KMH ist PLATEAUS_KMH[4] — dieselbe Stützstelle, aus demselben Grund.
+constexpr float WARMUP_KMH = 28.8f;
+constexpr float WARMUP_TOL_KMH = 1.0f;        // [gesch] Band, in dem Zeit zählt
+
+// [Festlegung] Fenster, über das dv/dt gerechnet wird. Bei 5 Hz Anzeige sind das
+// fünf Stützstellen; revsrc.cpp legt acht Proben darin ab und fittet eine Gerade.
+constexpr uint32_t DVDT_WINDOW_MS = 1000;
+// [ber] "Konstant" ist kein Augenmaß, sondern eine Grenze: ein Rest an
+// Beschleunigung erzeugt über M = J·dω/dt ein Scheinmoment. 1 % vom Signal eines
+// guten Rennreifens sind 0,012 Nm, über J = 1,94 kg·m² also 0,0062 rad/s² und damit
+// 0,010 km/h/s (docs/10-firmware.md §7.1). Die scharfe Variante ist 0,2 %.
+constexpr float DVDT_CONST_KMH_PER_S = 0.010f;
+constexpr float DVDT_STRICT_KMH_PER_S = 0.002f;
 
 // [Festlegung] Standard-Auflast: 42,5 kg, wie in der veröffentlichten Crr-Datenbank.
 // Nur ein Vorschlagswert für die Bedienung — die tatsächliche Last wird gemessen
@@ -223,6 +241,11 @@ constexpr float MAX_FORCE_N = 45.0f;          // 92 % vom Zellenendwert (5 kg)
 // Erhöhung von V_MAX_KMH nur nach docs/07-sicherheit.md §5.
 constexpr float MAX_DRUM_RPM = V_MAX_KMH / 3.6f / DRUM_CIRCUMFERENCE_M * 60.0f;
 constexpr uint32_t FAULT_SETTLE_MS = 500;     // Entprellung der Fehlerkriterien
+// [gesch] Stellwert, ab dem "treibt und dreht nicht" ein Befund ist und kein
+// Rauschen. Am 2026-11-18 lag bei 0,045 Stellwert und 2,5 A Motorstrom die Trommel
+// still — das ist Kommutierung, nicht Last (docs/04-hardware.md §11). Ohne eigene
+// Trommelmarken ist das der einzige Weg, Stillstand trotz Sollwert zu erkennen.
+constexpr float STALL_DUTY_MIN = 0.05f;
 
 // ---------------------------------------------------------------- Pinbelegung
 // Board: ESP32-S3-DevKitC-1, Modul WROOM-1 N16R8. Begründung docs/04-hardware.md §4.
