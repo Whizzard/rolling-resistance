@@ -524,11 +524,11 @@ Offene Seite auf das Alublech, eine M6-Schraube. Daraus folgt:
 ### 7.4 Gehäuse für die Wägeplatine (HX711)
 
 Nimmt die SparkFun-Platine *HX711 Load Cell Amp* auf, die am Pendelrahmen neben
-der Wägezelle sitzt. Außenmaß **49,2 × 28,2 × 12,3 mm**, 9,2 cm³.
+der Wägezelle sitzt. Außenmaß **49,2 × 28,2 × 12,3 mm**, 9,3 cm³.
 
 | | |
 |---|---|
-| Featurebaum | Grundkoerper · Kavitaet · Bauteilraum · Rastnasen · Federfeld · Schraubloch · Kabelhals · Kabelnut · Kabelmulde (+rund) · Maulfasen |
+| Featurebaum | Grundkoerper · Kavitaet · Bauteilraum · **Eckauflagen** · Rastnasen · Federfeld · Schraubloch · Kabelhals · Kabelnut · Kabelmulde (+rund) · Maulfasen |
 | `hardware/hx711_gehaeuse.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
 
 Aufbau, Spreadsheet und Vorbehalt wie oben: das Skript ist der Erzeuger, die FCStd
@@ -538,9 +538,9 @@ die Wahrheit.
 
 | Merkmal | Maß |
 |---|---|
-| Platine | **30,6 × 23,0 mm** (nachgemessen), 1,6 mm dick, **mit Bauteilen 4,3 mm** |
+| Platine | **30,6 × 23,0 mm** (nachgemessen; Nennmaß 30,48 × 22,86 = 1,2 × 0,9″), 1,6 mm dick, **mit Bauteilen 4,3 mm** |
 | Kavität | 31,2 × 23,4 × 10,3 mm, nach unten offen |
-| Spiel der Platine | **0,6 mm längs, 0,4 mm quer** — unten, *Passung* |
+| Spiel der Platine | **0,6 mm längs, 0,4 mm quer, 0,3 mm in der Dicke** — unten, *Passung* |
 | Lötraum unter der Platine | 2,0 mm |
 | Bauteilraum über der Platine | 6,7 mm — 2,7 mm Bauteile, **4,0 mm für die Adern** |
 | Stirnwand am Zellenende | 2,0 mm |
@@ -562,16 +562,61 @@ Spiel mehr, sondern Wackeln.
 |---|---|---|
 | Spiel quer | 1,1 mm | **0,4 mm** (0,2 je Seite) |
 | Spiel längs | 2,0 mm | **0,6 mm** (0,3 je Ende) |
-| Auflage auf dem Absatz | 1,3 mm | **1,60 mm** je Längsseite |
-| Bauteilzone um die Mitte | ±10,25 mm | ±9,90 mm |
+| Auflage auf dem Absatz | 1,3 mm | **1,60 mm** je Längsseite — seit dem 2026-11-21 unsymmetrisch, siehe unten |
+| Bauteilzone um die Mitte | ±10,25 mm | −8,90 / **+10,90 mm**, in den Ecken ±8,90 |
 
 0,2 mm je Seite ist eine Schiebepassung, die ein FDM-Druck auch trifft; weniger
 wäre Pressen. Die Platine geht von unten hinein, nicht längs — das Längsspiel
 fängt also nur Toleranz, nicht das Einführen.
 
-> Der Preis: die Bauteilzone ist um 0,35 mm schmaler. Bauteile dürfen jetzt nur
-> noch bis **±9,90 mm** um die Platinenmitte reichen, sonst stoßen sie an den
-> Absatz. Die Lötpads liegen an den Schmalseiten und sind davon nicht betroffen.
+> Der Preis: die Bauteilzone ist schmaler geworden. Die Lötpads liegen an den
+> Schmalseiten und sind davon nicht betroffen — die **Kondensatoren schon**, siehe
+> den nächsten Abschnitt.
+
+#### Der Absatz hat zwei Kondensatoren abgebrochen
+
+**Was passiert ist.** Beim ersten Zusammenbau sind die beiden großen Kondensatoren
+an einer Längsseite der Platine am Absatz hängengeblieben und abgebrochen.
+Außerdem ließ sich die Platine nicht einrasten: sie war für die Rastnasen zu dick.
+
+**Warum.** Beides war im Modell angelegt, nicht im Druck:
+
+1. Der Absatz lief mit 1,8 mm **umlaufend** und griff damit 1,8 mm weit über die
+   Platinenkante. Laut den Eagle-Daten von SparkFun
+   ([Repo](https://github.com/sparkfun/HX711-Load-Cell-Amplifier),
+   `hardware/SparkFun_HX711_Load_Cell.brd`, Umriss 30,48 × 22,86 mm) stehen an
+   **einer** Längskante zwei 10-µF-Kondensatoren in Bauform 1210 (C6, C7), Mitte
+   2,54 mm von der Kante, **Gehäuse bis 1,24 mm an die Kante**; dazwischen C3 und
+   C5 (0603) bis 2,04 mm. An der anderen Längskante ist ein Streifen von
+   **3,95 mm** frei — das nächste Bauteil ist R4 bzw. C1.
+2. Zwischen dem Scheitel der Rastnasen und der Unterkante des Absatzes lagen
+   **genau 1,6 mm**, also die Nenndicke der Platine ohne jede Luft. Eine reale
+   Platine mit ihrer Dickentoleranz passt da nicht hinein.
+
+**Was geändert wurde.**
+
+| | vorher | jetzt |
+|---|---|---|
+| Absatz freie Längsseite (−y) | 1,8 mm | **2,8 mm** |
+| Absatz Kondensatorseite (+y) | 1,8 mm | **0,8 mm** zwischen den Ecken |
+| Absatz in den Ecken (+y) | 1,8 mm | **2,8 mm** auf je 5 mm Länge |
+| Scheitel der Rastnasen | z = 2,00 mm | **z = 1,70 mm** (`fit_t` = 0,3) |
+
+Die Ecken gehen, weil entlang der Kondensatorkante das erste Kupfer erst bei
+x = 6,22 mm beginnt (Pad von C3) und das letzte bei 24,68 mm endet (Pad von C6).
+Vier breite Ecken halten die Platine besser als ein durchgehender 0,8-mm-Streifen.
+
+> **Die Platine passt jetzt nur noch in einer Lage hinein**, und das ist Absicht:
+> verkehrt herum stoßen die Kondensatoren an die breiten Eckauflagen, bevor etwas
+> bricht. Die Kondensatorseite zeigt im Gehäuse nach **+y**.
+
+Nachgerechnet am Modell, ungünstigste Lage der Platine im Spiel: 0,44 mm Luft
+zwischen Absatz und 1210er-Gehäuse, 0,92 mm zwischen Eckauflage und dem Pad von
+C6, 1,22 mm zwischen Eckauflage und dem Pad von C3.
+
+> **Nicht gemessen ist die Bauhöhe der Kondensatoren.** Eagle führt keine Höhen.
+> Der Bauteilraum über der Platine ist mit 6,7 mm so reichlich, dass das hier
+> nicht klemmt — für eine 1210-Bauform sind 1,7 bis 2,0 mm üblich.
 
 #### Warum zwei Kanäle an einer Seite
 
@@ -606,9 +651,11 @@ ist mit 1,6 statt 2,2 mm flacher.
 
 | Merkmal | Maß |
 |---|---|
-| Absatz | 1,8 mm Vorsprung je Längsseite, durchgehend 31,2 mm; **Auflage 1,60 mm** |
+| Absatz, freie Längsseite (−y) | 2,8 mm Vorsprung, durchgehend |
+| Absatz, Kondensatorseite (+y) | **0,8 mm** zwischen den Ecken, **2,8 mm in den Ecken** auf je 5 mm Länge |
 | Unterkante des Absatzes | z = 3,6 mm |
-| Rastnasen | 0,65 mm Vorsprung, 6 mm lang, nur mittig; Überdeckung 0,15 mm |
+| Rastnasen | 0,65 mm Vorsprung, 6 mm lang, nur mittig; Scheitel bei **z = 1,70 mm** |
+| Platz zwischen Nasenscheitel und Absatz | **1,90 mm** = 1,6 Platine + 0,3 `fit_t` |
 | Federfeld, von außen freigestellt | 14 mm lang, 0,8 mm Restwand |
 
 Dieselbe Aufteilung wie in §7.2: der Absatz trägt, die Nasen halten gegen das
