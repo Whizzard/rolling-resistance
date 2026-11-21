@@ -90,8 +90,8 @@ void startRun(RunMode mode) {
     return;
   }
   g_run = mode;
-  logger::note(mode == RUN_BASELINE ? "Lauf BASELINE (Laufrad abgehoben)"
-                                    : "Lauf MEASURE");
+  logger::note(mode == RUN_BASELINE ? "Leerlauf — Laufrad abgehoben"
+                                    : "Messlauf");
   // Woher die Drehzahl kommt, steht EINMAL je Lauf im Protokoll — nicht je Punkt.
   if (!revsrc::angleReference()) {
     logger::note("Drehzahlquelle: Regler (ERPM/Polpaare). Keine Winkelreferenz, "
