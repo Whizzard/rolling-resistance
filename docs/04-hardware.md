@@ -456,7 +456,7 @@ Tabelle gebunden. Maße ändert man **in der Tabelle**, nicht in den Skizzen.
 
 | | |
 |---|---|
-| Featurebaum | Grundkoerper · Kavitaet · Bauteilraum · Rastnasen · Federfeld · Schraubloch · Kabelnut (+rund) · Kabelmulde (+rund) · LED_Loch |
+| Featurebaum | Grundkoerper · Kavitaet · Bauteilraum · **Auflagefasen · Kabelrampe** · Rastnasen · Federfeld · Schraubloch · Kabelnut (+rund) · Kabelmulde (+rund) · LED_Loch |
 | `hardware/hall_gehaeuse.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
 
 Wer im GUI arbeitet, pflegt die FCStd — das Skript überschreibt sie. Es ist der
@@ -490,7 +490,8 @@ wird erst im massiven Block dahinter.
 | Merkmal | Maß |
 |---|---|
 | Absatz | 1,8 mm Vorsprung je Seite, **durchgehend 20 mm**; Auflage 1,3 mm |
-| Unterkante des Absatzes | z = 3,6 mm |
+| Unterkante des Absatzes | z = 3,6 mm, innen mit **0,4 mm Fase** |
+| Kabelrampe am Kabelende | 4 mm lang, öffnet auf **1,5 mm** über der Platinenoberkante |
 | Rastnasen | 0,65 mm Vorsprung, 6 mm lang, **nur mittig**; Überdeckung 0,15 mm |
 | Form der Nase | symmetrischer Keil, Scheitel z = 2,0 mm |
 | Federfeld, von außen freigestellt | 12 mm lang, 0,8 mm Restwand |
@@ -511,6 +512,23 @@ federt. Der Absatz dagegen durchgehend; er muss nicht federn, sondern tragen.
 > Der äußerste Lochrasterstreifen liegt auf der Leiste und muss frei von Lötstellen
 > bleiben: Bauteile innerhalb von ±5,2 mm um die Platinenmitte bestücken.
 
+#### Damit die Platine die Adern nicht einklemmt
+
+Die Kabelnut beginnt **3 mm innerhalb** der Kavität und läuft damit unter dem
+Absatz hindurch. Dort treffen Platinenoberkante und Absatz aufeinander, beide bei
+z = 3,6 mm, und zwar als 90-Grad-Kante. Eine Ader, die dort liegt, wird beim
+Einschieben der Platine abgeschert. Zwei Maßnahmen, beide am 2026-11-21:
+
+1. **Fase 0,4 mm** an der inneren Unterkante des Absatzes, umlaufend. Aus der
+   scharfen Kante wird ein Keil: eine verirrte Ader wird nach innen geschoben,
+   statt gequetscht zu werden.
+2. **Kabelrampe**: über die letzten 4 mm vor dem Kabelende steigt die Unterseite
+   des Absatzes um 1,5 mm an. Genau dort verlässt die Ader die Platine und taucht
+   in die Nut ab; der Spalt öffnet sich keilförmig, statt zuzugehen.
+
+Dasselbe gilt für das HX711-Gehäuse, §7.4 — dort ist es dieselbe Geometrie aus
+demselben Grund.
+
 ### 7.3 Montage
 
 Offene Seite auf das Alublech, eine M6-Schraube. Daraus folgt:
@@ -528,7 +546,7 @@ der Wägezelle sitzt. Außenmaß **49,2 × 28,2 × 12,3 mm**, 9,3 cm³.
 
 | | |
 |---|---|
-| Featurebaum | Grundkoerper · Kavitaet · Bauteilraum · **Eckauflagen** · Rastnasen · Federfeld · Schraubloch · Kabelhals · Kabelnut · Kabelmulde (+rund) · Maulfasen |
+| Featurebaum | Grundkoerper · Kavitaet · Bauteilraum · **Eckauflagen · Auflagefasen · Kabelrampe** · Rastnasen · Federfeld · Schraubloch · Kabelhals · Kabelnut · Kabelmulde (+rund) · Maulfasen |
 | `hardware/hx711_gehaeuse.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
 
 Aufbau, Spreadsheet und Vorbehalt wie oben: das Skript ist der Erzeuger, die FCStd
@@ -661,6 +679,23 @@ zu weit heißt, dass es nicht mehr gehalten wird.
 nicht 0,6 wie beim Mantel. Dünne Litzen in Schrumpfschlauch sind weich, und
 0,6 mm würden sie plattdrücken statt halten.
 
+#### Damit die Platine die Adern nicht einklemmt
+
+Beide Kanäle laufen auf den Absatz zu, und die **Eckauflage am Kanalende** liegt
+genau im Weg der Adern. Dort treffen Platinenoberkante und Absatz aufeinander,
+beide bei z = 3,6 mm, als 90-Grad-Kante — eine Ader dazwischen wird beim
+Einschieben der Platine abgeschert. Zwei Maßnahmen:
+
+1. **Fase 0,4 mm** an der inneren Unterkante des Absatzes, umlaufend. Aus der
+   scharfen Kante wird ein Keil: die Ader wird nach innen geschoben statt
+   gequetscht. 0,4 mm passen auch auf den schmalen 0,8-mm-Streifen der
+   Kondensatorseite und lassen dort 0,4 mm tragende Fläche.
+2. **Kabelrampe**: über die letzten 4 mm vor dem Kanalende steigt die Unterseite
+   des Absatzes um 1,5 mm an — am Modell nachgemessen öffnet der Spalt auf
+   1,43 mm. Genau dort tauchen die Adern in die Kanäle ab.
+
+Dasselbe gilt für das Hall-Gehäuse, §7.2.
+
 #### Warum 2,4 mm Seitenwand und 2,0 mm Deckel
 
 **2,4 mm sind bei einer 0,4er Düse genau sechs Bahnen.** Eine Wand aus einer ganzen
@@ -681,7 +716,8 @@ ist mit 1,6 statt 2,2 mm flacher.
 |---|---|
 | Absatz, freie Längsseite (−y) | 2,8 mm Vorsprung, durchgehend |
 | Absatz, Kondensatorseite (+y) | **0,8 mm** zwischen den Ecken, **2,8 mm in den Ecken** auf je 5 mm Länge |
-| Unterkante des Absatzes | z = 3,6 mm |
+| Unterkante des Absatzes | z = 3,6 mm, innen mit **0,4 mm Fase** |
+| Kabelrampe am Kanalende | 4 mm lang, öffnet auf **1,43 mm** über der Platinenoberkante |
 | Rastnasen | 0,65 mm Vorsprung, 6 mm lang, nur mittig; Scheitel bei **z = 1,70 mm** |
 | Platz zwischen Nasenscheitel und Absatz | **1,90 mm** = 1,6 Platine + 0,3 `fit_t` |
 | Federfeld, von außen freigestellt | 14 mm lang, 0,8 mm Restwand |
