@@ -13,6 +13,8 @@ Featurebaum:
     Grundkoerper   Quader 37,2 x 20 x 12
     Kavitaet       breiter Teil, z = 0...3,6  (Platinendurchgang)
     Bauteilraum    schmaler Teil, z = 0...10  -> erzeugt den Absatz
+    Auflagefasen   Fase an der inneren Unterkante des Absatzes
+    Kabelrampe     Absatz steigt am Kabelende an, damit nichts klemmt
     Rastnasen      zwei Keile, mittig, unter der Platine
     Federfeld      Freistellung aussen, damit die Wand an den Nasen federt
     Schraubloch    M6 durch
@@ -62,6 +64,9 @@ PARAMS = [
     ('pcb_z1', '=pcb_z0 + pcb_t',      'Oberkante Platine = Absatz'),
 
     ('ledge_w',      1.8,  'Absatz je Seite'),
+    ('ledge_chamfer', 0.4, 'Fase an der Unterkante des Absatzes, innen'),
+    ('ramp_l',       4.0,  'Laenge der Kabelrampe am Kabelende'),
+    ('ramp_h',       1.5,  'Hoehe der Kabelrampe ueber der Platinenoberkante'),
     ('snap_w',       0.65, 'Rastnase Vorsprung je Seite'),
     ('snap_l',       6.0,  'Rastnase Laenge'),
     ('snap_h',       0.8,  'Rastnase halbe Hoehe'),
@@ -236,6 +241,73 @@ def build(doc, sh):
          'Parameter.cav_x0', '-(Parameter.cav_w - 2 * Parameter.ledge_w) / 2',
          'Parameter.cav_l', 'Parameter.cav_w - 2 * Parameter.ledge_w')
     pocket(sk, 'Bauteilraum', 'Parameter.cav_h')
+
+    # 3b Fase an der Unterkante des Absatzes, innen umlaufend.
+    #
+    #    Dort treffen Platinenoberkante und Absatz aufeinander, beide bei z =
+    #    pcb_z1, und zwar als 90-Grad-Kante. Eine Ader, die sich dorthin verirrt,
+    #    wird beim Einschieben der Platine abgeschert. Die Fase macht daraus
+    #    einen Keil: die Ader wird nach innen geschoben, statt gequetscht.
+    tip = body.Tip
+    namen = []
+    yg = P(sh, 'cav_w') / 2 - 0.01
+    xa, xb = P(sh, 'cav_x0') - 0.01, P(sh, 'cav_x0') + P(sh, 'cav_l') + 0.01
+    for i, e in enumerate(tip.Shape.Edges):
+        if not isinstance(e.Curve, Part.Line):
+            continue
+        vs = e.Vertexes
+        if any(abs(v.Point.z - P(sh, 'pcb_z1')) > 1e-6 for v in vs):
+            continue
+        if any(abs(v.Point.y) > yg for v in vs):
+            continue
+        if any(not (xa <= v.Point.x <= xb) for v in vs):
+            continue
+        namen.append('Edge%d' % (i + 1))
+    if len(namen) < 2:
+        raise RuntimeError('Absatzkanten nicht gefunden: %s' % namen)
+    f = body.newObject('PartDesign::Chamfer', 'Auflagefasen')
+    f.Base = (tip, namen)
+    f.setExpression('Size', 'Parameter.ledge_chamfer')
+    doc.recompute()
+
+    # 3c Kabelrampe: am Kabelende steigt die Unterseite des Absatzes an.
+    #
+    #    Hier verlaesst die Ader die Platine und taucht in die Kabelnut ab --
+    #    und die Nut beginnt schon 3 mm INNERHALB der Kavitaet, laeuft also
+    #    unter dem Absatz hindurch. Ohne die Rampe klemmt die Platine beim
+    #    Einschieben genau hier. Mit ihr oeffnet sich der Spalt keilfoermig.
+    #
+    #    Skizze in XZ: lokal x = global x, lokal y = global z, Normale -Y.
+    x1 = P(sh, 'cav_x0') + P(sh, 'cav_l')
+    z0 = P(sh, 'pcb_z1')
+    sk = body.newObject('Sketcher::SketchObject', 'Sk_Kabelrampe')
+    try:
+        sk.AttachmentSupport = [(planes['XZ_Plane'], '')]
+    except Exception:
+        sk.Support = [(planes['XZ_Plane'], '')]
+    sk.MapMode = 'FlatFace'
+    v = Vector
+    g = [sk.addGeometry(Part.LineSegment(v(x1, z0, 0), v(x1, z0 + P(sh, 'ramp_h'), 0)), False),
+         sk.addGeometry(Part.LineSegment(v(x1, z0 + P(sh, 'ramp_h'), 0),
+                                         v(x1 - P(sh, 'ramp_l'), z0, 0)), False),
+         sk.addGeometry(Part.LineSegment(v(x1 - P(sh, 'ramp_l'), z0, 0), v(x1, z0, 0)), False)]
+    for i in range(3):
+        sk.addConstraint(Sketcher.Constraint('Coincident', g[i], 2, g[(i + 1) % 3], 1))
+    sk.addConstraint(Sketcher.Constraint('Vertical', g[0]))
+    sk.addConstraint(Sketcher.Constraint('Horizontal', g[2]))
+    named(sk, Sketcher.Constraint('DistanceX', -1, 1, g[0], 1, x1), 'rampe_x')
+    named(sk, Sketcher.Constraint('DistanceY', -1, 1, g[0], 1, z0), 'rampe_z')
+    named(sk, Sketcher.Constraint('DistanceY', g[0], 1, g[0], 2, P(sh, 'ramp_h')), 'rampe_h')
+    named(sk, Sketcher.Constraint('DistanceX', g[2], 1, g[2], 2, P(sh, 'ramp_l')), 'rampe_l')
+    sk.setExpression('Constraints.rampe_x', 'Parameter.cav_x0 + Parameter.cav_l')
+    sk.setExpression('Constraints.rampe_z', 'Parameter.pcb_z1')
+    sk.setExpression('Constraints.rampe_h', 'Parameter.ramp_h')
+    sk.setExpression('Constraints.rampe_l', 'Parameter.ramp_l')
+    fr = body.newObject('PartDesign::Pocket', 'Kabelrampe')
+    fr.Profile = sk
+    fr.Midplane = True
+    fr.setExpression('Length', 'Parameter.cav_w')
+    doc.recompute()
 
     # 4 Rastnasen
     sk = sketch_on(body, yz, 'Sk_Rastnasen',
