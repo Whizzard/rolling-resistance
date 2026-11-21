@@ -132,20 +132,39 @@ PARAMS = [
     ('screw_y',      0.0,  'Schraube mittig, zwischen den Kanaelen'),
     ('screw_x', '=cav_x0 + cav_l + rib + screw_blk / 2', 'Schraube Lage'),
 
-    ('cab_cable_d',  4.0,  'Kabel-Durchmesser, gemessen'),
-    ('cab_d',        3.9,  'Nutdurchmesser, 0,1 unter dem Kabel -> klemmt'),
-    ('cab_mouth',    3.2,  'Halsweite an der offenen Seite -> Kralle'),
-    ('cab_depth',    3.4,  'Nuttiefe, 0,6 unter dem Kabel -> Flaeche klemmt'),
-    ('cab_z', '=cab_depth - cab_d / 2', 'Kreismitte ueber der offenen Seite'),
-    ('cab_claw', '=(cab_d - cab_mouth) / 2', 'Hinterschnitt je Seite'),
+    # Gemeinsam fuer beide Kanaele
     ('cab_chamfer',  0.3,  'Fase am Nutmaul, Einfuehrhilfe fuers Kabel'),
     ('cab_y',        8.6,  'Kanalmitte, Betrag — je einmal +y und -y'),
     ('cab_x0', '=cav_x0 + cav_l', 'Kanalanfang, am Ende der Kavitaet'),
     ('cab_len','=l_out - cab_x0 + 1', 'Kanallaenge'),
-    ('cab_deep_d',   4.6,  'Mulde Breite, UEBER dem Kabel -> keine Klemmung'),
-    ('cab_deep',     5.2,  'Mulde Tiefe, keine Klemmung'),
     ('cab_deep_x0', '=cab_x0', 'Mulde Anfang'),
     ('cab_deep_l',   5.0,  'Mulde Laenge'),
+
+    # Kanal +y — Leitung zum Rechner, fertiger Mantel
+    ('cab_cable_p',  4.0,  'Kabel-Durchmesser, GEMESSEN'),
+    ('cab_d_p',      3.9,  'Nutdurchmesser, 0,1 unter dem Kabel -> klemmt'),
+    ('cab_mouth_p',  3.2,  'Halsweite an der offenen Seite -> Kralle'),
+    ('cab_depth_p',  3.4,  'Nuttiefe, 0,6 unter dem Kabel -> Flaeche klemmt'),
+    ('cab_deep_d_p', 4.6,  'Mulde Breite, UEBER dem Kabel -> keine Klemmung'),
+    ('cab_deep_p',   5.2,  'Mulde Tiefe, keine Klemmung'),
+    ('cab_z_p', '=cab_depth_p - cab_d_p / 2', 'Kreismitte ueber der offenen Seite'),
+    ('cab_claw_p', '=(cab_d_p - cab_mouth_p) / 2', 'Hinterschnitt je Seite'),
+
+    # Kanal -y — die vier duennen Litzen der Waegezelle plus Schrumpfschlauch.
+    # 3,0 mm ist GESCHAETZT, nicht gemessen: 4 Adern AWG 28...30 mit 0,7...1,0 mm
+    # Aussendurchmesser ergeben im Quadratbuendel (1+sqrt(2))*d = 1,7...2,4 mm,
+    # dazu duennwandiger 2:1-Schrumpfschlauch mit 0,4...0,5 mm je Seite.
+    # Macht 2,5...3,4 mm. Vor dem Druck mit dem Messschieber nachmessen.
+    # Die Klemmung ist hier SANFTER (0,4 statt 0,6 unter dem Buendel): duenne
+    # Litzen in Schrumpfschlauch sind weich, und 0,6 wuerden sie plattdruecken.
+    ('cab_cable_m',  3.0,  'Buendel aus 4 Litzen + Schrumpfschlauch, GESCHAETZT'),
+    ('cab_d_m',      2.9,  'Nutdurchmesser, 0,1 unter dem Buendel'),
+    ('cab_mouth_m',  2.4,  'Halsweite -> Kralle 0,25 je Seite'),
+    ('cab_depth_m',  2.6,  'Nuttiefe, 0,4 unter dem Buendel'),
+    ('cab_deep_d_m', 3.6,  'Mulde Breite, UEBER dem Buendel'),
+    ('cab_deep_m',   4.2,  'Mulde Tiefe, keine Klemmung'),
+    ('cab_z_m', '=cab_depth_m - cab_d_m / 2', 'Kreismitte ueber der offenen Seite'),
+    ('cab_claw_m', '=(cab_d_m - cab_mouth_m) / 2', 'Hinterschnitt je Seite'),
 ]
 
 
@@ -354,11 +373,15 @@ def build(doc, sh):
     # 7...10 Die zwei Kabelkanäle, je D-Profil (Rechteck + Rundung).
     #   Erst die Klemmstrecke über die ganze Länge, dann die tiefere Mulde am
     #   Übergang, wo das Kabel aus dem Gehäuse nach unten abbiegt.
-    rm = P(sh, 'cab_deep_d') / 2
-    e_rm = 'Parameter.cab_deep_d / 2'
+    #   BEIDE KANAELE HABEN EIGENE MASSE: +y fuehrt die fertige Leitung zum
+    #   Rechner, -y nur die vier duennen Litzen der Waegezelle im
+    #   Schrumpfschlauch. Ein Kanal fuer beides waere fuer das Buendel zu weit,
+    #   und dann klemmt nichts.
     for sign, t in ((+1, 'p'), (-1, 'm')):
+        rm = P(sh, 'cab_deep_d_' + t) / 2
+        e_rm = 'Parameter.cab_deep_d_%s / 2' % t
         e_y = '%d * Parameter.cab_y' % sign
-        e_xm = '%d * Parameter.cab_y - Parameter.cab_deep_d / 2' % sign
+        e_xm = '%d * Parameter.cab_y - Parameter.cab_deep_d_%s / 2' % (sign, t)
         y = sign * P(sh, 'cab_y')
 
         # Klemmstrecke, Omega: ein HALS, der enger ist als der Kreis darueber.
@@ -367,33 +390,34 @@ def build(doc, sh):
         # Ein blosser Anschnitt des Kreises koennte das nicht: ein enges Maul
         # zoege zwangslaeufig eine tiefe Nut nach sich, und die Nut muss bei
         # cab_depth bleiben, damit die Flaeche noch klemmt.
-        e_hals = '%d * Parameter.cab_y - Parameter.cab_mouth / 2' % sign
+        e_hals = '%d * Parameter.cab_y - Parameter.cab_mouth_%s / 2' % (sign, t)
         sk = sketch_on(body, yz, 'Sk_Kabelhals_' + t, P(sh, 'cab_x0'))
         sk.setExpression('AttachmentOffset.Base.z', 'Parameter.cab_x0')
-        rect(sk, y - P(sh, 'cab_mouth') / 2, 0.0,
-             P(sh, 'cab_mouth'), P(sh, 'cab_z'), 'hals' + t,
-             e_hals, '0', 'Parameter.cab_mouth', 'Parameter.cab_z')
+        rect(sk, y - P(sh, 'cab_mouth_' + t) / 2, 0.0,
+             P(sh, 'cab_mouth_' + t), P(sh, 'cab_z_' + t), 'hals' + t,
+             e_hals, '0', 'Parameter.cab_mouth_%s' % t, 'Parameter.cab_z_%s' % t)
         pocket(sk, 'Kabelhals_' + t, 'Parameter.cab_len')
 
         sk = sketch_on(body, yz, 'Sk_Kabelnut_' + t, P(sh, 'cab_x0'))
         sk.setExpression('AttachmentOffset.Base.z', 'Parameter.cab_x0')
-        circle(sk, y, P(sh, 'cab_z'), P(sh, 'cab_d') / 2, 'nut' + t,
-               e_y, 'Parameter.cab_z', 'Parameter.cab_d / 2')
+        circle(sk, y, P(sh, 'cab_z_' + t), P(sh, 'cab_d_' + t) / 2, 'nut' + t,
+               e_y, 'Parameter.cab_z_%s' % t, 'Parameter.cab_d_%s / 2' % t)
         pocket(sk, 'Kabelnut_' + t, 'Parameter.cab_len')
 
         # Mulde: U, weiter als das Kabel. Hier wird absichtlich nicht geklemmt,
         # hier biegt das Kabel ab.
         sk = sketch_on(body, yz, 'Sk_Kabelmulde_' + t, P(sh, 'cab_deep_x0'))
         sk.setExpression('AttachmentOffset.Base.z', 'Parameter.cab_deep_x0')
-        rect(sk, y - rm, 0.0, P(sh, 'cab_deep_d'), P(sh, 'cab_deep') - rm, 'mul' + t,
-             e_xm, '0', 'Parameter.cab_deep_d',
-             'Parameter.cab_deep - Parameter.cab_deep_d / 2')
+        rect(sk, y - rm, 0.0, P(sh, 'cab_deep_d_' + t),
+             P(sh, 'cab_deep_' + t) - rm, 'mul' + t,
+             e_xm, '0', 'Parameter.cab_deep_d_%s' % t,
+             'Parameter.cab_deep_%s - Parameter.cab_deep_d_%s / 2' % (t, t))
         pocket(sk, 'Kabelmulde_' + t, 'Parameter.cab_deep_l')
 
         sk = sketch_on(body, yz, 'Sk_Kabelmulde_rund_' + t, P(sh, 'cab_deep_x0'))
         sk.setExpression('AttachmentOffset.Base.z', 'Parameter.cab_deep_x0')
-        circle(sk, y, P(sh, 'cab_deep') - rm, rm, 'mulr' + t,
-               e_y, 'Parameter.cab_deep - Parameter.cab_deep_d / 2', e_rm)
+        circle(sk, y, P(sh, 'cab_deep_' + t) - rm, rm, 'mulr' + t,
+               e_y, 'Parameter.cab_deep_%s - Parameter.cab_deep_d_%s / 2' % (t, t), e_rm)
         pocket(sk, 'Kabelmulde_rund_' + t, 'Parameter.cab_deep_l')
 
     # 11 Fase am Nutmaul, vier Kanten (zwei je Kanal).
@@ -405,16 +429,17 @@ def build(doc, sh):
     #   Dafuer gibt es eine harte Grenze: der Kreis tritt erst bei
     #       z = cab_depth - R - sqrt(R² - (Hals/2)²)
     #   aus dem Hals heraus. Bis dahin darf die Fase reichen, nicht weiter.
-    R = P(sh, 'cab_d') / 2
-    halb = P(sh, 'cab_mouth') / 2
-    einsatz = P(sh, 'cab_depth') - R - math.sqrt(R * R - halb * halb)
-    if P(sh, 'cab_chamfer') >= einsatz:
-        raise RuntimeError(
-            'Fase %.2f reicht in den Hinterschnitt (beginnt bei z = %.3f)'
-            % (P(sh, 'cab_chamfer'), einsatz))
-
-    kanten = [sign * P(sh, 'cab_y') + side * halb
-              for sign in (+1, -1) for side in (+1, -1)]
+    kanten = []
+    for sign, t in ((+1, 'p'), (-1, 'm')):
+        R = P(sh, 'cab_d_' + t) / 2
+        halb = P(sh, 'cab_mouth_' + t) / 2
+        einsatz = P(sh, 'cab_depth_' + t) - R - math.sqrt(R * R - halb * halb)
+        if P(sh, 'cab_chamfer') >= einsatz:
+            raise RuntimeError(
+                'Kanal %s: Fase %.2f reicht in den Hinterschnitt '
+                '(beginnt bei z = %.3f)'
+                % (t, P(sh, 'cab_chamfer'), einsatz))
+        kanten += [sign * P(sh, 'cab_y') + side * halb for side in (+1, -1)]
     tip = body.Tip
     namen = []
     for i, e in enumerate(tip.Shape.Edges):

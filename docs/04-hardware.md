@@ -545,10 +545,12 @@ die Wahrheit.
 | Bauteilraum über der Platine | 6,7 mm — 2,7 mm Bauteile, **4,0 mm für die Adern** |
 | Stirnwand am Zellenende | 2,0 mm |
 | Seitenwände / Deckel | **2,4** / 2,0 mm — Begründung unten |
-| M6-Durchgang | Ø 6,6, **mittig**, 3,00 mm Steg zu jeder Kabelmulde |
-| Kabelkanäle | zwei **Omega-Nuten** Ø 3,9, Hals 3,2, bei y = ±8,6 mm — unten, *Omega-Nut* |
-| Restwand neben einem Kanal | 3,20 mm |
-| Kabelmulde am Übergang | Ø **4,6** (weiter als das Kabel), 5,2 tief, 5 mm lang |
+| M6-Durchgang | Ø 6,6, **mittig**, 3,00 / 3,50 mm Steg zu den Kabelmulden |
+| Kabelkanal +y, Leitung zum Rechner | **Omega-Nut** Ø 3,9, Hals 3,2, 3,4 tief |
+| Kabelkanal −y, Litzen der Wägezelle | **Omega-Nut** Ø 2,9, Hals 2,4, 2,6 tief |
+| Kanalmitten | y = ±8,6 mm |
+| Restwand neben einem Kanal | 3,20 mm (+y) / 3,70 mm (−y) |
+| Kabelmulde am Übergang | Ø **4,6** / **3,6** (weiter als das Kabel), 5,2 / 4,2 tief, 5 mm lang |
 | Klemmstrecke dahinter | 11 mm |
 
 #### Passung
@@ -632,6 +634,32 @@ zwei Maße, die nicht willkürlich sind:
 
 Die Schraube steht mittig zwischen den Kanälen: eine Schraube klemmt beide
 Mäntel, und zwar in dem Bereich, in dem die Fläche am dichtesten anliegt.
+
+#### Die zwei Kanäle sind verschieden groß
+
+Durch sie läuft nicht dasselbe. Am **+y**-Kanal liegt die fertig konfektionierte
+Leitung zum Rechner, 4,0 mm Mantel, nachgemessen. Am **−y**-Kanal kommen nur die
+**vier dünnen Litzen der Wägezelle** an, zusammengefasst mit Schrumpfschlauch.
+Ein Kanal für beides wäre für das Bündel zu weit, und dann klemmt nichts — die
+Zugentlastung lebt davon, dass die Nut 0,1 mm enger ist als das, was hineinkommt.
+
+**3,0 mm für das Bündel sind geschätzt, nicht gemessen.** Die Rechnung dahinter:
+
+| | |
+|---|---|
+| 4 Adern AWG 28…30, isoliert | 0,7 … 1,0 mm je Ader |
+| Quadratbündel, umschreibender Kreis | (1 + √2) · d = **1,7 … 2,4 mm** |
+| dünnwandiger 2:1-Schrumpfschlauch, geschrumpft | + 0,4 … 0,5 mm je Seite |
+| **Summe** | **2,5 … 3,4 mm** |
+
+Vor dem Druck mit dem Messschieber nachmessen und `cab_cable_m` nachziehen; die
+drei abhängigen Maße (`cab_d_m`, `cab_mouth_m`, `cab_depth_m`) folgen der
+Tabelle. Ein Bündel ist nachgiebig: 0,2 mm zu eng drückt es nur zusammen, 0,5 mm
+zu weit heißt, dass es nicht mehr gehalten wird.
+
+**Die Klemmung ist am −y-Kanal sanfter**: die Nut liegt 0,4 mm unter dem Bündel,
+nicht 0,6 wie beim Mantel. Dünne Litzen in Schrumpfschlauch sind weich, und
+0,6 mm würden sie plattdrücken statt halten.
 
 #### Warum 2,4 mm Seitenwand und 2,0 mm Deckel
 
