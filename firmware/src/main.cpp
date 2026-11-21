@@ -45,7 +45,7 @@ void printHelp() {
   Serial.println("# Befehle:");
   Serial.println("#   v<kmh>  Zielgeschwindigkeit      s  STOP (bremst)");
   Serial.println("#   c       auslaufen lassen        q  Fehler quittieren");
-  Serial.println("#   m0      Leerlauflauf (Rad abgehoben)   m1  Messlauf");
+  Serial.println("#   m0      Leerlauf (Rad abgehoben)       m1  Messlauf");
   Serial.println("#   t       Waegezelle nullen       k<kg>  kalibrieren");
   Serial.println("#   l<N>    Auflast                 p<bar> Reifendruck");
   Serial.println("#   d<m>    Trommelumfang           a<m>   Zellenarm");
@@ -245,12 +245,12 @@ void handleCommand(const String& cmd) {
       break;
 
     // --- Laeufe. 'm' allein wird abgelehnt: toFloat("") ist 0 und waere
-    //     stillschweigend ein Leerlauflauf. Siehe docs/05-pruefablauf.md B4/B6.
+    //     stillschweigend ein Leerlauf. Siehe docs/05-pruefablauf.md B4/B6.
     case 'm':
-      if (cmd.length() < 2) { note("m0 = Leerlauflauf, m1 = Messlauf"); break; }
+      if (cmd.length() < 2) { note("m0 = Leerlauf, m1 = Messlauf"); break; }
       if (cmd[1] == '0')      state::startBaseline();
       else if (cmd[1] == '1') state::startMeasure();
-      else                    note("m0 = Leerlauflauf, m1 = Messlauf");
+      else                    note("m0 = Leerlauf, m1 = Messlauf");
       break;
     case 'q':
       state::clearFault();
