@@ -7,13 +7,40 @@ Spreadsheet "Parameter"; alle Skizzen über Ausdrücke an die Tabelle gebunden.
 Maße ändert man im GUI in der Tabelle, nicht in den Skizzen. Maße in mm.
 
 Die Platine ist 30,6 x 23,0 mm und mit Bauteilen 4,3 mm dick, am Stand
-nachgemessen. Das Spiel steht als `fit_w` / `fit_l` ausdruecklich in der
-Tabelle — nicht als Aufschlag in der Formel versteckt. Die Lötpads liegen an den beiden SCHMALSEITEN — links die fünf
+nachgemessen (Nennmass laut Eagle: 30,48 x 22,86 = 1,2 x 0,9 Zoll). Das Spiel
+steht als `fit_w` / `fit_l` / `fit_t` ausdruecklich in der Tabelle — nicht als
+Aufschlag in der Formel versteckt. `fit_t` ist neu: der Abstand zwischen dem
+Scheitel der Rastnasen und der Unterkante des Absatzes war vorher GENAU pcb_t,
+also null Luft. Eine reale 1,6er Platine mit ihrer Dickentoleranz liess sich
+deshalb nicht einrasten. Jetzt sitzt der Scheitel fit_t tiefer, die Platine
+darf also bis zu 0,3 mm tiefer stehen. Die Lötpads liegen an den beiden SCHMALSEITEN — links die fünf
 Anschlüsse der Wägezelle, rechts VDD/VCC/DAT/CLK/GND zum Rechner. Daraus
 folgen zwei Dinge:
 
   * Der tragende Absatz läuft an den LÄNGSSEITEN. An den Schmalseiten würde er
     auf den Lötstellen sitzen.
+  * Der Absatz ist UNSYMMETRISCH, und das ist der Kern der Fassung vom
+    2026-11-21. Aus den Eagle-Daten von SparkFun (Repo sparkfun/HX711-Load-Cell-
+    Amplifier, hardware/SparkFun_HX711_Load_Cell.brd, Umriss 30,48 x 22,86 mm):
+
+        Kondensatorseite   C6 und C7, zwei 10 uF in Bauform 1210, Mitte
+                           2,54 mm von der Kante, Gehaeuse bis 1,24 mm an die
+                           Kante. Dazwischen C3 und C5 (0603) bis 2,04 mm.
+        freie Seite        naechstes Bauteil erst bei 3,95 mm (R4, C1).
+
+    Der alte, umlaufende Absatz von 1,8 mm griff also 1,8 mm weit auf die
+    Platine und traf die beiden 1210er -- beim ersten Zusammenbau sind sie
+    abgebrochen. Jetzt: ledge_cap = 0,8 mm auf der Kondensatorseite (+y),
+    ledge_free = 2,8 mm auf der freien Seite (-y).
+
+    In den ECKEN der Kondensatorseite ist der Absatz wieder voll breit: entlang
+    dieser Kante sitzt das erste Kupfer bei x = 6,22 mm (Pad von C3) und das
+    letzte endet bei 24,68 mm (Pad von C6), die Ecken sind also frei. Der
+    Schmalstreifen laeuft nur dazwischen.
+
+    Die Platine passt damit nur noch in EINER Lage hinein. Das ist Absicht:
+    verkehrt herum stossen die Kondensatoren an die breiten Eckauflagen, und man
+    merkt es, bevor etwas bricht.
   * Über der Platine bleibt Platz (cable_h), weil die Adern von beiden
     Pad-Reihen nach oben gehen, sich über die Platine legen und gemeinsam zu
     EINER Seite hinauslaufen. Deshalb liegen beide Kabelkanäle am selben Ende.
@@ -22,6 +49,7 @@ Featurebaum:
     Grundkoerper      Quader 50,6 x 28,9 x 12,3
     Kavitaet          breiter Teil, z = 0...3,6  (Platinendurchgang)
     Bauteilraum       schmaler Teil, volle Höhe  -> erzeugt den Absatz
+    Eckauflagen       Absatz in den vier Ecken wieder voll breit
     Rastnasen         zwei Keile, mittig, unter der Platine
     Federfeld         Freistellung aussen, damit die Wand an den Nasen federt
     Schraubloch       M6 durch, mittig zwischen den Kanälen
@@ -62,6 +90,7 @@ PARAMS = [
     ('fit_w',        0.4,  'Spiel in der Breite, GESAMT -> 0,2 je Seite'),
     ('fit_l',        0.6,  'Spiel in der Laenge, GESAMT -> 0,3 je Ende'),
     ('pcb_t',        1.6,  'Platine Dicke'),
+    ('fit_t',        0.3,  'Spiel in der Dicke -> Platine darf tiefer sitzen'),
     ('pcb_stack',    4.3,  'Platine mit Bauteilen'),
     ('cable_h',      4.0,  'Platz ueber den Bauteilen fuer die Adern'),
     ('solder_gap',   2.0,  'Loetraum unter der Platine'),
@@ -86,11 +115,14 @@ PARAMS = [
     ('pcb_z0', '=solder_gap',          'Unterkante Platine'),
     ('pcb_z1', '=pcb_z0 + pcb_t',      'Oberkante Platine = Absatz'),
 
-    ('ledge_w',      1.8,  'Absatz je Laengsseite'),
+    ('ledge_cap',    0.8,  'Absatz KONDENSATORSEITE (+y) -- Bauteile bis 1,24 mm an die Kante'),
+    ('ledge_free',   2.8,  'Absatz freie Laengsseite (-y) -- dort 3,9 mm frei'),
+    ('ledge_corner', 2.8,  'Absatz in den ECKEN der Kondensatorseite'),
+    ('corner_l',     5.0,  'Laenge der Eckauflage je Ende'),
     ('snap_w',       0.65, 'Rastnase Vorsprung je Seite'),
     ('snap_l',       6.0,  'Rastnase Laenge'),
     ('snap_h',       0.8,  'Rastnase halbe Hoehe'),
-    ('snap_z', '=pcb_z0',  'Scheitel der Rastnase'),
+    ('snap_z', '=pcb_z1 - pcb_t - fit_t', 'Scheitel der Rastnase, fit_t unter der Nennlage'),
 
     ('relief_l',    14.0,  'Federfeld Laenge'),
     ('relief_t',     0.8,  'Federfeld Restwand'),
@@ -259,12 +291,34 @@ def build(doc, sh):
 
     # 3 Bauteilraum, schmaler Teil durch die volle Höhe → erzeugt den Absatz.
     #   Schmaler nur in y: der Absatz liegt an den Längsseiten, weg von den Pads.
-    inner = P(sh, 'cav_w') - 2 * P(sh, 'ledge_w')
+    #   UNSYMMETRISCH, siehe Kopf: +y ist die Kondensatorseite und bekommt nur
+    #   ledge_cap, -y ist frei und trägt mit ledge_free den Hauptteil.
+    y0 = -(P(sh, 'cav_w') / 2 - P(sh, 'ledge_free'))
+    inner = P(sh, 'cav_w') - P(sh, 'ledge_free') - P(sh, 'ledge_cap')
     sk = sketch_on(body, xy, 'Sk_Bauteilraum')
-    rect(sk, P(sh, 'cav_x0'), -inner / 2, P(sh, 'cav_l'), inner, 'btr',
-         'Parameter.cav_x0', '-(Parameter.cav_w - 2 * Parameter.ledge_w) / 2',
-         'Parameter.cav_l', 'Parameter.cav_w - 2 * Parameter.ledge_w')
+    rect(sk, P(sh, 'cav_x0'), y0, P(sh, 'cav_l'), inner, 'btr',
+         'Parameter.cav_x0', '-(Parameter.cav_w / 2 - Parameter.ledge_free)',
+         'Parameter.cav_l',
+         'Parameter.cav_w - Parameter.ledge_free - Parameter.ledge_cap')
     pocket(sk, 'Bauteilraum', 'Parameter.cav_h')
+
+    # 3a Eckauflagen: auf der Kondensatorseite ist der Absatz nur dort schmal,
+    #    wo wirklich Bauteile stehen. Entlang der Kante sitzt das erste Kupfer bei
+    #    x = 6,22 mm (Pad von C3) und das letzte endet bei x = 24,68 mm (Pad von
+    #    C6), bezogen auf die Platinenkante. In den Ecken ist also Platz, und dort
+    #    bekommt die Platine ihre Auflage zurueck -- vier Punkte halten sie besser
+    #    als ein durchgehender 0,8-mm-Streifen.
+    ycorner = P(sh, 'cav_w') / 2 - P(sh, 'ledge_corner')
+    e_ycorner = 'Parameter.cav_w / 2 - Parameter.ledge_corner'
+    sk = sketch_on(body, xy, 'Sk_Eckauflagen', P(sh, 'pcb_z1'))
+    sk.setExpression('AttachmentOffset.Base.z', 'Parameter.pcb_z1')
+    rect(sk, P(sh, 'cav_x0'), ycorner, P(sh, 'corner_l'), P(sh, 'ledge_corner'), 'eck_a',
+         'Parameter.cav_x0', e_ycorner, 'Parameter.corner_l', 'Parameter.ledge_corner')
+    rect(sk, P(sh, 'cav_x0') + P(sh, 'cav_l') - P(sh, 'corner_l'), ycorner,
+         P(sh, 'corner_l'), P(sh, 'ledge_corner'), 'eck_b',
+         'Parameter.cav_x0 + Parameter.cav_l - Parameter.corner_l', e_ycorner,
+         'Parameter.corner_l', 'Parameter.ledge_corner')
+    pad(sk, 'Eckauflagen', 'Parameter.headroom')
 
     # 4 Rastnasen
     sk = sketch_on(body, yz, 'Sk_Rastnasen',
