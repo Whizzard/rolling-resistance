@@ -87,9 +87,12 @@ constexpr float BELT_RATIO = 1.00f;
 // trommelseitigen Pfad; die eigentliche Auflösung liefert der Motor-Hall.
 constexpr uint8_t MARKS_PER_REV = 8;
 // [Festlegung] Magnete an den Speichen des Prüflaufrads, Geber am Ausfallende
-// (docs/09-messtheorie.md §4). Die Laufraddrehzahl wird wie die Trommel über
-// ein Fenster von einer ganzen Umdrehung gerechnet, die Teilung kürzt sich heraus.
-constexpr uint8_t WHEEL_MARKS_PER_REV = 4;
+// (docs/09-messtheorie.md §4). Die Laufraddrehzahl wird wie die Trommel über ein
+// Fenster von einer ganzen Umdrehung gerechnet; mehr Magnete brächten keine
+// Genauigkeit, nur eine schnellere Aktualisierung. Verbaut ist seit 2026-11-22
+// EIN Magnet — der Wert muss zum Rad passen, sonst stimmen Drehzahl und
+// Reifendurchmesser um genau diesen Faktor nicht.
+constexpr uint8_t WHEEL_MARKS_PER_REV = 1;
 constexpr uint32_t MIN_PULSE_US = 800;   // [ber] kürzester echter Abstand ist 21 ms
 // [ber] Nicht 10 km/h ist der Grenzfall, sondern der Hochlauf: bei 8 Marken ist der
 // Pulsabstand bei 10 km/h nur 132 ms, bei 1 km/h aber 1,32 s. 2000 ms bedeutet

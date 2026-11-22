@@ -418,6 +418,13 @@ aufgelöst. Ausgewertet wird nicht punktweise differenziert, sondern ein Modell
 `M_Rad(ω) = A + B·ω²` über den ganzen Auslauf gefittet: A ist die Lagerreibung,
 B·ω² die Aerodynamik von Speichen und Reifen.
 
+> **Verbaut ist seit 2026-11-22 ein einzelner Magnet** (`WHEEL_MARKS_PER_REV` = 1).
+> Die Firmware rechnet die Drehzahl ohnehin über ein Fenster von einer ganzen
+> Umdrehung, damit sich die Teilung herauskürzt — vier Magnete hätten also nur die
+> Aktualisierung beschleunigt, nicht die Genauigkeit. Für den Fit über den ganzen
+> Auslauf reichen die rund 1,3 Punkte/s am unteren Ende; über 4,5 min sind das immer
+> noch mehrere hundert Stützstellen.
+
 > **Zwei Vorbehalte.** Erstens misst der freie Auslauf das Rad in ruhender Luft, im
 > Messbetrieb läuft es in der Grenzschicht der Trommel — die Aerodynamik ist nicht exakt
 > dieselbe. Zweitens tragen die Nabenlager im Auslauf nur das Radgewicht (25 N) statt der

@@ -39,7 +39,7 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 | Symbol | Konstante | Wert | Einheit | Herkunft | Ermittlung |
 |---|---|---|---|---|---|
 | k | `MARKS_PER_REV` | 8 | – | Festlegung | geschraubte Magnete auf dem Teilkreis der 8 Abstandsklötze, [04-hardware](04-hardware.md) §9. Mehr Marken bringen keine Genauigkeit, nur Latenz. |
-| — | `WHEEL_MARKS_PER_REV` | 4 | – | Festlegung | Magnete an den Speichen des Prüflaufrads, Geber am Ausfallende, [09-messtheorie](09-messtheorie.md) §4. Drehzahl über ein Fenster von einer ganzen Umdrehung, die Teilung kürzt sich heraus. |
+| — | `WHEEL_MARKS_PER_REV` | **1** | – | Festlegung | Magnete an den Speichen des Prüflaufrads, Geber am Ausfallende, [09-messtheorie](09-messtheorie.md) §4. Verbaut ist seit 2026-11-22 **ein** Magnet. Drehzahl über ein Fenster von einer ganzen Umdrehung; mehr Magnete brächten keine Genauigkeit, nur eine schnellere Aktualisierung. Der Wert muss zum Rad passen, sonst sind Drehzahl und Reifendurchmesser um diesen Faktor falsch. |
 | — | `MIN_PULSE_US` | 800 | µs | ber | Kürzester Abstand: 60 km/h, 8 Marken → 22,5 ms. Bei 100 km/h → 13,5 ms. 800 µs filtert sicher nur Störer. |
 | — | `STALL_TIMEOUT_MS` | 2000 | ms | ber | Grenzfall ist nicht 10 km/h (135 ms bei 8 Marken), sondern der Hochlauf: bei 1 km/h sind es 1,35 s. 2000 ms bedeutet *langsamer als 0,68 km/h gilt als Stillstand*; die Rampe ist nach 1,4 s darüber. |
 | — | `SLIP_TOLERANCE` | 0,05 | – | gesch | zulässige relative Abweichung n_Motor/i gegen n_Trommel |

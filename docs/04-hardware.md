@@ -109,7 +109,7 @@ die Firmware noch nicht anfasst.
 | 2 | `PIN_ESTOP_FB` | Not-Aus-Rückmeldung | in | nur **Anzeige** des Zustands; die Trennung erfolgt in Hardware |
 | 4 | `PIN_MARK` | Drehzahlmarken Trommel | in, Interrupt | **8** Marken/Umdrehung |
 | 5 | `PIN_INDEX` | Indexmarke Trommel | in, Interrupt | 1/Umdrehung, triggert die Mittelung |
-| 6 | `PIN_WHEEL` | Drehzahl des Prüflaufrads | in, Interrupt | **4** Magnete/Umdrehung; liefert den wirksamen Reifendurchmesser, später den Laufrad-Auslaufversuch |
+| 6 | `PIN_WHEEL` | Drehzahl des Prüflaufrads | in, Interrupt | **1** Magnet/Umdrehung (`WHEEL_MARKS_PER_REV`); liefert den wirksamen Reifendurchmesser, später den Laufrad-Auslaufversuch |
 | 7 | `PIN_MOTOR_HALL` | Motor-Hall (eine Phase) | in, Interrupt | zugleich die hochauflösende Drehzahlquelle |
 | 8 | `PIN_I2C_SDA` | I²C SDA | bidir | S3-Vorgabebelegung; frei für den IR-Fühler |
 | 9 | `PIN_I2C_SCL` | I²C SCL | out | dito |
