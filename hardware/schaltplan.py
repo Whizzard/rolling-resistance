@@ -124,7 +124,7 @@ with schemdraw.Drawing(show=False) as d:
         'HX711:  Modul mit GETRENNTEN VCC/VDD. VCC = 5 V speist die Bruecke, VDD = 3,3 V setzt den Logikpegel \u2014 der ESP32-S3 ist nicht 5-V-tolerant.',
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -12.9)).label(
-        'TLE4905L:  V_S aus 5 V (min. 3,8 V), Open Collector. Pegel ueber den Teiler 1,8 k / 3,3 k AM ESP32, je 4,7 nF am Geber,',
+        'TLE4905L:  V_S aus 5 V (min. 3,8 V), Open Collector. Pegel ueber Pull-up 470 Ohm nach 5 V und Z-Diode 3,3 V AM ESP32, je 4,7 nF am Geber,',
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -13.33)).label(
         '           LED gruen im Gebergehaeuse. Loet- und Anschlussvorlage: hardware/hallplan.pdf.',
