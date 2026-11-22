@@ -922,7 +922,7 @@ Außenmaß **40,0 × 34,0 × 22,1 mm**, 10,0 cm³.
 
 | | |
 |---|---|
-| Featurebaum | Grundplatte · Stirnwand · Rippe_p/_m · Ausschnitt · Ohrloecher · M6_Durchgang · M6_Senkung · Fasen |
+| Featurebaum | Grundplatte · Stirnwand · Rippe_p/_m · Ausschnitt · Kabelschlitz · Ohrloecher · M6_Durchgang · M6_Senkung · Fasen |
 | `hardware/xt60_halter.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
 
 Steckermaße aus der Maßzeichnung im Amass-Datenblatt, abgelesen 2026-11-22:
@@ -945,6 +945,12 @@ von vorn** durch die Wand in die Ohren, Muttern in den Sechskant-Taschen, die de
 Stecker auf der Lötseite in den Ohren hat. Die Hülse steht in jeder Lesart der
 Zeichnung mindestens 7 mm vor den Flansch, also rund 4 mm vor die Wand.
 
+**Oben offen.** Vom Ausschnitt läuft ein **11 mm breiter Schlitz** bis zur
+Oberkante der Wand: die angelöteten Leitungen werden von oben eingelegt, nichts
+wird gefädelt. Breiter geht der Schlitz nicht — die Ohrlöcher liegen beim XT60E-M
+nur 0,4 mm neben der Hülsenkontur, ein Schlitz in Hülsenbreite ließe an den
+Schrauben nichts stehen. Bei 11 mm bleiben neben jedem Loch 2,9 mm Steg.
+
 #### Erst die M6, dann der Stecker
 
 Der Stecker liegt über der Schraube, mit eingesetztem Stecker ist kein Schlüssel
@@ -958,7 +964,8 @@ M6. Wer eine will, misst die Nutbreite am Profil und trägt sie als `key_w`/`key
 ein; dann kommt unten eine Leiste dazu.
 
 > **Druckrichtung:** mit der **Grundplatte aufs Bett**. Wand und Rippen stehen
-> dann senkrecht, der Ausschnitt ist eine Brücke von 16 mm und braucht keine Stütze.
+> dann senkrecht; über dem Ausschnitt bleiben nur zwei kurze Brücken von je 2,5 mm
+> bis zum Schlitz, die brauchen keine Stütze.
 
 ## 8 Markenaufnahme an der Trommel
 
