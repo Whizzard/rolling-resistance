@@ -82,6 +82,7 @@ Als Reibrolle gegen die Trommeloberfläche geht der Motor nicht: dafür bräucht
 | Gegenstecker Julet 9-polig | oder Stecker abschneiden und eigene Verbinder setzen | offen |
 
 | Netzteil | 36–42 V, ≥ 10 A | offen |
+| XT60E-M Einbaustecker (Amass) | Zuleitung vom Netzteil am Rahmen; Halter §7.6 | Halter konstruiert 2026-11-22 |
 | ESP32-Board | **ESP32-S3-DevKitC-1 N16R8** | beschafft |
 | USB-Netzteil | 5 V / ≥ 1 A, für den Messbetrieb (nicht das Notebook) | offen |
 | Fünfwege-Tastschalter | Navigationstaster, 5 Kontakte + gemeinsame Masse (z. B. ALPS SKQU); **keine** analogen Joystick-Breakouts | offen |
@@ -908,6 +909,56 @@ abbremsen.
 
 > **Druckrichtung:** mit der **glatten Oberseite nach unten** aufs Bett. Dann
 > öffnen sich die Muttertaschen nach oben und brauchen keine Stütze.
+
+### 7.6 Halter für den XT60-Einbaustecker
+
+Die Zuleitung vom Netzteil bekommt am Rahmen einen **Amass XT60E-M**, den
+Einbaustecker mit zwei Ohren. Der Halter ist ein L-Winkel: Grundplatte mit **einer
+zentralen M6** aufs Profil, daran die Stirnwand mit dem Ausschnitt für die Hülse.
+**Der Stecker liegt** — seine lange Achse parallel zur Auflage, die Steckrichtung
+parallel zum Profil. Das Kabel läuft damit am Rahmen entlang.
+
+Außenmaß **40,0 × 34,0 × 22,1 mm**, 10,0 cm³.
+
+| | |
+|---|---|
+| Featurebaum | Grundplatte · Stirnwand · Rippe_p/_m · Ausschnitt · Ohrloecher · M6_Durchgang · M6_Senkung · Fasen |
+| `hardware/xt60_halter.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
+
+Steckermaße aus der Maßzeichnung im Amass-Datenblatt, abgelesen 2026-11-22:
+
+| Merkmal | Maß |
+|---|---|
+| Hülse (Außenkontur) | 15,5 × 8,1 mm |
+| Länge über die Ohren | 27,0 mm |
+| **Lochabstand der Ohren** | **20,0 mm**, Ø 3,0 |
+| Flansch | 4,0 mm dick, Gesamttiefe 16,7 mm |
+
+> **Vor dem Druck den Lochabstand am Stecker nachmessen.** Die Zeichnung im
+> Datenblatt ist eine kleine Rastergrafik, und Händler nennen für „XT60 Einbau" je
+> nach Variante 16, 19 oder 20 mm. Es ist das einzige Maß, bei dem ein Ablesefehler
+> den Halter unbrauchbar macht; `con_pitch` steht dafür in der Tabelle.
+
+Wie die Hülse durch die Wand kommt: Ausschnitt 16,0 × 8,6 mm (0,25 mm Luft je
+Seite), die Ohren liegen auf der **Rückseite** der 3 mm dicken Wand an, zwei **M3
+von vorn** durch die Wand in die Ohren, Muttern in den Sechskant-Taschen, die der
+Stecker auf der Lötseite in den Ohren hat. Die Hülse steht in jeder Lesart der
+Zeichnung mindestens 7 mm vor den Flansch, also rund 4 mm vor die Wand.
+
+#### Erst die M6, dann der Stecker
+
+Der Stecker liegt über der Schraube, mit eingesetztem Stecker ist kein Schlüssel
+mehr anzusetzen. Deshalb ist der Zylinderkopf 3 mm versenkt (Senkung Ø 11), und der
+Ausschnitt sitzt so hoch, dass die Hülse 1,5 mm über dem Kopf frei bleibt: Mitte des
+Ausschnitts 14,8 mm über der Auflage. Zwei Dreiecksrippen außen, 3 mm dick, stützen
+die Wand gegen die Steckkraft; sie liegen mit 0,5 mm Luft neben den Ohren.
+
+Keine Nase für die Profilnut — wie bei den anderen Haltern hält die Klemmung der
+M6. Wer eine will, misst die Nutbreite am Profil und trägt sie als `key_w`/`key_h`
+ein; dann kommt unten eine Leiste dazu.
+
+> **Druckrichtung:** mit der **Grundplatte aufs Bett**. Wand und Rippen stehen
+> dann senkrecht, der Ausschnitt ist eine Brücke von 16 mm und braucht keine Stütze.
 
 ## 8 Markenaufnahme an der Trommel
 
