@@ -162,11 +162,31 @@ Display: `LCD_I2C_ADDR` = 0x27 (**TBD**, übliche Alternative 0x3F), `LCD_COLS` 
 
 ### 5.1 Speisung über USB
 
-Der Logikteil wird **ausschließlich über USB-C** gespeist, nicht über den 5V-Pin.
-Espressif nennt die drei Wege ausdrücklich *mutually exclusive*
-([User Guide](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html)) —
-eine extern eingespeiste 5 V und ein zum Flashen angestecktes Notebook wären ein
-Kurzschluss zweier Quellen. USB schließt den Fehler konstruktiv aus.
+Der Logikteil wird **über USB-C** gespeist, nicht über den 5V-Pin. Espressif nennt die
+drei Wege *mutually exclusive*
+([User Guide](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html)).
+
+> **Richtigstellung vom 2026-11-22.** Hier stand, eine extern eingespeiste 5 V und ein
+> gleichzeitig angestecktes Notebook wären „ein Kurzschluss zweier Quellen". **Das ist
+> falsch**, und zwar nachweislich: im
+> [Schaltplan des Boards](https://dl.espressif.com/dl/schematics/SCH_ESP32-S3-DevKitC-1_V1.1_20220413.pdf)
+> (V1.1, Blatt 2) liegt hinter **jeder** USB-Buchse eine Schottky-Diode nach `VCC_5V` —
+> **D1** an `J2` (COM) und **D7** an `J4` (nativ), beide 1N5819HW-7-F. Der 5V-Pin ist
+> `J1` Pin 21 und hängt **direkt an `VCC_5V`**, also hinter den Dioden.
+>
+> Daraus folgt dreierlei:
+>
+> 1. **Rückspeisung ins Notebook ist unmöglich.** Die Dioden leiten nur von USB zum
+>    Board. Der USB-Port des Rechners ist konstruktiv geschützt.
+> 2. **Zwei Quellen schließen sich nicht kurz, sie ver-odern sich.** Wer höher liegt,
+>    speist. Ein USB-Port mit 5,0 V kommt hinter der Schottky mit ≈ 4,7 V an — ein
+>    sauberes 5,0-V-Netzteil am Pin gewinnt also und sperrt die USB-Dioden.
+> 3. **Was man verliert, ist der Schutz.** Am 5V-Pin liegt keine Diode mehr davor:
+>    Verpolung oder Überspannung gehen ungebremst in den LDO und auf alles, was an
+>    `VCC_5V` hängt.
+>
+> Deshalb bleibt es bei der Speisung über USB — nicht weil das andere knallt, sondern
+> weil der USB-Weg den Verpolungsfehler konstruktiv ausschließt.
 
 Das Board hat zwei USB-C-Buchsen, und **beide dürfen gleichzeitig speisen**
 („either one or both"). Beide Kabel dürfen also dauerhaft stecken; zum Flashen muss
@@ -215,8 +235,8 @@ Konsole trotzdem dort haben will, setzt `-DARDUINO_USB_CDC_ON_BOOT=1` in
 > 2026-11-15: durchgelaufen ohne jeden Tastendruck, „Hard resetting via RTS pin",
 > Konsole meldet sich mit 115200 Bd.
 
-Bei USB-Speisung ist der **5V-Pin ein Ausgang** (VBUS). Beide Schienen kommen damit
-aus derselben Quelle:
+Bei USB-Speisung ist der **5V-Pin ein Ausgang** (`VCC_5V`, also VBUS minus
+Diodenspannung). Beide Schienen kommen damit aus derselben Quelle:
 
 | Schiene | Herkunft | versorgt |
 |---|---|---|
