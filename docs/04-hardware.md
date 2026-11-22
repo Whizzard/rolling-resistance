@@ -972,6 +972,45 @@ ein; dann kommt unten eine Leiste dazu.
 > **Druckrichtung:** mit der **Grundplatte aufs Bett**. Wand und Rippen stehen
 > dann senkrecht, Überhänge gibt es keine.
 
+### 7.7 Isolierplatten unter Wäge- und Gebergehäuse
+
+Beide Gehäuse (§7 und §7.4) sind unten offen, die Platine liegt mit der Lötseite
+nach unten 2 mm über der Montagefläche — und die ist Aluminium. Unter jedes kommt
+eine **0,5 mm dünne Platte** in der Gehäusekontur, mit dem M6-Loch an derselben
+Stelle, und mit einem **1 mm breiten, 1 mm hohen Rand** außen herum, in dem das
+Gehäuse mit 0,1 mm Luft je Seite sitzt und beim Anziehen nicht wandern kann.
+
+| | Wägegehäuse | Gebergehäuse |
+|---|---|---|
+| Außenmaß | 51,4 × 30,4 × 1,5 mm | 38,3 × 22,2 × 1,5 mm |
+| M6 | x = 42,2, mittig | x = 30,2, 4,5 mm versetzt |
+| Rand | umlaufend | **drei Seiten**, vorn offen |
+
+| | |
+|---|---|
+| Featurebaum | Platte · Sitz · M6_Loch · Kanal_1 (· Kanal_2) |
+| `hardware/isolierplatte.py` | baut **beide** Platten, exportiert `.step` und `.stl` |
+
+**Keine eigenen Maße.** Das Skript liest Kontur, Lochlage und Kanallage beim Bauen
+aus den Parameterlisten von `hx711_gehaeuse.py` und `hall_gehaeuse.py`. Ändert sich
+ein Gehäuse, läuft das Skript noch einmal, und die Platte folgt. Dieselbe Zahl an
+zwei Stellen war in diesem Projekt die Quelle fast aller Fehler.
+
+**Unter den Kabelkanälen ist die Platte ausgeschnitten**, vom Ende der Kavität bis
+zum Rand und durch ihn hindurch. Die Gehäuse klemmen das Kabel zwischen Kabelnut und
+Montagefläche, mit Absicht wenige Zehntel enger als das Kabel; 0,5 mm darunter
+machten daraus das Doppelte und quetschten die dünnen Zellenlitzen. Das Kabel liegt
+dort direkt auf dem Aluminium — es ist isoliert, die Platine nicht. Die Kavität bleibt
+vollständig abgedeckt.
+
+**Beim Gebergehäuse fehlt der Rand an der Geberseite.** Die Stirnwand dort ist 1,2 mm
+dick und steht mit dem Luftspalt vor den Magneten; ein Millimeter Rand davor ginge
+in den Luftspalt. Die Platte endet vorn bündig, das Gehäuse wird von hinten in die
+Wanne geschoben und sitzt an drei Seiten.
+
+> **Druck:** flach, Wanne nach oben. 0,5 mm Boden sind bei 0,2 mm Schichthöhe zwei
+> bis drei Lagen, der Rand kommt als Mauer obendrauf.
+
 ## 8 Markenaufnahme an der Trommel
 
 Mitdrehende Seite, Gegenstück zu §7. Kein Druckteil.
