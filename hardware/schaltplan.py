@@ -37,7 +37,7 @@ with schemdraw.Drawing(show=False) as d:
     d += elm.Label().at((-2.0, 3.4)).label(
         'Rollwiderstandsprüfstand — Verdrahtung', fontsize=15, color=INK)
     d += elm.Label().at((-2.0, 2.7)).label(
-        'ESP32-S3-DevKitC-1 N16R8  ·  Stand 2026-11-16  ·  Quelle: hardware/schaltplan.py',
+        'ESP32-S3-DevKitC-1 N16R8  ·  Stand 2026-11-22  ·  Quelle: hardware/schaltplan.py',
         fontsize=7.5, color='#4a5560')
 
     # ---------------------------------------------------- Leistungspfad oben
@@ -93,19 +93,15 @@ with schemdraw.Drawing(show=False) as d:
     RX = ESPX + 5.2
     d += elm.Label().at((RX+2.2, -3.4)).label('BEDIENUNG · PROTOKOLL', fontsize=8,
                                                  color=AUX, halign='left')
-    lvl = box(d, RX+2.2, -4.4, 2.6, 1.0, 'I²C-Pegel:\nWandler / Pull-ups', AUX)
-    lcd = box(d, RX+5.4, -4.4, 2.7, 1.0, 'LCD 2004\nPCF8574  5 V', AUX)
+    ui  = box(d, RX+2.2, -4.4, 3.4, 1.0, 'Bedienfeld über WLAN\nTelefon / iPad', AUX)
     sd  = box(d, RX+2.2, -6.1, 2.7, 1.0, 'microSD\nSPI 3,3 V', AUX)
     tmp = box(d, RX+2.2, -7.8, 2.7, 1.0, 'Temperatur\nI²C   (TBD)', AUX)
-    btn = box(d, RX+2.2, -9.2, 2.7, 1.0, 'Steuerkreuz 5-Wege\n+ Status-LED', AUX)
-    ble = box(d, RX+5.4, -9.2, 2.7, 1.0, 'BLE-Drucksensor\n(drahtlos)', AUX)
+    ble = box(d, RX+2.2, -9.2, 2.7, 1.0, 'BLE-Drucksensor\n(drahtlos)', AUX)
 
-    wire(d, (RX, lvl.W[1]), lvl.W, 'SDA 8 · SCL 9', AUX)
-    wire(d, lvl.E, lcd.W, None, AUX)
+    d += elm.Line().at((RX, ui.W[1])).to(ui.W).color(AUX).linestyle(':').linewidth(1.1)
     wire(d, (RX, sd.W[1]),  sd.W,  'SPI  CS 10', AUX)
     d += elm.Line().at((RX, tmp.W[1])).to(tmp.W).color(AUX).linestyle('--').linewidth(1.1)
-    wire(d, (RX, btn.W[1]), btn.W, 'GPIO11…14 · 39', AUX)
-    d += elm.Line().at(btn.E).to(ble.W).color(AUX).linestyle(':').linewidth(1.1)
+    d += elm.Line().at((RX, ble.W[1])).to(ble.W).color(AUX).linestyle(':').linewidth(1.1)
 
     # ------------------------- Signale vom ESP32 nach oben, rechtwinklig
     def up(x_from, y_from, x_to, y_to, label, color, ls='-', dy=0.0, lx=None):
@@ -128,9 +124,12 @@ with schemdraw.Drawing(show=False) as d:
         'HX711:  Modul mit GETRENNTEN VCC/VDD. VCC = 5 V speist die Bruecke, VDD = 3,3 V setzt den Logikpegel \u2014 der ESP32-S3 ist nicht 5-V-tolerant.',
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -12.9)).label(
-        'TLE4905L:  V_S aus 5 V (min. 3,8 V), Open Collector mit Pull-up 2,2…4,7 kΩ nach 3,3 V, 100 nF am Sensor.',
+        'TLE4905L:  V_S aus 5 V (min. 3,8 V), Open Collector. Pegel ueber den Teiler 1,8 k / 3,3 k AM ESP32, je 4,7 nF am Geber,',
         fontsize=7.5, color='#4a5560', halign='left')
-    d += elm.Label().at((-12.0, -13.35)).label(
+    d += elm.Label().at((-12.0, -13.33)).label(
+        '           LED gruen im Gebergehaeuse. Loet- und Anschlussvorlage: hardware/hallplan.pdf.',
+        fontsize=7.5, color='#4a5560', halign='left')
+    d += elm.Label().at((-12.0, -13.78)).label(
         'Nicht nutzbar am N16R8:  GPIO26…37 (Flash + Octal-PSRAM), GPIO19/20 (USB), GPIO0/45/46 (Strapping).',
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -13.80)).label(
@@ -145,12 +144,6 @@ with schemdraw.Drawing(show=False) as d:
     d += elm.Label().at((-12.0, -15.15)).label(
         'FSESC 4.20:  UART an der Stiftleiste COMM (5V · 3.3V · − · ADC · TX · RX · ADC2). Nur TX, RX und Masse anschliessen — die 5 V des Reglers NICHT,',
         fontsize=7.5, color='#4a5560', halign='left')
-    d += elm.Label().at((-12.0, -16.50)).label(
-        'LCD:  Backpack und Display laufen auf 5 V. Entweder Pegelwandler, oder die 4k7-Pullups auf dem Backpack ausloeten und gegen 3,3 V ziehen \u2014 dann aber',
-        fontsize=7.5, color='#4a5560', halign='left')
-    d += elm.Label().at((-12.0, -16.95)).label(
-        '           unter den 0,7 \u00b7 V_DD = 3,5 V, die der PCF8574 als High verlangt. Drei Wege samt Bewertung in docs/04-hardware.md \u00a75.6 (offene Frage B3).',
-        fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -16.05)).label(
         'Bremse:  GPIO40 high = Relais angezogen = Bremse geloest; Pulldown am Gate, beim Reset also gebremst. Reihenfolge: erst Treiber sperren, dann Relais abfallen lassen.',
         fontsize=7.5, color='#4a5560', halign='left')
@@ -160,8 +153,8 @@ with schemdraw.Drawing(show=False) as d:
     d += elm.Label().at((-12.0, -17.40)).label(
         'Motortemperatur:  Fuehler an TMP des REGLERS, nicht am ESP32 \u2014 ein resistiver Fuehler vertraegt nur EINEN Pull-up. Der ESP32 liest den Wert ueber UART.',
         fontsize=7.5, color='#4a5560', halign='left')
-    d += elm.Label().at((-12.0, -17.85)).label(
-        'Steuerkreuz:  fuenf Kontakte gegen Masse, interner Pull-up, Entprellung in Software \u2014 kein RC im Signalpfad. Not-Aus ist KEIN Taster am Kreuz.',
+    d += elm.Label().at((-12.0, -16.50)).label(
+        'Bedienung:  kein Steuerkreuz und kein LCD mehr \u2014 bedient wird ueber WLAN am Telefon. Entschieden am 2026-11-22, docs/04-hardware.md \u00a713.',
         fontsize=7.5, color='#4a5560', halign='left')
 
     d.save('hardware/schaltplan.pdf')
