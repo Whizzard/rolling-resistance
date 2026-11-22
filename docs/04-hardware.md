@@ -109,7 +109,7 @@ die Firmware noch nicht anfasst.
 | 2 | `PIN_ESTOP_FB` | Not-Aus-Rückmeldung | in | nur **Anzeige** des Zustands; die Trennung erfolgt in Hardware |
 | 4 | `PIN_MARK` | Drehzahlmarken Trommel | in, Interrupt | **8** Marken/Umdrehung |
 | 5 | `PIN_INDEX` | Indexmarke Trommel | in, Interrupt | 1/Umdrehung, triggert die Mittelung |
-| 6 | `PIN_WHEEL` | Drehzahl des Prüflaufrads | in, Interrupt | für den Laufrad-Auslaufversuch; **noch nicht in der Firmware** |
+| 6 | `PIN_WHEEL` | Drehzahl des Prüflaufrads | in, Interrupt | **4** Magnete/Umdrehung; liefert den wirksamen Reifendurchmesser, später den Laufrad-Auslaufversuch |
 | 7 | `PIN_MOTOR_HALL` | Motor-Hall (eine Phase) | in, Interrupt | zugleich die hochauflösende Drehzahlquelle |
 | 8 | `PIN_I2C_SDA` | I²C SDA | bidir | S3-Vorgabebelegung; frei für den IR-Fühler |
 | 9 | `PIN_I2C_SCL` | I²C SCL | out | dito |
@@ -1816,14 +1816,38 @@ Befehle, identisch über serielle Konsole und Weboberfläche ([10-firmware](10-f
 | `t` | Wägezelle nullen (nur im Stillstand) |
 | `k<kg>` | kalibrieren mit bekanntem Gewicht am Kalibrierarm |
 | `d<m>` `a<m>` `b<m>` | Trommelumfang · Zellenarm · Kalibrierarm |
-| `r` | Einstellungen auf die Vorgaben aus `config.h` zurücksetzen |
-| `i` | **Zustand**: Regler, Wägezelle, Bedienverbindung |
+| `z` | Einstellungen auf die Vorgaben aus `config.h` zurücksetzen |
+| `i` | **Zustand**: Regler, Wägezelle, Geber, Bedienverbindung |
+| `g` | Geberzähler nullen (Verdrahtungstest, siehe unten) |
 | `?` | Hilfe |
 
 `i` ist der Befehl fürs Anschließen. Die Oberfläche zeigt dasselbe, aber am Stand
 steht man mit dem Schraubendreher davor — und wenn eine der beiden Verbindungen
 fehlt, ist der Browser genau das, was man gerade nicht hat. Fehlt etwas, nennt `i`
 die GPIOs und die Verdächtigen dazu.
+
+**Verdrahtungstest der Hall-Geber.** Unter *Einrichtung → Hall-Geber* (und in der
+Zeile `Geber` von `i`) steht je Kanal — Trommelmarken, Index, Laufrad, Motor-Hall —
+der Impulszähler seit dem letzten Nullen, die Zeit seit dem letzten Impuls und der
+Pegel am Pin. Trommel und Laufrad von Hand drehen: jeder Zähler muss mitlaufen.
+Der Pegel allein beweist nichts, weil der Pull-up einen nicht verdrahteten Geber
+genauso high zieht wie einen ohne Magnet davor; `low` heißt Magnet vor dem Geber,
+die LED im Gehäuse leuchtet dann. Die Prüfzähler sind von den Messzählern getrennt,
+`g` nullt sie jederzeit.
+
+**Reifendurchmesser aus den Drehzahlen.** Die Messseite zeigt unter *Laufrad* die
+Trommel- und die Laufraddrehzahl in 1/min und daraus den Durchmesser und Umfang des
+Reifens in mm. Am Latsch sind die Umfangsgeschwindigkeiten gleich, also
+
+```
+d_Reifen = d_Trommel · n_Trommel / n_Rad
+```
+
+mit `d_Trommel` aus dem eingestellten Trommelumfang. Das ist der **wirksame
+Abrolldurchmesser unter Last**, nicht das Nennmaß des Reifens — er liegt wegen der
+Einfederung unter dem Maßband-Wert und ist genau die Größe, die in die Auswertung
+gehört. Angezeigt wird er nur, solange beides dreht; `i` gibt dieselbe Zeile auf
+der Konsole aus.
 
 > **Die Konsole liegt bei dieser Variante auf der nativen USB-Buchse**, nicht auf
 > UART0: `ARDUINO_USB_CDC_ON_BOOT=1` in `platformio.ini`. Am 2026-11-18 war nur

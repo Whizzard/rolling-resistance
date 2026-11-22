@@ -113,6 +113,18 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .field:after { content: ""; display: table; clear: both; }
 .field .hint { font-size: 12px; color: #7d8a95; margin-top: 6px; clear: both;
                padding-top: 6px; line-height: 1.45; }
+/* ---- Geber: Verdrahtungstest ---- */
+table.geber { width: 100%; border-collapse: collapse; margin-top: 4px;
+              font-variant-numeric: tabular-nums; }
+table.geber td { padding: 7px 4px; border-top: 1px solid #e3e8ec; font-size: 15px; }
+table.geber tr:first-child td { border-top: 0; }
+table.geber td.n { text-align: right; font-weight: 700; width: 22%; }
+table.geber td.p { color: #7d8a95; width: 16%; font-family: ui-monospace, Menlo, monospace;
+                   font-size: 13px; }
+table.geber td.s { font-weight: 700; text-align: right; width: 30%; }
+table.geber tr.ok td.s  { color: #1f8a5c; }
+table.geber tr.no td.s  { color: #c0392b; }
+table.geber tr.idle td.s { color: #7d8a95; font-weight: 400; }
 code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px;
        background: #eef1f4; padding: 2px 5px; border-radius: 3px;
        word-break: break-all; }
@@ -226,6 +238,26 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       </div></div>
     </div>
 
+    <h2>Laufrad</h2>
+    <div class="tiles">
+      <div class="tile"><div>
+        <div class="lab">Trommel</div>
+        <div class="val"><span id="nTrommel">—</span><small>1/min</small></div>
+      </div></div>
+      <div class="tile"><div>
+        <div class="lab">Laufrad</div>
+        <div class="val"><span id="nRad">—</span><small>1/min</small></div>
+      </div></div>
+      <div class="tile"><div>
+        <div class="lab">Reifen Ø</div>
+        <div class="val"><span id="dReifen">—</span><small>mm</small></div>
+      </div></div>
+      <div class="tile"><div>
+        <div class="lab">Reifenumfang</div>
+        <div class="val"><span id="uReifen">—</span><small>mm</small></div>
+      </div></div>
+    </div>
+
     <h2>km/h</h2>
     <div class="grid" id="grid"></div>
     <div class="row" style="margin-top:7px">
@@ -296,6 +328,17 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       <button type="button" class="plain" id="bBreak"
               style="float:none;width:100%;margin:8px 0 0 0">Messen</button>
       <div class="hint" id="brkHint">&mdash;</div>
+    </div>
+
+    <h2>Hall-Geber</h2>
+    <div class="field">
+      <div class="hint" style="padding-top:0;margin-top:0">Trommel und Laufrad
+        <b>von Hand drehen</b>: jeder Zähler muss mitlaufen. Pegel <b>low</b> heißt
+        Magnet vor dem Geber, die LED im Gehäuse leuchtet dann. Ein Geber ohne
+        Impulse ist nicht verdrahtet oder sieht keinen Magneten.</div>
+      <table class="geber" id="geber"></table>
+      <button type="button" class="plain" id="bGeber"
+              style="float:none;width:100%;margin:8px 0 0 0">Zähler nullen</button>
     </div>
 
     <h2>Stand</h2>
@@ -401,6 +444,27 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   $("bReset").onclick = function () { send("z"); };
   $("bLearn").onclick = function () { send("e"); };
   $("bBreak").onclick = function () { send("x"); };
+  $("bGeber").onclick = function () { send("g"); };
+
+  /* ---------- Geber: Verdrahtungstest ----------
+     Je Kanal [Impulse, ms seit dem letzten, Pegel low]. "erkannt" heißt nur:
+     seit dem letzten Nullen kam mindestens ein Impuls. */
+  var GEBER = ["Trommelmarken", "Indexmarke", "Laufrad", "Motor-Hall"];
+  function paintGeber(g) {
+    if (!g || g.length !== GEBER.length) return;
+    var html = "", i, c, ms, low, st, cls;
+    for (i = 0; i < GEBER.length; i++) {
+      c = g[i][0]; ms = g[i][1]; low = g[i][2];
+      if (c === 0)         { cls = "no";   st = "keine Impulse"; }
+      else if (ms < 1500)  { cls = "ok";   st = "erkannt \u00b7 l\u00e4uft"; }
+      else                 { cls = "idle"; st = "erkannt \u00b7 vor " + de(ms / 1000, 0) + " s"; }
+      html += "<tr class=\"" + cls + "\"><td>" + GEBER[i] + "</td>"
+            + "<td class=\"n\">" + c + "</td>"
+            + "<td class=\"p\">" + (low ? "low" : "high") + "</td>"
+            + "<td class=\"s\">" + st + "</td></tr>";
+    }
+    $("geber").innerHTML = html;
+  }
 
   /* Eingabefelder nur dann überschreiben, wenn gerade nicht darin getippt wird —
      sonst springt der Wert dem Daumen davon. */
@@ -448,6 +512,15 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("tileFet").className = "tile half" + (j.tfet > 80 ? " warn" : "");
 
     if (typeof j.up === "number") lastUp = j.up;
+    paintGeber(j.geber);
+
+    /* Laufrad: wirksamer Abrolldurchmesser aus dem Drehzahlverhältnis.
+       null, solange nicht beides dreht. */
+    show("nTrommel", j.nTrommel, 1);
+    show("nRad",     j.nRad,     1);
+    show("dReifen",  j.dReifen,  1);
+    show("uReifen",  (j.dReifen === null || j.dReifen === undefined)
+                     ? null : j.dReifen * Math.PI, 0);
 
     /* Antrieb einmessen */
     $("dirSign").innerHTML = (j.dir > 0 ? "+1" : "\u22121");

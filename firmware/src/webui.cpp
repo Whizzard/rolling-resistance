@@ -143,10 +143,11 @@ void handleState() {
   g_polls++;
 
   // Den Inhalt kennt die Variante, nicht der Webserver.
-  // 1 kB: die Testlauf-Variante liefert rund 700 Byte (Waegezelle, Antrieb,
-  // Temperaturen, Stroeme und die Einstellungen). Bei 512 wuerde snprintf still
-  // abschneiden und die Seite bekaeme kaputtes JSON.
-  char buf[1024];
+  // 1,5 kB: rund 700 Byte fuer Waegezelle, Antrieb, Temperaturen, Stroeme und
+  // Einstellungen, dazu seit 2026-11-22 der Verdrahtungstest der Geber und das
+  // Laufrad (zusammen gut 150 Byte). Zu klein, und snprintf schneidet still ab —
+  // die Seite bekaeme kaputtes JSON.
+  char buf[1536];
   buf[0] = '\0';
   if (g_state) g_state(buf, sizeof(buf));
   if (buf[0] == '\0') snprintf(buf, sizeof(buf), "{}");

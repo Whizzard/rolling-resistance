@@ -21,6 +21,25 @@ volatile bool     g_indexFlag = false;
 volatile uint32_t g_motorLastUs = 0;
 volatile uint32_t g_motorPeriodUs = 0;
 
+// Laufrad: Ringpuffer wie an der Trommel.
+constexpr uint8_t WBUF = WHEEL_MARKS_PER_REV + 1;
+volatile uint32_t g_wheelUs[WBUF] = {0};
+volatile uint8_t  g_wheelHead = 0;
+volatile uint32_t g_wheelCount = 0;
+
+// Verdrahtungstest: eigene Zähler je Kanal (nullbar) und der letzte Zeitstempel.
+// Gezählt wird, was auch die Messung sieht — also hinter dem Störfilter.
+volatile uint32_t g_chCount[CH_N]  = {0};
+volatile uint32_t g_chLastUs[CH_N] = {0};
+volatile uint32_t g_wheelLastUs = 0;
+constexpr uint8_t CH_PIN[CH_N] = {PIN_MARK, PIN_INDEX, PIN_WHEEL, PIN_MOTOR_HALL};
+const char* const CH_NAME[CH_N] = {"Marken", "Index", "Laufrad", "Motor"};
+
+void IRAM_ATTR tick(Channel ch, uint32_t nowUs) {
+  g_chCount[ch]++;
+  g_chLastUs[ch] = nowUs;
+}
+
 void IRAM_ATTR onMark() {
   const uint32_t now = micros();
   // Störimpulse und Prellen ausfiltern. Der kürzeste echte Abstand liegt bei
@@ -32,12 +51,14 @@ void IRAM_ATTR onMark() {
   g_markUs[g_markHead] = now;
   g_markCount++;
   g_markInRev = (g_markInRev + 1) % MARKS_PER_REV;
+  tick(CH_MARK, now);
 }
 
 void IRAM_ATTR onIndex() {
   g_revCount++;
   g_indexFlag = true;
   g_markInRev = 0;  // Index definiert den Winkelnullpunkt
+  tick(CH_INDEX, micros());
 }
 
 void IRAM_ATTR onMotorHall() {
@@ -46,6 +67,17 @@ void IRAM_ATTR onMotorHall() {
   if (dt < 100) return;  // Störfilter; bei 480 1/min und 15 Flanken sind es 8,3 ms
   g_motorPeriodUs = dt;
   g_motorLastUs = now;
+  tick(CH_MOTOR, now);
+}
+
+void IRAM_ATTR onWheel() {
+  const uint32_t now = micros();
+  if (now - g_wheelLastUs < MIN_PULSE_US) return;
+  g_wheelLastUs = now;
+  g_wheelHead = (g_wheelHead + 1) % WBUF;
+  g_wheelUs[g_wheelHead] = now;
+  g_wheelCount++;
+  tick(CH_WHEEL, now);
 }
 
 }  // namespace
@@ -53,9 +85,11 @@ void IRAM_ATTR onMotorHall() {
 void begin() {
   pinMode(PIN_MARK, INPUT_PULLUP);
   pinMode(PIN_INDEX, INPUT_PULLUP);
+  pinMode(PIN_WHEEL, INPUT_PULLUP);
   pinMode(PIN_MOTOR_HALL, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(PIN_MARK), onMark, FALLING);
   attachInterrupt(digitalPinToInterrupt(PIN_INDEX), onIndex, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PIN_WHEEL), onWheel, FALLING);
   attachInterrupt(digitalPinToInterrupt(PIN_MOTOR_HALL), onMotorHall, FALLING);
 }
 
@@ -101,6 +135,22 @@ float motorRevPerSec() {
   return 1000000.0f / (static_cast<float>(period) * MOTOR_PULSES_PER_REV);
 }
 
+float wheelRevPerSec() {
+  if (g_wheelCount <= WHEEL_MARKS_PER_REV) return 0.0f;
+
+  noInterrupts();
+  const uint8_t head = g_wheelHead;
+  const uint32_t tNew = g_wheelUs[head];
+  const uint32_t tOld = g_wheelUs[(head + WBUF - WHEEL_MARKS_PER_REV) % WBUF];
+  const uint32_t lastUs = g_wheelLastUs;
+  interrupts();
+
+  const uint32_t span = tNew - tOld;   // eine volle Radumdrehung
+  if (span == 0) return 0.0f;
+  if (micros() - lastUs > span * 2 + 100000UL) return 0.0f;   // steht
+  return 1000000.0f / static_cast<float>(span);
+}
+
 bool slipDetected() {
   const float drum = revPerSec();
   const float motor = motorRevPerSec();
@@ -118,5 +168,25 @@ bool stalled() {
 }
 
 uint8_t markIndexInRev() { return g_markInRev; }
+
+const char* channelName(Channel ch) { return CH_NAME[ch]; }
+
+ChannelState channel(Channel ch) {
+  noInterrupts();
+  const uint32_t count = g_chCount[ch];
+  const uint32_t last  = g_chLastUs[ch];
+  interrupts();
+  ChannelState s;
+  s.count   = count;
+  s.sinceMs = count ? (micros() - last) / 1000UL : 0xFFFFFFFFUL;
+  s.low     = digitalRead(CH_PIN[ch]) == LOW;
+  return s;
+}
+
+void resetCounters() {
+  noInterrupts();
+  for (uint8_t i = 0; i < CH_N; i++) { g_chCount[i] = 0; g_chLastUs[i] = 0; }
+  interrupts();
+}
 
 }  // namespace speed
