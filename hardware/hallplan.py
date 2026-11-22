@@ -103,6 +103,17 @@ def led(x, y, color=AUX, size=3.2, label=""):
     txt(x + size + 6.5, y, label, 7.5, color, mono=True)
 
 
+def zener(x, y, color=INK, size=3.0, label=""):
+    """Z-Diode, Kathode UNTEN (am Signal), Anode oben (an Masse) — wie im Plan,
+    wo die Masseschiene über der Signalschiene liegt."""
+    ax.add_patch(Polygon([(x - size, y + size), (x + size, y + size), (x, y - size * 0.6)],
+                         closed=True, ec=color, fc="white", lw=1.3, zorder=3))
+    line(x - size, y - size * 0.6, x + size, y - size * 0.6, color, 1.8)
+    line(x - size, y - size * 0.6, x - size, y - size * 0.6 - 1.4, color, 1.8)
+    line(x + size, y - size * 0.6, x + size, y - size * 0.6 + 1.4, color, 1.8)
+    txt(x + size + 1.6, y, label, 7.5, color, mono=True)
+
+
 # ------------------------------------------------------------------- Kopf
 txt(0, 312, "Hall-Geber — Löt- und Anschlussvorlage", 18, INK, weight="bold")
 txt(0, 305, "3 × TLE4905L  ·  Trommelmarken, Indexmarke, Laufrad  ·  "
@@ -185,28 +196,30 @@ line(lx, yq + 1.2, lx, yq, AUX)
 dot(lx, y5, PWR); dot(lx, yq, SIG)
 
 tx = 118
-res(tx, (y5 + yg) / 2, 9.0, 3.4, "1,8 kΩ", SIG, vert=True)
+res(tx, (y5 + yg) / 2, 9.0, 3.4, "470 Ω", SIG, vert=True)
 line(tx, y5, tx, (y5 + yg) / 2 + 4.5, SIG); line(tx, (y5 + yg) / 2 - 4.5, tx, yq, SIG)
 dot(tx, y5, PWR); dot(tx, yq, SIG)
 
 tx2 = 134
-res(tx2, (yg + yq) / 2, 9.0, 3.4, "3,3 kΩ", SIG, vert=True)
-line(tx2, yq, tx2, (yg + yq) / 2 - 4.5, SIG); line(tx2, (yg + yq) / 2 + 4.5, tx2, yg, SIG)
+zener(tx2, (yg + yq) / 2, SIG, 3.0, "3,3 V")
+line(tx2, yq, tx2, (yg + yq) / 2 - 1.8, SIG); line(tx2, (yg + yq) / 2 + 3.0, tx2, yg, SIG)
 dot(tx2, yq, SIG); dot(tx2, yg)
 
 line(150, yq, 150, yq - 8, SIG)
 txt(150, yq - 11.5, "GPIO", 8.5, SIG, ha="center", mono=True)
 
-txt(107, 131, "offen:        3,2 V", 8, SIG, mono=True)
+txt(107, 131, "offen:        ≈ 3,2 V", 8, SIG, mono=True)
 txt(107, 126, "geschaltet:   < 0,1 V", 8, SIG, mono=True)
 
-txt(0, 112, "Die beiden Widerstände am ESP32 SIND die Pegelwandlung: 1,8 kΩ zieht den "
-            "offenen Kollektor hoch,", 8.5, INK)
-txt(0, 107, "3,3 kΩ zieht gegen Masse — zusammen ein Teiler, der aus 5 V genau "
-            "5 · 3,3/5,1 = 3,2 V macht. Ein", 8.5, INK)
-txt(0, 102, "Pegelwandler-Baustein ist dafür nicht nötig; ein Pull-up allein wäre mit "
-            "5 V am Ausgang tödlich.", 8.5, INK)
-line(0, 96, 160, 96, LINE, 1.0)
+txt(0, 112, "Pull-up und Z-Diode am ESP32 SIND die Pegelwandlung: 470 Ω nach 5 V ziehen "
+            "den offenen Kollektor hoch,", 8.5, INK)
+txt(0, 107, "die Z-Diode 3,3 V gegen Masse klemmt den Knoten auf ihre Durchbruchspannung "
+            "(≈ 3,6 mA, der Knick ist weich,", 8.5, INK)
+txt(0, 102, "3,1 V am Multimeter sind normal). Kathode = Ring ans Signal, Anode an Masse "
+            "— falsch herum klemmt sie als", 8.5, INK)
+txt(0, 97, "normale Diode auf 0,7 V, der Eingang bleibt dauerhaft low. Ein Pull-up allein "
+           "wäre mit 5 V am Ausgang tödlich.", 8.5, INK)
+line(0, 92, 160, 92, LINE, 1.0)
 
 
 # =================================================== 3 Lochraster
@@ -288,8 +301,8 @@ rows = [("1 ×", "TLE4905L", "PG-SSO-3-2"),
         ("2 ×", "4,7 nF", "Datenblatt Bild 8"),
         ("1 ×", "1 kΩ", "für die LED"),
         ("1 ×", "LED grün 3 mm", "siehe Fußnote"),
-        ("1 ×", "1,8 kΩ", "am ESP32"),
-        ("1 ×", "3,3 kΩ", "am ESP32"),
+        ("1 ×", "470 Ω", "am ESP32, Pull-up nach 5 V"),
+        ("1 ×", "Z-Diode 3,3 V", "am ESP32, Kathode ans Signal"),
         ("1 ×", "Leitung 3-adrig", "rot/schwarz/gelb")]
 for i, (n, b, k) in enumerate(rows):
     yy = 78 - i * 6.0
@@ -309,14 +322,15 @@ for i, (nm, gp) in enumerate((("Trommelmarken", "GPIO 4"), ("Indexmarke", "GPIO 
 notes = [
     ("5 V, nicht 3,3 V:", "der Geber braucht laut Datenblatt mindestens 3,8 V "
      "(Betriebsbereich 3,8 … 24 V, Seite 6). An 3,3 V läuft er nicht."),
-    ("Warum grün:", "bei offenem Ausgang liegen über dem LED-Zweig nur 5 − 3,2 = 1,8 V. "
+    ("Warum grün:", "bei offenem Ausgang liegen über dem LED-Zweig nur 5 − 3,2 ≈ 1,8 V. "
      "Eine grüne LED braucht mehr und bleibt sicher dunkel; eine rote würde glimmen "
      "und den Pegel verziehen."),
     ("Die 4,7 nF sind kein Zierrat:", "sie stehen so in der Anwendungsschaltung des "
      "Datenblatts (Bild 8) und sitzen AM GEBER, nicht am ESP32 — sie fangen ab, was "
      "sich auf einer langen Leitung einkoppelt."),
-    ("Strom:", "geschaltet zieht der Geber 2,8 mA durch den Teiler und 2,8 mA durch die "
-     "LED. Erlaubt sind 100 mA; die Sättigungsspannung bleibt dabei unter 0,1 V."),
+    ("Strom:", "geschaltet zieht der Geber ≈ 10 mA durch den Pull-up und 2,8 mA durch die "
+     "LED. Erlaubt sind 100 mA; die Sättigungsspannung bleibt dabei unter 0,1 V. Offen "
+     "fließen ≈ 3,6 mA durch die Z-Diode, rund 12 mW — jede Glas-Z-Diode hält das aus."),
     ("Magnetpolung:", "unipolar heißt, es gibt nur EINE wirksame Feldrichtung. Jeden "
      "Magneten vor dem Festziehen einzeln gegen den Geber prüfen — die LED zeigt es an. "
      "docs/04-hardware.md §8.4."),

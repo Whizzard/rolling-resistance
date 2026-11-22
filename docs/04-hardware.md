@@ -240,8 +240,8 @@ Diodenspannung). Beide Schienen kommen damit aus derselben Quelle:
 
 | Schiene | Herkunft | versorgt |
 |---|---|---|
-| 5 V | 5V-Pin = VBUS | Hall-Geber, HX711-**VCC**, LCD |
-| 3,3 V | 3V3-Pin, Onboard-LDO aus VBUS | HX711-**VDD**, Pull-ups der Geber |
+| 5 V | 5V-Pin = VBUS | Hall-Geber samt ihren Pull-ups, HX711-**VCC**, LCD |
+| 3,3 V | 3V3-Pin, Onboard-LDO aus VBUS | HX711-**VDD** |
 
 Weil der 3,3-V-Regler aus denselben 5 V läuft, gibt es **kein Sequencing-Problem**:
 die Schienen kommen und gehen gemeinsam. Nur bei getrennten Quellen müsste VDD vor
@@ -263,7 +263,7 @@ kostet die Messung.
 
 | Baustein | Versorgung | Signal zum ESP32 |
 |---|---|---|
-| TLE4905L | V_S = 5 V (Minimum 3,8 V) | Open Collector, **Teiler 1,8 kΩ / 3,3 kΩ am ESP32** → 3,2 V. Löt- und Anschlussvorlage: `hardware/hallplan.pdf` |
+| TLE4905L | V_S = 5 V (Minimum 3,8 V) | Open Collector, **Pull-up 470 Ω nach 5 V und Z-Diode 3,3 V gegen Masse am ESP32** → ≈ 3,2 V, Kathode ans Signal. Löt- und Anschlussvorlage: `hardware/hallplan.pdf` |
 | HX711 | **VCC = 5 V** (analog), **VDD = 3,3 V** (digital) | DOUT auf 3,3 V |
 | ~~LCD / PCF8574~~ | — | **entfällt seit 2026-11-22**, bedient wird über WLAN |
 
