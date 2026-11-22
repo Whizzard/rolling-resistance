@@ -111,19 +111,19 @@ die Firmware noch nicht anfasst.
 | 5 | `PIN_INDEX` | Indexmarke Trommel | in, Interrupt | 1/Umdrehung, triggert die Mittelung |
 | 6 | `PIN_WHEEL` | Drehzahl des Prüflaufrads | in, Interrupt | für den Laufrad-Auslaufversuch; **noch nicht in der Firmware** |
 | 7 | `PIN_MOTOR_HALL` | Motor-Hall (eine Phase) | in, Interrupt | zugleich die hochauflösende Drehzahlquelle |
-| 8 | `PIN_I2C_SDA` | I²C SDA | bidir | LCD; S3-Vorgabebelegung |
-| 9 | `PIN_I2C_SCL` | I²C SCL | out | LCD |
+| 8 | `PIN_I2C_SDA` | I²C SDA | bidir | S3-Vorgabebelegung; frei für den IR-Fühler |
+| 9 | `PIN_I2C_SCL` | I²C SCL | out | dito |
 | 10 | `PIN_SD_CS` | microSD, Chip Select | out | übrige SPI-Pins noch **TBD** |
-| 11 | `PIN_BTN_UP` | Steuerkreuz hoch | in, Pull-up | gegen Masse |
-| 12 | `PIN_BTN_DOWN` | Steuerkreuz runter | in, Pull-up | |
-| 13 | `PIN_BTN_IN` | Steuerkreuz rein | in, Pull-up | |
-| 14 | `PIN_BTN_OUT` | Steuerkreuz raus | in, Pull-up | |
+| ~~11~~ | ~~`PIN_BTN_UP`~~ | ~~Steuerkreuz hoch~~ | — | **frei seit 2026-11-22** |
+| ~~12~~ | ~~`PIN_BTN_DOWN`~~ | ~~Steuerkreuz runter~~ | — | frei |
+| ~~13~~ | ~~`PIN_BTN_IN`~~ | ~~Steuerkreuz rein~~ | — | frei |
+| ~~14~~ | ~~`PIN_BTN_OUT`~~ | ~~Steuerkreuz raus~~ | — | frei |
 | 15 | `PIN_HX711_DOUT` | HX711 #1 DOUT (Moment) | in | |
 | 16 | `PIN_HX711_SCK` | HX711 SCK | out | **gemeinsamer Takt beider HX711** |
 | 17 | `PIN_HX7112_DOUT` | HX711 #2 DOUT (Auflast) | in | zweite Zelle noch nicht bestückt |
 | 18 | `PIN_DRIVE_TX` | UART1 TX → Regler | out | |
 | 21 | `PIN_DRIVE_RX` | UART1 RX ← Regler | in | |
-| 39 | `PIN_BTN_OK` | Steuerkreuz Mitte, bestätigen | in, Pull-up | |
+| ~~39~~ | ~~`PIN_BTN_OK`~~ | ~~Steuerkreuz Mitte~~ | — | **frei seit 2026-11-22** |
 | 40 | `PIN_BRAKE_RELEASE` | MOSFET in der Spulenmasse der Bremsrelais | out | **high = Relais an = Bremse gelöst.** Pulldown am Gate: beim Reset gebremst |
 | 48 | `PIN_STATUS_LED` | Status-LED | out | auf DevKitC-1 **v1.0** ist das die RGB-LED, auf v1.1 ist sie an GPIO 38 |
 
@@ -243,9 +243,9 @@ kostet die Messung.
 
 | Baustein | Versorgung | Signal zum ESP32 |
 |---|---|---|
-| TLE4905L | V_S = 5 V (Minimum 3,8 V) | Open Collector, **Pull-up 2,2…4,7 kΩ nach 3,3 V** |
+| TLE4905L | V_S = 5 V (Minimum 3,8 V) | Open Collector, **Teiler 1,8 kΩ / 3,3 kΩ am ESP32** → 3,2 V. Löt- und Anschlussvorlage: `hardware/hallplan.pdf` |
 | HX711 | **VCC = 5 V** (analog), **VDD = 3,3 V** (digital) | DOUT auf 3,3 V |
-| LCD / PCF8574 | 5 V | I²C — drei Wege, §5.6 |
+| ~~LCD / PCF8574~~ | — | **entfällt seit 2026-11-22**, bedient wird über WLAN |
 
 **Festlegung: HX711-Modul mit getrennten VCC- und VDD-Pins** (SparkFun-Bauform,
 fünf Pins: VDD, VCC, DAT, CLK, GND). VCC speist die Brücke, VDD legt den Logikpegel
@@ -379,6 +379,11 @@ Falls doch einer in die Analogstrecke muss:
 - **Logik- und Leistungsmasse an genau einem Punkt verbinden.**
 
 ### 5.6 Das LCD auf 3,3-V-Pegel bringen
+
+> **Gegenstandslos seit dem 2026-11-22**: Steuerkreuz und LCD entfallen, bedient wird
+> über WLAN am Telefon ([10-firmware](10-firmware.md) §3.1). Der Abschnitt bleibt
+> stehen, weil die Abwägung wieder gebraucht wird, sobald ein I²C-Gerät mit 5 V
+> dazukommt — der IR-Temperaturfühler ist ein Kandidat.
 
 Backpack (PCF8574) und HD44780-Modul laufen auf **5 V**. SDA und SCL sind Open Drain:
 den High-Pegel macht nicht der Baustein, sondern der **Pull-up** — und auf dem
