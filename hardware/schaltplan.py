@@ -133,10 +133,10 @@ with schemdraw.Drawing(show=False) as d:
         'Nicht nutzbar am N16R8:  GPIO26…37 (Flash + Octal-PSRAM), GPIO19/20 (USB), GPIO0/45/46 (Strapping).',
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -13.80)).label(
-        'Speisung:  Logik AUSSCHLIESSLICH ueber USB-C \u2014 5V-Pin und USB schliessen sich aus. Beide Buchsen duerfen gleichzeitig speisen:',
+        'Speisung:  Logik ueber USB-C. Beide Buchsen duerfen gleichzeitig speisen, und hinter jeder sitzt eine Schottky (D1, D7) nach VCC_5V --',
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -14.25)).label(
-        '           Netzteil an der einen, Notebook zum Flashen an der anderen. Der 5V-Pin ist dann AUSGANG (VBUS) fuer Geber, HX711-VCC und LCD.',
+        '           eine Rueckspeisung ins Notebook ist damit unmoeglich. Der 5V-Pin haengt hinter den Dioden und ist AUSGANG fuer Geber und HX711-VCC.',
         fontsize=7.5, color='#4a5560', halign='left')
     d += elm.Label().at((-12.0, -14.70)).label(
         'HX711-Analogteil:  Ferrit und 100 uF direkt am AVDD-Pin, Sternmasse, nicht am Motorzweig.',
