@@ -444,7 +444,7 @@ auseinanderhalten.
 | **Indexmarke** | 1 Magnet, andere Spur oder anderer Radius — **zwingend unipolar (TLE4905L)**, ein Latch bliebe hängen | Hall, Interrupt | GPIO5 |
 | **Motor-Hall** | im Motor vorhanden, eine Phase herausführen | Interrupt | GPIO7 |
 | **Wägezelle** | Hebelarm → **Schaltzug 1,2 mm, 80 mm** → Zelle, 12 N vorgespannt | HX711, 80 SPS | 15 / 16 |
-| **Laufraddrehzahl** | **4 Magnete an den Speichen**, Hall am Ausfallende | Interrupt | GPIO6 |
+| **Laufraddrehzahl** | **1 Magnet an den Speichen** (seit 2026-11-22 so verbaut; mehr brächten nur eine schnellere Aktualisierung, keine Genauigkeit), Hall am Ausfallende | Interrupt | GPIO6 |
 | **Messzone der Waage** | Gabellichtschranke, Fahne mit Fenster auf r = 200 mm am Hebelarm | digital | **TBD, freier Pin** |
 | Reifentemperatur | **IR berührungslos** auf die Lauffläche, kurz hinter dem Latsch | I²C | 8 / 9, kein eigener Pin |
 | Umgebungstemperatur | am Rahmen, weg von Motor und Netzteil | I²C | **TBD** |
