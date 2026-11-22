@@ -29,6 +29,7 @@
 #include "torque.h"
 #include "speedctl.h"
 #include "revsrc.h"
+#include "speed.h"
 #include "state.h"
 #include "logger.h"
 #include "tirepressure.h"
@@ -52,7 +53,8 @@ void printHelp() {
   Serial.println("#   b<m>    Kalibrierarm            z      Einstellungen zuruecksetzen");
   Serial.println("#   e       Drehrichtung einlernen (Trommel von Hand drehen)");
   Serial.println("#   x       Losbrechmoment messen (Tastverhaeltnis steigt langsam)");
-  Serial.println("#   i       Zustand: Regler, Waegezelle, Bedienverbindung");
+  Serial.println("#   i       Zustand: Regler, Waegezelle, Geber, Bedienverbindung");
+  Serial.println("#   g       Geberzaehler nullen (Verdrahtungstest)");
   Serial.print("# Grenze: "); Serial.print(V_MAX_KMH, 0);
   Serial.println(" km/h (docs/07-sicherheit.md §5)");
 }
@@ -162,6 +164,39 @@ void printStatus() {
     Serial.print(" / SCK GPIO "); Serial.println(PIN_HX711_SCK);
     Serial.println("#          Pruefen: VCC und VDD versorgt? GND gemeinsam?"
                    " DOUT/SCK vertauscht?");
+  }
+
+  // Verdrahtungstest: Trommel von Hand drehen, die Zaehler muessen mitlaufen.
+  // Ein Kanal ohne Impulse ist entweder nicht verdrahtet oder sieht keinen
+  // Magneten -- am Pegel allein ist das nicht zu unterscheiden, weil der
+  // Pull-up beides high zieht.
+  Serial.print("# Geber    ");
+  for (uint8_t i = 0; i < speed::CH_N; i++) {
+    const speed::ChannelState c = speed::channel(static_cast<speed::Channel>(i));
+    if (i) Serial.print(" | ");
+    Serial.print(speed::channelName(static_cast<speed::Channel>(i)));
+    Serial.print(' '); Serial.print(c.count);
+    if (c.count) { Serial.print(" vor "); Serial.print(c.sinceMs); Serial.print(" ms"); }
+    else         { Serial.print(" KEINE IMPULSE"); }
+    Serial.print(c.low ? " low" : " high");
+  }
+  Serial.println();
+
+  // Reifendurchmesser aus den Drehzahlen: am Latsch sind die Umfangs-
+  // geschwindigkeiten gleich, also d_Reifen = d_Trommel * n_Trommel / n_Rad.
+  // Das ist der wirksame Abrolldurchmesser unter Last, nicht das Nennmass.
+  {
+    const float nDrum = revsrc::revPerSec();
+    const float nWheel = speed::wheelRevPerSec();
+    Serial.print("# Laufrad  Trommel "); Serial.print(nDrum * 60.0f, 1);
+    Serial.print(" 1/min | Rad ");       Serial.print(nWheel * 60.0f, 1);
+    Serial.print(" 1/min | Reifen ");
+    if (nDrum > 0.2f && nWheel > 0.2f) {
+      Serial.print(settings::drumCircumferenceM() / PI * nDrum / nWheel * 1000.0f, 1);
+      Serial.println(" mm");
+    } else {
+      Serial.println("\u2014 (beides muss drehen)");
+    }
   }
 
   Serial.print("# Bedienung ");
@@ -304,6 +339,7 @@ void handleCommand(const String& cmd) {
                      " Abbruch bei 0,15 oder sobald sie sich regt.");
       break;
     case 'i': printStatus(); break;
+    case 'g': speed::resetCounters(); note("Geberzaehler genullt"); break;
     case '?': printHelp(); note(""); break;
     default:  note("unbekannter Befehl"); break;
   }
@@ -336,6 +372,29 @@ void buildStateJson(char* buf, size_t len) {
   char sTmot[16];
   num(sTmot, sizeof(sTmot), (!ok || tmotOffen) ? NAN : v.tempMotor, 1);
 
+  // Verdrahtungstest der Geber: je Kanal [Impulse, ms seit dem letzten, low].
+  // ms ist null, solange noch kein Impuls kam.
+  char sGeber[128];   // 4 x maximal 30 Zeichen
+  size_t gp = 0;
+  for (uint8_t i = 0; i < speed::CH_N; i++) {
+    const speed::ChannelState c = speed::channel(static_cast<speed::Channel>(i));
+    char sMs[12];
+    if (c.count) snprintf(sMs, sizeof(sMs), "%lu", static_cast<unsigned long>(c.sinceMs));
+    else         snprintf(sMs, sizeof(sMs), "null");
+    gp += snprintf(sGeber + gp, sizeof(sGeber) - gp, "%s[%lu,%s,%s]",
+                   i ? "," : "", static_cast<unsigned long>(c.count), sMs,
+                   c.low ? "true" : "false");
+  }
+
+  // Laufrad und wirksamer Reifendurchmesser, siehe printStatus(). Intern m und
+  // 1/s; 1/min und mm entstehen erst hier, an der Ausgabegrenze.
+  const float nDrum  = revsrc::revPerSec();
+  const float nWheel = speed::wheelRevPerSec();
+  const float dTire  = (nDrum > 0.2f && nWheel > 0.2f)
+      ? settings::drumCircumferenceM() / PI * nDrum / nWheel : NAN;
+  char sDTire[16];
+  num(sDTire, sizeof(sDTire), dTire * 1000.0f, 1);
+
   char sN[16], sPct[16], sKg[16], sM[16], sRoll[16];
   num(sN,   sizeof(sN),   fN,   2);
   num(sPct, sizeof(sPct), pct,  1);
@@ -354,7 +413,8 @@ void buildStateJson(char* buf, size_t len) {
     "\"nm\":%s,\"roll\":%s,"
     "\"kal\":%s,\"saturiert\":%s,\"zelle\":%s,"
     "\"dir\":%d,\"lernt\":%s,\"brk\":%s,\"brkDuty\":%.4f,\"brkAmps\":%.1f,"
-    "\"up\":%lu,"
+    "\"up\":%lu,\"geber\":[%s],"
+    "\"nTrommel\":%.1f,\"nRad\":%.1f,\"dReifen\":%s,"
     "\"drumU\":%.4f,\"arm\":%.4f,\"calArm\":%.4f,\"npc\":%.8f,"
     "\"vmax\":%.0f,\"vmin\":%.0f,\"step\":%.0f,\"fsN\":%.1f}",
     ok ? "true" : "false",
@@ -377,7 +437,8 @@ void buildStateJson(char* buf, size_t len) {
     speedctl::learning() ? "true" : "false",
     speedctl::breakingAway() ? "true" : "false",
     speedctl::breakawayDuty(), speedctl::breakawayAmps(),
-    static_cast<unsigned long>(millis()),
+    static_cast<unsigned long>(millis()), sGeber,
+    nDrum * 60.0f, nWheel * 60.0f, sDTire,
     settings::drumCircumferenceM(), settings::torqueArmM(),
     settings::calibArmM(), settings::loadcellNPerCount(),
     V_MAX_KMH, V_MIN_KMH, SPEED_STEP_KMH, LOADCELL_CAPACITY_N);
