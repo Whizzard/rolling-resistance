@@ -918,11 +918,11 @@ zentralen M6** aufs Profil, daran die Stirnwand mit dem Ausschnitt für die Hül
 **Der Stecker liegt** — seine lange Achse parallel zur Auflage, die Steckrichtung
 parallel zum Profil. Das Kabel läuft damit am Rahmen entlang.
 
-Außenmaß **40,0 × 34,0 × 22,1 mm**, 10,0 cm³.
+Außenmaß **40,0 × 34,0 × 19,1 mm**, 9,5 cm³.
 
 | | |
 |---|---|
-| Featurebaum | Grundplatte · Stirnwand · Rippe_p/_m · Ausschnitt · Kabelschlitz · Ohrloecher · M6_Durchgang · M6_Senkung · Fasen |
+| Featurebaum | Grundplatte · Stirnwand · Rippe_p/_m · Ausschnitt · Ohrloecher · M6_Durchgang · M6_Senkung · Fasen |
 | `hardware/xt60_halter.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
 
 Steckermaße aus der Maßzeichnung im Amass-Datenblatt, abgelesen 2026-11-22:
@@ -945,11 +945,17 @@ von vorn** durch die Wand in die Ohren, Muttern in den Sechskant-Taschen, die de
 Stecker auf der Lötseite in den Ohren hat. Die Hülse steht in jeder Lesart der
 Zeichnung mindestens 7 mm vor den Flansch, also rund 4 mm vor die Wand.
 
-**Oben offen.** Vom Ausschnitt läuft ein **11 mm breiter Schlitz** bis zur
-Oberkante der Wand: die angelöteten Leitungen werden von oben eingelegt, nichts
-wird gefädelt. Breiter geht der Schlitz nicht — die Ohrlöcher liegen beim XT60E-M
-nur 0,4 mm neben der Hülsenkontur, ein Schlitz in Hülsenbreite ließe an den
-Schrauben nichts stehen. Bei 11 mm bleiben neben jedem Loch 2,9 mm Steg.
+**Oben ganz offen.** Der Ausschnitt läuft in voller Hülsenbreite bis zur
+Oberkante, die Wand ist damit **zwei Pfosten**, die auf Höhe der Hülsenoberkante
+enden. Der Stecker wird mit angelöteten Leitungen von oben eingelegt, nichts wird
+gefädelt, und es gibt keine Brücke im Druck.
+
+> **Der Steg neben dem Ohrloch ist 0,4 mm** — das ist die Geometrie des Steckers,
+> nicht des Halters: Lochabstand 20,0 bei 15,5 Hülse und Ø 3 heißt 2,25 mm vom
+> Lochrand zur Hülsenkontur, mit Spiel und M3-Durchgang bleiben 0,4 mm. Der Slicer
+> druckt den Hauch oder lässt ihn weg, beides ist egal: die Schraube wird vom Ohr
+> geführt, der Kopf liegt zu drei Vierteln auf dem Pfosten, und die Hülse sitzt
+> seitlich im Ausschnitt.
 
 #### Erst die M6, dann der Stecker
 
@@ -964,8 +970,7 @@ M6. Wer eine will, misst die Nutbreite am Profil und trägt sie als `key_w`/`key
 ein; dann kommt unten eine Leiste dazu.
 
 > **Druckrichtung:** mit der **Grundplatte aufs Bett**. Wand und Rippen stehen
-> dann senkrecht; über dem Ausschnitt bleiben nur zwei kurze Brücken von je 2,5 mm
-> bis zum Schlitz, die brauchen keine Stütze.
+> dann senkrecht, Überhänge gibt es keine.
 
 ## 8 Markenaufnahme an der Trommel
 
