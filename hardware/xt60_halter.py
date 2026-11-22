@@ -44,11 +44,20 @@ Händlerangaben im Netz nennen 16, 19 und 20 mm für "XT60 Einbau", je nach
 Variante. VOR DEM DRUCK am Stecker mit dem Messschieber nachmessen und
 `con_pitch` in der Tabelle setzen.
 
+OBEN OFFEN: Vom Ausschnitt läuft ein Schlitz bis zur Oberkante der Wand, damit
+die angelöteten Leitungen von oben eingelegt werden und nicht durch den
+Ausschnitt gefädelt werden müssen. Der Schlitz ist NICHT so breit wie die
+Hülse: die Ohrlöcher des XT60E-M liegen nur 0,4 mm neben der Hülsenkontur
+(Lochabstand 20,0 bei 15,5 Hülse, Ø3), ein Schlitz in Hülsenbreite nähme den
+Pfosten an der Schraube alles Material. 11 mm reichen für zwei 12-AWG-
+Leitungen und lassen neben den Löchern 2,9 mm stehen.
+
 Featurebaum:
     Grundplatte       Quader base_l x base_w x base_t, z = 0 ist die Auflage
     Stirnwand         Quader wall_t x base_w x wall_h bei x = 0
     Rippe_p/_m        Dreieck in XZ, je eine an der Aussenkante
     Ausschnitt        Rechteck durch die Wand für die Hülse
+    Kabelschlitz      Rechteck vom Ausschnitt bis über die Oberkante
     Ohrloecher        2 x Ø screw_d durch die Wand, Abstand con_pitch
     M6_Durchgang      Ø m6_d durch die Grundplatte, zentral
     M6_Senkung        Ø m6_head_d, m6_cb_t tief, von oben — Zylinderkopf
@@ -90,6 +99,7 @@ PARAMS = [
     ('screw_d',       3.2, 'M3 Durchgang in der Wand'),
     ('cut_w', '=con_shell_w + fit_shell', 'Ausschnitt breit'),
     ('cut_h', '=con_shell_h + fit_shell', 'Ausschnitt hoch'),
+    ('slot_w',       11.0, 'Kabelschlitz nach oben; < con_pitch - screw_d - 5'),
 
     # Schraube M6, Zylinderkopf DIN 912: k = 6, dk = 10
     ('m6_d',          6.6, 'M6 Durchgang, wie die anderen Halter'),
@@ -287,6 +297,14 @@ def build(doc, sh):
          'Parameter.cut_w', 'Parameter.cut_h')
     pocket_through(sk, 'Ausschnitt')
 
+    # 4a Kabelschlitz: vom Ausschnitt bis ueber die Oberkante der Wand.
+    sk = sketch_on(body, yz, 'Sk_Kabelschlitz')
+    rect(sk, -P(sh, 'slot_w') / 2, P(sh, 'con_z'),
+         P(sh, 'slot_w'), P(sh, 'wall_h') - P(sh, 'con_z') + 1.0, 'slot',
+         '-Parameter.slot_w / 2', 'Parameter.con_z',
+         'Parameter.slot_w', 'Parameter.wall_h - Parameter.con_z + 1')
+    pocket_through(sk, 'Kabelschlitz')
+
     # 5 Ohrloecher, M3 durch die Wand, auf Hoehe der Ausschnittmitte.
     sk = sketch_on(body, yz, 'Sk_Ohrloecher')
     for tag, sign in (('p', +1), ('m', -1)):
@@ -436,6 +454,15 @@ def check(body, sh):
     p = Vector(P(sh, 'wall_t') / 2, P(sh, 'con_pitch') / 2, P(sh, 'con_z'))
     if s.isInside(p, 1e-6, True):
         print('FEHLER Ohrloch fehlt'); ok = False
+    # Kabelschlitz: Luft an der Oberkante der Wand, mittig
+    p = Vector(P(sh, 'wall_t') / 2, 0.0, P(sh, 'wall_h') - 0.5)
+    if s.isInside(p, 1e-6, True):
+        print('FEHLER Kabelschlitz fehlt'); ok = False
+    # Pfosten neben dem Ohrloch: Material zwischen Loch und Schlitz
+    web = P(sh, 'con_pitch') / 2 - P(sh, 'screw_d') / 2 - P(sh, 'slot_w') / 2
+    print('Steg Ohrloch-Schlitz %.1f mm' % web)
+    if web < 2.5:
+        print('FEHLER Steg neben dem Ohrloch unter 2,5 mm'); ok = False
     # M6: Luft durch die Platte, Senkung oben, Boden unten
     if s.isInside(Vector(P(sh, 'm6_x'), 0.0, P(sh, 'base_t') / 2), 1e-6, True):
         print('FEHLER M6-Durchgang fehlt'); ok = False
