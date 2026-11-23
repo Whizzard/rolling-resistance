@@ -180,6 +180,10 @@ void service() {
   // Klemme aus der Leerlaufkennlinie des Sollwerts (Regel 3)
   float klemme = rpmFromKmh(g_ramp) / noLoadRpm() * SPEEDCTL_CLAMP_FACTOR
                  + SPEEDCTL_CLAMP_OFFSET;
+  // Anfahrfenster: steht die Trommel noch, darf der Stellwert bis zum Losbrechen
+  // hoch -- sonst wartet sie unter Strom, bis die Rampe es erlaubt (config.h).
+  if (istKmh < 1.0f && g_ramp > 1.0f && klemme < SPEEDCTL_START_DUTY)
+    klemme = SPEEDCTL_START_DUTY;
   if (klemme > 0.95f) klemme = 0.95f;
 
   // Trimm, asymmetrisch begrenzt (Regel 2)

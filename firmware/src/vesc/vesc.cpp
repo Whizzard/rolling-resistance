@@ -24,6 +24,10 @@ uint32_t g_lastPoll = 0;
 
 bool     g_fwKnown = false;
 uint8_t  g_fwMajor = 0, g_fwMinor = 0;
+uint8_t  g_lastFault = 0;
+uint32_t g_lastFaultMs = 0;
+uint32_t g_faultCount = 0;
+bool     g_faultSeen = false;
 char     g_hwName[16] = {0};
 
 // Welche Felder abgefragt werden. Bitnummern wie in commands.c der VESC-Firmware:
@@ -114,7 +118,25 @@ void onValues(const uint8_t* d, size_t len) {
 
   g_val.seen = true;
   g_lastValueMs = millis();
+
+  // Fehlercode festhalten, solange er neu ist (siehe vesc.h).
+  if (g_val.fault != 0 && (!g_faultSeen || g_val.fault != g_lastFault
+                           || millis() - g_lastFaultMs > 2000)) {
+    g_lastFault = g_val.fault;
+    g_lastFaultMs = millis();
+    g_faultSeen = true;
+    g_faultCount++;
+    Serial.print("# VESC-FEHLER "); Serial.print(g_val.fault);
+    Serial.print(": "); Serial.print(faultText(g_val.fault));
+    Serial.print(" | "); Serial.print(g_val.vIn, 1); Serial.print(" V, ");
+    Serial.print(g_val.currentMotor, 1); Serial.print(" A, ");
+    Serial.print(g_val.erpm); Serial.print(" ERPM, Duty ");
+    Serial.println(g_val.duty, 3);
+  } else if (g_val.fault != 0) {
+    g_lastFaultMs = millis();
+  }
 }
+
 
 void onFwVersion(const uint8_t* d, size_t len) {
   if (len < 3) return;
@@ -208,6 +230,9 @@ void service() {
 }
 
 const Values& values() { return g_val; }
+uint8_t  lastFault()      { return g_lastFault; }
+uint32_t lastFaultAgeMs() { return g_faultSeen ? millis() - g_lastFaultMs : 0xFFFFFFFFu; }
+uint32_t faultCount()     { return g_faultCount; }
 
 void terminal(const char* text) {
   uint8_t p[PAYLOAD_MAX];

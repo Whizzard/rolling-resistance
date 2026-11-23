@@ -53,7 +53,11 @@ void checkFaults() {
   else if (revsrc::revPerSec() * 60.0f > MAX_DRUM_RPM)
                                     reason = "FAULT: Drehzahlgrenze";
   else if (!vesc::connected())      reason = "FAULT: kein Regler";
-  else if (vesc::values().fault != 0) reason = "FAULT: Reglerfehler";
+  else if (vesc::values().fault != 0) {
+    static char rbuf[64];
+    snprintf(rbuf, sizeof(rbuf), "FAULT: Regler: %s", vesc::faultText(vesc::values().fault));
+    reason = rbuf;
+  }
   else if (speedctl::estopInput())  reason = "FAULT: Not-Aus";
   else if (speedctl::motorOpen())   reason = "FAULT: Trennung erkannt";
   else if (stillstand)              reason = "FAULT: Trommel dreht nicht";
