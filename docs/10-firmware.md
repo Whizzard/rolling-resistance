@@ -55,7 +55,7 @@ Joystick-Breakouts: die geben eine Spannung, keine fünf Kontakte.
 | N1 | M | Auslösbar jederzeit und aus jeder Betriebsart. |
 | N2 | M | **Reihenfolge: erst Treiber sperren, dann Relais abfallen lassen.** Die Phasen dürfen nicht kurzgeschlossen werden, solange der Regler noch treibt. |
 | N3 | M | Relais abgefallen = Phasen kurzgeschlossen = gebremst. Gemessen 2026-11-01: rund **25 s** aus über 400 1/min. |
-| N4 | M | Zustand ist **rastend**. Quittierung nur im Stillstand. |
+| N4 | M | Zustand hält, bis die Trommel steht, und löst sich dann von selbst (seit 2026-11-23; vorher rastend mit Quittierung). |
 | N5 | M | Derselbe Zustand wird von den Abschaltkriterien in [07-sicherheit](07-sicherheit.md) §4 erreicht. |
 | N6 | M | Beim Reset und beim Booten sind die Relais abgefallen, der Stand ist also gebremst. |
 

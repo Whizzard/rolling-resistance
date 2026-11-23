@@ -47,8 +47,32 @@ char  g_note[96] = "";          // letzte Rueckmeldung an die Oberflaeche
 // 2026-11-23: "Ziel 15 km/h" stand dort dauerhaft, obwohl die Kachel Soll das
 // laengst zeigte; die Zeile ist fuer das reserviert, was der Bediener wissen muss.
 bool g_noteBad = false;
-void note(const char* s) { strncpy(g_note, s, sizeof(g_note) - 1); g_note[sizeof(g_note)-1] = '\0'; g_noteBad = false; }
+uint32_t g_noteMs = 0;
+void note(const char* s) { strncpy(g_note, s, sizeof(g_note) - 1); g_note[sizeof(g_note)-1] = '\0'; g_noteBad = false; g_noteMs = millis(); }
 void fail(const char* s) { note(s); g_noteBad = true; }
+
+// DER Fehlerzustand fuer die Oberflaeche: ein Text oder nichts. Die Seite fragt
+// nur ab, ob da etwas steht, und zeigt es rot. Reihenfolge = Wichtigkeit.
+// Befehlsfehler (fail) verschwinden nach fuenf Sekunden von selbst.
+const char* currentError() {
+  static char buf[96];
+  const vesc::Values& v = vesc::values();
+  if (!vesc::connected())            return "Kein Regler";
+  if (v.fault != 0) { snprintf(buf, sizeof(buf), "Regler: %s", vesc::faultText(v.fault)); return buf; }
+  if (speedctl::estopInput())        return "Not-Aus";
+  if (speedctl::motorOpen())         return "Trennung erkannt";
+  if (state::phase() == state::FAULT) {
+    const char* r = state::faultReason();
+    return strncmp(r, "FAULT: ", 7) == 0 ? r + 7 : r;
+  }
+  if (torque::isSaturated())         return "Waegezelle am Anschlag";
+  if (!torque::isResponding())       return "HX711 antwortet nicht";
+  if (v.tempMotor < MOTOR_TEMP_OPEN_C) return "Motorfuehler offen";
+  if (speedctl::running() && speedctl::rampKmh() > 3.0f && speedctl::kmh() < 1.0f)
+                                     return "Trommel dreht nicht";
+  if (g_noteBad && g_note[0] && millis() - g_noteMs < 5000) return g_note;
+  return "";
+}
 
 // Meldungen der Zustandsmaschine und der Regelung (logger::note) sind Fehler, wenn
 // sie so anfangen.
@@ -529,6 +553,16 @@ void buildStateJson(char* buf, size_t len) {
   char sLoad[16];
   num(sLoad, sizeof(sLoad), state::loadN(), 1);
 
+  // Live: Verlustleistung am Reifen und Crr -- ROH, also samt Trommelverlusten;
+  // die Auswertung zieht den Leerlauf ab (docs/09-messtheorie.md). Ohne
+  // Kalibrierung null, ohne Auflast kein Crr.
+  const float pW  = isnan(mNm) ? NAN : mNm * revsrc::omega();
+  const float crr = (isnan(roll) || isnan(state::loadN()) || state::loadN() <= 0.0f)
+                    ? NAN : roll / state::loadN();
+  char sPW[16], sCrr[16];
+  num(sPW,  sizeof(sPW),  pW,  1);
+  num(sCrr, sizeof(sCrr), crr, 4);
+
   char sN[16], sPct[16], sKg[16], sM[16], sRoll[16];
   num(sN,   sizeof(sN),   fN,   2);
   num(sPct, sizeof(sPct), pct,  1);
@@ -545,7 +579,7 @@ void buildStateJson(char* buf, size_t len) {
     "\"vin\":%.1f,\"imot\":%.2f,\"iin\":%.2f,\"watt\":%.0f,"
     "\"tfet\":%.1f,\"tmot\":%s,\"tmotOffen\":%s,"
     "\"counts\":%ld,\"ripple\":%ld,\"n\":%s,\"pct\":%s,\"kg\":%s,"
-    "\"nm\":%s,\"roll\":%s,"
+    "\"nm\":%s,\"roll\":%s,\"pw\":%s,\"crr\":%s,\"err\":\"%s\","
     "\"kal\":%s,\"saturiert\":%s,\"zelle\":%s,"
     "\"dir\":%d,\"lernt\":%s,\"brk\":%s,\"brkDuty\":%.4f,\"brkAmps\":%.1f,"
     "\"up\":%lu,\"geber\":[%s],"
@@ -566,7 +600,7 @@ void buildStateJson(char* buf, size_t len) {
     ok ? v.vIn : 0.0f, ok ? v.currentMotor : 0.0f, ok ? v.currentIn : 0.0f,
     ok ? v.vIn * v.currentIn : 0.0f,
     ok ? v.tempFet : 0.0f, sTmot, tmotOffen ? "true" : "false",
-    counts, ripple, sN, sPct, sKg, sM, sRoll,
+    counts, ripple, sN, sPct, sKg, sM, sRoll, sPW, sCrr, currentError(),
     settings::calibrated() ? "true" : "false",
     torque::isSaturated() ? "true" : "false",
     torque::isResponding() ? "true" : "false",
