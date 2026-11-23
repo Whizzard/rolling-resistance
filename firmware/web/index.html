@@ -680,8 +680,9 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("dia").innerHTML = de(j.drumU / Math.PI * 1000, 1);
     /* Rohwert absolut und als Anteil des 24-Bit-Bereichs (+-8 388 607) */
     var FS = 8388607, pct = j.raw / FS * 100;
-    $("raw").innerHTML = j.raw;
-    $("rawPct").innerHTML = de(pct, 2) + " %";
+    /* gross: genullt; klein: der absolute Rohwert und seine Lage im Bereich */
+    $("raw").innerHTML = j.counts;
+    $("rawPct").innerHTML = j.raw + " \u00b7 " + de(pct, 2) + " %";
     $("rawDot").style.left = (50 + Math.max(-50, Math.min(50, pct / 2))) + "%";
     $("tare").innerHTML = j.tare;
     $("ripple").innerHTML = j.ripple;
