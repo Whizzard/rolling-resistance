@@ -14,13 +14,21 @@ Drei Löcher im Dreieck:
          \       /        Kontur läuft zur Mitte hin zusammen
           \     /
           +-----+
-          | (O) |       eine M6, mittig, nach aussen versetzt --
-          +-----+       weit genug fuer eine Karosseriescheibe Ø 18
+          | (O) |       eine M6, mittig, nach aussen versetzt, mit
+          +-----+       Flachsenkung fuer den Schraubenkopf
 
 Die beiden M4 kommen von oben durch die Ø-4,5-Bohrungen am Rand der Kopfseite in
 die hier eingelassenen Muttern. Die M6 geht durch die überstehende Spitze auf die
 Schiene. Zwei Schrauben, zwei Aufgaben: die M4 halten das Gehäuse, die M6 hält
 die Spange.
+
+M6 SEIT 2026-11-23 VERSENKT: Die Schrauben sind kurz. Der Kopf sitzt in einer
+Flachsenkung Ø m6_head_d, so tief, dass unter ihm nur m6_rest = 1,5 mm Boden
+bleiben; der Durchgang ist 6,5 statt 6,6. Die Karosseriescheibe Ø 18, nach der
+Versatz und Spitze urspruenglich bemessen wurden, entfaellt damit — eine
+Senkung in Scheibengroesse liesse an der Spitze keine Wand mehr. Versatz und
+Spitzenbreite bleiben trotzdem, wie sie sind: die Spangen sind so gebaut, und
+die Lage der M6 auf der Schiene soll sich nicht aendern.
 
 Aufbau wie hall_gehaeuse.py und hx711_gehaeuse.py: PartDesign-Body mit
 Featurebaum plus Spreadsheet "Parameter", alle Skizzen voll bestimmt und über
@@ -30,7 +38,8 @@ Featurebaum:
     Platte        Sechseck-Umriss: breit unter dem Gehäuse, Spitze zur M6
     Mutterloecher zwei Sechskanttaschen von unten, M4
     M4_Durchgaenge zwei Ø 4,5 durch die Platte
-    M6_Durchgang  Ø 6,6 in der Spitze
+    M6_Durchgang  Ø 6,5 in der Spitze
+    M6_Senkung    Flachsenkung Ø 11 von oben, bis 1,5 mm Boden bleiben
     Verrundung    die sechs senkrechten Umrisskanten
 
 Die Oberseite ist **glatt** — keine erhöhten Auflagen. Sie liegt vollflächig an
@@ -76,17 +85,22 @@ def params(pitch):
         ('m4_d',          4.5,  'Durchgang M4'),
         ('nut_af',        7.2,  'Mutter M4 ueber Schluesselflaechen, 7,0 + Spiel'),
         ('nut_h',         3.4,  'Mutter M4 hoch, 3,2 + Spiel'),
-        ('m6_d',          6.6,  'Durchgang M6 zur Schiene'),
+        ('m6_d',          6.5,  'Durchgang M6 zur Schiene'),
+        # Flachsenkung fuer den Schraubenkopf: Zylinderkopf DIN 912 M6 hat
+        # dk = 10, ein Sechskant SW 10 misst 11,05 ueber Eck -- dafuer 12,5.
+        ('m6_head_d',    11.0,  'Flachsenkung, Zylinderkopf dk 10 + Spiel'),
+        ('m6_rest',       1.5,  'Boden unter dem Schraubenkopf'),
+        ('m6_cb_t', '=plate_t - m6_rest', 'Tiefe der Flachsenkung'),
 
         ('m4_pad',       11.3,  'Material um eine Mutter: ueber Eck + 1,5 je Seite'),
         ('plate_t',       6.0,  'Plattendicke: Mutter 3,4 + 2,6 darueber'),
         ('fillet_r',      3.0,  'Verrundung der senkrechten Umrisskanten'),
 
-        # Die M6 richtet sich nach der KAROSSERIESCHEIBE, nicht nach dem
-        # Schraubenkopf: DIN 9021 fuer M6 ist Ø 18, ein Zylinderkopf nur Ø 10.
-        # Danach wird sowohl der Versatz als auch die Spitze bemasst, damit die
-        # Scheibe vollflaechig aufliegt und nicht an die Gehaeusekante stoesst.
-        ('m6_washer_d',  18.0,  'Karosseriescheibe M6, DIN 9021'),
+        # Versatz und Spitze wurden nach der KAROSSERIESCHEIBE DIN 9021 (Ø 18)
+        # bemasst, damit sie vollflaechig auflag und nicht an die Gehaeusekante
+        # stiess. Die Scheibe entfaellt seit der Flachsenkung (siehe Kopf); das
+        # Mass bleibt als Bezugsgroesse fuer die bestehende Geometrie stehen.
+        ('m6_washer_d',  18.0,  'Bezugsmass der Spitze, ehem. Karosseriescheibe'),
         ('m6_clear',      1.0,  'Luft Scheibenrand bis Gehaeusekante'),
         ('tip_wall',      1.5,  'Material neben der Scheibe an der Spitze'),
         ('m6_offset', '=screw_edge + m6_washer_d / 2 + m6_clear',
@@ -263,6 +277,14 @@ def build(doc, sh):
            '0', 'Parameter.m6_offset', 'Parameter.m6_d / 2')
     pocket(sk, 'M6_Durchgang', 'Parameter.plate_t + 1')
 
+    # 4a Flachsenkung von oben, bis m6_rest Boden bleiben. Skizze auf der
+    #    Oberseite; die Tasche geht gegen die Normale, also nach unten.
+    sk = sketch_on(body, xy, 'Sk_M6_Senkung', P(sh, 'plate_t'))
+    sk.setExpression('AttachmentOffset.Base.z', 'Parameter.plate_t')
+    circle(sk, 0.0, P(sh, 'm6_offset'), P(sh, 'm6_head_d') / 2, 'cb',
+           '0', 'Parameter.m6_offset', 'Parameter.m6_head_d / 2')
+    pocket(sk, 'M6_Senkung', 'Parameter.m6_cb_t', reversed_=False)
+
     # 5 Verrundung der senkrechten Umrisskanten.
     #
     #   Die Kanten werden ueber ihre LAGE gesucht, nicht ueber ihren Index: ein
@@ -401,14 +423,17 @@ def main():
           % P(sh, 'fillet_r'))
     print('M6-Achse hinter der Gehaeusekante %.2f mm'
           % (P(sh, 'm6_offset') - P(sh, 'screw_edge')))
-    print('Karosseriescheibe \u00d8%.0f: Rand %.2f mm vor der Gehaeusekante, '
-          'Auflage %.2f mm je Seite'
-          % (P(sh, 'm6_washer_d'),
-             P(sh, 'm6_offset') - P(sh, 'm6_washer_d') / 2 - P(sh, 'screw_edge'),
-             P(sh, 'tip_wall')))
-    print('Scheibenrand zur Muttertasche    %.2f mm'
-          % ((P(sh, 'm6_offset') - P(sh, 'm6_washer_d') / 2)
-             - P(sh, 'nut_af') / math.sqrt(3.0)))
+    print('Flachsenkung \u00d8%.1f, %.2f mm tief, Boden %.2f mm, Wand neben dem '
+          'Kopf %.2f mm'
+          % (P(sh, 'm6_head_d'), P(sh, 'm6_cb_t'), P(sh, 'm6_rest'),
+             (P(sh, 'w_tip') - P(sh, 'm6_head_d')) / 2))
+    # Geometrie pruefen: Luft in der Senkung, Boden darunter, Durchgang offen.
+    s = body.Shape
+    yc, r = P(sh, 'm6_offset'), P(sh, 'm6_head_d') / 2 - 0.5
+    ok = (not s.isInside(Vector(r, yc, P(sh, 'plate_t') - 0.5), 1e-6, True)
+          and s.isInside(Vector(r, yc, P(sh, 'm6_rest') / 2), 1e-6, True)
+          and not s.isInside(Vector(0, yc, P(sh, 'm6_rest') / 2), 1e-6, True))
+    print('Senkung plausibel           %s' % ok)
     return 0
 
 

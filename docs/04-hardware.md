@@ -839,11 +839,11 @@ muss:
 Zwei Spangen nötig, eine je Kopfseite. **Konstruiert wird nur eine**: sie ist
 symmetrisch zur M6-Achse und passt an beide Enden.
 
-Außenmaß **61,3 × 32,9 × 6,0 mm**, 9,0 cm³.
+Außenmaß **61,3 × 32,9 × 6,0 mm**, 8,7 cm³.
 
 | | |
 |---|---|
-| Featurebaum | Platte · Mutterloecher · M4_Durchgaenge · M6_Durchgang · Verrundung |
+| Featurebaum | Platte · Mutterloecher · M4_Durchgaenge · M6_Durchgang · M6_Senkung · Verrundung |
 | `hardware/esp_spange.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
 
 #### Drei Löcher im Dreieck
@@ -855,7 +855,7 @@ Außenmaß **61,3 × 32,9 × 6,0 mm**, 9,0 cm³.
         \           /        Kontur läuft zur Mitte hin zusammen
          \  +---+  /
           \ |(O)| /          eine M6, mittig, 16,2 mm nach aussen
-           -+---+-            versetzt — Platz für eine Karosseriescheibe
+           -+---+-            versetzt, Kopf in einer Flachsenkung
 ```
 
 | Merkmal | Maß |
@@ -864,7 +864,8 @@ Außenmaß **61,3 × 32,9 × 6,0 mm**, 9,0 cm³.
 | M4-Durchgänge | Ø 4,5, auf den Bohrungen des Gehäuses |
 | Muttertaschen | Sechskant, 7,2 über Flächen (8,31 über Eck), 3,4 tief, **von unten** |
 | Material über einer Mutter | 2,60 mm |
-| M6-Durchgang | Ø 6,6, Achse 16,2 mm von der M4-Linie |
+| M6-Durchgang | **Ø 6,5**, Achse 16,2 mm von der M4-Linie |
+| M6-Flachsenkung | **Ø 11, 4,5 mm tief** von oben — unter dem Kopf bleiben **1,5 mm** Boden (seit 2026-11-23, die Schrauben sind kurz) |
 | Verjüngung | 61,3 → 21,0 mm, Knick bei y = 6,2 (an der Gehäusekante) |
 | Verrundung | r = 3,0 an den **sechs senkrechten** Umrisskanten |
 
@@ -876,19 +877,24 @@ Außenmaß **61,3 × 32,9 × 6,0 mm**, 9,0 cm³.
 
 #### Warum die M6 so weit aussen sitzt
 
-Bemessen wurde sie nach der **Karosseriescheibe**, nicht nach dem Schraubenkopf:
-DIN 9021 für M6 ist Ø 18, ein Zylinderkopf nur Ø 10. Danach richten sich
-Versatz *und* Spitze, damit die Scheibe vollflächig trägt und nicht an die
-Gehäusekante stößt:
+Bemessen wurde sie ursprünglich nach der **Karosseriescheibe**, nicht nach dem
+Schraubenkopf: DIN 9021 für M6 ist Ø 18, ein Zylinderkopf nur Ø 10. Danach
+richteten sich Versatz *und* Spitze, damit die Scheibe vollflächig trägt und
+nicht an die Gehäusekante stößt:
 
 | | |
 |---|---|
 | M6-Achse hinter der Gehäusekante | **10,0 mm** |
-| Scheibenrand vor der Gehäusekante | 1,0 mm |
-| Auflage neben der Scheibe | 1,5 mm je Seite |
+| Spitze breit | 21,0 mm |
 
-Am Modell geprüft: die Scheibe liegt auf dem ganzen Umfang (36 Punkte) auf der
-Platte.
+**Seit 2026-11-23 entfällt die Scheibe.** Die M6-Schrauben sind kurz und müssen
+tiefer; der Kopf sitzt jetzt in einer **Flachsenkung Ø 11, 4,5 mm tief**, so dass
+unter ihm 1,5 mm Boden bleiben. Eine Senkung in Scheibengröße ließe an der 21 mm
+breiten Spitze keine Wand mehr. Versatz und Spitzenbreite bleiben trotzdem
+unverändert: die Lage der M6 auf der Schiene soll sich nicht ändern, und neben
+dem Kopf bleiben so 5,0 mm Wand. Die Senkung ist für einen Zylinderkopf DIN 912
+bemessen; ein Sechskant SW 10 misst 11,05 über Eck und bräuchte Ø 12,5
+(`m6_head_d` in der Tabelle).
 
 #### Oberseite glatt, Ecken verrundet
 
@@ -908,7 +914,9 @@ abbremsen.
 > sechs Kanten, bricht es ab, statt irgendwelche zu verrunden.
 
 > **Druckrichtung:** mit der **glatten Oberseite nach unten** aufs Bett. Dann
-> öffnen sich die Muttertaschen nach oben und brauchen keine Stütze.
+> öffnen sich die Muttertaschen nach oben und brauchen keine Stütze. Der Boden
+> der M6-Senkung liegt dann oben und wird über 11 mm gebrückt — bei 1,5 mm Dicke
+> und dem Ø-6,5-Loch in der Mitte ist das ein schmaler Ring, der ohne Stütze hält.
 
 ### 7.6 Halter für den XT60-Einbaustecker
 
