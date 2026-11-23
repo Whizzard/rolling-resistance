@@ -140,7 +140,7 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .editor button { width: 26%; margin-left: 2%; }
 
 /* ---- Assistent: Vollbild ueber allem ---- */
-.wiz { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 40;
+.wiz { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 18;
        background: #eef1f4; padding: 24px 16px; overflow: auto; }
 .wiz h1 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase;
           color: #64737f; margin: 0 0 14px; }
@@ -541,10 +541,12 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   window.onresize = layoutPin;
 
   /* ---------- Reiter ---------- */
+  var onMess = true;
   function tab(mess) {
+    onMess = mess;
     $("pageMess").hidden = !mess;
     $("pageSetup").hidden = mess;
-    $("pin").hidden = !mess;        /* nur auf der Messseite angepinnt */
+    $("pin").hidden = !mess && !wizOpen;   /* angepinnt auf der Messseite und im Assistenten */
     $("tabMess").className = mess ? "on" : "";
     $("tabSetup").className = mess ? "" : "on";
     layoutPin();
@@ -682,19 +684,24 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     if (w > 0) wizOpen = true;
     $("wiz").hidden = !wizOpen;
     if (!wizOpen) return;
+    /* Soll und Ist bleiben ueber dem Assistenten sichtbar: Kopf einblenden und
+       den Assistenten darunter beginnen lassen. */
+    $("pin").hidden = false;
+    layoutPin();
+    $("wiz").style.top = (document.getElementsByClassName("tabs")[0].offsetHeight
+                          + $("pin").offsetHeight) + "px";
     var step = "", txt = "", big = null;
     if (w === 0) {
       step = "1 \u00b7 Vorbereiten";
       txt = "Rad aufgelegt, Auflast dran, Raum frei. Die Trommel f\u00e4hrt auf "
           + de(j.wizKmh, 0) + " km/h. Laufradmasse " + de(j.mRad * 1000, 0) + " g.";
     } else if (w === 1) {
-      step = "2 \u00b7 Trommel f\u00e4hrt hoch"; txt = "Warten, bis die Drehzahl steht."; big = de(j.kmh, 1) + "<small>km/h</small>";
+      step = "2 \u00b7 Trommel f\u00e4hrt hoch"; txt = "Warten, bis die Drehzahl steht.";
     } else if (w === 2) {
       step = "3 \u00b7 Rad abheben"; txt = "Jetzt den Hebel ziehen. Sobald das Rad langsamer wird als die Trommel, geht es weiter.";
-      big = de(j.kmh, 1) + "<small>km/h</small>";
     } else if (w === 3) {
       step = "4 \u00b7 Auslauf und Leerlauf laufen"; txt = "Rad l\u00e4uft frei aus, die Trommel f\u00e4hrt die Leerlaufplateaus. Nichts anfassen.";
-      big = j.auslaufN + "<small>Radumdrehungen</small> \u00b7 " + de(j.kmh, 0) + "<small>km/h</small>";
+      big = j.auslaufN + "<small>Radumdrehungen</small>";
     } else {
       step = "5 \u00b7 Fertig";
       txt = "Leerlauf A0 " + (j.a0 === null ? "\u2014" : j.a0) + " Nm, B0 " + (j.b0 === null ? "\u2014" : j.b0)
@@ -706,8 +713,9 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("wizOk").innerHTML = (w === 4) ? "Schlie\u00dfen" : "Zur\u00fcck";
   }
   $("wizGo").onclick = function () { send("u"); };
-  $("wizCancel").onclick = function () { send("c"); wizOpen = false; $("wiz").hidden = true; };
-  $("wizOk").onclick = function () { if (lastJ && lastJ.wiz === 4) send("uq"); wizOpen = false; $("wiz").hidden = true; };
+  function wizClose() { wizOpen = false; $("wiz").hidden = true; $("pin").hidden = !onMess; layoutPin(); }
+  $("wizCancel").onclick = function () { send("c"); wizClose(); };
+  $("wizOk").onclick = function () { if (lastJ && lastJ.wiz === 4) send("uq"); wizClose(); };
 
   /* ---------- Anzeige ---------- */
   var build = null;   /* Kennung der Firmware; aendert sie sich, ist diese Seite alt */
