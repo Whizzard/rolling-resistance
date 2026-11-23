@@ -95,6 +95,14 @@ const char* hwName();        // "410" beim FSESC 4.20
 // auf einen falschen Namen abgebildet.
 const char* faultText(uint8_t code);
 
+// Der Regler meldet einen Fehlercode nur m_fault_stop_time_ms lang (500 ms), dann
+// ist er wieder 0. Zu kurz fuer ein Auge -- deshalb bleibt der letzte Code hier
+// stehen: lastFault() und wie lange das her ist. Jeder neue Fehler geht als
+// "# VESC-FEHLER" auf die Konsole. Die Historie liefert das Terminal (":faults").
+uint8_t  lastFault();
+uint32_t lastFaultAgeMs();   // 0xFFFFFFFF, wenn nie einer kam
+uint32_t faultCount();
+
 // DURCHGRIFF fuer die Fehlersuche ueber die USB-Konsole (docs/04-hardware.md 14.1):
 //   terminal(text)   schickt einen Textbefehl an das Terminal des Reglers, so wie
 //                    das VESC-Tool es tut ("faults", "hall_analyze 5", ...). Die

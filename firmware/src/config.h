@@ -278,7 +278,12 @@ constexpr uint32_t FAULT_SETTLE_MS = 500;     // Entprellung der Fehlerkriterien
 // Rauschen. Am 2026-11-18 lag bei 0,045 Stellwert und 2,5 A Motorstrom die Trommel
 // still — das ist Kommutierung, nicht Last (docs/04-hardware.md §11). Ohne eigene
 // Trommelmarken ist das der einzige Weg, Stillstand trotz Sollwert zu erkennen.
-constexpr float STALL_DUTY_MIN = 0.05f;
+// [gem 2026-11-23] Unter 494 N Auflast bricht die Trommel erst bei Stellwert 0,139
+// mit 8,3 A los. 0,05 war der Wert ohne Last und brach jeden Messlauf ab, bevor
+// der Antrieb ueberhaupt die Chance hatte. 0,20 liegt mit Reserve darueber; der
+// Kommutierungsfehler (6,6 A bei 0,114, keine Drehung) wird damit ein paar
+// Sekunden spaeter erkannt, aber erkannt.
+constexpr float STALL_DUTY_MIN = 0.20f;
 // NOT-AUS ERKENNEN. Der manuelle Not-Aus trennt den Motor ueber drei Relais vom
 // Regler und schliesst ihn kurz; Regler, ESP32 und Bedienung bleiben am Netz. Es
 // gibt keine Rueckmeldung — erkennbar ist der Fall am STROM: mit Motor zieht ein
@@ -574,7 +579,15 @@ constexpr float SPEEDCTL_DUTY_DOWN_PER_S = 0.06f;
 // sobald der Strom frei wird. Am 2026-11-17 genau so passiert.
 // Obergrenze ist die Leerlaufkennlinie des SOLLWERTS plus Reibungszuschlag.
 constexpr float SPEEDCTL_CLAMP_FACTOR = 1.08f;
-constexpr float SPEEDCTL_CLAMP_OFFSET = 0.02f;
+// [gem 2026-11-23] 0,02 reichte nur ohne Last: mit 494 N Auflast stand die Klemme
+// bei Sollwert 15 auf 0,139, und die Trommel blieb bei 11,9 km/h haengen -- der
+// Spannungsabfall unter Last fehlte. 0,08 Zuschlag; ob das bei 60 km/h zu
+// Ueberschwingen fuehrt, ist noch nicht gemessen [gesch].
+constexpr float SPEEDCTL_CLAMP_OFFSET = 0.08f;
+// [gem 2026-11-23] Anfahrfenster: solange die Trommel steht, darf der Stellwert bis
+// hierher, unabhaengig von der Rampe. Losbrechen unter Last bei 0,139 / 8,3 A;
+// ohne das Fenster stand die Trommel 10 s unter Strom, bis die Rampe so weit war.
+constexpr float SPEEDCTL_START_DUTY = 0.16f;
 
 // [Festlegung] Takt des Regelkreises. Schneller bringt nichts: die Drehzahl kommt
 // mit VESC_POLL_MS = 200 ms herein.

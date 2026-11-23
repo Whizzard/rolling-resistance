@@ -58,7 +58,11 @@ const char* currentError() {
   static char buf[96];
   const vesc::Values& v = vesc::values();
   if (!vesc::connected())            return "Kein Regler";
-  if (v.fault != 0) { snprintf(buf, sizeof(buf), "Regler: %s", vesc::faultText(v.fault)); return buf; }
+  // Reglerfehler 30 s lang zeigen -- der Regler selbst loescht ihn nach 500 ms.
+  if (vesc::lastFaultAgeMs() < 30000) {
+    snprintf(buf, sizeof(buf), "Regler: %s", vesc::faultText(vesc::lastFault()));
+    return buf;
+  }
   if (speedctl::estopInput())        return "Not-Aus";
   if (speedctl::motorOpen())         return "Trennung erkannt";
   if (state::phase() == state::FAULT) {
@@ -68,7 +72,7 @@ const char* currentError() {
   if (torque::isSaturated())         return "Waegezelle am Anschlag";
   if (!torque::isResponding())       return "HX711 antwortet nicht";
   if (v.tempMotor < MOTOR_TEMP_OPEN_C) return "Motorfuehler offen";
-  if (speedctl::running() && speedctl::rampKmh() > 3.0f && speedctl::kmh() < 1.0f)
+  if (speedctl::running() && speedctl::duty() >= STALL_DUTY_MIN && speedctl::kmh() < 1.0f)
                                      return "Trommel dreht nicht";
   if (g_noteBad && g_note[0] && millis() - g_noteMs < 5000) return g_note;
   return "";
@@ -216,9 +220,14 @@ void printStatus() {
   // Sollwert steht an, Trommel dreht nicht: der Regler hat die Kommutierung
   // verloren. Mit der unebenen Hall-Tabelle passiert das unterhalb von
   // foc_hall_interp_erpm, wo die rohe Tabelle gilt (docs/04-hardware.md 11.2).
-  if (speedctl::running() && speedctl::rampKmh() > 3.0f && speedctl::kmh() < 1.0f)
-    Serial.println("#          ACHTUNG Sollwert steht an, Trommel dreht nicht."
+  if (speedctl::running() && speedctl::duty() >= STALL_DUTY_MIN && speedctl::kmh() < 1.0f)
+    Serial.println("#          ACHTUNG Stellwert steht an, Trommel dreht nicht."
                    " Kommutierung verloren \u2014 Hall-Tabelle erneut erkennen.");
+  if (vesc::faultCount()) {
+    Serial.print("#          Reglerfehler seit Start: "); Serial.print(vesc::faultCount());
+    Serial.print(", zuletzt "); Serial.print(vesc::faultText(vesc::lastFault()));
+    Serial.print(" vor "); Serial.print(vesc::lastFaultAgeMs() / 1000); Serial.println(" s");
+  }
   if (speedctl::estopInput())
     Serial.println("#          NOT-AUS ausgeloest (Hilfskontakt).");
   if (speedctl::motorOpen())
