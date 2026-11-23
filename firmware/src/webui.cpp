@@ -29,6 +29,8 @@ size_t        g_htmlLen = 0;
 const IPAddress AP_IP(WEBUI_AP_IP[0], WEBUI_AP_IP[1], WEBUI_AP_IP[2], WEBUI_AP_IP[3]);
 
 bool     g_seen     = false;   // war überhaupt schon ein Client da?
+bool     g_inWebCmd = false;
+bool     g_webOperator = false;
 uint32_t g_lastSeen = 0;
 
 void touch() { g_seen = true; g_lastSeen = millis(); }
@@ -310,14 +312,21 @@ void service() {
   if (!g_cmdQueue) return;
   CmdMsg m;
   while (xQueueReceive(g_cmdQueue, &m, 0) == pdTRUE) {
+    g_inWebCmd = true;
     if (g_cmd) g_cmd(String(m.text));
+    g_inWebCmd = false;
   }
 }
 
 bool linkAlive() {
   if (!g_seen) return true;             // ohne Bedienrechner gilt die Konsole
+  if (!g_webOperator) return true;      // Konsole faehrt: das Handy ist egal
   return (millis() - g_lastSeen) < LINK_TIMEOUT_MS;
 }
+
+bool inWebCommand() { return g_inWebCmd; }
+void setWebOperator(bool web) { g_webOperator = web; }
+bool webOperator() { return g_webOperator; }
 
 bool clientSeen() { return g_seen; }
 uint32_t msSinceClient() { return g_seen ? millis() - g_lastSeen : 0; }

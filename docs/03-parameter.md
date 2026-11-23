@@ -334,7 +334,13 @@ Busspannung, darüber liegt ein langsamer Trimm. So ist der Stand am 2026-11-17 
 | Konstante | Wert | Einheit | Herkunft | Anmerkung |
 |---|---|---|---|---|
 | `SPEEDCTL_RAMP_KMH_PER_S` | 2,0 | km/h/s | Festlegung | Rampe des inneren Sollwerts: 30 s von 0 auf 60. Langsam genug, dass ein Fehlgriff auffällt, bevor es schnell wird. |
-| `SPEEDCTL_KP` | 0,02 | 1/(km/h·s) | Festlegung | Trimmverstärkung. Die Vorsteuerung trägt die Hauptlast; der Trimm holt nur Reibung und Spannungsabfall nach. |
+| `SPEEDCTL_KI` | 0,010 | 1/(km/h·s) | gesch | I-Anteil des Trimms. Bis 2026-11-23 war der Trimm ein reiner Integrator mit 0,02: unter 494 N Auflast pendelte die Trommel um ±0,8 km/h mit etwa 10 s Periode. |
+| `SPEEDCTL_KPP` | 0,006 | 1/(km/h) | gesch | P-Anteil auf die Abweichung. |
+| `SPEEDCTL_KD` | 0,010 | 1/(km/h/s) | gesch | D-Anteil auf die gemessene Beschleunigung (`revsrc::dvdtKmhS`), nimmt beim Hochlaufen früh weg. Gemessen 2026-11-23 mit allen dreien: Überschwingen ≈ 1 km/h, danach ±0,1 km/h bei 15 und 40 km/h. |
+| `STEADY_DVDT_KMH_S` | 0,3 | km/h/s | gesch | **Live-Messung nur bei Konstanz:** Beschleunigung darunter, Istwert innerhalb `STEADY_TOL_KMH` = 1 km/h am Sollwert, Rampe angekommen, und das seit `STEADY_HOLD_MS` = 2000 ms — erst dann zeigen Verlustleistung und Crr etwas. Beim Beschleunigen steckt J·dω/dt im Moment, beim Einregeln pendelt es. |
+| `LIVE_WINDOW_MS` | 5000 | ms | gesch | gleitendes Mittel der Live-Messung, 400 Zellenwerte. |
+| `WHEEL_J_FACTOR` | 0,85 | – | Literatur | J_Rad = 0,85 · m · r_Rad², [08-staender](08-staender.md) §6: Felge, Reifen und Schlauch sitzen fast alle auf demselben Radius. Masse über `y<kg>`, r_Rad aus dem gemessenen Umfang. Fehler auf J geht 1:1 in das Radverlustmodell, das ist rund 10 % des Reifensignals. |
+| `SPINDOWN_MIN_REVS` | 30 | – | gesch | weniger Radumdrehungen im Auslauf sind kein Fit. |
 | `SPEEDCTL_DUTY_UP_PER_S` | 0,30 | 1/s | Festlegung | Höchste Änderung des Tastverhältnisses nach **oben**. |
 | `SPEEDCTL_DUTY_DOWN_PER_S` | 0,06 | 1/s | Festlegung | …und nach **unten**, ein Fünftel davon. **Die Asymmetrie ist der Kern:** herunterstellen ist ein Bremsbefehl. Ein Tastverhältnis unter dem, was die momentane Drehzahl braucht, lässt den Regler zurückspeisen — am Netzteil endet das in Überspannung ([07-sicherheit](07-sicherheit.md) §3.3). |
 | `SPEEDCTL_START_DUTY` | 0,16 | – | gem | Anfahrfenster: solange die Trommel steht, darf der Stellwert bis hierher, unabhängig von der Rampe. Losbrechen unter 494 N bei 0,139 / 8,3 A (2026-11-23); ohne das Fenster stand sie 10 s unter Strom. |

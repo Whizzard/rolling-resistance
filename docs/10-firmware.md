@@ -244,8 +244,10 @@ in die Auswertung hinterher.
 | `h<kmh>` / `h-<kmh>` | Messgeschwindigkeit dazu / weg | `h28.8` | Liste im NVS, immer sortiert; Messseite zeigt genau diese Punkte, *Messung*/*Leerlauf* fahren sie der Reihe nach ab |
 | `p<bar>` | Reifendruck | `p4.0` | nur Protokoll |
 | `r<m>` | Reifenradius | `r0.339` | **nur als Rückfall** — normalerweise aus dem Drehzahlverhältnis gemessen, L12 |
-| `w<A₁> <B₁>` | Radverlustmodell | `w0.012 0.000071` | aus dem Laufrad-Auslauf |
-| `n<A₀> <B₀>` | Leerlaufmodell | `n0.004 0.000209` | aus dem Baseline-Lauf |
+| `u` | Laufrad-Auslauf aufzeichnen | `u` | Rad abgehoben anwerfen, frei auslaufen lassen; die Firmware fittet A₁, B₁ selbst und speichert. Braucht `y<kg>` und einen gemessenen Umfang. Seit 2026-11-23 |
+| `y<kg>` | Laufradmasse mit Reifen | `y2.4` | J_Rad = `WHEEL_J_FACTOR` · m · r_Rad² |
+| `w<A₁> <B₁>` | Radverlustmodell von Hand | `w0.012 0.000071` | aus dem Laufrad-Auslauf |
+| `n<A₀> <B₀>` | Leerlaufmodell von Hand | `n0.004 0.000209` | der Leerlauflauf `m0` fittet und speichert es seit 2026-11-23 selbst; aus dem Baseline-Lauf |
 | `t` | statische Tara | | Offset |
 
 | | P | Anforderung |

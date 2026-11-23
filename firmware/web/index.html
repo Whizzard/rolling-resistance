@@ -243,7 +243,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         <div class="val"><span id="pw">—</span><small>W</small></div>
       </div></div>
       <div class="tile half big"><div>
-        <div class="lab">Crr roh</div>
+        <div class="lab" id="crrLab">Crr</div>
         <div class="val"><span id="crr">—</span></div>
       </div></div>
     </div>
@@ -402,6 +402,22 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         (42,5 kg).</div>
     </div>
 
+    <h2>Verlustmodelle</h2>
+    <div class="field">
+      <label>Leerlauf</label>
+      <div class="hint" style="padding-top:0;margin-top:0">A0 <b id="a0">—</b> Nm ·
+        B0 <b id="b0">—</b> Nm/(rad/s)² — Leerlauf mit abgehobenem Rad fahren.</div>
+    </div>
+    <div class="field">
+      <label for="fMRad">Laufradmasse mit Reifen (g)</label>
+      <input type="text" id="fMRad" inputmode="decimal">
+      <button type="button" id="bMRad">Übernehmen</button>
+      <div class="hint">J <b id="jRad">—</b> kg·m² · A1 <b id="a1">—</b> · B1 <b id="b1">—</b></div>
+      <button type="button" class="plain" id="bAuslauf"
+              style="float:none;width:100%;margin:8px 0 0 0">Auslauf aufzeichnen</button>
+      <div class="hint" id="auslaufHint" hidden>—</div>
+    </div>
+
     <h2>Hall-Geber</h2>
     <div class="field">
       <div class="hint" style="padding-top:0;margin-top:0">Trommel und Laufrad
@@ -546,6 +562,8 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   $("bDrum").onclick  = function () { send("d" + (numOf("fDrum") / 1000)); };
   $("bArm").onclick   = function () { send("a" + (numOf("fArm") / 1000)); };
   $("bTare").onclick  = function () { send("t"); };
+  $("bMRad").onclick  = function () { send("y" + (numOf("fMRad") / 1000)); };
+  $("bAuslauf").onclick = function () { send("u"); };
   $("bCalib").onclick = function () {
     /* Abstand erst setzen, dann kalibrieren; die Warteschlange haelt die Reihenfolge. */
     send("b" + (numOf("fCal") / 1000));
@@ -627,6 +645,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     show("pct", j.pct, 1);
     show("pw",  j.pw,  1);
     show("crr", j.crr, 4);
+    $("crrLab").innerHTML = j.korr ? "Crr" : "Crr roh";
     /* Spitze-Spitze im selben 0,5-s-Fenster, in dem auch gemittelt wird. Sagt, wie
        ruhig der Mittelwert wirklich ist — ein sauberer Wert und ein Mittel über
        wildes Zappeln sehen sonst gleich aus. */
@@ -686,6 +705,14 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("rawDot").style.left = (50 + Math.max(-50, Math.min(50, pct / 2))) + "%";
     $("tare").innerHTML = j.tare;
     $("ripple").innerHTML = j.ripple;
+    $("a0").innerHTML = (j.a0 === null) ? "\u2014" : j.a0;
+    $("b0").innerHTML = (j.b0 === null) ? "\u2014" : j.b0;
+    $("a1").innerHTML = (j.a1 === null) ? "\u2014" : j.a1;
+    $("b1").innerHTML = (j.b1 === null) ? "\u2014" : j.b1;
+    $("jRad").innerHTML = (j.jRad === null) ? "\u2014" : j.jRad;
+    if (j.mRad !== null && j.mRad !== undefined) fill("fMRad", j.mRad * 1000, 0);
+    $("auslaufHint").hidden = !j.auslauf;
+    $("auslaufHint").innerHTML = "l\u00e4uft \u00b7 " + j.auslaufN + " Umdrehungen";
     $("calHint").innerHTML = kal
       ? "Erneutes Kalibrieren überschreibt den Faktor. Vorher nullen."
       : "Noch nicht kalibriert — bis dahin gibt es nur Rohwerte, keine Kräfte.";

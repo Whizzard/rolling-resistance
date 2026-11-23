@@ -58,6 +58,16 @@ bool    removePlateau(float kmh);        // false: nicht in der Liste
 float loadN();
 bool  setLoadN(float n);
 
+// Verlustmodelle, beide im NVS (config.h, docs/09-messtheorie.md Gl. 11/12):
+//   Leerlauf  M_leer(w)     = A0 + B0 w^2        [Nm], w Trommel in rad/s
+//   Laufrad   M_Rad(w_Rad)  = A1 + B1 w_Rad^2    [Nm am Rad]
+// NAN = nicht ermittelt. Dann wird nicht korrigiert, und Crr heisst "roh".
+float baselineA0();  float baselineB0();  bool setBaseline(float a0, float b0);
+float wheelA1();     float wheelB1();     bool setWheelModel(float a1, float b1);
+bool  haveBaseline();  bool haveWheelModel();
+// Laufradmasse mit Reifen [kg]; daraus J_Rad = WHEEL_J_FACTOR m r_Rad^2. NAN = unbekannt.
+float wheelMassKg(); bool setWheelMassKg(float kg);
+
 // Statische Tara der Wägezelle (Rohwert bei leerem Arm). Im NVS, damit sie einen
 // Neustart überlebt -- vorher war sie nach jedem Flashen weg, und 241 000 counts
 // wurden als 6,4 N angezeigt (2026-11-23). 0 = nie genullt.

@@ -28,4 +28,17 @@ bool     valid();         // genug Umdrehungen auf stetiger Fahrt
 float    circumferenceM();// NAN, solange nicht valid()
 uint32_t revsUsed();      // Radumdrehungen im Fenster, hoechstens WHEEL_CIRC_WINDOW_REVS
 
+// LAUFRAD-AUSLAUF (docs/08-staender.md §6, 09-messtheorie Gl. 12): Rad abgehoben,
+// von Hand oder vom Antrieb angeworfen, dann frei auslaufen lassen. Aus den
+// Impulsabstaenden kommt w_Rad(t), aus J_Rad die Verzoegerung als Moment:
+//     -J dw/dt = A1 + B1 w^2
+// Gefittet wird ueber Regressionssummen, waehrend das Rad auslaeuft; steht es,
+// wird gespeichert (settings::setWheelModel). J_Rad = WHEEL_J_FACTOR m r_Rad^2 mit
+// der Radmasse aus den Einstellungen und r_Rad aus dem gemessenen Umfang -- der
+// muss also schon einmal bestimmt worden sein, und die Masse eingetragen.
+bool  spindownBegin();     // false: Masse oder Umfang fehlen
+bool  spindownActive();
+uint32_t spindownRevs();
+float jRadKgm2();          // NAN, wenn Masse oder Umfang fehlen
+
 }  // namespace wheel
