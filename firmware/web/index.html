@@ -344,7 +344,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         mindestens 2 km/h.</div>
       <button type="button" class="plain" id="bLearn"
               style="float:none;width:100%;margin:8px 0 0 0">Anlernen</button>
-      <div class="hint" id="learnHint">Vorzeichen jetzt <b id="dirSign">&mdash;</b></div>
+      <div class="hint" id="learnHint">Vorzeichen jetzt <b>&mdash;</b></div>
     </div>
     <div class="field">
       <label>Losbrechmoment messen</label>
@@ -629,8 +629,9 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
        neu; erscheint, sobald das Fenster voll ist. */
     show("uRad",     j.uRad,     0);
 
-    /* Antrieb einmessen */
-    $("dirSign").innerHTML = (j.dir > 0 ? "+1" : "\u22121");
+    /* Antrieb einmessen. learnHint wird komplett neu geschrieben -- KEIN Zugriff
+       auf ein Element darin: genau das liess die Seite nach dem ersten Poll
+       einfrieren (2026-11-23, $("dirSign") war nach dem Ueberschreiben weg). */
     $("learnHint").innerHTML = j.lernt
       ? "<b>Jetzt drehen</b> \u2014 Trommel in Messrichtung"
       : ("Vorzeichen jetzt <b>" + (j.dir > 0 ? "+1" : "\u22121") + "</b>");
