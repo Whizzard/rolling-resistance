@@ -1491,7 +1491,9 @@ Woher die Zuordnung kommt:
 > `hardware/vesc-config-fw7.01/README.md`. **Wer am Motorstecker oder an den Phasen
 > umsteckt, erkennt danach die Hall-Tabelle neu.** Ohne VESC-Tool geht das mit
 > `tools/konsole.py ":foc_sensors_detect_apply 10"`; vorher `":hall_analyze 10"`
-> zeigt, ob die Sensoren sechs Zustände liefern.
+> zeigt, ob die Sensoren sechs Zustände liefern. **Und danach die Drehrichtung
+> prüfen:** mit der neuen Tabelle lief die Trommel bei unverändertem
+> `VESC_DIRECTION_SIGN` rückwärts; das Vorzeichen steht seither auf +1 (`e1`).
 
 ### 11.3 Prüfvorschrift vor dem Anschließen
 

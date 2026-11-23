@@ -438,7 +438,11 @@ constexpr int32_t VESC_ERPM_MAX =
 //      Moment, und meldet KEINEN Fehler (docs/04-hardware.md §10.6).
 //   2. Ein Richtungswechsel im Lauf ist ein BREMSBEFEHL und speist zurueck. Immer
 //      erst Stillstand abwarten (docs/07-sicherheit.md §3.3).
-constexpr int32_t VESC_DIRECTION_SIGN = -1;
+// [gem 2026-11-23] +1 seit dem Neuverdrahten: Fallstrick 1 ist genau so eingetreten,
+// die Hall-Tabelle wurde neu erkannt (hardware/vesc-config-fw7.01/README.md), und mit
+// dem alten -1 lief die Trommel RUECKWAERTS. Nach jeder Neuerkennung der Hall-Tabelle
+// das Vorzeichen pruefen: Befehl e (von Hand drehen) oder e1 / e-1 direkt setzen.
+constexpr int32_t VESC_DIRECTION_SIGN = +1;
 
 // Unterhalb dieser Motortemperatur ist der Fuehler OFFEN, nicht kalt. Am
 // 2026-11-17 gemessen: offene Klemme meldet -75,5 C, angeschlossen 19,4 C
