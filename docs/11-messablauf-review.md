@@ -4,6 +4,13 @@ Stand 2026-11-23. Frage: **Wird ein Messlauf „rund"?** Also: ist bei jedem Lau
 kalibriert oder geprüft, wird jede Abweichung gemessen statt angenommen, und steht am
 Ende ein Protokoll, das man ohne den Prüfstand lesen und auswerten kann?
 
+> **Stand 2026-11-23 abends: umgesetzt** in `firmware/src/run.cpp` (Schrittmaschine,
+> Laufsatz, Protokoll als Markdown und CSV im LittleFS), `state.cpp` (Sequenzen mit
+> Streuung je Punkt, Phase HOLD), `index.html` (Überlagerung hinter *Messung*).
+> Entscheidungen E1 bis E6 wie vorgeschlagen; E4 Flash statt SD-Karte, weil die
+> SD-Karte nicht verdrahtet ist. Gegen eine Attrappe durchgeklickt, **am Stand noch
+> nicht gefahren**.
+
 Grundlage: [05-pruefablauf](05-pruefablauf.md) (SOP), [09-messtheorie](09-messtheorie.md)
 §3 (Fehlerbudget) und §8, die Firmware in `firmware/src/state.cpp`, `logger.cpp`,
 `main.cpp` und die Oberfläche `firmware/web/index.html`. Der klickbare Prototyp des

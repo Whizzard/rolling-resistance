@@ -18,6 +18,45 @@ Phase g_phase = IDLE;
 RunMode g_run = RUN_NONE;
 uint8_t g_plateau = 0;
 uint8_t g_revs = 0;
+
+// Sequenz (state.h): Geschwindigkeiten, Punkte je Plateau, Rueckrufe.
+float     g_seq[PLATEAU_MAX + 1];
+uint8_t   g_seqN = 0, g_pointsPer = 1, g_k = 0;
+bool      g_coastAtEnd = true;
+PointFn   g_onPoint = nullptr;
+SeqDoneFn g_onDone = nullptr;
+
+// Streuung innerhalb eines Punkts: Mittel je Umdrehung aus den Teilsummen des
+// Akkumulators (torque::sumRaw) und der Drehzahl je Umdrehung.
+struct RevStats {
+  double   prevSum = 0; uint32_t prevN = 0;
+  double   s = 0, ss = 0, sv = 0, svv = 0; uint8_t n = 0;
+  float    dvdtMax = 0; bool fault = false;
+  double   sImot = 0, sVin = 0; uint16_t nTele = 0;
+  void reset() { *this = RevStats(); }
+  void rev() {
+    const uint32_t cnt = torque::sampleCount();
+    const double sum = torque::sumRaw();
+    if (cnt > prevN) {
+      const double m = (sum - prevSum) / (cnt - prevN);
+      const double v = revsrc::kmh();
+      s += m; ss += m * m; sv += v; svv += v * v; n++;
+    }
+    prevSum = sum; prevN = cnt;
+  }
+  void tick() {
+    const float a = revsrc::dvdtKmhS();
+    if (!isnan(a) && fabsf(a) > dvdtMax) dvdtMax = fabsf(a);
+    if (vesc::values().fault != 0) fault = true;
+    sImot += vesc::values().currentMotor; sVin += vesc::values().vIn; nTele++;
+  }
+  static float sd(double s, double ss, uint8_t n) {
+    if (n < 2) return NAN;
+    const double var = (ss - s * s / n) / (n - 1);
+    return var > 0 ? static_cast<float>(sqrt(var)) : 0.0f;
+  }
+};
+RevStats g_rs;
 uint32_t g_settleStartMs = 0;
 uint32_t g_faultSinceMs = 0;
 uint32_t g_faultStillMs = 0;   // seit wann die Trommel im FAULT steht
@@ -60,12 +99,19 @@ void storeBaselineFit(const char* why) {
   }
 }
 
+void endSequence(bool completed) {
+  const SeqDoneFn fn = g_onDone;
+  g_onPoint = nullptr; g_onDone = nullptr; g_seqN = 0;
+  if (fn) fn(completed);
+}
+
 void enterFault(const char* reason) {
   // Ein Leerlauflauf mit mindestens drei Punkten ist auch abgebrochen ein Ergebnis.
   if (g_run == RUN_BASELINE && g_fit.n >= 3) storeBaselineFit("Abbruch");
   g_faultReason = reason;
   g_phase = FAULT;
   g_run = RUN_NONE;
+  endSequence(false);
   if (g_wizard) g_wizardAborted = true;
   speedctl::stop();
   logger::note(reason);
@@ -119,36 +165,21 @@ void checkFaults() {
 
 void gotoPlateau(uint8_t idx) {
   g_plateau = idx;
-  if (!speedctl::setTargetKmh(settings::plateauKmh(idx))) {
+  g_k = 0;
+  if (!speedctl::setTargetKmh(g_seq[idx])) {
     enterFault(speedctl::lastRefusal());
     return;
   }
   g_phase = SPINUP;
 }
 
+// Standardlaeufe (m0/m1): alle Plateaus aus den Einstellungen, ein Punkt je
+// Plateau, danach auslaufen.
 void startRun(RunMode mode) {
-  if (g_phase != IDLE && g_phase != WIZ_LIFT) {
-    logger::note("Start abgelehnt: nicht im Zustand IDLE");
-    return;
-  }
-  if (mode == RUN_MEASURE && isnan(g_loadN)) {
-    logger::note("Start abgelehnt: Auflast nicht gesetzt (Befehl 'l<N>')");
-    return;
-  }
-  if (settings::plateauCount() == 0) {
-    logger::note("Start abgelehnt: keine Messgeschwindigkeiten (Befehl 'h<kmh>')");
-    return;
-  }
-  g_run = mode;
-  g_fit = Fit();
-  logger::note(mode == RUN_BASELINE ? "Leerlauf — Laufrad abgehoben"
-                                    : "Messlauf");
-  // Woher die Drehzahl kommt, steht EINMAL je Lauf im Protokoll — nicht je Punkt.
-  if (!revsrc::angleReference()) {
-    logger::note("Drehzahlquelle: Regler (ERPM/Polpaare). Keine Winkelreferenz, "
-                 "die Winkel-Bins bleiben leer.");
-  }
-  gotoPlateau(0);
+  float kmh[PLATEAU_MAX];
+  const uint8_t n = settings::plateauCount();
+  for (uint8_t i = 0; i < n; i++) kmh[i] = settings::plateauKmh(i);
+  startSequence(mode, kmh, n, 1, true, nullptr, nullptr);
 }
 
 void finishPoint() {
@@ -175,15 +206,50 @@ void finishPoint() {
     g_fit.add(w * w, mNm);
   }
 
-  if (g_plateau + 1 < settings::plateauCount()) {
+  // Streuung und Gueltigkeit an den Aufrufer der Sequenz (run.cpp).
+  if (g_onPoint) {
+    PointStats ps;
+    const float sdRaw = RevStats::sd(g_rs.s, g_rs.ss, g_rs.n);
+    ps.v   = g_rs.n ? static_cast<float>(g_rs.sv / g_rs.n) : v;
+    ps.vSd = RevStats::sd(g_rs.sv, g_rs.svv, g_rs.n);
+    ps.raw = raw;
+    ps.mNm = mNm;
+    ps.sdNm = (isnan(sdRaw) || !settings::calibrated()) ? NAN
+            : sdRaw * settings::loadcellNPerCount() * settings::torqueArmM();
+    ps.dvdtMax = g_rs.dvdtMax;
+    ps.imot = g_rs.nTele ? static_cast<float>(g_rs.sImot / g_rs.nTele) : NAN;
+    ps.vin  = g_rs.nTele ? static_cast<float>(g_rs.sVin / g_rs.nTele) : NAN;
+    ps.tfet = vesc::values().tempFet;
+    ps.tmot = vesc::values().tempMotor;
+    ps.revs = g_revs; ps.plateau = g_plateau; ps.k = g_k;
+    ps.ok = !g_rs.fault && g_rs.dvdtMax < STEADY_DVDT_KMH_S
+            && fabsf(ps.v - g_seq[g_plateau]) < STEADY_TOL_KMH;
+    ps.tMs = millis();
+    g_onPoint(ps);
+  }
+
+  if (g_k + 1 < g_pointsPer) {
+    // Naechster Punkt auf demselben Plateau, ohne neues Einschwingen.
+    g_k++;
+    torque::resetAccumulator();
+    g_rs.reset();
+    g_revs = 0;
+    return;
+  }
+  if (g_plateau + 1 < g_seqN) {
     gotoPlateau(g_plateau + 1);
   } else {
     if (g_run == RUN_BASELINE) storeBaselineFit("vollstaendig");
     if (g_wizard) g_wizardDone = true;
-    logger::note("Lauf beendet — Trommel laeuft aus");
-    speedctl::coast();   // frei auslaufen, nicht bremsen (docs/05-pruefablauf.md §B8)
     g_run = RUN_NONE;
-    g_phase = COAST;
+    if (g_coastAtEnd) {
+      logger::note("Lauf beendet — Trommel laeuft aus");
+      speedctl::coast();   // frei auslaufen, nicht bremsen (docs/05-pruefablauf.md §B8)
+      g_phase = COAST;
+    } else {
+      g_phase = HOLD;      // bleibt auf der letzten Geschwindigkeit, run.cpp entscheidet
+    }
+    endSequence(true);
   }
 }
 
@@ -245,6 +311,7 @@ void service() {
       // Schwungmasse und Schwingungen des Wiegeteils klingen hier ab.
       if (millis() - g_settleStartMs >= SETTLE_MS) {
         torque::resetAccumulator();
+        g_rs.reset();
         g_revs = 0;
         g_phase = POINT;
       } else if (fabsf(revsrc::kmh() - speedctl::rampKmh()) > SPEED_TOLERANCE_KMH * 2) {
@@ -253,11 +320,16 @@ void service() {
       break;
 
     case POINT:
+      g_rs.tick();
       if (indexSeen) {
+        g_rs.rev();
         g_revs++;
         if (g_revs >= AVG_REVS_PER_POINT) finishPoint();
       }
       break;
+
+    case HOLD:
+      break;   // faehrt, Abschaltkriterien laufen oben mit
 
     case COAST:
       if (revsrc::revPerSec() < 0.05f) {
@@ -290,9 +362,7 @@ void service() {
         else if (millis() - g_wizSlipMs > 500) {
           logger::note("Rad abgehoben: Auslauf und Leerlauf laufen");
           wheel::spindownBegin();
-          g_fit = Fit();
-          g_run = RUN_BASELINE;
-          gotoPlateau(0);             // Leerlauflauf, Rampe zum ersten Plateau
+          startRun(RUN_BASELINE);     // Leerlauflauf, Rampe zum ersten Plateau
         }
       } else {
         g_wizSlipMs = 0;
@@ -315,12 +385,58 @@ const char* name() {
     case COAST:  return "COAST";
     case WIZ_SPINUP: return "WIZ_SPINUP";
     case WIZ_LIFT:   return "WIZ_LIFT";
+    case HOLD:   return "HOLD";
     case FAULT:  return "FAULT";
   }
   return "?";
 }
 
 void startBaseline() { startRun(RUN_BASELINE); }
+
+bool startSequence(RunMode mode, const float* kmh, uint8_t n, uint8_t pointsPer,
+                   bool coastAtEnd, PointFn onPoint, SeqDoneFn onDone) {
+  if (g_phase != IDLE && g_phase != WIZ_LIFT && g_phase != HOLD) {
+    logger::note("Start abgelehnt: nicht im Zustand IDLE");
+    return false;
+  }
+  if (mode == RUN_MEASURE && isnan(g_loadN)) {
+    logger::note("Start abgelehnt: Auflast nicht gesetzt (Befehl 'l<N>')");
+    return false;
+  }
+  if (n == 0 || n > PLATEAU_MAX + 1) {
+    logger::note("Start abgelehnt: keine Messgeschwindigkeiten (Befehl 'h<kmh>')");
+    return false;
+  }
+  for (uint8_t i = 0; i < n; i++) g_seq[i] = kmh[i];
+  g_seqN = n;
+  g_pointsPer = pointsPer ? pointsPer : 1;
+  g_coastAtEnd = coastAtEnd;
+  g_onPoint = onPoint;
+  g_onDone = onDone;
+  g_run = mode;
+  g_fit = Fit();
+  logger::note(mode == RUN_BASELINE ? "Leerlauf — Laufrad abgehoben"
+                                    : "Messlauf");
+  // Woher die Drehzahl kommt, steht EINMAL je Lauf im Protokoll — nicht je Punkt.
+  if (!revsrc::angleReference()) {
+    logger::note("Drehzahlquelle: Regler (ERPM/Polpaare). Keine Winkelreferenz, "
+                 "die Winkel-Bins bleiben leer.");
+  }
+  gotoPlateau(0);
+  return g_phase == SPINUP;
+}
+
+bool startHold(float kmh) {
+  if (g_phase != IDLE && g_phase != HOLD) {
+    logger::note("Start abgelehnt: nicht im Zustand IDLE");
+    return false;
+  }
+  if (!speedctl::setTargetKmh(kmh)) { logger::note(speedctl::lastRefusal()); return false; }
+  g_phase = HOLD;
+  return true;
+}
+
+void endHold() { if (g_phase == HOLD) g_phase = IDLE; }
 
 void startWizard() {
   if (g_phase != IDLE) { logger::note("Start abgelehnt: nicht im Zustand IDLE"); return; }
@@ -361,6 +477,7 @@ void stopRun() {
   g_run = RUN_NONE;
   if (g_wizard && !g_wizardDone) g_wizardAborted = true;
   if (g_phase != FAULT) g_phase = COAST;
+  endSequence(false);
 }
 
 void coastRun() {
@@ -368,6 +485,7 @@ void coastRun() {
   g_run = RUN_NONE;
   if (g_wizard && !g_wizardDone) g_wizardAborted = true;
   if (g_phase != FAULT) g_phase = COAST;
+  endSequence(false);
 }
 
 void clearFault() {

@@ -44,6 +44,7 @@ float powerW(float omega);
 void     tareBegin();
 bool     tareBusy();
 uint16_t tareCount();      // 0..TARE_SAMPLES, für den Fortschritt
+float    tareSigma();      // Standardabweichung der Rohwerte der letzten Tara, NAN vorher
 long     tareOffset();
 
 // --- Umdrehungssynchrone Mittelung ------------------------------------------
@@ -53,6 +54,7 @@ long     tareOffset();
 void accumulate(uint8_t markIndex);  // nach jedem update() aufrufen
 void resetAccumulator();
 uint32_t sampleCount();
+double   sumRaw();                   // Summe der Rohwerte seit reset (fuer Teilmittel je Umdrehung)
 float    averageRaw();               // Mittelwert der Rohwerte seit reset
 float    averageN();                 // dito in Newton (NAN ohne Kalibrierung)
 float    binAverageRaw(uint8_t bin); // Winkel-Bin, für die Unrundheits-Diagnose
