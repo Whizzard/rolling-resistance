@@ -9,6 +9,7 @@
 #include "logger.h"
 #include "tirepressure.h"
 #include "webui.h"
+#include "wheel.h"
 
 namespace state {
 namespace {
@@ -39,6 +40,11 @@ struct Fit { double n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0;
   }
 };
 Fit g_fit;
+
+bool     g_wizard = false;      // Assistent aktiv (ueber alle Phasen hinweg)
+bool     g_wizardDone = false;  // Leerlauflauf des Assistenten beendet
+uint32_t g_wizSteadyMs = 0, g_wizSlipMs = 0;
+float    g_wizRatioRef = 0.0f;  // Rad/Trommel-Verhaeltnis mit aufliegendem Rad
 
 void enterFault(const char* reason) {
   g_faultReason = reason;
@@ -104,7 +110,7 @@ void gotoPlateau(uint8_t idx) {
 }
 
 void startRun(RunMode mode) {
-  if (g_phase != IDLE) {
+  if (g_phase != IDLE && g_phase != WIZ_LIFT) {
     logger::note("Start abgelehnt: nicht im Zustand IDLE");
     return;
   }
@@ -165,6 +171,7 @@ void finishPoint() {
         logger::note("Leerlaufmodell nicht gespeichert: zu wenige Punkte oder unplausibel");
       }
     }
+    if (g_wizard) g_wizardDone = true;
     logger::note("Lauf beendet — Trommel laeuft aus");
     speedctl::coast();   // frei auslaufen, nicht bremsen (docs/05-pruefablauf.md §B8)
     g_run = RUN_NONE;
@@ -187,7 +194,7 @@ void service() {
   // Indexmarke zählt die Umdrehungen des laufenden Messpunkts.
   const bool indexSeen = revsrc::consumeIndexFlag();
 
-  if (g_phase != IDLE && g_phase != FAULT && g_phase != TARE) checkFaults();
+  if (g_phase != IDLE && g_phase != FAULT && g_phase != TARE) checkFaults();   // auch WIZ_*
 
   switch (g_phase) {
     case IDLE:
@@ -250,6 +257,40 @@ void service() {
         g_phase = IDLE;
       }
       break;
+
+    case WIZ_SPINUP:
+      // Mit aufliegendem Rad auf WIZ_KMH, dann 3 s ruhig -> Abheben erlaubt.
+      if (fabsf(revsrc::kmh() - WIZ_KMH) < 1.0f) {
+        if (g_wizSteadyMs == 0) g_wizSteadyMs = millis();
+        else if (millis() - g_wizSteadyMs > 3000 && speed::wheelRevPerSec() > 0.5f) {
+          g_wizRatioRef = speed::wheelRevPerSec() / revsrc::revPerSec();
+          g_wizSlipMs = 0;
+          g_phase = WIZ_LIFT;
+          logger::note("Rad jetzt abheben");
+        }
+      } else {
+        g_wizSteadyMs = 0;
+      }
+      break;
+
+    case WIZ_LIFT: {
+      // Rad dreht langsamer, als es ueber die Trommel muesste -> abgehoben.
+      const float ratio = (revsrc::revPerSec() > 0.5f)
+          ? speed::wheelRevPerSec() / revsrc::revPerSec() / g_wizRatioRef : 1.0f;
+      if (ratio < WIZ_SLIP_RATIO) {
+        if (g_wizSlipMs == 0) g_wizSlipMs = millis();
+        else if (millis() - g_wizSlipMs > 500) {
+          logger::note("Rad abgehoben: Auslauf und Leerlauf laufen");
+          wheel::spindownBegin();
+          g_fit = Fit();
+          g_run = RUN_BASELINE;
+          gotoPlateau(0);             // Leerlauflauf, Rampe zum ersten Plateau
+        }
+      } else {
+        g_wizSlipMs = 0;
+      }
+      break;
+    }
   }
 }
 
@@ -264,12 +305,38 @@ const char* name() {
     case SETTLE: return "SETTLE";
     case POINT:  return "POINT";
     case COAST:  return "COAST";
+    case WIZ_SPINUP: return "WIZ_SPINUP";
+    case WIZ_LIFT:   return "WIZ_LIFT";
     case FAULT:  return "FAULT";
   }
   return "?";
 }
 
 void startBaseline() { startRun(RUN_BASELINE); }
+
+void startWizard() {
+  if (g_phase != IDLE) { logger::note("Start abgelehnt: nicht im Zustand IDLE"); return; }
+  if (isnan(wheel::jRadKgm2())) {
+    logger::note("Start abgelehnt: Laufradmasse oder Umfang fehlen"); return;
+  }
+  if (settings::plateauCount() == 0) { logger::note("Start abgelehnt: keine Messgeschwindigkeiten"); return; }
+  if (!speedctl::setTargetKmh(WIZ_KMH)) { logger::note(speedctl::lastRefusal()); return; }
+  g_wizard = true;
+  g_wizardDone = false;
+  g_wizSteadyMs = 0;
+  g_phase = WIZ_SPINUP;
+  logger::note("Assistent: Trommel faehrt hoch, Rad bleibt aufgelegt");
+}
+
+uint8_t wizardStep() {
+  if (!g_wizard) return 0;
+  if (g_phase == WIZ_SPINUP) return 1;
+  if (g_phase == WIZ_LIFT) return 2;
+  if (g_wizardDone && !wheel::spindownActive()) return 4;
+  return 3;
+}
+
+void wizardAck() { g_wizard = false; g_wizardDone = false; }
 void startMeasure()  { startRun(RUN_MEASURE); }
 
 void startTare() {
@@ -282,12 +349,14 @@ void startTare() {
 void stopRun() {
   speedctl::stop();
   g_run = RUN_NONE;
+  g_wizard = false;
   if (g_phase != FAULT) g_phase = COAST;
 }
 
 void coastRun() {
   speedctl::coast();
   g_run = RUN_NONE;
+  if (g_phase == WIZ_SPINUP || g_phase == WIZ_LIFT) g_wizard = false;
   if (g_phase != FAULT) g_phase = COAST;
 }
 

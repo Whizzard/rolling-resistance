@@ -141,8 +141,9 @@ Live liveResult() {
     m -= settings::baselineA0() + settings::baselineB0() * w * w;
     r.korrigiert = true;
   }
-  if (settings::haveWheelModel() && wheel::valid()) {
-    const float rRad = wheel::circumferenceM() / (2.0f * PI);
+  const float uRad = wheel::valid() ? wheel::circumferenceM() : settings::wheelCircM();
+  if (settings::haveWheelModel() && !isnan(uRad)) {
+    const float rRad = uRad / (2.0f * PI);
     const float wRad = w * settings::drumRadiusM() / rRad;
     m -= (settings::wheelA1() + settings::wheelB1() * wRad * wRad) * settings::drumRadiusM() / rRad;
   }
@@ -202,7 +203,7 @@ void printHelp() {
   Serial.println("#   j<s>    Live-Telemetrie, alle 200 ms, s Sekunden (Vorgabe 5)");
   Serial.println("#   n<A0> <B0>  Leerlaufmodell setzen (m0 fittet es selbst)");
   Serial.println("#   w<A1> <B1>  Radverlustmodell setzen   y<kg>  Laufradmasse");
-  Serial.println("#   u       Laufrad-Auslauf aufzeichnen (Rad abgehoben, anwerfen)");
+  Serial.println("#   u       Assistent Auslauf + Leerlauf (Trommel hoch, Rad abheben); uq quittiert");
   Serial.println("#   :<text> Terminalbefehl an den Regler (faults, hall_analyze 5, ...)");
   Serial.println("#   ><hex>  Rohpaket an den Regler, Antwort als Hex (z. B. >0e = mcconf)");
   Serial.print("# Grenze: "); Serial.print(V_MAX_KMH, 0);
@@ -374,7 +375,9 @@ void printStatus() {
     Serial.print("A1="); Serial.print(settings::wheelA1(), 5);
     Serial.print(" B1="); Serial.print(settings::wheelB1(), 8);
   } else Serial.print("FEHLT (y<kg>, dann u)");
-  Serial.print(" | J_Rad ");
+  Serial.print(" | Radmasse "); Serial.print(settings::wheelMassKg(), 3);
+  Serial.print(" kg | Umfang gemerkt "); Serial.print(settings::wheelCircM() * 1000.0f, 0);
+  Serial.print(" mm | J_Rad ");
   if (isnan(wheel::jRadKgm2())) Serial.println("unbekannt");
   else { Serial.print(wheel::jRadKgm2(), 4); Serial.println(" kg m^2"); }
 
@@ -599,13 +602,10 @@ void handleCommand(const String& cmd) {
       else                                fail("Laufradmasse unplausibel");
       break;
     case 'u':
-      if (speedctl::running()) { fail("erst anhalten"); break; }
-      if (wheel::spindownBegin()) {
-        note("Auslauf laeuft: Rad abgehoben frei auslaufen lassen");
-        Serial.println("# Auslauf: Rad anwerfen und frei auslaufen lassen. Ende bei Stillstand.");
-      } else {
-        fail("Auslauf: Laufradmasse (y) und Umfang (einmal fahren) fehlen");
-      }
+      if (cmd.length() > 1 && cmd[1] == 'q') { state::wizardAck(); break; }   // uq: Schritt 4 quittieren
+      webui::setWebOperator(webui::inWebCommand());
+      state::startWizard();
+      if (state::phase() != state::WIZ_SPINUP) fail(logger::lastNote());
       break;
     case 'i': printStatus(); break;
     case 'g': speed::resetCounters(); note("Geberzaehler genullt"); break;
@@ -707,6 +707,7 @@ void buildStateJson(char* buf, size_t len) {
     "\"counts\":%ld,\"raw\":%ld,\"tare\":%ld,\"ripple\":%ld,\"n\":%s,\"pct\":%s,\"kg\":%s,"
     "\"nm\":%s,\"roll\":%s,\"pw\":%s,\"crr\":%s,\"korr\":%s,\"konst\":%s,"
     "\"a0\":%s,\"b0\":%s,\"a1\":%s,\"b1\":%s,\"mRad\":%s,\"jRad\":%s,\"auslauf\":%s,\"auslaufN\":%lu,"
+    "\"wiz\":%u,\"wizKmh\":%.0f,\"tara\":%s,"
     "\"err\":\"%s\","
     "\"kal\":%s,\"saturiert\":%s,\"zelle\":%s,"
     "\"dir\":%d,\"lernt\":%s,\"brk\":%s,\"brkDuty\":%.4f,\"brkAmps\":%.1f,"
@@ -731,7 +732,9 @@ void buildStateJson(char* buf, size_t len) {
     counts, mean, torque::tareOffset(), ripple, sN, sPct, sKg, sM, sRoll, sPW, sCrr,
     lv.korrigiert ? "true" : "false", g_steady ? "true" : "false",
     sA0, sB0, sA1, sB1, sMRad, sJ, wheel::spindownActive() ? "true" : "false",
-    static_cast<unsigned long>(wheel::spindownRevs()), currentError(),
+    static_cast<unsigned long>(wheel::spindownRevs()),
+    static_cast<unsigned>(state::wizardStep()), WIZ_KMH, torque::tareBusy() ? "true" : "false",
+    currentError(),
     settings::calibrated() ? "true" : "false",
     torque::isSaturated() ? "true" : "false",
     torque::isResponding() ? "true" : "false",

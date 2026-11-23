@@ -1937,7 +1937,7 @@ Befehle, identisch über serielle Konsole und Weboberfläche ([10-firmware](10-f
 | `h<kmh>` / `h-<kmh>` | Messgeschwindigkeit aufnehmen / entfernen (Liste im NVS, sortiert) |
 | `l<N>` | Auflast, ohne sie startet kein Messlauf |
 | `n<A0> <B0>` / `w<A1> <B1>` | Leerlauf- und Radverlustmodell von Hand setzen; `m0` fittet das Leerlaufmodell selbst, `u` das Radverlustmodell |
-| `u` / `y<kg>` | Laufrad-Auslauf aufzeichnen / Laufradmasse für J_Rad |
+| `u` / `y<kg>` | Assistent Auslauf + Leerlauf (Trommel hoch, Rad abheben, beides zugleich) / Laufradmasse für J_Rad |
 | `j<s>` | Live-Telemetrie auf die Konsole, alle 200 ms für s Sekunden — zum Mitschreiben mit `tools/konsole.py` |
 | `:<text>` | **Durchgriff** zum Terminal des Reglers, wie im VESC-Tool: `:faults`, `:hall_analyze 5`. Antworten als `# VESC> …` |
 | `><hex>` | Rohpaket an den Regler, Antwort als `# V <hex>`. `>0e` holt die Motorkonfiguration, `>11` die App-Konfiguration |

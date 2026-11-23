@@ -20,6 +20,7 @@ constexpr char K_LOAD[]  = "load_n";
 constexpr char K_A0[] = "a0"; constexpr char K_B0[] = "b0";
 constexpr char K_A1[] = "a1"; constexpr char K_B1[] = "b1";
 constexpr char K_MRAD[] = "m_rad";
+constexpr char K_URAD[] = "u_rad";
 
 float g_drum  = DRUM_CIRCUMFERENCE_M;
 float g_arm   = TORQUE_ARM_M;
@@ -29,7 +30,8 @@ int8_t g_dir  = static_cast<int8_t>(VESC_DIRECTION_SIGN);
 
 long    g_tare  = 0;
 float   g_load  = LOAD_DEFAULT_N;
-float   g_a0 = NAN, g_b0 = NAN, g_a1 = NAN, g_b1 = NAN, g_mRad = NAN;
+float   g_a0 = NAN, g_b0 = NAN, g_a1 = NAN, g_b1 = NAN, g_mRad = WHEEL_MASS_DEFAULT_KG;
+float   g_uRad = NAN;
 float   g_plat[PLATEAU_MAX];
 uint8_t g_platN = 0;
 
@@ -101,6 +103,7 @@ void begin() {
     if (g_nvs.isKey(K_A1)) g_a1 = g_nvs.getFloat(K_A1, NAN);
     if (g_nvs.isKey(K_B1)) g_b1 = g_nvs.getFloat(K_B1, NAN);
     if (g_nvs.isKey(K_MRAD)) g_mRad = g_nvs.getFloat(K_MRAD, NAN);
+    if (g_nvs.isKey(K_URAD)) g_uRad = g_nvs.getFloat(K_URAD, NAN);
     const size_t bytes = g_nvs.isKey(K_PLAT) ? g_nvs.getBytesLength(K_PLAT) : 0;
     if (bytes > 0 && bytes % sizeof(float) == 0 && bytes <= sizeof(g_plat)) {
       g_nvs.getBytes(K_PLAT, g_plat, bytes);
@@ -165,6 +168,13 @@ bool  setWheelMassKg(float kg) {
   if (!(kg > 0.3f && kg < 10.0f)) return false;
   g_mRad = kg;
   return store1(K_MRAD, kg);
+}
+
+float wheelCircM() { return g_uRad; }
+bool  setWheelCircM(float m) {
+  if (!(m > 0.5f && m < 3.0f)) return false;
+  g_uRad = m;
+  return store1(K_URAD, m);
 }
 
 float loadN() { return g_load; }
@@ -271,7 +281,9 @@ void reset() {
   g_dir  = static_cast<int8_t>(VESC_DIRECTION_SIGN);
   g_tare = 0;
   g_load = LOAD_DEFAULT_N;
-  g_a0 = g_b0 = g_a1 = g_b1 = g_mRad = NAN;
+  g_a0 = g_b0 = g_a1 = g_b1 = NAN;
+  g_mRad = WHEEL_MASS_DEFAULT_KG;
+  g_uRad = NAN;
   defaultPlateaus();
 }
 

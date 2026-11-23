@@ -341,6 +341,9 @@ Busspannung, darüber liegt ein langsamer Trimm. So ist der Stand am 2026-11-17 
 | `LIVE_WINDOW_MS` | 5000 | ms | gesch | gleitendes Mittel der Live-Messung, 400 Zellenwerte. |
 | `WHEEL_J_FACTOR` | 0,85 | – | Literatur | J_Rad = 0,85 · m · r_Rad², [08-staender](08-staender.md) §6: Felge, Reifen und Schlauch sitzen fast alle auf demselben Radius. Masse über `y<kg>`, r_Rad aus dem gemessenen Umfang. Fehler auf J geht 1:1 in das Radverlustmodell, das ist rund 10 % des Reifensignals. |
 | `SPINDOWN_MIN_REVS` | 30 | – | gesch | weniger Radumdrehungen im Auslauf sind kein Fit. |
+| `WHEEL_MASS_DEFAULT_KG` | 1,5 | kg | Festlegung | Vorgabe der Laufradmasse mit Reifen, am Stand wiegen und unter *Einrichtung* eintragen. |
+| `WIZ_KMH` | 40 | km/h | Festlegung | Assistent Auslauf + Leerlauf: Geschwindigkeit, bei der das Rad abgehoben wird — hoch genug für einen langen Auslauf, von Hand noch abzuheben. |
+| `WIZ_SLIP_RATIO` | 0,90 | – | gesch | fällt das Verhältnis Rad- zu Trommeldrehzahl unter 90 % des Werts mit aufgelegtem Rad, gilt es als abgehoben. |
 | `SPEEDCTL_DUTY_UP_PER_S` | 0,30 | 1/s | Festlegung | Höchste Änderung des Tastverhältnisses nach **oben**. |
 | `SPEEDCTL_DUTY_DOWN_PER_S` | 0,06 | 1/s | Festlegung | …und nach **unten**, ein Fünftel davon. **Die Asymmetrie ist der Kern:** herunterstellen ist ein Bremsbefehl. Ein Tastverhältnis unter dem, was die momentane Drehzahl braucht, lässt den Regler zurückspeisen — am Netzteil endet das in Überspannung ([07-sicherheit](07-sicherheit.md) §3.3). |
 | `SPEEDCTL_START_DUTY` | 0,16 | – | gem | Anfahrfenster: solange die Trommel steht, darf der Stellwert bis hierher, unabhängig von der Rampe. Losbrechen unter 494 N bei 0,139 / 8,3 A (2026-11-23); ohne das Fenster stand sie 10 s unter Strom. |
