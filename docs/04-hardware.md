@@ -69,6 +69,7 @@ Als Reibrolle gegen die Trommeloberfläche geht der Motor nicht: dafür bräucht
 | Messverstärker | HX711-Breakout |
 | Display | HD44780 4×20 Zeichen |
 | Motortreiber | SimpleFOCShield v2 — nur für die Inbetriebnahme, für den Vollausbau zu schwach |
+| Libellen | Block-Libellen 15,1 × 15,1 × 40 mm, zum Ausrichten der Profile; Clip §7.8 |
 
 ### Zu beschaffen
 
@@ -1010,6 +1011,49 @@ Wanne geschoben und sitzt an drei Seiten.
 
 > **Druck:** flach, Wanne nach oben. 0,5 mm Boden sind bei 0,2 mm Schichthöhe zwei
 > bis drei Lagen, der Rand kommt als Mauer obendrauf.
+
+### 7.8 Clip für die Libellen
+
+Zum Ausrichten des Rahmens kommen **Block-Libellen 15,1 × 15,1 × 40 mm** (am Teil
+gemessen, 2026-11-23) auf die Profile. Je Libelle ein Clip: eine **1,5 mm dünne
+Grundplatte** mit **zwei M6 Linsenkopf** in der Profilnut, eine je Ende, die Libelle
+dazwischen. 1,5 mm unter dem Schraubenkopf sind Vorgabe; die ganze Platte ist so
+dick, damit die Libelle in derselben Ebene liegt wie die Schraubenauflage und die
+Unterseite eine einzige Fläche ist. Keine Senkung, der Kopf steht oben auf.
+
+Außenmaß **70,3 × 17,8 × 17,9 mm**, 3,0 cm³, Lochabstand **55,8 mm**.
+
+| | |
+|---|---|
+| Featurebaum | Grundplatte · Leisten · Stirnwaende · Nasen · M6_Loecher |
+| `hardware/libellen_clip.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
+
+**Die Libelle bleibt von drei Seiten sichtbar** — von oben und von beiden Längsseiten.
+Gehalten wird sie deshalb an den Stirnseiten:
+
+| | |
+|---|---|
+| Stirnwände | 1,5 mm dick, 16,4 mm hoch über der Platte, federn |
+| Nasen | 0,6 mm über die Oberkante, 10 mm breit, mittig; Schräge rund 27° zur Senkrechten |
+| Längsleisten | 1,2 mm dick, **2,0 mm hoch**, volle Länge — richten quer aus und versteifen die Platte |
+| Spiel | 0,3 mm in Länge und Breite, 0,1 mm unter den Nasen |
+
+Einsetzen von oben: die Libelle drückt über die Schrägen die Stirnwände auseinander,
+die Nasen schnappen über die Oberkante. Lösen: eine Stirnwand mit dem Daumen nach
+außen drücken, Libelle anheben. Die Wand biegt sich dabei 0,6 mm an der Oberkante
+aus, bei 1,5 mm Dicke und rund 14 mm freier Höhe über der Leiste unter 1 % Dehnung
+am Fuß. Der Schraubenkopf sitzt mit 1 mm Luft neben der Wand und unterhalb dessen,
+wo sie sich bewegt.
+
+> **Nicht festknallen.** Unter dem Kopf liegen 1,5 mm Kunststoff auf 52 mm² Ringfläche
+> — handfest reicht, die Klemmung hält, und zu viel Moment drückt den Kopf ins
+> Material und verzieht die Platte, auf der die Libelle liegt.
+
+> Der Kopfdurchmesser 10,5 mm ist der Normwert ISO 7380 für M6 und bestimmt nur die
+> Länge der Pads; andere Schrauben trägt man als `head_d` in die Tabelle ein.
+
+> **Druck:** flach, Grundplatte aufs Bett. Die Nasen stehen 0,6 mm frei über, eine
+> Düsenbreite, ohne Stütze.
 
 ## 8 Markenaufnahme an der Trommel
 
