@@ -64,6 +64,7 @@ bool connected();            // ein Paket innerhalb der letzten Sekunde
 void setErpm(int32_t erpm);
 int32_t targetErpm();
 bool driving();
+bool braking();              // SET_CURRENT_BRAKE liegt an (Befehl s)
 
 // Tastverhaeltnis als Stellgroesse, −1 … +1. Wird wie der Drehzahlsollwert alle
 // VESC_ALIVE_MS wiederholt.

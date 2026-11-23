@@ -235,6 +235,7 @@ void setErpm(int32_t erpm) {
 }
 
 int32_t targetErpm() { return g_target; }
+bool braking() { return g_mode == MODE_BRAKE; }
 bool driving() { return g_mode == MODE_RPM || g_mode == MODE_DUTY; }
 
 void setDuty(float duty) {

@@ -35,13 +35,30 @@
 #include "tirepressure.h"
 #include "vesc/vesc.h"
 #include "vesc/packet.h"
+#include "wheel.h"
 
 namespace {
 
 bool  g_linkWasAlive = true;
 char  g_note[96] = "";          // letzte Rueckmeldung an die Oberflaeche
 
-void note(const char* s) { strncpy(g_note, s, sizeof(g_note) - 1); g_note[sizeof(g_note)-1] = '\0'; }
+// Meldungen: note() ist ein Hinweis (Konsole und Oberflaeche, dort unauffaellig),
+// fail() ein Fehler -- NUR die zeigt die Oberflaeche in der Meldezeile. Seit
+// 2026-11-23: "Ziel 15 km/h" stand dort dauerhaft, obwohl die Kachel Soll das
+// laengst zeigte; die Zeile ist fuer das reserviert, was der Bediener wissen muss.
+bool g_noteBad = false;
+void note(const char* s) { strncpy(g_note, s, sizeof(g_note) - 1); g_note[sizeof(g_note)-1] = '\0'; g_noteBad = false; }
+void fail(const char* s) { note(s); g_noteBad = true; }
+
+// Meldungen der Zustandsmaschine und der Regelung (logger::note) sind Fehler, wenn
+// sie so anfangen.
+bool looksBad(const char* s) {
+  static const char* const BAD[] = {"Abbruch", "FAULT", "Start abgelehnt", "Tara nur",
+                                    "Quittierung nur", "nicht", "kein"};
+  for (size_t i = 0; i < sizeof(BAD) / sizeof(BAD[0]); i++)
+    if (strncmp(s, BAD[i], strlen(BAD[i])) == 0) return true;
+  return false;
+}
 
 // Live-Telemetrie auf die Konsole (Befehl j<s>): eine Zeile alle 200 ms, s Sekunden
 // lang. Fuer das Fehlersuchen ueber USB -- tools/konsole.py schreibt sie mit.
@@ -224,20 +241,18 @@ void printStatus() {
   }
   Serial.println();
 
-  // Reifendurchmesser aus den Drehzahlen: am Latsch sind die Umfangs-
-  // geschwindigkeiten gleich, also d_Reifen = d_Trommel * n_Trommel / n_Rad.
-  // Das ist der wirksame Abrolldurchmesser unter Last, nicht das Nennmass.
+  // Laufradumfang: integriert ueber ein Fenster stetiger Fahrt (wheel.h).
   {
-    const float nDrum = revsrc::revPerSec();
-    const float nWheel = speed::wheelRevPerSec();
-    Serial.print("# Laufrad  Trommel "); Serial.print(nDrum * 60.0f, 1);
-    Serial.print(" 1/min | Rad ");       Serial.print(nWheel * 60.0f, 1);
-    Serial.print(" 1/min | Reifen ");
-    if (nDrum > 0.2f && nWheel > 0.2f) {
-      Serial.print(settings::drumCircumferenceM() / PI * nDrum / nWheel * 1000.0f, 1);
-      Serial.println(" mm");
+    Serial.print("# Laufrad  Trommel "); Serial.print(revsrc::revPerSec() * 60.0f, 1);
+    Serial.print(" 1/min | Rad ");       Serial.print(speed::wheelRevPerSec() * 60.0f, 1);
+    Serial.print(" 1/min | Umfang ");
+    if (wheel::valid()) {
+      Serial.print(wheel::circumferenceM() * 1000.0f, 0);
+      Serial.print(" mm aus "); Serial.print(wheel::revsUsed()); Serial.println(" Radumdrehungen");
     } else {
-      Serial.println("\u2014 (beides muss drehen)");
+      Serial.print("\u2014 ("); Serial.print(wheel::revsUsed());
+      Serial.print(" von "); Serial.print(WHEEL_CIRC_MIN_REVS);
+      Serial.println(" Radumdrehungen auf stetiger Fahrt)");
     }
   }
 
@@ -295,19 +310,19 @@ void printStatus() {
 //     F = m · g · L_cal / L
 // Der Faktor ist diese Kraft geteilt durch den Rohwertzuwachs seit dem Nullabgleich.
 void calibrate(float kg) {
-  if (kg <= 0.0f) { note("Gewicht muss groesser null sein"); return; }
-  if (!torque::isResponding()) { note("HX711 antwortet nicht"); return; }
+  if (kg <= 0.0f) { fail("Gewicht muss groesser null sein"); return; }
+  if (!torque::isResponding()) { fail("HX711 antwortet nicht"); return; }
 
   long mean, ripple;
   torque::displayStats(mean, ripple);
   const long delta = mean - torque::tareOffset();
-  if (delta == 0) { note("kein Ausschlag — Gewicht wirklich angehaengt?"); return; }
+  if (delta == 0) { fail("kein Ausschlag — Gewicht wirklich angehaengt?"); return; }
 
   const float f = kg * 9.80665f * settings::calibArmM() / settings::torqueArmM();
   const float nPerCount = f / static_cast<float>(delta > 0 ? delta : -delta);
 
   if (!settings::setLoadcellNPerCount(nPerCount)) {
-    note("Faktor unplausibel — nicht uebernommen");
+    fail("Faktor unplausibel — nicht uebernommen");
     return;
   }
   snprintf(g_note, sizeof(g_note),
@@ -332,17 +347,14 @@ void handleCommand(const String& cmd) {
       char h[3] = {cmd[i], cmd[i + 1], 0};
       p[n++] = static_cast<uint8_t>(strtoul(h, nullptr, 16));
     }
-    if (n) vesc::raw(p, n); else note("Hexnutzlast fehlt");
+    if (n) vesc::raw(p, n); else fail("Hexnutzlast fehlt");
     return;
   }
 
   switch (cmd[0]) {
     case 'v':
-      if (speedctl::setTargetKmh(arg)) {
-        snprintf(g_note, sizeof(g_note), "Ziel %.0f km/h", arg);
-      } else {
-        note(speedctl::lastRefusal());
-      }
+      if (speedctl::setTargetKmh(arg)) note("");      // Soll zeigt die Kachel
+      else                             fail(speedctl::lastRefusal());
       break;
     case 's':
       state::stopRun();            // bremst und beendet einen laufenden Lauf
@@ -353,7 +365,7 @@ void handleCommand(const String& cmd) {
       note("freigegeben, Trommel laeuft aus");
       break;
     case 't':
-      if (speedctl::running()) { note("erst anhalten"); break; }
+      if (speedctl::running()) { fail("erst anhalten"); break; }
       state::startTare();          // nicht blockierend, Fortschritt in tareCount()
       note("Tara laeuft — nicht anfassen");
       break;
@@ -361,10 +373,10 @@ void handleCommand(const String& cmd) {
     // --- Laeufe. 'm' allein wird abgelehnt: toFloat("") ist 0 und waere
     //     stillschweigend ein Leerlauf. Siehe docs/05-pruefablauf.md B4/B6.
     case 'm':
-      if (cmd.length() < 2) { note("m0 = Leerlauf, m1 = Messlauf"); break; }
+      if (cmd.length() < 2) { fail("m0 = Leerlauf, m1 = Messlauf"); break; }
       if (cmd[1] == '0')      state::startBaseline();
       else if (cmd[1] == '1') state::startMeasure();
-      else                  { note("m0 = Leerlauf, m1 = Messlauf"); break; }
+      else                  { fail("m0 = Leerlauf, m1 = Messlauf"); break; }
       // Die Zustandsmaschine meldet Ablehnungen ueber logger::note auf die
       // Konsole; die Oberflaeche soll denselben Grund sehen.
       if (state::phase() == state::SPINUP)
@@ -372,21 +384,22 @@ void handleCommand(const String& cmd) {
                  cmd[1] == '0' ? "Leerlauf" : "Messlauf",
                  static_cast<unsigned>(settings::plateauCount()));
       else
-        note(logger::lastNote());
+        fail(logger::lastNote());
       break;
     // --- Messgeschwindigkeiten: h25 fuegt 25 km/h ein, h-25 nimmt sie heraus.
     //     Die Liste bleibt sortiert, settings.cpp kuemmert sich darum.
     case 'h':
-      if (cmd.length() < 2) { note("h<kmh> dazu, h-<kmh> entfernen"); break; }
+      if (cmd.length() < 2) { fail("h<kmh> dazu, h-<kmh> entfernen"); break; }
       if (arg < 0.0f) {
-        note(settings::removePlateau(-arg) ? "Geschwindigkeit entfernt"
-                                           : "nicht in der Liste");
+        if (settings::removePlateau(-arg)) note("Geschwindigkeit entfernt");
+        else                               fail("nicht in der Liste");
       } else if (settings::addPlateau(arg)) {
-        snprintf(g_note, sizeof(g_note), "%.1f km/h aufgenommen", arg);
+        snprintf(g_note, sizeof(g_note), "%.1f km/h aufgenommen", arg); g_noteBad = false;
       } else {
         snprintf(g_note, sizeof(g_note),
                  "abgelehnt: %.0f..%.0f km/h, hoechstens %u, keine Doppelten",
                  V_MIN_KMH, V_MAX_KMH, static_cast<unsigned>(PLATEAU_MAX));
+        g_noteBad = true;
       }
       break;
     case 'q':
@@ -394,23 +407,23 @@ void handleCommand(const String& cmd) {
       break;
     case 'k': calibrate(arg); break;
     case 'd':
-      note(settings::setDrumCircumferenceM(arg) ? "Trommelumfang uebernommen"
-                                                : "Trommelumfang unplausibel");
+      if (settings::setDrumCircumferenceM(arg)) note("Trommelumfang uebernommen");
+      else                                       fail("Trommelumfang unplausibel");
       break;
     case 'a':
-      note(settings::setTorqueArmM(arg) ? "Zellenarm uebernommen"
-                                        : "Zellenarm unplausibel");
+      if (settings::setTorqueArmM(arg)) note("Zellenarm uebernommen");
+      else                               fail("Zellenarm unplausibel");
       break;
     case 'b':
-      note(settings::setCalibArmM(arg) ? "Kalibrierarm uebernommen"
-                                       : "Kalibrierarm unplausibel");
+      if (settings::setCalibArmM(arg)) note("Kalibrierarm uebernommen");
+      else                               fail("Kalibrierarm unplausibel");
       break;
     case 'l':
       if (arg > 0.0f) {
         state::setLoadN(arg);
         snprintf(g_note, sizeof(g_note), "Auflast %.1f N", arg);
       } else {
-        note("Auflast muss groesser null sein");
+        fail("Auflast muss groesser null sein");
       }
       break;
     case 'p':
@@ -454,7 +467,7 @@ void handleCommand(const String& cmd) {
       g_liveLast = 0;
       break;
     case '?': printHelp(); note(""); break;
-    default:  note("unbekannter Befehl"); break;
+    default:  fail("unbekannter Befehl"); break;
   }
 }
 
@@ -499,14 +512,12 @@ void buildStateJson(char* buf, size_t len) {
                    c.low ? "true" : "false");
   }
 
-  // Laufrad und wirksamer Reifendurchmesser, siehe printStatus(). Intern m und
-  // 1/s; 1/min und mm entstehen erst hier, an der Ausgabegrenze.
+  // Laufrad: Drehzahlen und integrierter Umfang (wheel.h). Intern m und 1/s;
+  // 1/min und mm entstehen erst hier, an der Ausgabegrenze.
   const float nDrum  = revsrc::revPerSec();
   const float nWheel = speed::wheelRevPerSec();
-  const float dTire  = (nDrum > 0.2f && nWheel > 0.2f)
-      ? settings::drumCircumferenceM() / PI * nDrum / nWheel : NAN;
-  char sDTire[16];
-  num(sDTire, sizeof(sDTire), dTire * 1000.0f, 1);
+  char sURad[16];
+  num(sURad, sizeof(sURad), wheel::circumferenceM() * 1000.0f, 0);
 
   // Messgeschwindigkeiten als JSON-Liste, sortiert wie in den Einstellungen.
   char sPlat[PLATEAU_MAX * 7 + 2];
@@ -527,7 +538,7 @@ void buildStateJson(char* buf, size_t len) {
 
   snprintf(buf, len,
     "{\"link\":%s,\"fault\":%u,\"faultTxt\":\"%s\",\"status\":%u,\"age\":%lu,"
-    "\"fw\":\"%s\",\"note\":\"%s\","
+    "\"fw\":\"%s\",\"note\":\"%s\",\"noteBad\":%s,\"bremst\":%s,"
     "\"kmh\":%.1f,\"soll\":%.0f,\"rampe\":%.1f,\"duty\":%.3f,\"faehrt\":%s,"
     "\"erpm\":%ld,\"rpm\":%.1f,"
     "\"vin\":%.1f,\"imot\":%.2f,\"iin\":%.2f,\"watt\":%.0f,"
@@ -537,7 +548,7 @@ void buildStateJson(char* buf, size_t len) {
     "\"kal\":%s,\"saturiert\":%s,\"zelle\":%s,"
     "\"dir\":%d,\"lernt\":%s,\"brk\":%s,\"brkDuty\":%.4f,\"brkAmps\":%.1f,"
     "\"up\":%lu,\"geber\":[%s],"
-    "\"nTrommel\":%.1f,\"nRad\":%.1f,\"dReifen\":%s,"
+    "\"nTrommel\":%.1f,\"nRad\":%.1f,\"uRad\":%s,\"uRadN\":%lu,\"uRadMin\":%lu,"
     "\"plateaus\":[%s],\"phase\":\"%s\",\"run\":%u,\"plateau\":%u,"
     "\"sfault\":\"%s\",\"load\":%s,\"motorOffen\":%s,\"notaus\":%s,"
     "\"drumU\":%.4f,\"arm\":%.4f,\"calArm\":%.4f,\"npc\":%.8f,"
@@ -546,7 +557,7 @@ void buildStateJson(char* buf, size_t len) {
     static_cast<unsigned>(v.fault), vesc::faultText(v.fault),
     static_cast<unsigned>(v.status), static_cast<unsigned long>(v.ageMs),
     vesc::fwKnown() ? String(String(vesc::fwMajor()) + "." + String(vesc::fwMinor())).c_str() : "",
-    g_note,
+    g_note, g_noteBad ? "true" : "false", vesc::braking() ? "true" : "false",
     speedctl::kmh(), speedctl::targetKmh(), speedctl::rampKmh(),
     speedctl::duty(), speedctl::running() ? "true" : "false",
     static_cast<long>(ok ? v.erpm : 0),
@@ -563,7 +574,9 @@ void buildStateJson(char* buf, size_t len) {
     speedctl::breakingAway() ? "true" : "false",
     speedctl::breakawayDuty(), speedctl::breakawayAmps(),
     static_cast<unsigned long>(millis()), sGeber,
-    nDrum * 60.0f, nWheel * 60.0f, sDTire,
+    nDrum * 60.0f, nWheel * 60.0f, sURad,
+    static_cast<unsigned long>(wheel::revsUsed()),
+    static_cast<unsigned long>(WHEEL_CIRC_MIN_REVS),
     sPlat, state::name(), static_cast<unsigned>(state::runMode()),
     static_cast<unsigned>(state::plateauIndex()), state::faultReason(), sLoad,
     speedctl::motorOpen() ? "true" : "false", speedctl::estopInput() ? "true" : "false",
@@ -600,6 +613,7 @@ void setup() {
   statusled::begin();
   torque::begin();
   revsrc::begin();
+  wheel::begin();
   speedctl::begin();
   logger::begin();
   tirepressure::begin();
@@ -626,7 +640,7 @@ void loop() {
     static char seen[96] = "";
     if (strcmp(logger::lastNote(), seen) != 0) {
       strncpy(seen, logger::lastNote(), sizeof(seen) - 1);
-      note(seen);
+      if (looksBad(seen)) fail(seen); else note(seen);
     }
   }
   statusled::service();
@@ -641,6 +655,7 @@ void loop() {
   }
 
   revsrc::service();
+  wheel::service();
   speedctl::service();
   state::service();
   pollSerial();

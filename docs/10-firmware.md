@@ -145,7 +145,7 @@ Zulässig, weil sich ω innerhalb einer Umdrehung um höchstens 0,15 % ändert
 |---|---|---|
 | D13 | M | **Index**: Zähler, Umdrehungen, Prüfung auf genau 1 Impuls je Umdrehung. |
 | D14 | M | **Motor-Hall**: Zähler und **Impulse je Trommelumdrehung** — damit wird `MOTOR_PULSES_PER_REV` bestimmt, bisher TBD. |
-| D15 | S | **Laufrad**: Zähler, Drehzahl, Impulse je Umdrehung. *Zähler und Drehzahl seit 2026-11-22 vorhanden, dazu der wirksame Reifendurchmesser aus dem Drehzahlverhältnis ([04-hardware](04-hardware.md) §14.1).* |
+| D15 | S | **Laufrad**: Zähler, Drehzahl, Impulse je Umdrehung. *Zähler und Drehzahl seit 2026-11-22 vorhanden, dazu seit 2026-11-23 der wirksame Laufradumfang aus dem Drehzahlverhältnis, über ein Fenster stetiger Fahrt integriert ([04-hardware](04-hardware.md) §14.1).* |
 | D16 | S | **Lichtschranke**: Zustand und Flankenzähler. |
 
 ### 5.4 Wägezelle

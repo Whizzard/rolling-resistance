@@ -135,6 +135,13 @@ float motorRevPerSec() {
   return 1000000.0f / (static_cast<float>(period) * MOTOR_PULSES_PER_REV);
 }
 
+void wheelPulses(uint32_t& count, uint32_t& lastUs) {
+  noInterrupts();
+  count = g_wheelCount;
+  lastUs = g_wheelLastUs;
+  interrupts();
+}
+
 float wheelRevPerSec() {
   if (g_wheelCount <= WHEEL_MARKS_PER_REV) return 0.0f;
 
