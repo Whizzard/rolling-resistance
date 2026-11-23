@@ -77,7 +77,7 @@ void printHelp() {
   Serial.println("#   l<N>    Auflast                 p<bar> Reifendruck");
   Serial.println("#   d<m>    Trommelumfang           a<m>   Zellenarm");
   Serial.println("#   b<m>    Kalibrierarm            z      Einstellungen zuruecksetzen");
-  Serial.println("#   e       Drehrichtung einlernen (Trommel von Hand drehen)");
+  Serial.println("#   e       Drehrichtung einlernen (Trommel von Hand drehen); e1 / e-1 direkt");
   Serial.println("#   x       Losbrechmoment messen (Tastverhaeltnis steigt langsam)");
   Serial.println("#   i       Zustand: Regler, Waegezelle, Geber, Bedienverbindung");
   Serial.println("#   g       Geberzaehler nullen (Verdrahtungstest)");
@@ -415,6 +415,13 @@ void handleCommand(const String& cmd) {
       break;
     case 'e':
       if (speedctl::running()) { note("erst anhalten"); break; }
+      // e1 / e-1 setzen das Vorzeichen direkt -- wenn man die Richtung gesehen hat
+      // und nicht erst von Hand drehen will. e allein lernt an.
+      if (cmd.length() > 1 && (arg == 1.0f || arg == -1.0f)) {
+        settings::setDirectionSign(static_cast<int8_t>(arg));
+        snprintf(g_note, sizeof(g_note), "Drehrichtung %+d gesetzt", static_cast<int>(arg));
+        break;
+      }
       speedctl::learn();
       note("Trommel jetzt von Hand in Messrichtung drehen");
       Serial.println("# Antrieb freigegeben. Trommel in MESSRICHTUNG drehen,"

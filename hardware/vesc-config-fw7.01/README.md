@@ -87,3 +87,7 @@ kalibriert. `mcconf.xml` ist an den acht Tabellenwerten nachgeführt. Die Datei 
 
 Außerdem stand im Fehlerspeicher des Reglers ein `FAULT_CODE_DRV` vom Einschalten
 (0 A, 40,5 V, 0 Zyklen) — einmalig, nicht aktiv. Beobachten.
+
+**Drehrichtung:** mit der neuen Tabelle lief die Trommel beim ersten Anfahren
+rückwärts. Das Vorzeichen der Firmware (`VESC_DIRECTION_SIGN`, Befehl `e1`) steht
+seit dem 2026-11-23 auf **+1**; `m_invert_direction` im Regler bleibt unangetastet.
