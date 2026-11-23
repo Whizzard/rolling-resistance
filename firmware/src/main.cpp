@@ -47,6 +47,7 @@ void printHelp() {
   Serial.println("#   v<kmh>  Zielgeschwindigkeit      s  STOP (bremst)");
   Serial.println("#   c       auslaufen lassen        q  Fehler quittieren");
   Serial.println("#   m0      Leerlauf (Rad abgehoben)       m1  Messlauf");
+  Serial.println("#   h<kmh>  Messgeschwindigkeit dazu       h-<kmh>  entfernen");
   Serial.println("#   t       Waegezelle nullen       k<kg>  kalibrieren");
   Serial.println("#   l<N>    Auflast                 p<bar> Reifendruck");
   Serial.println("#   d<m>    Trommelumfang           a<m>   Zellenarm");
@@ -199,6 +200,21 @@ void printStatus() {
     }
   }
 
+  Serial.print("# Messung  ");
+  Serial.print(state::name());
+  if (state::runMode() != state::RUN_NONE) {
+    Serial.print(state::runMode() == state::RUN_BASELINE ? " Leerlauf" : " Messlauf");
+    Serial.print(" Plateau "); Serial.print(state::plateauIndex() + 1);
+    Serial.print('/');          Serial.print(settings::plateauCount());
+  }
+  Serial.print(" | Geschwindigkeiten");
+  for (uint8_t i = 0; i < settings::plateauCount(); i++) {
+    Serial.print(' '); Serial.print(settings::plateauKmh(i), 1);
+  }
+  Serial.print(" km/h | Auflast ");
+  if (isnan(state::loadN())) Serial.println("nicht gesetzt");
+  else { Serial.print(state::loadN(), 1); Serial.println(" N"); }
+
   Serial.print("# Bedienung ");
   Serial.print(webui::linkAlive() ? "Browser verbunden" : "kein Browser");
   Serial.print(" | WLAN \""); Serial.print(WEBUI_SSID);
@@ -285,7 +301,30 @@ void handleCommand(const String& cmd) {
       if (cmd.length() < 2) { note("m0 = Leerlauf, m1 = Messlauf"); break; }
       if (cmd[1] == '0')      state::startBaseline();
       else if (cmd[1] == '1') state::startMeasure();
-      else                    note("m0 = Leerlauf, m1 = Messlauf");
+      else                  { note("m0 = Leerlauf, m1 = Messlauf"); break; }
+      // Die Zustandsmaschine meldet Ablehnungen ueber logger::note auf die
+      // Konsole; die Oberflaeche soll denselben Grund sehen.
+      if (state::phase() == state::SPINUP)
+        snprintf(g_note, sizeof(g_note), "%s: %u Geschwindigkeiten",
+                 cmd[1] == '0' ? "Leerlauf" : "Messlauf",
+                 static_cast<unsigned>(settings::plateauCount()));
+      else
+        note(logger::lastNote());
+      break;
+    // --- Messgeschwindigkeiten: h25 fuegt 25 km/h ein, h-25 nimmt sie heraus.
+    //     Die Liste bleibt sortiert, settings.cpp kuemmert sich darum.
+    case 'h':
+      if (cmd.length() < 2) { note("h<kmh> dazu, h-<kmh> entfernen"); break; }
+      if (arg < 0.0f) {
+        note(settings::removePlateau(-arg) ? "Geschwindigkeit entfernt"
+                                           : "nicht in der Liste");
+      } else if (settings::addPlateau(arg)) {
+        snprintf(g_note, sizeof(g_note), "%.1f km/h aufgenommen", arg);
+      } else {
+        snprintf(g_note, sizeof(g_note),
+                 "abgelehnt: %.0f..%.0f km/h, hoechstens %u, keine Doppelten",
+                 V_MIN_KMH, V_MAX_KMH, static_cast<unsigned>(PLATEAU_MAX));
+      }
       break;
     case 'q':
       state::clearFault();
@@ -395,6 +434,16 @@ void buildStateJson(char* buf, size_t len) {
   char sDTire[16];
   num(sDTire, sizeof(sDTire), dTire * 1000.0f, 1);
 
+  // Messgeschwindigkeiten als JSON-Liste, sortiert wie in den Einstellungen.
+  char sPlat[PLATEAU_MAX * 7 + 2];
+  size_t pp = 0;
+  for (uint8_t i = 0; i < settings::plateauCount(); i++)
+    pp += snprintf(sPlat + pp, sizeof(sPlat) - pp, "%s%.1f", i ? "," : "",
+                   settings::plateauKmh(i));
+  if (pp == 0) sPlat[0] = '\0';
+  char sLoad[16];
+  num(sLoad, sizeof(sLoad), state::loadN(), 1);
+
   char sN[16], sPct[16], sKg[16], sM[16], sRoll[16];
   num(sN,   sizeof(sN),   fN,   2);
   num(sPct, sizeof(sPct), pct,  1);
@@ -415,6 +464,8 @@ void buildStateJson(char* buf, size_t len) {
     "\"dir\":%d,\"lernt\":%s,\"brk\":%s,\"brkDuty\":%.4f,\"brkAmps\":%.1f,"
     "\"up\":%lu,\"geber\":[%s],"
     "\"nTrommel\":%.1f,\"nRad\":%.1f,\"dReifen\":%s,"
+    "\"plateaus\":[%s],\"phase\":\"%s\",\"run\":%u,\"plateau\":%u,"
+    "\"sfault\":\"%s\",\"load\":%s,"
     "\"drumU\":%.4f,\"arm\":%.4f,\"calArm\":%.4f,\"npc\":%.8f,"
     "\"vmax\":%.0f,\"vmin\":%.0f,\"step\":%.0f,\"fsN\":%.1f}",
     ok ? "true" : "false",
@@ -439,6 +490,8 @@ void buildStateJson(char* buf, size_t len) {
     speedctl::breakawayDuty(), speedctl::breakawayAmps(),
     static_cast<unsigned long>(millis()), sGeber,
     nDrum * 60.0f, nWheel * 60.0f, sDTire,
+    sPlat, state::name(), static_cast<unsigned>(state::runMode()),
+    static_cast<unsigned>(state::plateauIndex()), state::faultReason(), sLoad,
     settings::drumCircumferenceM(), settings::torqueArmM(),
     settings::calibArmM(), settings::loadcellNPerCount(),
     V_MAX_KMH, V_MIN_KMH, SPEED_STEP_KMH, LOADCELL_CAPACITY_N);

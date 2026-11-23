@@ -113,6 +113,20 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .field:after { content: ""; display: table; clear: both; }
 .field .hint { font-size: 12px; color: #7d8a95; margin-top: 6px; clear: both;
                padding-top: 6px; line-height: 1.45; }
+/* ---- Messgeschwindigkeiten: Chips mit Entfernen-Knopf ---- */
+.chips { margin: -3px; }
+.chips:after { content: ""; display: table; clear: both; }
+.chips span { float: left; margin: 3px; background: #eef1f4; border-radius: 6px;
+  font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums;
+  padding: 9px 0 9px 12px; line-height: 1; }
+.chips span button { -webkit-appearance: none; border: 0; cursor: pointer;
+  background: none; color: #c0392b; font-family: inherit; font-size: 17px;
+  font-weight: 700; padding: 0 12px; margin: 0; width: auto; float: none;
+  line-height: 1; }
+.chips .leer { color: #8795a1; font-weight: 400; font-size: 13px; padding: 9px 12px; }
+.runhint { font-size: 13px; color: #51606d; margin-top: 8px; }
+.runhint b { color: #16202a; }
+
 /* ---- Geber: Verdrahtungstest ---- */
 table.geber { width: 100%; border-collapse: collapse; margin-top: 4px;
               font-variant-numeric: tabular-nums; }
@@ -258,13 +272,14 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       </div></div>
     </div>
 
-    <h2>km/h</h2>
+    <h2>Messgeschwindigkeiten</h2>
     <div class="grid" id="grid"></div>
     <div class="row" style="margin-top:7px">
-      <button type="button" id="minus">−5</button>
-      <button type="button" id="plus">+5</button>
-      <button type="button" class="go" id="coast">Auslaufen</button>
+      <button type="button" class="go" id="bMess">Messung</button>
+      <button type="button" id="bLeer">Leerlauf</button>
+      <button type="button" id="coast">Auslaufen</button>
     </div>
+    <div class="runhint" id="runHint">—</div>
 
     <footer id="foot"></footer>
   </div>
@@ -330,6 +345,27 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       <div class="hint" id="brkHint">&mdash;</div>
     </div>
 
+    <h2>Messung</h2>
+    <div class="field">
+      <label>Messgeschwindigkeiten (km/h)</label>
+      <div class="chips" id="chips"></div>
+      <div class="hint">Leerlauf und Messlauf fahren genau diese Punkte der Reihe
+        nach ab, aufsteigend. Dieselbe Liste für beide, sonst kann die Auswertung
+        nicht punktweise subtrahieren. 28,8 km/h ist die Referenz der
+        veröffentlichten Crr-Datenbank.</div>
+      <input type="text" id="fAdd" inputmode="decimal" placeholder="km/h"
+             style="margin-top:8px">
+      <button type="button" id="bAdd" style="margin-top:8px">Hinzufügen</button>
+    </div>
+    <div class="field">
+      <label for="fLoad">Auflast (N)</label>
+      <input type="text" id="fLoad" inputmode="decimal">
+      <button type="button" id="bLoad">Übernehmen</button>
+      <div class="hint">Gewicht auf dem Laufrad, geht in Crr ein. Ohne Auflast
+        startet kein Messlauf. Die publizierte Datenbank misst mit 416,9 N
+        (42,5 kg).</div>
+    </div>
+
     <h2>Hall-Geber</h2>
     <div class="field">
       <div class="hint" style="padding-top:0;margin-top:0">Trommel und Laufrad
@@ -364,7 +400,10 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   var UI_HZ = 5, LINK_TIMEOUT_MS = 2000;
   var lastOk = 0, busy = false, soll = 0, vmax = 60, vmin = 10, step = 5;
   var lastUp = 0;   /* Laufzeit des Geräts aus der letzten Abfrage */
-  var gridBuilt = false;
+  var gridKey = ""; /* Liste, aus der das Raster zuletzt gebaut wurde */
+  var PHASE_TXT = { IDLE: "bereit", TARE: "Tara", SPINUP: "anfahren",
+                    SETTLE: "einschwingen", POINT: "messen",
+                    COAST: "läuft aus", FAULT: "FEHLER" };
 
   function $(id) { return document.getElementById(id); }
   function de(v, d) { return v.toFixed(d).replace(".", ","); }
@@ -395,39 +434,60 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   $("tabMess").onclick  = function () { tab(true); };
   $("tabSetup").onclick = function () { tab(false); };
 
-  /* ---------- Geschwindigkeitsraster ---------- */
-  function buildGrid() {
-    var html = "", v;
-    for (v = vmin; v <= vmax; v += step) {
-      html += '<button type="button" data-v="' + v + '">' + v + "</button>";
+  /* ---------- Geschwindigkeitsraster: nur die Messgeschwindigkeiten ----------
+     Die Liste kommt sortiert vom Gerät (Einstellungen, NVS). Ein Knopf fährt
+     den Punkt von Hand an; "Messung" und "Leerlauf" fahren alle der Reihe
+     nach ab. */
+  function buildGrid(list) {
+    var html = "", i;
+    for (i = 0; i < list.length; i++) {
+      html += '<button type="button" data-v="' + list[i] + '">'
+            + de(list[i], list[i] % 1 ? 1 : 0) + "</button>";
     }
+    if (!list.length) html = '<div class="runhint">Keine Messgeschwindigkeiten '
+                           + '— unter Einrichtung eintragen.</div>';
     $("grid").innerHTML = html;
-    var bs = $("grid").getElementsByTagName("button"), i;
+    var bs = $("grid").getElementsByTagName("button");
     for (i = 0; i < bs.length; i++) {
       bs[i].onclick = (function (b) {
         return function () { send("v" + b.getAttribute("data-v")); };
       })(bs[i]);
     }
-    gridBuilt = true;
+  }
+
+  function buildChips(list) {
+    var html = "", i;
+    for (i = 0; i < list.length; i++) {
+      html += "<span>" + de(list[i], list[i] % 1 ? 1 : 0)
+            + '<button type="button" data-v="' + list[i]
+            + '" title="entfernen">\u00d7</button></span>';
+    }
+    if (!list.length) html = '<span class="leer">leer</span>';
+    $("chips").innerHTML = html;
+    var bs = $("chips").getElementsByTagName("button");
+    for (i = 0; i < bs.length; i++) {
+      bs[i].onclick = (function (b) {
+        return function () { send("h-" + b.getAttribute("data-v")); };
+      })(bs[i]);
+    }
   }
 
   function paintGrid(istSoll) {
     var bs = $("grid").getElementsByTagName("button"), i, v;
     for (i = 0; i < bs.length; i++) {
-      v = parseInt(bs[i].getAttribute("data-v"), 10);
-      bs[i].className = (v === istSoll) ? "on" : "";
+      v = parseFloat(bs[i].getAttribute("data-v"));
+      bs[i].className = (Math.abs(v - istSoll) < 0.05) ? "on" : "";
     }
   }
 
-  $("minus").onclick = function () {
-    var v = Math.max(vmin, soll - step);
-    send(soll <= vmin ? "c" : "v" + v);
-  };
-  $("plus").onclick = function () {
-    var v = Math.min(vmax, (soll < vmin ? vmin - step : soll) + step);
-    send("v" + v);
-  };
+  $("bMess").onclick = function () { send("m1"); };
+  $("bLeer").onclick = function () { send("m0"); };
   $("coast").onclick = function () { send("c"); };
+  $("bAdd").onclick  = function () {
+    var v = numOf("fAdd");
+    if (!isNaN(v)) { send("h" + v); $("fAdd").value = ""; }
+  };
+  $("bLoad").onclick = function () { send("l" + numOf("fLoad")); };
   $("stop").onclick  = function () { send("s"); };
 
   /* ---------- Einrichtung ---------- */
@@ -474,9 +534,22 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
   /* ---------- Anzeige ---------- */
   function paint(j) {
-    if (vmax !== j.vmax || vmin !== j.vmin || step !== j.step) gridBuilt = false;
     vmax = j.vmax; vmin = j.vmin; step = j.step; soll = j.soll;
-    if (!gridBuilt) buildGrid();
+    var list = j.plateaus || [], key = list.join(",");
+    if (key !== gridKey) { buildGrid(list); buildChips(list); gridKey = key; }
+
+    /* Fortschritt des Laufs */
+    var ph = PHASE_TXT[j.phase] || j.phase, rh;
+    if (j.run) {
+      rh = "<b>" + (j.run === 1 ? "Leerlauf" : "Messlauf") + "</b> \u00b7 Punkt "
+         + (j.plateau + 1) + " von " + list.length + " \u00b7 "
+         + de(list[j.plateau] || 0, 1) + " km/h \u00b7 " + ph;
+    } else if (j.phase === "FAULT") {
+      rh = "<b>FEHLER</b> \u2014 " + j.sfault + " \u00b7 quittieren mit <code>q</code> im Stillstand";
+    } else {
+      rh = ph + (j.load === null ? " \u00b7 Auflast nicht gesetzt" : "");
+    }
+    $("runHint").innerHTML = rh;
 
     $("st").className = j.link ? "dot ok" : "dot";
     $("st").title = j.link ? "Regler verbunden" : "kein Regler";
@@ -537,6 +610,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
          : "\u2014");
 
     /* Einrichtung */
+    if (j.load !== null && j.load !== undefined) fill("fLoad", j.load, 1);
     fill("fDrum", j.drumU,  4);
     fill("fArm",  j.arm,    4);
     fill("fCal",  j.calArm, 4);

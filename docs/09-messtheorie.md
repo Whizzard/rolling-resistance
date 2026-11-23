@@ -648,8 +648,9 @@ davon die Wiege berührt. Die Standardauflast `STANDARD_LOAD_N` = **416,9 N
 
 ### 8.4 Baseline Vorlauf
 
-**Laufrad abgehoben** (Exzenterhebel), `b` auf der Konsole. Die Firmware fährt alle
-Plateaus aus `PLATEAUS_KMH`, wartet je `SETTLE_MS` und mittelt über
+**Laufrad abgehoben** (Exzenterhebel), *Leerlauf* auf der Messseite oder `m0` auf
+der Konsole. Die Firmware fährt alle Messgeschwindigkeiten aus den Einstellungen ab
+(Vorgabe `PLATEAUS_KMH`), wartet je `SETTLE_MS` und mittelt über
 `AVG_REVS_PER_POINT` **ganze Umdrehungen**, getriggert auf die Indexmarke.
 
 Ergebnis: `M_leer(ω)`, daraus der Fit `A₀ + B₀·ω²`. Nicht überspringen — ohne diese Kurve

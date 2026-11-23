@@ -27,5 +27,6 @@ void point(const char* stateName,
 void angleBins();
 
 void note(const char* text);
+const char* lastNote();    // zuletzt uebergebener Text, fuer die Oberflaeche
 
 }  // namespace logger
