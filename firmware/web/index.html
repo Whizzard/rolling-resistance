@@ -122,6 +122,25 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .field:after { content: ""; display: table; clear: both; }
 .field .hint { font-size: 12px; color: #7d8a95; margin-top: 6px; clear: both;
                padding-top: 6px; line-height: 1.45; }
+/* ---- Waage: Rohwert mit Skala ---- */
+.rawline { font-size: 25px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rawline span { font-size: 14px; color: #7d8a95; font-weight: 400; margin-left: 8px; }
+.scale { position: relative; height: 14px; margin: 8px 0 2px; border-radius: 7px;
+         background: #e3e8ec; }
+.scale .mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
+              margin-left: -1px; background: #aab4bd; }
+.scale .dot { position: absolute; top: 1px; width: 12px; height: 12px; margin-left: -6px;
+              border-radius: 50%; background: #2f6f99; left: 50%; }
+.scalelab { font-size: 11px; color: #8795a1; }
+.scalelab span { display: inline-block; width: 33.3%; }
+.scalelab span:nth-child(2) { text-align: center; }
+.scalelab span:nth-child(3) { text-align: right; }
+.pair:after { content: ""; display: table; clear: both; }
+.pair > div { float: left; width: 49%; }
+.pair > div + div { margin-left: 2%; }
+.pair input { width: 100%; margin-top: 3px; }
+.pair .sub { display: block; }
+
 /* ---- Messgeschwindigkeiten: Chips mit Entfernen-Knopf ---- */
 .chips { margin: -3px; }
 .chips:after { content: ""; display: table; clear: both; }
@@ -308,39 +327,37 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
     <h2>Trommel</h2>
     <div class="field">
-      <label for="fDrum">Trommelumfang (m)</label>
+      <label for="fDrum">Trommelumfang (mm)</label>
       <input type="text" id="fDrum" inputmode="decimal">
       <button type="button" id="bDrum">Übernehmen</button>
-      <div class="hint">Maßband, drei Messungen mitteln. Ø <b id="dia">—</b></div>
+      <div class="hint">Ø <b id="dia">—</b> mm</div>
     </div>
 
-    <h2>Hebelarme</h2>
+    <h2>Waage</h2>
     <div class="field">
-      <label for="fArm">Zellenarm (m)</label>
+      <label for="fArm">Trommelachse – Waage (mm)</label>
       <input type="text" id="fArm" inputmode="decimal">
       <button type="button" id="bArm">Übernehmen</button>
-      <div class="hint">Geht linear in jedes Moment ein. Auf ±0,1 mm.</div>
     </div>
     <div class="field">
-      <label for="fCal">Kalibrierarm (m)</label>
-      <input type="text" id="fCal" inputmode="decimal">
-      <button type="button" id="bCal">Übernehmen</button>
-      <div class="hint">Zweite Bohrung, weiter außen. <b id="ratio">—</b>-fach an der Zelle.</div>
-    </div>
-
-    <h2>Wägezelle kalibrieren</h2>
-    <div class="field">
-      <label>1 — Nullen</label>
-      <div class="hint" style="padding-top:0;margin-top:0">Arm frei machen. Nur im
-        Stillstand.</div>
+      <label>Rohwert</label>
+      <div class="rawline"><b id="raw">—</b> <span id="rawPct">—</span></div>
+      <div class="scale"><div class="mid"></div><div class="dot" id="rawDot"></div></div>
+      <div class="scalelab"><span>−100 %</span><span>0</span><span>+100 %</span></div>
+      <div class="hint">Null <b id="tare">—</b> · Spitze-Spitze <b id="ripple">—</b></div>
       <button type="button" class="plain" id="bTare"
-              style="float:none;width:100%;margin:8px 0 0 0">Jetzt nullen</button>
-      <div class="hint">Roh <b id="counts">—</b> · S-S <b id="ripple">—</b></div>
+              style="float:none;width:100%;margin:8px 0 0 0">Nullen</button>
     </div>
     <div class="field">
-      <label for="fKg">2 — Gewicht am Kalibrierarm (kg)</label>
-      <input type="text" id="fKg" inputmode="decimal" value="2,000">
-      <button type="button" id="bCalib">Kalibrieren</button>
+      <label>Kalibrieren</label>
+      <div class="pair">
+        <div><span class="sub">Abstand von der Achse (mm)</span>
+          <input type="text" id="fCal" inputmode="decimal"></div>
+        <div><span class="sub">Gewicht (g)</span>
+          <input type="text" id="fG" inputmode="decimal" value="2000"></div>
+      </div>
+      <button type="button" id="bCalib"
+              style="float:none;width:100%;margin:8px 0 0 0">Kalibrieren</button>
       <div class="hint" id="calHint">—</div>
     </div>
 
@@ -524,11 +541,16 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   function numOf(id) {
     return parseFloat(($(id).value || "").replace(",", "."));
   }
-  $("bDrum").onclick  = function () { send("d" + numOf("fDrum")); };
-  $("bArm").onclick   = function () { send("a" + numOf("fArm")); };
-  $("bCal").onclick   = function () { send("b" + numOf("fCal")); };
+  /* Laengen in mm, Gewicht in g -- die Firmware rechnet in m und kg (SI, CLAUDE.md),
+     umgerechnet wird nur hier, an der Eingabe. */
+  $("bDrum").onclick  = function () { send("d" + (numOf("fDrum") / 1000)); };
+  $("bArm").onclick   = function () { send("a" + (numOf("fArm") / 1000)); };
   $("bTare").onclick  = function () { send("t"); };
-  $("bCalib").onclick = function () { send("k" + numOf("fKg")); };
+  $("bCalib").onclick = function () {
+    /* Abstand erst setzen, dann kalibrieren; die Warteschlange haelt die Reihenfolge. */
+    send("b" + (numOf("fCal") / 1000));
+    send("k" + (numOf("fG") / 1000));
+  };
   /* z war r, e war l: 'r' und 'l' sind nach der Zusammenlegung der Varianten
      anders belegt (Abrollradius bzw. Auflast). docs/04-hardware.md §14.1. */
   $("bReset").onclick = function () { send("z"); };
@@ -652,12 +674,16 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
     /* Einrichtung */
     if (j.load !== null && j.load !== undefined) fill("fLoad", j.load, 1);
-    fill("fDrum", j.drumU,  4);
-    fill("fArm",  j.arm,    4);
-    fill("fCal",  j.calArm, 4);
-    $("dia").innerHTML   = de(j.drumU / Math.PI, 4) + " m";
-    $("ratio").innerHTML = de(j.calArm / j.arm, 2);
-    $("counts").innerHTML = j.counts;
+    fill("fDrum", j.drumU * 1000,  1);
+    fill("fArm",  j.arm * 1000,    1);
+    fill("fCal",  j.calArm * 1000, 1);
+    $("dia").innerHTML = de(j.drumU / Math.PI * 1000, 1);
+    /* Rohwert absolut und als Anteil des 24-Bit-Bereichs (+-8 388 607) */
+    var FS = 8388607, pct = j.raw / FS * 100;
+    $("raw").innerHTML = j.raw;
+    $("rawPct").innerHTML = de(pct, 2) + " %";
+    $("rawDot").style.left = (50 + Math.max(-50, Math.min(50, pct / 2))) + "%";
+    $("tare").innerHTML = j.tare;
     $("ripple").innerHTML = j.ripple;
     $("calHint").innerHTML = kal
       ? "Erneutes Kalibrieren überschreibt den Faktor. Vorher nullen."

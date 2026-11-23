@@ -578,7 +578,7 @@ void buildStateJson(char* buf, size_t len) {
     "\"erpm\":%ld,\"rpm\":%.1f,"
     "\"vin\":%.1f,\"imot\":%.2f,\"iin\":%.2f,\"watt\":%.0f,"
     "\"tfet\":%.1f,\"tmot\":%s,\"tmotOffen\":%s,"
-    "\"counts\":%ld,\"ripple\":%ld,\"n\":%s,\"pct\":%s,\"kg\":%s,"
+    "\"counts\":%ld,\"raw\":%ld,\"tare\":%ld,\"ripple\":%ld,\"n\":%s,\"pct\":%s,\"kg\":%s,"
     "\"nm\":%s,\"roll\":%s,\"pw\":%s,\"crr\":%s,\"err\":\"%s\","
     "\"kal\":%s,\"saturiert\":%s,\"zelle\":%s,"
     "\"dir\":%d,\"lernt\":%s,\"brk\":%s,\"brkDuty\":%.4f,\"brkAmps\":%.1f,"
@@ -600,7 +600,7 @@ void buildStateJson(char* buf, size_t len) {
     ok ? v.vIn : 0.0f, ok ? v.currentMotor : 0.0f, ok ? v.currentIn : 0.0f,
     ok ? v.vIn * v.currentIn : 0.0f,
     ok ? v.tempFet : 0.0f, sTmot, tmotOffen ? "true" : "false",
-    counts, ripple, sN, sPct, sKg, sM, sRoll, sPW, sCrr, currentError(),
+    counts, mean, torque::tareOffset(), ripple, sN, sPct, sKg, sM, sRoll, sPW, sCrr, currentError(),
     settings::calibrated() ? "true" : "false",
     torque::isSaturated() ? "true" : "false",
     torque::isResponding() ? "true" : "false",
