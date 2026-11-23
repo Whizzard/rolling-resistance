@@ -217,6 +217,18 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   <!-- ===================== MESSUNG ===================== -->
   <div id="pageMess">
 
+    <h2>Reifen</h2>
+    <div class="tiles">
+      <div class="tile half big"><div>
+        <div class="lab">Verlustleistung</div>
+        <div class="val"><span id="pw">—</span><small>W</small></div>
+      </div></div>
+      <div class="tile half big"><div>
+        <div class="lab">Crr roh</div>
+        <div class="val"><span id="crr">—</span></div>
+      </div></div>
+    </div>
+
     <h2>Zelle</h2>
     <div class="tiles">
       <div class="tile half big"><div>
@@ -286,11 +298,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       <button type="button" id="bLeer">Leerlauf</button>
       <button type="button" id="coast">Auslaufen</button>
     </div>
-    <button type="button" class="plain" id="bQuit" hidden
-            style="-webkit-appearance:none;border:0;cursor:pointer;font-family:inherit;
-                   font-size:15px;font-weight:700;background:#c3ccd4;color:#16202a;
-                   border-radius:6px;padding:12px 0;width:100%;margin-top:8px">
-      Fehler quittieren</button>
+
 
     <footer id="foot"></footer>
   </div>
@@ -503,7 +511,6 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   }
 
   $("bMess").onclick = function () { send("m1"); };
-  $("bQuit").onclick = function () { send("q"); };
   $("bLeer").onclick = function () { send("m0"); };
   $("coast").onclick = function () { send("c"); };
   $("bAdd").onclick  = function () {
@@ -573,14 +580,11 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       rh = "<b>" + (j.run === 1 ? "Leerlauf" : "Messlauf") + "</b> \u00b7 Punkt "
          + (j.plateau + 1) + " von " + list.length + " \u00b7 "
          + de(list[j.plateau] || 0, 1) + " km/h \u00b7 " + ph;
-    } else if (j.phase === "FAULT") {
-      rh = "<b>" + j.sfault.replace(/^FAULT: /, "") + "</b>";
     } else {
       rh = "";                        /* Normalbetrieb: kein Text */
     }
     $("runHint").innerHTML = rh;
     $("runHint").hidden = (rh === "");
-    $("bQuit").hidden = (j.phase !== "FAULT");
 
     $("st").className = j.link ? "dot ok" : "dot";
     $("st").title = j.link ? "Regler verbunden" : "kein Regler";
@@ -599,6 +603,8 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("pct").className = "val" + (kal ? "" : " dim");
     show("kg",  j.kg,  3);
     show("pct", j.pct, 1);
+    show("pw",  j.pw,  1);
+    show("crr", j.crr, 4);
     /* Spitze-Spitze im selben 0,5-s-Fenster, in dem auch gemittelt wird. Sagt, wie
        ruhig der Mittelwert wirklich ist — ein sauberer Wert und ein Mittel über
        wildes Zappeln sehen sonst gleich aus. */
@@ -663,32 +669,10 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
          + "<br>Dazu die Zeile in <code>docs/03-parameter.md</code> §2.")
       : "Wägezelle nicht kalibriert.";
 
-    /* Meldungen */
-    var msg = "", bad = false;
-    if (!j.link) {
-      msg = "Kein Regler"; bad = true;
-    } else if (j.fault) {
-      msg = "Regler: " + j.faultTxt; bad = true;
-    } else if (j.saturiert) {
-      msg = "Wägezelle am Anschlag"; bad = true;
-    } else if (!j.zelle) {
-      msg = "HX711 antwortet nicht."; bad = true;
-    } else if (j.notaus) {
-      msg = "Not-Aus"; bad = true;
-    } else if (j.motorOffen) {
-      msg = "Trennung erkannt"; bad = true;
-    } else if (j.tmotOffen) {
-      msg = "Motorfühler offen"; bad = true;
-    } else if ((j.status & 1) && j.faehrt) {
-      msg = "Regler hat abgestellt"; bad = true;
-    } else if (j.faehrt && j.rampe > 3 && j.kmh < 1) {
-      msg = "Trommel dreht nicht"; bad = true;
-    } else if (j.note && j.noteBad) {
-      msg = j.note; bad = true;      /* Hinweise bleiben der Konsole, hier nur Fehler */
-    }
-    $("note").innerHTML = msg;
-    $("note").className = bad ? "note bad" : "note";
-    $("note").hidden = (msg === "");
+    /* Fehler: die Firmware liefert EINEN Text oder nichts (currentError). */
+    $("note").innerHTML = j.err || "";
+    $("note").className = "note bad";
+    $("note").hidden = !j.err;
     layoutPin();
 
     $("foot").innerHTML =

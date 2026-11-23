@@ -279,6 +279,11 @@ constexpr float    ESTOP_IMOT_MAX_A = 0.3f;
 // Trommel aus, der Stellwert bleibt, die Luecke waechst -- aus 28 km/h nach
 // wenigen Sekunden. [gesch] 0,6: unter 60 % der Leerlaufdrehzahl zum Stellwert.
 constexpr float    ESTOP_SPEED_RATIO = 0.6f;
+// Zweiter, schnellerer Weg: die Trommel wird LANGSAMER, ohne dass Strom fliesst,
+// und der Sollwert wird nicht gerade abgesenkt. Ein angeschlossener Motor zieht bei
+// sinkender Drehzahl unter konstantem Stellwert sofort Strom. Gemessen nach dem
+// Not-Aus aus 28 km/h: etwa 3 km/h/s; die Regelung pendelt mit 0,1...0,2 km/h/s.
+constexpr float    ESTOP_DECEL_KMH_S = 0.5f;   // [gesch]
 constexpr uint32_t ESTOP_DETECT_MS  = 1000;   // [gesch] so lange muss der Befund stehen
 // [TBD] Hilfskontakt des Not-Aus an PIN_ESTOP_FB — noch nicht verdrahtet. Sobald er
 // liegt: true setzen. Der Kontakt soll nach Masse ziehen, wenn ausgeloest (interner

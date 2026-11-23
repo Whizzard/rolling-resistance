@@ -269,10 +269,13 @@ weiter" ist es wirksam, gegen „Trommel dreht noch" nicht.
 | Trommeldrehzahl über Grenze | `MAX_DRUM_RPM` = 341 1/min | FAULT, Antrieb aus |
 | Motortemperatur | **TBD**, siehe A5 | FAULT, Antrieb aus |
 | **Bedienverbindung abgerissen** | `LINK_TIMEOUT_MS` = 2000 ms | FAULT, Antrieb aus |
-| **Kein Motor am Regler** (Not-Aus ausgelöst oder Motor abgeklemmt): Stellwert > `STALL_DUTY_MIN`, Motorstrom < `ESTOP_IMOT_MAX_A` = 0,3 A **und** Drehzahl < `ESTOP_SPEED_RATIO` = 0,6 × Leerlaufdrehzahl zum Stellwert. Strom allein gab Fehlalarm im Leerlauf (0,2 A bei 28 km/h); Stillstand allein kam 25 s zu spät, weil die Hall-Geber die auslaufende Trommel melden (beides 2026-11-23). Ein angeschlossener Motor kann nicht stromlos hinter seiner Spannung zurückbleiben | `ESTOP_DETECT_MS` = 1000 ms | Antrieb freigegeben, Meldung in Oberfläche und Konsole; im Lauf FAULT. Seit 2026-11-23 |
+| **Kein Motor am Regler** (Not-Aus ausgelöst oder Motor abgeklemmt): Stellwert > `STALL_DUTY_MIN`, Motorstrom < `ESTOP_IMOT_MAX_A` = 0,3 A **und** (Drehzahl < `ESTOP_SPEED_RATIO` = 0,6 × Leerlaufdrehzahl zum Stellwert **oder** Trommel wird schneller als `ESTOP_DECEL_KMH_S` = 0,5 km/h/s langsamer, ohne dass der Sollwert sinkt). Strom allein gab Fehlalarm im Leerlauf (0,2 A bei 28 km/h); Stillstand allein kam 25 s zu spät, weil die Hall-Geber die auslaufende Trommel melden (beides 2026-11-23). Ein angeschlossener Motor kann nicht stromlos hinter seiner Spannung zurückbleiben | `ESTOP_DETECT_MS` = 1000 ms | Antrieb freigegeben, Meldung in Oberfläche und Konsole; im Lauf FAULT. Seit 2026-11-23 |
 | **Not-Aus-Hilfskontakt** an `PIN_ESTOP_FB` | nur wenn `ESTOP_FB_WIRED` | FAULT; **noch nicht verdrahtet (TBD)** |
 
-FAULT ist rastend: Quittierung nur im Stillstand über die Konsole oder das Bedienfeld.
+FAULT hält, solange die Trommel dreht, und löst sich zwei Sekunden nach dem
+Stillstand von selbst (seit 2026-11-23; vorher rastend mit Quittierung, was am Stand
+nur störte). Der Antrieb bleibt bis dahin aus, der Grund steht rot im Bedienfeld.
+`q` auf der Konsole quittiert weiterhin, ebenfalls nur im Stillstand.
 
 > **Der eigene Trommelaufnehmer ist Pflicht, nicht Redundanz.** Am 2026-11-17 gemessen:
 > `foc_sl_erpm` = 4000 bedeutet, dass der Regler oberhalb von **4000 ERPM = 267 1/min
@@ -335,9 +338,9 @@ dazu:
 - Das Kriterium ist **erst scharf, nachdem ein Client da war** (`webui::clientSeen()`).
   Ohne Bedienfeld lässt sich der Stand weiterhin allein über die serielle Konsole
   fahren — sonst wäre jeder Konsolenlauf sofort ein Fehlerfall.
-- Es ist **rastend** wie jedes andere Kriterium. Ein Lauf, der nach einem
-  Verbindungsabriss von selbst weiterfährt, sobald das WLAN wiederkommt, wäre die
-  schlechtere Eigenschaft.
+- Es hält wie jedes andere Kriterium, bis die Trommel steht. Ein Lauf, der nach
+  einem Verbindungsabriss von selbst weiterfährt, sobald das WLAN wiederkommt, wäre
+  die schlechtere Eigenschaft.
 
 Die Status-LED zeigt denselben Zustand: grün stetig = Verbindung steht, rot blinkend =
 es wird gewartet.

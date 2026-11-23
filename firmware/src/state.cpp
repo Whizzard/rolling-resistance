@@ -19,6 +19,7 @@ uint8_t g_plateau = 0;
 uint8_t g_revs = 0;
 uint32_t g_settleStartMs = 0;
 uint32_t g_faultSinceMs = 0;
+uint32_t g_faultStillMs = 0;   // seit wann die Trommel im FAULT steht
 float g_loadN = NAN;
 const char* g_faultReason = "";
 
@@ -155,7 +156,24 @@ void service() {
 
   switch (g_phase) {
     case IDLE:
+      break;
+
     case FAULT:
+      // Haelt, bis die Trommel steht; dann von selbst wieder IDLE. Ein rastender
+      // Fehler, den jemand quittieren muss, hat am Stand nur genervt (2026-11-23).
+      // Waehrend die Trommel noch dreht, bleibt er stehen und sichtbar.
+      if (revsrc::revPerSec() < 0.05f) {
+        if (g_faultStillMs == 0) g_faultStillMs = millis();
+        else if (millis() - g_faultStillMs >= 2000) {
+          g_faultReason = "";
+          g_faultSinceMs = 0;
+          g_faultStillMs = 0;
+          g_phase = IDLE;
+          logger::note("");
+        }
+      } else {
+        g_faultStillMs = 0;
+      }
       break;
 
     case TARE:

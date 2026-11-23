@@ -2,6 +2,7 @@
 #include "config.h"
 #include "settings.h"
 #include "vesc/vesc.h"
+#include "revsrc.h"
 #include "logger.h"
 
 namespace speedctl {
@@ -201,7 +202,10 @@ void service() {
   const float rpmNoLoad = g_duty * noLoadRpm();
   const bool  lagging = rpmNoLoad > 0.0f &&
                         fabsf(rpmSigned()) < ESTOP_SPEED_RATIO * rpmNoLoad;
-  if (g_duty > STALL_DUTY_MIN && imot < ESTOP_IMOT_MAX_A && lagging) {
+  const float dvdt = revsrc::dvdtKmhS();
+  const bool  rampingDown = g_ramp > g_target + 0.1f;
+  const bool  decel = !isnan(dvdt) && dvdt < -ESTOP_DECEL_KMH_S && !rampingDown;
+  if (g_duty > STALL_DUTY_MIN && imot < ESTOP_IMOT_MAX_A && (lagging || decel)) {
     const uint32_t now = millis();
     if (g_openSince == 0) {
       g_openSince = now;
