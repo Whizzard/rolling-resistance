@@ -40,8 +40,7 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 |---|---|---|---|---|---|
 | k | `MARKS_PER_REV` | 8 | – | Festlegung | geschraubte Magnete auf dem Teilkreis der 8 Abstandsklötze, [04-hardware](04-hardware.md) §9. Mehr Marken bringen keine Genauigkeit, nur Latenz. |
 | — | `WHEEL_MARKS_PER_REV` | **1** | – | Festlegung | Magnete an den Speichen des Prüflaufrads, Geber am Ausfallende, [09-messtheorie](09-messtheorie.md) §4. Verbaut ist seit 2026-11-22 **ein** Magnet. Drehzahl über ein Fenster von einer ganzen Umdrehung; mehr Magnete brächten keine Genauigkeit, nur eine schnellere Aktualisierung. Der Wert muss zum Rad passen, sonst sind Drehzahl und Laufradumfang um diesen Faktor falsch. |
-| — | `WHEEL_CIRC_MIN_REVS` | 20 | – | gesch | Radumdrehungen auf stetiger Fahrt, ab denen der integrierte Laufradumfang angezeigt wird ([04-hardware](04-hardware.md) §14.1). Bei 15 km/h sind das rund 10 s. |
-| — | `WHEEL_CIRC_STEADY` | 0,15 | – | gesch | zulässige relative Spanne der Trommeldrehzahl im Fenster; darüber beginnt das Fenster neu. Weit mit Absicht: Schwankungen kürzen sich heraus, die Regelung pendelt um ±3 % (gemessen 2026-11-23), 5 % ließen das Fenster nie voll werden. |
+| — | `WHEEL_CIRC_WINDOW_REVS` | 10 | – | Festlegung | gleitendes Fenster für den Laufradumfang, in Radumdrehungen; bei jedem Impuls neu gerechnet ([04-hardware](04-hardware.md) §14.1). Bei 15 km/h sind das rund 4 s. |
 | — | `WHEEL_CIRC_GAP_MS` | 3000 | ms | gesch | ohne Radimpuls gilt das Rad als stehend, das Fenster verfällt |
 | — | `MIN_PULSE_US` | 800 | µs | ber | Kürzester Abstand: 60 km/h, 8 Marken → 22,5 ms. Bei 100 km/h → 13,5 ms. 800 µs filtert sicher nur Störer. |
 | — | `STALL_TIMEOUT_MS` | 2000 | ms | ber | Grenzfall ist nicht 10 km/h (135 ms bei 8 Marken), sondern der Hochlauf: bei 1 km/h sind es 1,35 s. 2000 ms bedeutet *langsamer als 0,68 km/h gilt als Stillstand*; die Rampe ist nach 1,4 s darüber. |

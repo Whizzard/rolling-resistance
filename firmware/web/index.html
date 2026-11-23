@@ -46,6 +46,13 @@ body {
 .tabs button + button { margin-right: 0; }
 .tabs button.on { background: #16202a; color: #fff; }
 
+/* ---- Angepinnt: Ist und Soll bleiben beim Scrollen unter den Reitern stehen.
+   position: sticky kann Safari 9 nicht, also fest; die Hoehe wird per Skript
+   gemessen und als Abstand oben an den Inhalt gegeben. ---- */
+.pin { position: fixed; left: 0; right: 0; z-index: 19; background: #eef1f4;
+       padding: 0 10px 6px; box-shadow: 0 2px 6px rgba(22,32,42,.10); }
+.pin .wrap { max-width: 980px; margin: 0 auto; }
+
 /* ---- Meldungen ---- */
 .note { border-radius: 4px; padding: 8px 12px; font-size: 13px; margin-bottom: 9px;
         background: #e4ecf2; border-left: 6px solid #2f6f99; color: #28475c; }
@@ -190,11 +197,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     <span class="dot" id="st"></span>
   </div>
 
-  <div class="note" id="note" hidden></div>
-
-  <!-- ===================== MESSUNG ===================== -->
-  <div id="pageMess">
-
+  <div class="pin" id="pin"><div class="wrap">
     <div class="tiles">
       <div class="tile half big"><div>
         <div class="lab">Ist</div>
@@ -205,6 +208,12 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         <div class="val"><span id="soll">—</span><small>km/h</small></div>
       </div></div>
     </div>
+  </div></div>
+
+  <div class="note" id="note" hidden></div>
+
+  <!-- ===================== MESSUNG ===================== -->
+  <div id="pageMess">
 
     <h2>Zelle</h2>
     <div class="tiles">
@@ -265,7 +274,6 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       <div class="tile half"><div>
         <div class="lab">Laufradumfang</div>
         <div class="val"><span id="uRad">—</span><small>mm</small></div>
-        <div class="sub" id="uRadSub">—</div>
       </div></div>
     </div>
 
@@ -425,12 +433,24 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     x.send();
   }
 
+  /* ---------- Angepinnte Kacheln: Lage und Platz oben ---------- */
+  function layoutPin() {
+    var tabs = document.getElementsByClassName("tabs")[0], pin = $("pin");
+    var top = tabs.offsetHeight;
+    pin.style.top = top + "px";
+    document.body.style.paddingTop =
+      (top + (pin.hidden ? 0 : pin.offsetHeight) + 8) + "px";
+  }
+  window.onresize = layoutPin;
+
   /* ---------- Reiter ---------- */
   function tab(mess) {
     $("pageMess").hidden = !mess;
     $("pageSetup").hidden = mess;
+    $("pin").hidden = !mess;        /* nur auf der Messseite angepinnt */
     $("tabMess").className = mess ? "on" : "";
     $("tabSetup").className = mess ? "" : "on";
+    layoutPin();
   }
   $("tabMess").onclick  = function () { tab(true); };
   $("tabSetup").onclick = function () { tab(false); };
@@ -596,12 +616,9 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
        null, solange nicht beides dreht. */
     show("nTrommel", j.nTrommel, 1);
     show("nRad",     j.nRad,     1);
-    /* Umfang: integriert ueber ein Fenster stetiger Fahrt; erscheint erst, wenn
-       genug Radumdrehungen zusammen sind, und flattert dann nicht mehr. */
+    /* Umfang: gleitendes Fenster der letzten Radumdrehungen, bei jedem Impuls
+       neu; erscheint, sobald das Fenster voll ist. */
     show("uRad",     j.uRad,     0);
-    $("uRadSub").innerHTML = (j.uRad === null || j.uRad === undefined)
-      ? (j.uRadN > 0 ? j.uRadN + " von " + j.uRadMin + " Umdrehungen" : "\u2014")
-      : ("aus " + j.uRadN + " Umdrehungen");
 
     /* Antrieb einmessen */
     $("dirSign").innerHTML = (j.dir > 0 ? "+1" : "\u22121");
@@ -697,6 +714,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     x.send();
   }
 
+  layoutPin();
   poll();
   setInterval(poll, 1000 / UI_HZ);
 })();
