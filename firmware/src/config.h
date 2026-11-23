@@ -58,7 +58,8 @@ constexpr float DRUM_LOSS_OMEGA2_NM = 3.178e-4f;
 // Moment ein — vor der ersten Messung die Bohrung auf ±0,1 mm ausmessen und den Wert
 // hier eintragen; bis dahin bleibt er TBD. Die Kalibrierbohrung wandert mit nach außen
 // auf 160 mm, damit das 2:1-Verhältnis erhalten bleibt. Anschlag bei 0,200 m.
-constexpr float TORQUE_ARM_M = 0.080f;
+// [gem 2026-11-23] 84 mm, Trommelachse bis Waage, am Aufbau angesagt.
+constexpr float TORQUE_ARM_M = 0.084f;
 
 // [Festlegung] Hebelarm des KALIBRIERGEWICHTS, die zweite Bohrung im Arm. Das
 // 2:1-Verhaeltnis zum Zellenarm ist Absicht: ein Gewicht am laengeren Arm erzeugt das
