@@ -334,9 +334,13 @@ Busspannung, darüber liegt ein langsamer Trimm. So ist der Stand am 2026-11-17 
 | Konstante | Wert | Einheit | Herkunft | Anmerkung |
 |---|---|---|---|---|
 | `SPEEDCTL_RAMP_KMH_PER_S` | 2,0 | km/h/s | Festlegung | Rampe des inneren Sollwerts: 30 s von 0 auf 60. Langsam genug, dass ein Fehlgriff auffällt, bevor es schnell wird. |
-| `SPEEDCTL_KI` | 0,010 | 1/(km/h·s) | gesch | I-Anteil des Trimms. Bis 2026-11-23 war der Trimm ein reiner Integrator mit 0,02: unter 494 N Auflast pendelte die Trommel um ±0,8 km/h mit etwa 10 s Periode. |
-| `SPEEDCTL_KPP` | 0,006 | 1/(km/h) | gesch | P-Anteil auf die Abweichung. |
-| `SPEEDCTL_KD` | 0,010 | 1/(km/h/s) | gesch | D-Anteil auf die gemessene Beschleunigung (`revsrc::dvdtKmhS`), nimmt beim Hochlaufen früh weg. Gemessen 2026-11-23 mit allen dreien: Überschwingen ≈ 1 km/h, danach ±0,1 km/h bei 15 und 40 km/h. |
+| `SPEEDCTL_KI` | 0,008 | 1/(km/h·s) | gesch | I-Anteil des Trimms; integriert nicht, solange der Stellwert an der Klemme liegt (Anti-Windup). Bis 2026-11-23 war der Trimm ein reiner Integrator mit 0,02: unter 494 N Auflast pendelte die Trommel um ±0,8 km/h mit etwa 10 s Periode. |
+| `SPEEDCTL_KPP` | 0,008 | 1/(km/h) | gesch | P-Anteil auf die Abweichung. |
+| `SPEEDCTL_KD` | 0,015 | 1/(km/h/s) | gesch | D-Anteil auf die Beschleunigung **über die Rampe hinaus** (`revsrc::dvdtKmhS` minus Rampensteigung). Ein D gegen die gewollte Beschleunigung vergrößerte nur den Nachlauf: 2,1 km/h Überschwingen bei 0,03. |
+| `SPEEDCTL_LEAD_KMH` | 1,5 | km/h | gesch | Die Rampe läuft der Trommel höchstens so weit voraus. Sonst integriert der Trimm den ganzen Hochlauf gegen eine große Abweichung und kommt mit Überschuss am Ziel an. Abstimmung 2026-11-23: 2,0 → 1,2–1,5 km/h Überschwingen; 1,0 → keins, aber 40 km/h erst nach 42 s; **1,5 → 0,8–1,0 km/h, Ziel nach 17–22 s, danach ±0,2.** |
+| `SPEEDCTL_APPROACH_KMH` / `_MIN` | 4,0 / 0,25 | km/h / – | gesch | Rampe flacht auf den letzten 4 km/h bis auf ein Viertel der Steigung ab. |
+| `SPEEDCTL_BRAKE_ABOVE_KMH` / `_UNTIL_KMH` | 2,0 / 0,5 | km/h | gesch | **Herunterfahren = Bremsen.** Liegt der Istwert mehr als 2 km/h über dem Soll, wird mit `VESC_BRAKE_CURRENT_STOP` gebremst, bis 0,5 km/h über Soll, dann wieder gestellt. Tastverhältnis senken ist in FOC Rückspeisung in den Bus: 43,8 V, Fehler 1 beim Sprung 40 → 15 km/h am 2026-11-23. Gebremst: 40 → 15 in 7 s, Bus 41,9–42,1 V. |
+| `SPINDOWN_MIN_KMH` | 5 | km/h | gesch | Laufrad-Auslauf endet unter dieser Radgeschwindigkeit; bis zum Stillstand dauerte es Minuten, und die langsamen Umdrehungen tragen kaum bei. |
 | `STEADY_DVDT_KMH_S` | 0,3 | km/h/s | gesch | **Live-Messung nur bei Konstanz:** Beschleunigung darunter, Istwert innerhalb `STEADY_TOL_KMH` = 1 km/h am Sollwert, Rampe angekommen, und das seit `STEADY_HOLD_MS` = 2000 ms — erst dann zeigen Verlustleistung und Crr etwas. Beim Beschleunigen steckt J·dω/dt im Moment, beim Einregeln pendelt es. |
 | `LIVE_WINDOW_MS` | 5000 | ms | gesch | gleitendes Mittel der Live-Messung, 400 Zellenwerte. |
 | `WHEEL_J_FACTOR` | 0,85 | – | Literatur | J_Rad = 0,85 · m · r_Rad², [08-staender](08-staender.md) §6: Felge, Reifen und Schlauch sitzen fast alle auf demselben Radius. Masse über `y<kg>`, r_Rad aus dem gemessenen Umfang. Fehler auf J geht 1:1 in das Radverlustmodell, das ist rund 10 % des Reifensignals. |

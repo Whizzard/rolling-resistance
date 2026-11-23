@@ -663,8 +663,9 @@ void buildStateJson(char* buf, size_t len) {
   // 1/min und mm entstehen erst hier, an der Ausgabegrenze.
   const float nDrum  = revsrc::revPerSec();
   const float nWheel = speed::wheelRevPerSec();
-  char sURad[16];
+  char sURad[16], sURadMem[16];
   num(sURad, sizeof(sURad), wheel::circumferenceM() * 1000.0f, 0);
+  num(sURadMem, sizeof(sURadMem), settings::wheelCircM() * 1000.0f, 0);
 
   // Messgeschwindigkeiten als JSON-Liste, sortiert wie in den Einstellungen.
   char sPlat[PLATEAU_MAX * 7 + 2];
@@ -707,7 +708,7 @@ void buildStateJson(char* buf, size_t len) {
     "\"counts\":%ld,\"raw\":%ld,\"tare\":%ld,\"ripple\":%ld,\"n\":%s,\"pct\":%s,\"kg\":%s,"
     "\"nm\":%s,\"roll\":%s,\"pw\":%s,\"crr\":%s,\"korr\":%s,\"konst\":%s,"
     "\"a0\":%s,\"b0\":%s,\"a1\":%s,\"b1\":%s,\"mRad\":%s,\"jRad\":%s,\"auslauf\":%s,\"auslaufN\":%lu,"
-    "\"wiz\":%u,\"wizKmh\":%.0f,\"tara\":%s,"
+    "\"wiz\":%u,\"wizKmh\":%.0f,\"tara\":%s,\"abstieg\":%s,\"uRadMem\":%s,"
     "\"err\":\"%s\","
     "\"kal\":%s,\"saturiert\":%s,\"zelle\":%s,"
     "\"dir\":%d,\"lernt\":%s,\"brk\":%s,\"brkDuty\":%.4f,\"brkAmps\":%.1f,"
@@ -734,6 +735,7 @@ void buildStateJson(char* buf, size_t len) {
     sA0, sB0, sA1, sB1, sMRad, sJ, wheel::spindownActive() ? "true" : "false",
     static_cast<unsigned long>(wheel::spindownRevs()),
     static_cast<unsigned>(state::wizardStep()), WIZ_KMH, torque::tareBusy() ? "true" : "false",
+    speedctl::braking() ? "true" : "false", sURadMem,
     currentError(),
     settings::calibrated() ? "true" : "false",
     torque::isSaturated() ? "true" : "false",

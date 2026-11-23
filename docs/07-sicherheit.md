@@ -446,3 +446,30 @@ wiederholte den letzten Befehl — Sekunden später, als `v20`.
 Die allgemeine Lehre: **eine Bedienhandlung an einer Maschine ist nicht
 idempotent.** Sie darf nicht über ein Verfahren laufen, das Wiederholung als
 unschädlich annimmt.
+
+## 10 Betriebserfahrung 2026-11-23: was Abbrüche und Überspannung verhindert
+
+Erster Tag mit Last auf dem Rad. Alles unten ist gemessen, nicht vermutet, und in
+Firmware und Parameterliste eingearbeitet. Reihenfolge nach Häufigkeit des Ärgers.
+
+| Symptom | Ursache | Abhilfe |
+|---|---|---|
+| Lauf bricht nach Sekunden ab, „Bedienverbindung weg" | Der Arduino-Webserver bedient **einen** Client; iOS hält ihn mit leeren Vorab-Verbindungen bis 5 s. Erst blockierte das die Hauptschleife (2,8 s), dann die Abfragen der Seite. | Webserver in eigener Task; Totmann 10 s statt 2 s; Totmann gilt nur für Läufe, die aus dem Browser gestartet wurden. |
+| Regler meldet Überspannung beim Herunterfahren | Tastverhältnis senken ist in FOC **Rückspeisung** in den Bus. Das Netzteil nimmt nichts auf: 43,8 V, Fehler 1 bei 40 → 15 km/h. | Soll unter Ist heißt **Bremsen** mit 20 A Kurzschlussstrom bis knapp über Soll, dann wieder stellen. Bus bleibt bei 42 V. Große Bremsströme sind netzteilfreundlich, kleine nicht (§3.2b). |
+| „Trommel dreht nicht" beim Start unter Last | Losbrechen unter 494 N erst bei Stellwert 0,139 / 8,3 A; Stillstandsgrenze 0,05 stammte aus Läufen ohne Last. | Anfahrfenster 0,16 solange die Trommel steht, Klemme mit Lastzuschlag 0,08, Stillstandsgrenze 0,20. |
+| Motor bestromt, dreht nicht, kein Fehler | Hall-Tabelle passte nach dem Umstecken nicht mehr. | Nach jedem Umstecken Hall-Tabelle neu erkennen **und** Drehrichtung prüfen ([04-hardware](04-hardware.md) §11.2). |
+| Not-Aus nicht erkannt, Soll bleibt stehen | Strom allein: Fehlalarm im Leerlauf (0,2 A). Stillstand allein: Geber melden die auslaufende Trommel 25 s lang. | Kein Strom **und** Drehzahl weit unter der Leerlaufdrehzahl zum Stellwert, **oder** Trommel wird ohne Strom langsamer bei konstantem Soll. Erkennung in 1,2 s. Hilfskontakt an `PIN_ESTOP_FB` wäre sofort und eindeutig — noch nicht verdrahtet. |
+| Reglerfehler nie zu sehen | Der Regler löscht den Code nach 500 ms. | Letzter Fehler bleibt 30 s im Bedienfeld, jeder neue auf der Konsole mit Spannung, Strom, Drehzahl; `:faults` liefert die Historie. |
+| Seite friert ein, Meldung erst nach Refresh | Ein JS-Fehler in `paint()` wurde vom Fehlerfang geschluckt. | Fehler werden rot angezeigt; die Seite lädt sich neu, wenn die Firmware eine andere Buildkennung meldet. |
+| Überschwingen beim Hochlaufen | Reiner Integrator, Rampe lief mit voller Steigung ins Ziel, Trommel hinkte 3 km/h nach. | PI-D, Anti-Windup, D nur über die Rampensteigung hinaus, Rampe höchstens 1,5 km/h vor der Trommel, abflachend vor dem Ziel. 0,8–1,0 km/h, danach ±0,2. |
+| Hauptschleife stand 266 ms ohne Mitleser | USB-CDC blockiert, wenn der Rechner nicht liest. | `Serial.setTxTimeoutMs(20)`. Offen: bei Telemetriefenstern über eine Minute setzt die USB-Ausgabe zeitweise aus, Schleife und Antrieb laufen weiter. |
+
+**Physik, die dahintersteht:**
+
+- Ein angeschlossener Motor zieht unter Stellwert immer Strom; stromlos hinter der
+  Spannung zurückbleiben kann nur ein abgeklemmter. Darauf beruht die Not-Aus-Erkennung.
+- Bremsen mit Strom ≥ Kurzschlussstrom hält die Energie im Kupfer; kleinere Bremsströme
+  und jedes Absenken des Tastverhältnisses schieben sie in den Bus.
+- Beim Beschleunigen steckt J·dω/dt im gemessenen Moment, beim Einregeln pendelt es:
+  Verlustleistung und Crr nur bei konstanter Fahrt, gemittelt (`STEADY_*`, `LIVE_WINDOW_MS`).
+- Hall-Tabelle und Drehrichtung sind Eigenschaften der Verdrahtung, nicht des Motors.

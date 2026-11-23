@@ -145,6 +145,14 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .wiz h1 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase;
           color: #64737f; margin: 0 0 14px; }
 .wiz .step { font-size: 24px; font-weight: 700; margin: 0 0 10px; }
+.wiz ol { list-style: none; margin: 0 0 16px; padding: 0; }
+.wiz li { padding: 9px 12px; border-radius: 6px; margin-bottom: 4px; font-size: 16px;
+          color: #8795a1; background: #e3e8ec; }
+.wiz li.done { color: #1f8a5c; background: #e1f3ea; }
+.wiz li.now  { color: #16202a; background: #fff; font-weight: 700;
+               border-left: 6px solid #2f6f99; }
+.wiz li.bad  { color: #fff; background: #c0392b; font-weight: 700; }
+.wiz li small { display: block; font-weight: 400; font-size: 13px; color: inherit; opacity: .85; }
 .wiz .txt { font-size: 16px; color: #28475c; line-height: 1.5; margin-bottom: 18px; }
 .wiz .big { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .wiz .big small { font-size: 16px; color: #8795a1; font-weight: 400; margin-left: 4px; }
@@ -486,8 +494,8 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
 <div class="wiz" id="wiz" hidden>
   <h1>Auslauf + Leerlauf</h1>
-  <div class="step" id="wizStep">—</div>
-  <div class="txt" id="wizTxt">—</div>
+  <ol id="wizList"></ol>
+  <div class="txt" id="wizTxt" hidden>—</div>
   <div class="big" id="wizBig" hidden>—</div>
   <button type="button" id="wizGo" hidden>Starten</button>
   <button type="button" class="plain" id="wizCancel" hidden>Abbrechen</button>
@@ -684,38 +692,39 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     if (w > 0) wizOpen = true;
     $("wiz").hidden = !wizOpen;
     if (!wizOpen) return;
-    /* Soll und Ist bleiben ueber dem Assistenten sichtbar: Kopf einblenden und
-       den Assistenten darunter beginnen lassen. */
     $("pin").hidden = false;
     layoutPin();
     $("wiz").style.top = (document.getElementsByClassName("tabs")[0].offsetHeight
                           + $("pin").offsetHeight) + "px";
-    var step = "", txt = "", big = null;
-    if (w === 0) {
-      step = "1 \u00b7 Vorbereiten";
-      txt = "Rad aufgelegt, Auflast dran, Raum frei. Die Trommel f\u00e4hrt auf "
-          + de(j.wizKmh, 0) + " km/h. Laufradmasse " + de(j.mRad * 1000, 0) + " g.";
-    } else if (w === 1) {
-      step = "2 \u00b7 Trommel f\u00e4hrt hoch"; txt = "Warten, bis die Drehzahl steht.";
-    } else if (w === 2) {
-      step = "3 \u00b7 Rad abheben"; txt = "Jetzt den Hebel ziehen. Sobald das Rad langsamer wird als die Trommel, geht es weiter.";
-    } else if (w === 3) {
-      step = "4 \u00b7 Auslauf und Leerlauf laufen"; txt = "Rad l\u00e4uft frei aus, die Trommel f\u00e4hrt die Leerlaufplateaus. Nichts anfassen.";
-      big = j.auslaufN + "<small>Radumdrehungen</small>";
-    } else {
-      step = "5 \u00b7 Fertig";
-      txt = "Leerlauf A0 " + (j.a0 === null ? "\u2014" : j.a0) + " Nm, B0 " + (j.b0 === null ? "\u2014" : j.b0)
-          + "<br>Rad A1 " + (j.a1 === null ? "\u2014" : j.a1) + " Nm, B1 " + (j.b1 === null ? "\u2014" : j.b1);
+    /* Alle Schritte als Liste; der aktuelle hervorgehoben, erledigte gruen,
+       bei Abbruch der laufende rot. Zahlen, sobald sie da sind. */
+    var fmt = function (v) { return (v === null || v === undefined) ? "\u2014" : v; };
+    var steps = [
+      ["Vorbereiten", "Rad aufgelegt, Auflast dran, Raum frei"],
+      ["Hochfahren, Umfang messen", "auf " + de(j.wizKmh, 0) + " km/h \u00b7 Umfang " + fmt(j.uRadMem) + " mm"],
+      ["Rad abheben", "Hebel ziehen, sobald es hier steht"],
+      ["Auslauf und Leerlauf", "Rad l\u00e4uft frei aus, Trommel f\u00e4hrt die Plateaus \u00b7 " + fmt(j.auslaufN) + " Radumdrehungen"],
+      ["Ergebnis", "Leerlauf A0 " + fmt(j.a0) + " \u00b7 B0 " + fmt(j.b0) + "<br>Rad A1 " + fmt(j.a1) + " \u00b7 B1 " + fmt(j.b1)]
+    ];
+    /* Index des laufenden Schritts: wiz 0 -> 0, 1 -> 1, 2 -> 2, 3 -> 3, 4 -> 4, 9 -> Abbruch */
+    var now = (w === 9) ? -1 : w, html = "", i;
+    if (w === 9) now = (lastGood === null) ? 1 : lastGood;
+    else lastGood = w;
+    for (i = 0; i < steps.length; i++) {
+      var cls = (i < now) ? "done" : (i === now ? (w === 9 ? "bad" : "now") : "");
+      html += '<li class="' + cls + '">' + (i + 1) + " \u00b7 " + steps[i][0]
+            + "<small>" + ((i === now && w === 9) ? ("abgebrochen: " + (j.err || "Fehler")) : steps[i][1]) + "</small></li>";
     }
-    $("wizStep").innerHTML = step; $("wizTxt").innerHTML = txt;
-    $("wizBig").hidden = (big === null); if (big !== null) $("wizBig").innerHTML = big;
-    $("wizGo").hidden = (w !== 0); $("wizCancel").hidden = (w === 0 || w === 4); $("wizOk").hidden = (w !== 4 && w !== 0);
-    $("wizOk").innerHTML = (w === 4) ? "Schlie\u00dfen" : "Zur\u00fcck";
+    $("wizList").innerHTML = html;
+    $("wizGo").hidden = (w !== 0); $("wizCancel").hidden = (w === 0 || w === 4 || w === 9);
+    $("wizOk").hidden = (w !== 4 && w !== 0 && w !== 9);
+    $("wizOk").innerHTML = (w === 0) ? "Zur\u00fcck" : "Schlie\u00dfen";
   }
+  var lastGood = null;
   $("wizGo").onclick = function () { send("u"); };
   function wizClose() { wizOpen = false; $("wiz").hidden = true; $("pin").hidden = !onMess; layoutPin(); }
-  $("wizCancel").onclick = function () { send("c"); wizClose(); };
-  $("wizOk").onclick = function () { if (lastJ && lastJ.wiz === 4) send("uq"); wizClose(); };
+  $("wizCancel").onclick = function () { send("c"); send("uq"); lastGood = null; wizClose(); };
+  $("wizOk").onclick = function () { if (lastJ && lastJ.wiz >= 4) send("uq"); lastGood = null; wizClose(); };
 
   /* ---------- Anzeige ---------- */
   var build = null;   /* Kennung der Firmware; aendert sie sich, ist diese Seite alt */
@@ -747,7 +756,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     show("kmh", j.link ? j.kmh : null, 1);
     /* Soll: beim Fahren der Sollwert; 0 beim Bremsen und nach jedem Stopp durch
        einen Fehler (Not-Aus, FAULT); nur beim freien Auslaufen ein Strich. */
-    var gestoppt = j.bremst || j.motorOffen || j.notaus || j.phase === "FAULT";
+    var gestoppt = (j.bremst && !j.abstieg) || j.motorOffen || j.notaus || j.phase === "FAULT";
     $("soll").innerHTML = j.faehrt ? de(j.soll, 0) : (gestoppt ? "0" : "—");
     $("soll").className  = "val" + ((j.faehrt || gestoppt) ? "" : " dim");
     paintGrid(j.faehrt ? j.soll : -1);

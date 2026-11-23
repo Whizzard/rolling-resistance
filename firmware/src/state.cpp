@@ -43,6 +43,7 @@ Fit g_fit;
 
 bool     g_wizard = false;      // Assistent aktiv (ueber alle Phasen hinweg)
 bool     g_wizardDone = false;  // Leerlauflauf des Assistenten beendet
+bool     g_wizardAborted = false;
 uint32_t g_wizSteadyMs = 0, g_wizSlipMs = 0;
 float    g_wizRatioRef = 0.0f;  // Rad/Trommel-Verhaeltnis mit aufliegendem Rad
 
@@ -50,6 +51,7 @@ void enterFault(const char* reason) {
   g_faultReason = reason;
   g_phase = FAULT;
   g_run = RUN_NONE;
+  if (g_wizard) g_wizardAborted = true;
   speedctl::stop();
   logger::note(reason);
 }
@@ -323,6 +325,7 @@ void startWizard() {
   if (!speedctl::setTargetKmh(WIZ_KMH)) { logger::note(speedctl::lastRefusal()); return; }
   g_wizard = true;
   g_wizardDone = false;
+  g_wizardAborted = false;
   g_wizSteadyMs = 0;
   g_phase = WIZ_SPINUP;
   logger::note("Assistent: Trommel faehrt hoch, Rad bleibt aufgelegt");
@@ -330,13 +333,14 @@ void startWizard() {
 
 uint8_t wizardStep() {
   if (!g_wizard) return 0;
+  if (g_wizardAborted) return 9;
   if (g_phase == WIZ_SPINUP) return 1;
   if (g_phase == WIZ_LIFT) return 2;
   if (g_wizardDone && !wheel::spindownActive()) return 4;
   return 3;
 }
 
-void wizardAck() { g_wizard = false; g_wizardDone = false; }
+void wizardAck() { g_wizard = false; g_wizardDone = false; g_wizardAborted = false; }
 void startMeasure()  { startRun(RUN_MEASURE); }
 
 void startTare() {
@@ -349,14 +353,14 @@ void startTare() {
 void stopRun() {
   speedctl::stop();
   g_run = RUN_NONE;
-  g_wizard = false;
+  if (g_wizard && !g_wizardDone) g_wizardAborted = true;
   if (g_phase != FAULT) g_phase = COAST;
 }
 
 void coastRun() {
   speedctl::coast();
   g_run = RUN_NONE;
-  if (g_phase == WIZ_SPINUP || g_phase == WIZ_LIFT) g_wizard = false;
+  if (g_wizard && !g_wizardDone) g_wizardAborted = true;
   if (g_phase != FAULT) g_phase = COAST;
 }
 
