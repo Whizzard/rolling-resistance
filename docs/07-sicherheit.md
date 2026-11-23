@@ -77,14 +77,14 @@ zweiter Weg: von 100 km/h **160 s**, von 43 km/h etwa 100 s (`DRUM_LOSS_*` in
 > Rückspeisung ab, statt den Antrieb fallen zu lassen.
 >
 > **Die Aussage „mit Netzteil gibt es keine Reglerbremse" gilt damit nur noch für
-> 5.02.** Sie ist auf 7.01 **nicht nachgemessen** und könnte überholt sein. Die
-> Versuche aus §3.1 und §3.2c sind zu wiederholen, sobald der Motor wieder angebaut
-> ist. Bis dahin gilt weiter die vorsichtige Annahme: **nur freier Auslauf oder die
-> Relais.** [TBD]
+> 5.02.** Auf 7.01 am 2026-11-23 nachgemessen: **20 A Bremsstrom bremst mit Netzteil
+> bis etwa 54 km/h sauber** und endet im echten Kurzschluss (Busstrom ≈ 0). Darüber
+> fällt der Regler beim **Einstieg** mit Überspannung — warum, steht in §3.2d aus dem
+> Quelltext. Die Firmware bremst deshalb erst unter `BRAKE_MAX_KMH`, darüber lässt sie
+> auslaufen.
 >
 > Was unverändert gilt, weil es Physik und nicht Firmware ist: ein Netzteil nimmt
-> keinen Strom auf, und die Zwischenkreiskondensatoren puffern nichts. Neu ist
-> lediglich, dass der Regler jetzt einen Weg hat, **ohne** Bus zu bremsen.
+> keinen Strom auf, und die Zwischenkreiskondensatoren puffern nur Millisekunden.
 
 ### 3.1 Der Regler kann nicht bremsen — gemessen auf Firmware 5.02
 
@@ -174,9 +174,10 @@ gebremst, Zeit bis 5 km/h und Energiebilanz gemessen. Verfügbar waren **911 J**
 **Bremsleistung und Rückgewinnung schließen sich aus.** Bei 20 A ist das Vorzeichen
 negativ: der Regler hat Energie aus dem Akku *geholt*, um so stark zu bremsen.
 
-Der Grund steckt in der Arbeitsweise von `SET_CURRENT_BRAKE`: der Regler beginnt
-**kurzgeschlossen** und regelt erst dann, wenn Sollwert und Kurzschlussstrom
-auseinandergehen.
+Der Grund steckt in der Arbeitsweise von `SET_CURRENT_BRAKE` (Stand 2026-11-23 aus dem
+Quelltext korrigiert, §3.2d): der Regler **endet** im Kurzschluss, wenn der Sollwert
+über dem Kurzschlussstrom liegt — er **beginnt** dort nicht, sondern durchquert beim
+Einstieg die Rückspeisezone.
 
 - Sollwert **unter** dem Kurzschlussstrom → er muss ihn *herunterregeln*, und das geht
   nur über den Bus → **Rückspeisung**.
@@ -244,6 +245,40 @@ und der ist ein Alles-oder-nichts-Schalter ohne Zwischenstufen.
 > nicht bestätigt, die 10S sind aus 40,55 V erschlossen. Ein **volles** Paket nimmt
 > ebenfalls kaum etwas auf — dann kommt die Überspannung zurück, nur mit dem Paket als
 > Opfer statt dem Netzteil. Vor längeren Bremsreihen klären.
+
+
+### 3.2d Was der Regler beim Bremsen wirklich tut — Quelltext FW 7.01, gelesen 2026-11-23
+
+Gelesen in `mcpwm_foc.c` und `mc_interface.c` (vedderb/bldc, Stand 7.01), nach dem
+Bremsversuch aus 60,9 km/h mit Netzteil, der viermal Fehler 1 brachte.
+
+| Befehl / Zustand | Was der Regler tut |
+|---|---|
+| Motor freigegeben (`SET_CURRENT 0`) | Brücke aus, Ströme 0. Der Regler misst aber weiter die Phasenspannungen und führt daraus `vq` und ein **Tastverhältnis** mit — bei 60 km/h steht dort 0,42, obwohl nichts gestellt wird (Fehlerspeicher: „Duty 0.419" bei freigegebenem Motor). |
+| `SET_CURRENT_BRAKE 20 A` aus Fahrt | Der Kurzschlusszweig (Modulation auf 0 geklemmt, mit `foc_short_ls_on_zero_duty` alle unteren Schalter an, kein Busstrom) wird nur betreten, wenn das mitgeführte Tastverhältnis schon unter 0,001 liegt oder Drehzahl bzw. `vq` das Vorzeichen wechseln. Aus Fahrt ist beides falsch → direkte Stromregelung auf −20 A. Der Stromregler startet bei `vq` = Gegen-EMK und fährt herunter; dabei durchquert der Strom **zwangsläufig** die Zone 0 … −I_kurz, in der Leistung in den Bus fließt. Dieser Stoß dauert Millisekunden und ist durch keinen Parameter abschaltbar. |
+| … danach, Sollwert > I_kurz | Modulation auf 0 geklemmt, echter Kurzschluss, Energie bleibt im Kupfer. Gemessen: ab 54 km/h **14–16 A** Motorstrom bei 0,05 A Busstrom — das ist der Kurzschlussstrom selbst, nicht der Sollwert. |
+| … danach, Sollwert < I_kurz | Geregelte Rückspeisung in den Bus, dauerhaft. Kleine Bremsströme sind darum am Netzteil die gefährlichen. |
+| `SET_DUTY 0` | PI-Rampe (`foc_duty_dowmramp_kp/ki` = 20/400) vom aktuellen Tastverhältnis auf 0 mit **bis zu 20 A Rückspeisung** während der Rampe. Nicht sicherer als der Bremsstrom. Die Firmware schickt diesen Befehl nicht. |
+| `l_max_erpm_fbrake`, `l_max_erpm_fbrake_cc` | Kommen in `mcpwm_foc.c` und `mc_interface.c` nicht vor, nur im BLDC-Code `mcpwm.c`. **In FOC ohne Wirkung.** |
+| Überspannung (Fehler 1) | Integrator über (U − `l_max_vin`) je PWM-Takt, Auslösung ab 2,4 V·Takte — also nach **1 bis 3 Takten** bei 25 kHz. Der Spannungswert im Fehlerspeicher wird vom Fehler-Thread erst danach gelesen und zeigt nicht die Spitze (46,1 V, später 42,7 V bei einem Fehler, der 48 V voraussetzt). |
+| `l_battery_regen_cut_start/end` 42,5/44 V | Wird mit 1 kHz aus einer 45-Hz-gefilterten Spannung gerechnet. Gegen den Einstiegsstoß **wirkungslos**, gegen langsame Rückspeisung (Tastverhältnisrampe) wirksam. |
+| Nach dem Fehler | PWM aus, Motor frei; **500 ms** lang werden alle Stellbefehle verworfen (`m_fault_stop_time_ms`), dann ist das Fehlerbit weg. |
+
+**Messpunkte 2026-11-23, Netzteil am Bus, Rad aufgelegt:** Bremseinstieg bei 59,2 /
+57,7 / 56,1 km/h → sofort Fehler 1; bei 54,0 km/h sauber, danach Kurzschluss bis zum
+Stand. Die Energie des Stoßes wächst etwa mit dem Drehzahlquadrat; zwischen 54 und 56
+km/h liegt sie offenbar gerade an der Grenze der Pufferung. Wie hoch die Spitze geht,
+ist **nicht gemessen** (bräuchte ein Oszilloskop am Bus). [TBD]
+
+**Folgen für die Firmware:** `BRAKE_MAX_KMH` = 45 km/h — darüber wird freigegeben und
+ausgelaufen, darunter einmal 20 A. Kein Nachsetzen innerhalb `BRAKE_FAULT_HOLD_MS`
+nach einem Fehler. Auslauf 60 → 45 km/h mit Rad dauert etwa 30 s (0,47 km/h/s aus dem
+Log).
+
+**Offene Wege, falls aus 60 km/h gebremst werden soll:** `l_max_vin` von 48 V auf die
+Firmware-Vorgabe 57 V (Hardware der 4.x-Klasse: 60-V-Schalter; ob das Netzteil und
+alles andere am Bus eine solche Spitze vertragen, ist zu prüfen) oder ein Puffer am
+Bus (Akku, Bremswiderstand mit Komparator). Nichts davon ist beschlossen.
 
 ### 3.3 Der Not-Aus nimmt den Antrieb, nicht die Drehung
 
@@ -455,7 +490,9 @@ Firmware und Parameterliste eingearbeitet. Reihenfolge nach Häufigkeit des Ärg
 | Symptom | Ursache | Abhilfe |
 |---|---|---|
 | Lauf bricht nach Sekunden ab, „Bedienverbindung weg" | Der Arduino-Webserver bedient **einen** Client; iOS hält ihn mit leeren Vorab-Verbindungen bis 5 s. Erst blockierte das die Hauptschleife (2,8 s), dann die Abfragen der Seite. | Webserver in eigener Task; Totmann 10 s statt 2 s; Totmann gilt nur für Läufe, die aus dem Browser gestartet wurden. |
-| Regler meldet Überspannung beim Herunterfahren | Tastverhältnis senken ist in FOC **Rückspeisung** in den Bus. Das Netzteil nimmt nichts auf: 43,8 V, Fehler 1 bei 40 → 15 km/h. | Soll unter Ist heißt **Bremsen** mit 20 A Kurzschlussstrom bis knapp über Soll, dann wieder stellen. Bus bleibt bei 42 V. Große Bremsströme sind netzteilfreundlich, kleine nicht (§3.2b). |
+| Regler meldet Überspannung beim Herunterfahren | Tastverhältnis senken ist in FOC **Rückspeisung** in den Bus. Das Netzteil nimmt nichts auf: 43,8 V, Fehler 1 bei 40 → 15 km/h. | Soll unter Ist heißt **Bremsen**, nicht stellen. |
+| Überspannung beim Bremsen aus 60 km/h, dann tack-tack-tack | Der **Einstieg** in den Bremsstrom durchquert in FOC immer die Rückspeisezone (§3.2d); der Stoß wächst mit dem Drehzahlquadrat und reichte ab 56 km/h für Fehler 1. Danach setzte die Firmware alle 3 s bei fast derselben Drehzahl nach — jeder Wiederanlauf fiel erneut. Bei 54 km/h griff die Bremse und hielt den echten Kurzschluss (14–16 A, Busstrom ≈ 0). | Oberhalb `BRAKE_MAX_KMH` = 45 km/h freigeben und auslaufen lassen, darunter einmal 20 A. Gilt für STOP, für FAULT und für jeden Abstieg. Tastverhältnis 0 ist **kein** Ausweg (PI-Rampe mit Rückspeisung); `l_max_erpm_fbrake` wirkt nur im BLDC-Code. |
+| „Drehzahlgrenze" auf dem obersten Plateau | Das Plateau liegt auf `V_MAX_KMH`, 1 km/h Überschwingen reichte. | `OVERSPEED_MARGIN_KMH` = 3 km/h Luft; ein abgebrochener Leerlauflauf speichert sein Modell trotzdem, wenn er drei Punkte hat. |
 | „Trommel dreht nicht" beim Start unter Last | Losbrechen unter 494 N erst bei Stellwert 0,139 / 8,3 A; Stillstandsgrenze 0,05 stammte aus Läufen ohne Last. | Anfahrfenster 0,16 solange die Trommel steht, Klemme mit Lastzuschlag 0,08, Stillstandsgrenze 0,20. |
 | Motor bestromt, dreht nicht, kein Fehler | Hall-Tabelle passte nach dem Umstecken nicht mehr. | Nach jedem Umstecken Hall-Tabelle neu erkennen **und** Drehrichtung prüfen ([04-hardware](04-hardware.md) §11.2). |
 | Not-Aus nicht erkannt, Soll bleibt stehen | Strom allein: Fehlalarm im Leerlauf (0,2 A). Stillstand allein: Geber melden die auslaufende Trommel 25 s lang. | Kein Strom **und** Drehzahl weit unter der Leerlaufdrehzahl zum Stellwert, **oder** Trommel wird ohne Strom langsamer bei konstantem Soll. Erkennung in 1,2 s. Hilfskontakt an `PIN_ESTOP_FB` wäre sofort und eindeutig — noch nicht verdrahtet. |

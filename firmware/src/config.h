@@ -272,7 +272,10 @@ constexpr float MAX_FORCE_N = 45.0f;          // 92 % vom Zellenendwert (5 kg)
 // ausgelöst, also mitten im obersten Messplateau.
 // Bei U = 2,837 m sind es 353 1/min.
 // Erhöhung von V_MAX_KMH nur nach docs/07-sicherheit.md §5.
-constexpr float MAX_DRUM_RPM = V_MAX_KMH / 3.6f / DRUM_CIRCUMFERENCE_M * 60.0f;
+// [Festlegung 2026-11-23] 3 km/h Luft ueber V_MAX_KMH: das oberste Plateau liegt AUF
+// V_MAX, und 1 km/h Ueberschwingen brach den Leerlauflauf dort als "Drehzahlgrenze" ab.
+constexpr float OVERSPEED_MARGIN_KMH = 3.0f;
+constexpr float MAX_DRUM_RPM = (V_MAX_KMH + OVERSPEED_MARGIN_KMH) / 3.6f / DRUM_CIRCUMFERENCE_M * 60.0f;
 constexpr uint32_t FAULT_SETTLE_MS = 500;     // Entprellung der Fehlerkriterien
 // [gesch] Stellwert, ab dem "treibt und dreht nicht" ein Befund ist und kein
 // Rauschen. Am 2026-11-18 lag bei 0,045 Stellwert und 2,5 A Motorstrom die Trommel
@@ -337,6 +340,20 @@ constexpr float   SPINDOWN_MIN_KMH  = 5.0f;     // [gesch] darunter endet der Au
 // Netzteil nimmt nichts auf: 43,8 V, Fehler 1 beim Sprung 40 -> 15 km/h am
 // 2026-11-23 (docs/07-sicherheit.md §3.1). Stattdessen Bremsstrom
 // VESC_BRAKE_CURRENT_STOP bis knapp ueber den Sollwert, dann wieder stellen.
+// BREMSEN MIT NETZTEIL AM BUS (Quelltextbefund FW 7.01, docs/07-sicherheit.md
+// §3.2d). Jeder Bremseinstieg aus Fahrt durchquert die Rueckspeisezone
+// 0 < |I| < I_kurz: der Regler fuehrt bei freigegebenem Motor die Gegen-EMK als
+// Tastverhaeltnis mit und springt darum nie direkt in den Kurzschluss. Der Stoss
+// dauert Millisekunden, der Ueberspannungsfehler loest nach 1 bis 3 PWM-Takten ueber
+// l_max_vin aus, und seine Energie waechst etwa mit dem Quadrat der Drehzahl.
+// Gemessen 2026-11-23: Einstieg bei 54 km/h sauber, bei 56/58/59 km/h Fehler 1.
+// Oberhalb BRAKE_MAX_KMH wird deshalb NICHT gebremst, sondern freigegeben, bis die
+// Trommel darunter ausgelaufen ist; dann einmal VESC_BRAKE_CURRENT_STOP, der ueber
+// dem Kurzschlussstrom liegt und darum im Kurzschluss (full_brake_hw) endet.
+// Tastverhaeltnis 0 ist KEIN Ausweg: PI-Rampe mit bis zu 20 A Rueckspeisung.
+// l_max_erpm_fbrake(_cc) wirkt nur im BLDC-Code, nicht in FOC.
+constexpr float   BRAKE_MAX_KMH       = 45.0f;    // [gesch] 54 ok, 56 nicht; Rand nach unten. Anheben nur in 2-km/h-Schritten mit Blick auf vin
+constexpr uint32_t BRAKE_FAULT_HOLD_MS = 3000;    // [gesch] nach einem Reglerfehler so lange nicht wieder bremsen (500 ms davon verwirft der Regler selbst)
 constexpr float   SPEEDCTL_BRAKE_ABOVE_KMH = 2.0f;   // [gesch] ab so viel ueber Soll wird gebremst
 constexpr float   SPEEDCTL_BRAKE_UNTIL_KMH = 0.5f;   // [gesch] bis so viel ueber Soll
 constexpr uint32_t ESTOP_DETECT_MS  = 1000;   // [gesch] so lange muss der Befund stehen

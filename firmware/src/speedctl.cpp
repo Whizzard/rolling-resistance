@@ -23,6 +23,24 @@ float    g_brkAmps = 0.0f;
 bool     g_motorOpen = false;   // Befund "kein Motor am Regler", rastend
 float    g_out = 0.0f;          // zuletzt gesendeter Stellwert (I + P + D)
 bool     g_braking = false;     // Abstieg: Bremsstrom statt Stellwert
+bool     g_stopping = false;    // STOP laeuft: bremsen bis zum Stillstand, dann frei
+
+// Bremsen (config.h BRAKE_*): oberhalb BRAKE_MAX_KMH nur freigeben und auslaufen
+// lassen -- der Bremseinstieg aus hoher Drehzahl speist fuer Millisekunden in den
+// Bus, und das Netzteil nimmt nichts auf (Fehler 1 bei 56...59 km/h, 2026-11-23).
+// Darunter 20 A Bremsstrom; der liegt ueber dem Kurzschlussstrom, also endet der
+// Regler im Kurzschluss und nichts geht in den Bus. Tastverhaeltnis 0 schliesst in
+// FOC NICHT direkt kurz (PI-Rampe mit Rueckspeisung), docs/07-sicherheit.md §3.2d.
+// Nach einem Reglerfehler BRAKE_FAULT_HOLD_MS lang nicht nachsetzen: das war das
+// tack-tack-tack -- jeder Wiederanlauf bei fast derselben Drehzahl fiel erneut.
+void applyBrake(float istKmh) {
+  if (istKmh > BRAKE_MAX_KMH ||
+      vesc::values().fault != 0 || vesc::lastFaultAgeMs() < BRAKE_FAULT_HOLD_MS) {
+    vesc::release();
+    return;
+  }
+  vesc::setBrakeCurrent(VESC_BRAKE_CURRENT_STOP);
+}
 uint32_t g_openSince = 0;
 
 // Mechanische Drehzahl der Trommel aus der Reglerdrehzahl. Vorzeichenbehaftet:
@@ -86,6 +104,7 @@ bool setTargetKmh(float kmh) {
   g_motorOpen = false;
   g_openSince = 0;
   g_braking = false;
+  g_stopping = false;
 
   if (kmh <= 0.0f) { coast(); return true; }
 
@@ -153,6 +172,14 @@ void service() {
     return;
   }
 
+  // STOP: Bremse nach Geschwindigkeit nachfuehren, im Stillstand freigeben.
+  if (g_stopping) {
+    const float v = fabsf(kmhSigned());
+    if (v < 0.3f) { g_stopping = false; vesc::release(); }
+    else          { applyBrake(v); }
+    return;
+  }
+
   if (!g_run) { clearMotorOpenIfStopped(); return; }
 
   // Ohne Messwerte vom Regler wird nicht gestellt — blind das Tastverhaeltnis
@@ -168,7 +195,7 @@ void service() {
   if (istKmh > g_target + SPEEDCTL_BRAKE_ABOVE_KMH) g_braking = true;
   if (g_braking) {
     if (istKmh > g_target + SPEEDCTL_BRAKE_UNTIL_KMH) {
-      vesc::setBrakeCurrent(VESC_BRAKE_CURRENT_STOP);
+      applyBrake(istKmh);
       g_out = 0.0f;
       return;
     }
@@ -274,19 +301,21 @@ float kmh()       { const float k = kmhSigned(); return k > 0.0f ? k : 0.0f; }
 // zeigte die Anzeige durchgehend 0, und genau diese Zahl ist das Messergebnis.
 float duty()      { return g_run ? g_out : (g_brk ? g_duty : 0.0f); }
 bool  running()   { return g_run; }
-bool  braking()   { return g_run && g_braking; }
+bool  braking()   { return (g_run && g_braking) || g_stopping; }
 
 void stop() {
   g_run = false;
   g_braking = false;
   g_target = g_ramp = g_duty = g_out = 0.0f;
   g_fresh = true;
-  vesc::setBrakeCurrent(VESC_BRAKE_CURRENT_STOP);
+  g_stopping = true;
+  applyBrake(fabsf(kmhSigned()));
 }
 
 void coast() {
   g_run = false;
   g_braking = false;
+  g_stopping = false;
   g_target = g_ramp = g_duty = g_out = 0.0f;
   g_fresh = true;
   vesc::release();

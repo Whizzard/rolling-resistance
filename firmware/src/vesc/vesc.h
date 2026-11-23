@@ -76,8 +76,10 @@ bool braking();              // SET_CURRENT_BRAKE liegt an (Befehl s)
 void setDuty(float duty);
 float targetDuty();
 
-// Bremsen mit vorgegebenem Strom. ACHTUNG: speist bei hoher Drehzahl ZURUECK —
-// am Netzteil endet das in Ueberspannung (docs/07-sicherheit.md §3.2c).
+// Bremsen mit vorgegebenem Strom. Der EINSTIEG speist fuer Millisekunden zurueck;
+// am Netzteil ab ~56 km/h Ueberspannung (docs/07-sicherheit.md §3.2d). Deshalb nur
+// unter BRAKE_MAX_KMH rufen. Ein Tastverhaeltnis-0-Befehl waere in FOC kein
+// Kurzschluss, sondern eine PI-Rampe mit Rueckspeisung -- darum gibt es ihn hier nicht.
 void setBrakeCurrent(float amps);
 
 // Antrieb stromlos, Trommel läuft frei aus. Das ist der normale Weg zum Anhalten

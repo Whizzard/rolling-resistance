@@ -25,7 +25,6 @@ float g_loadN = NAN;
 const char* g_faultReason = "";
 
 constexpr float SPEED_TOLERANCE_KMH = 0.5f;
-
 // Leerlaufmodell M_leer(w) = A0 + B0 w^2: waehrend eines Leerlauflaufs werden die
 // Messpunkte (w^2, M) als Regressionssummen gesammelt, am Ende wird gefittet und
 // gespeichert (settings::setBaseline). Keine Punktliste noetig.
@@ -41,13 +40,29 @@ struct Fit { double n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0;
 };
 Fit g_fit;
 
+
 bool     g_wizard = false;      // Assistent aktiv (ueber alle Phasen hinweg)
 bool     g_wizardDone = false;  // Leerlauflauf des Assistenten beendet
 bool     g_wizardAborted = false;
 uint32_t g_wizSteadyMs = 0, g_wizSlipMs = 0;
 float    g_wizRatioRef = 0.0f;  // Rad/Trommel-Verhaeltnis mit aufliegendem Rad
 
+void storeBaselineFit(const char* why) {
+  float a0, b0;
+  if (g_fit.solve(a0, b0) && settings::setBaseline(a0, b0)) {
+    Serial.print("# Leerlaufmodell gespeichert ("); Serial.print(why);
+    Serial.print(", "); Serial.print(static_cast<int>(g_fit.n));
+    Serial.print(" Punkte): A0="); Serial.print(a0, 4);
+    Serial.print(" Nm  B0="); Serial.print(b0, 7); Serial.println(" Nm/(rad/s)^2");
+    Serial.println("# In config.h und docs/03-parameter.md eintragen.");
+  } else {
+    logger::note("Leerlaufmodell nicht gespeichert: zu wenige Punkte oder unplausibel");
+  }
+}
+
 void enterFault(const char* reason) {
+  // Ein Leerlauflauf mit mindestens drei Punkten ist auch abgebrochen ein Ergebnis.
+  if (g_run == RUN_BASELINE && g_fit.n >= 3) storeBaselineFit("Abbruch");
   g_faultReason = reason;
   g_phase = FAULT;
   g_run = RUN_NONE;
@@ -163,16 +178,7 @@ void finishPoint() {
   if (g_plateau + 1 < settings::plateauCount()) {
     gotoPlateau(g_plateau + 1);
   } else {
-    if (g_run == RUN_BASELINE) {
-      float a0, b0;
-      if (g_fit.solve(a0, b0) && settings::setBaseline(a0, b0)) {
-        Serial.print("# Leerlaufmodell gespeichert: A0="); Serial.print(a0, 4);
-        Serial.print(" Nm  B0="); Serial.print(b0, 7); Serial.println(" Nm/(rad/s)^2");
-        Serial.println("# In config.h und docs/03-parameter.md eintragen.");
-      } else {
-        logger::note("Leerlaufmodell nicht gespeichert: zu wenige Punkte oder unplausibel");
-      }
-    }
+    if (g_run == RUN_BASELINE) storeBaselineFit("vollstaendig");
     if (g_wizard) g_wizardDone = true;
     logger::note("Lauf beendet — Trommel laeuft aus");
     speedctl::coast();   // frei auslaufen, nicht bremsen (docs/05-pruefablauf.md §B8)
