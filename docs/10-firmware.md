@@ -70,6 +70,14 @@ Joystick-Breakouts: die geben eine Spannung, keine fünf Kontakte.
 | W5 | S | Anzeigewerte höchstens **5× je Sekunde** auffrischen. Der HX711 liefert 80 SPS; angezeigt wird der gleitende Mittelwert über 40 Werte. Ein mit 80 Hz zappelnder Zahlenwert ist weder lesbar noch aussagekräftig. |
 | W6 | K | Ausgelegt für ein **iPad im Querformat** im Kioskmodus, aber bis auf Handybreite benutzbar. |
 
+**Webserver in eigener Task, seit 2026-11-23.** Die Arduino-Bibliothek blockiert bis
+zu 5 s, wenn ein Browser eine Verbindung öffnet, aber nichts schickt — iOS tut das
+vorsorglich. In der Hauptschleife stand die Regelung dadurch 2,8 s, der Totmann des
+Reglers (300 ms) schlug zu, und zwei Starts brachen ab. DNS, Webserver und
+JSON-Aufbau laufen deshalb in einer eigenen Task auf Kern 0; Befehle aus dem Browser
+gehen über eine Warteschlange an die Hauptschleife. Gestellt wird aus der
+Netzwerk-Task nichts. Die längste Schleifenrunde zeigt `i` an.
+
 **Das LCD ist damit optional.** `display::present()` ist false, wenn unter
 `LCD_I2C_ADDR` niemand antwortet; dann läuft alles über Konsole und Bedienfeld. Das LCD
 zeigt dasselbe noch einmal, es ersetzt nichts und wird von nichts vorausgesetzt.

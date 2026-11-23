@@ -7,8 +7,17 @@
 
 #include "config.h"
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/queue.h>
+
 namespace webui {
 namespace {
+
+// Befehle vom Webserver an die Hauptschleife (webui.h: eigene Task).
+struct CmdMsg { char text[48]; };
+QueueHandle_t g_cmdQueue = nullptr;
+TaskHandle_t  g_task = nullptr;
 
 WebServer     g_server(WEBUI_PORT);
 DNSServer     g_dns;
@@ -185,9 +194,27 @@ void handleCmd() {
   }
 
   Serial.print("# CMD '"); Serial.print(c); Serial.println("'");
-  if (c.length() && g_cmd) g_cmd(c);
+  // Nicht hier ausfuehren -- einreihen. Die Hauptschleife holt es in service() ab.
+  bool queued = false;
+  if (c.length() && g_cmdQueue) {
+    CmdMsg m;
+    strncpy(m.text, c.c_str(), sizeof(m.text) - 1);
+    m.text[sizeof(m.text) - 1] = '\0';
+    queued = xQueueSend(g_cmdQueue, &m, 0) == pdTRUE;
+  }
   g_server.sendHeader("Cache-Control", "no-store");
-  g_server.send(200, "text/plain", "ok");
+  if (queued || c.length() == 0) g_server.send(200, "text/plain", "ok");
+  else                           g_server.send(503, "text/plain", "Warteschlange voll");
+}
+
+// Die Netzwerk-Task: DNS, Webserver, Zusammenfassung. Darf blockieren.
+void webTask(void*) {
+  for (;;) {
+    g_dns.processNextRequest();
+    g_server.handleClient();
+    summary();
+    vTaskDelay(1);   // ein Tick, damit WLAN und Idle-Task auf Kern 0 drankommen
+  }
 }
 
 // Jede unbekannte Adresse zeigt die Oberfläche. Der DNS beantwortet ohnehin alles mit
@@ -268,12 +295,23 @@ void begin(CommandFn handler, StateJsonFn state,
   g_server.begin();
   Serial.print("# Bedienfeld: http://"); Serial.print(AP_IP);
   Serial.println("/  — kein Portal, Netz gilt sofort als in Ordnung");
+
+  // Netzwerk in die eigene Task (webui.h). Kern 0 ist der WLAN-Kern; die
+  // Hauptschleife laeuft auf Kern 1 und bleibt frei von Wartezeiten des Netzes.
+  g_cmdQueue = xQueueCreate(8, sizeof(CmdMsg));
+  const BaseType_t ok2 = xTaskCreatePinnedToCore(webTask, "webui", 12288, nullptr,
+                                                 1, &g_task, 0);
+  Serial.print("# Webserver-Task auf Kern 0: ");
+  Serial.println(ok2 == pdPASS ? "laeuft" : "START FEHLGESCHLAGEN");
 }
 
 void service() {
-  g_dns.processNextRequest();
-  g_server.handleClient();
-  summary();
+  // Nur noch Befehle abholen; das Netz bedient die eigene Task.
+  if (!g_cmdQueue) return;
+  CmdMsg m;
+  while (xQueueReceive(g_cmdQueue, &m, 0) == pdTRUE) {
+    if (g_cmd) g_cmd(String(m.text));
+  }
 }
 
 bool linkAlive() {

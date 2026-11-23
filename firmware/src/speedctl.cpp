@@ -2,6 +2,7 @@
 #include "config.h"
 #include "settings.h"
 #include "vesc/vesc.h"
+#include "logger.h"
 
 namespace speedctl {
 namespace {
@@ -33,6 +34,18 @@ float kmhSigned() {
 }
 
 float rpmFromKmh(float kmh) { return revPerSecFromKmh(kmh) * 60.0f; }
+
+// Jede Freigabe, die die Regelung VON SICH AUS macht, wird gemeldet: auf die
+// Konsole und ueber logger::lastNote() in die Oberflaeche. Vorher geschah das
+// still, und zwei abgebrochene Starts am 2026-11-23 liessen sich nicht erklaeren.
+void dropout(const char* why) {
+  g_run = false;
+  g_target = g_ramp = g_duty = 0.0f;
+  g_fresh = true;
+  vesc::release();
+  g_refusal = why;
+  logger::note(why);
+}
 
 // Leerlaufdrehzahl bei Vollaussteuerung und der MOMENTANEN Busspannung.
 //
@@ -106,7 +119,7 @@ void service() {
   }
 
   if (g_brk) {
-    if (!vesc::connected()) { coast(); g_refusal = "kein Regler"; return; }
+    if (!vesc::connected()) { g_brk = false; dropout("Abbruch: keine Messwerte vom Regler"); return; }
     const float ist = kmhSigned();
     if (fabsf(ist) >= BREAKAWAY_DETECT_KMH) {
       g_brkDuty = g_duty;
@@ -132,7 +145,10 @@ void service() {
 
   // Ohne Messwerte vom Regler wird nicht gestellt — blind das Tastverhaeltnis
   // hochzufahren waere genau der Fehler, gegen den die Vorsteuerung gebaut ist.
-  if (!vesc::connected()) { coast(); g_refusal = "kein Regler"; return; }
+  if (!vesc::connected()) {
+    dropout("Abbruch: seit ueber 1 s keine Messwerte vom Regler (Schleife blockiert?)");
+    return;
+  }
 
   const float istKmh = kmhSigned();
 
@@ -177,9 +193,8 @@ void service() {
     if (g_openSince == 0) {
       g_openSince = now;
     } else if (now - g_openSince >= ESTOP_DETECT_MS) {
-      coast();
       g_motorOpen = true;
-      g_refusal = "kein Motorstrom bei Stellwert — Not-Aus ausgeloest oder Motor abgeklemmt";
+      dropout("Abbruch: kein Motorstrom bei Stellwert — Not-Aus ausgeloest oder Motor abgeklemmt");
       return;
     }
   } else {

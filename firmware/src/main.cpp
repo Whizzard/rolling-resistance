@@ -47,6 +47,11 @@ void note(const char* s) { strncpy(g_note, s, sizeof(g_note) - 1); g_note[sizeof
 // lang. Fuer das Fehlersuchen ueber USB -- tools/konsole.py schreibt sie mit.
 uint32_t g_liveUntil = 0, g_liveLast = 0;
 
+// Laengste Schleifenrunde seit der letzten Abfrage. Der Webserver kann die
+// Hauptschleife blockieren, und ab 300 ms schlaegt der Totmann des Reglers zu,
+// ab 1 s gibt speedctl frei -- deshalb wird das gemessen, nicht vermutet.
+uint32_t g_loopMaxMs = 0, g_loopPrevMs = 0, g_vescAgeMax = 0;
+
 void liveTelemetry() {
   const uint32_t now = millis();
   if (now >= g_liveUntil || now - g_liveLast < 200) return;
@@ -64,7 +69,10 @@ void liveTelemetry() {
   Serial.print(" phase=");   Serial.print(state::name());
   long mean = 0, ripple = 0;
   torque::displayStats(mean, ripple);
-  Serial.print(" counts=");  Serial.println(mean);
+  Serial.print(" counts=");  Serial.print(mean);
+  Serial.print(" loopmax="); Serial.print(g_loopMaxMs);
+  Serial.print(" vage=");    Serial.println(g_vescAgeMax);
+  g_loopMaxMs = 0; g_vescAgeMax = 0;
 }
 
 void printHelp() {
@@ -251,6 +259,11 @@ void printStatus() {
   Serial.print(" km/h | Auflast ");
   if (isnan(state::loadN())) Serial.println("nicht gesetzt");
   else { Serial.print(state::loadN(), 1); Serial.println(" N"); }
+
+  Serial.print("# Schleife laengste Runde "); Serial.print(g_loopMaxMs);
+  Serial.print(" ms, aelteste Reglerwerte "); Serial.print(g_vescAgeMax);
+  Serial.println(" ms seit letzter Abfrage");
+  g_loopMaxMs = 0; g_vescAgeMax = 0;
 
   Serial.print("# Bedienung ");
   Serial.print(webui::linkAlive() ? "Browser verbunden" : "kein Browser");
@@ -602,6 +615,20 @@ void setup() {
 }
 
 void loop() {
+  {
+    const uint32_t now = millis();
+    if (g_loopPrevMs && now - g_loopPrevMs > g_loopMaxMs) g_loopMaxMs = now - g_loopPrevMs;
+    g_loopPrevMs = now;
+    if (vesc::values().ageMs > g_vescAgeMax) g_vescAgeMax = vesc::values().ageMs;
+  }
+  // Interne Meldungen (Zustandsmaschine, Regelung) auch in die Oberflaeche.
+  {
+    static char seen[96] = "";
+    if (strcmp(logger::lastNote(), seen) != 0) {
+      strncpy(seen, logger::lastNote(), sizeof(seen) - 1);
+      note(seen);
+    }
+  }
   statusled::service();
   webui::service();
   vesc::service();

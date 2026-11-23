@@ -16,6 +16,21 @@
 // Bleibt er länger als LINK_TIMEOUT_MS aus, ist das ein Abschaltkriterium wie
 // jedes andere (docs/07-sicherheit.md §4) — state.cpp fragt linkAlive() ab.
 //
+// EIGENE TASK, seit 2026-11-23: Der Webserver der Arduino-Bibliothek BLOCKIERT, wenn
+// ein Browser eine Verbindung oeffnet, aber keine Anfrage schickt — iOS tut das
+// vorsorglich, und die Bibliothek wartet dann fest 5 s (HTTP_MAX_DATA_WAIT). In der
+// Hauptschleife hiess das: 2,8 s Stillstand, der Totmann des Reglers (300 ms)
+// schlug zu, und die Regelung gab frei, weil ueber 1 s keine Messwerte kamen. Zwei
+// Starts brachen so ab. Deshalb laufen DNS, Webserver und JSON-Aufbau jetzt in
+// einer eigenen Task auf Kern 0, neben dem WLAN. Befehle aus dem Browser gehen
+// ueber eine Warteschlange an die Hauptschleife und werden dort ausgefuehrt —
+// die Regelung bleibt eingaedig, das Netz kann sie nicht mehr anhalten.
+//
+// Der JSON-Aufbau liest dabei Werte, die die Hauptschleife schreibt. Das sind
+// einzelne 32-Bit-Groessen, die auf dem ESP32 atomar sind; ein inkonsistentes
+// Paar (etwa Zaehler und Zeitstempel eines Gebers) ist moeglich und kostet
+// hoechstens eine Anzeige fuer 200 ms. Gestellt wird aus dieser Task NICHTS.
+//
 #include <Arduino.h>
 
 namespace webui {
@@ -33,6 +48,8 @@ typedef void (*StateJsonFn)(char* buf, size_t len);
 // außen, damit jede Variante ihre eigene Seite ausliefern kann.
 void begin(CommandFn handler, StateJsonFn state,
            const uint8_t* htmlGz, size_t htmlGzLen);
+// Aus der Hauptschleife rufen: fuehrt die Befehle aus, die der Webserver
+// eingereiht hat. Netzwerk wird hier nicht mehr bedient.
 void service();
 
 // false, sobald ein Client da war und dann länger als LINK_TIMEOUT_MS schweigt.
