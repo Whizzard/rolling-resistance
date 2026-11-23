@@ -249,6 +249,12 @@ constexpr float DVDT_STRICT_KMH_PER_S = 0.002f;
 // Nur ein Vorschlagswert für die Bedienung — die tatsächliche Last wird gemessen
 // bzw. über den Befehl 'l<wert>' eingegeben und geht LINEAR in Crr ein.
 constexpr float STANDARD_LOAD_N = 416.9f;
+// [gem 2026-11-23] Auflast, wie der Stand gerade bestueckt ist: 7,2 kg leer (Arm
+// und Rad, am Rad gewogen) plus 10,4 kg bei 84 cm ueber den Radarm von 20,2 cm,
+// also 7,2 + 10,4 * 84 / 20,2 = 50,4 kg. Vorgabe fuer settings::loadN; am Stand
+// ueber die Oberflaeche aenderbar, wenn das Gewicht wandert. Fuer die
+// Standardlast 416,9 N muesste es bei 68,6 cm haengen.
+constexpr float LOAD_DEFAULT_N = 494.3f;
 
 // [Festlegung] Auslegungsobergrenze des Rollwiderstandsbeiwerts. Der Prüfstand ist
 // für schnelle Straßenreifen gedacht, nicht für MTB: der langsamste vorgesehene Reifen

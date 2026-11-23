@@ -248,6 +248,7 @@ eingetippt. *Frühere Fassungen dieses Dokuments nannten pauschal alles
 
 | Größe | Konstante | Wert | Einheit | Herkunft | Anmerkung |
 |---|---|---|---|---|---|
+| Auflast, Vorgabe | `LOAD_DEFAULT_N` | **494,3** | N | gem | **50,4 kg, Stand vom 2026-11-23:** 7,2 kg leer (Arm und Rad, am Rad gewogen) plus 10,4 kg bei 84 cm über den Radarm von 20,2 cm, Hebel 4,16. Vorgabe für die Einstellung, am Stand änderbar; für 416,9 N müsste das Gewicht bei 68,6 cm hängen. |
 | Standard-Auflast | `STANDARD_LOAD_N` | 416,9 | N | Literatur | 42,5 kg — der De-facto-Standard der veröffentlichten Crr-Datenbank. Nur Vorschlagswert; die tatsächliche Last wird über `l<wert>` eingegeben. |
 | Auflast-Mechanik | — | Hebelwaage | – | Entwurf | Laufgewicht 10 kg, `N = m_Rad·g + W·b/a` mit a = 0,200 m, b = 0,30…0,90 m → 147…441 N. Entwurf und Abgleichvorschrift: [08-staender](08-staender.md) §5. Geht **linear** in Crr ein → auf 1 % genau nötig. |
 | Auslegungs-Crr | `CRR_DESIGN_MAX` | **0,007** | – | Festlegung | Es werden schnelle Straßenreifen gemessen, keine MTB-Reifen. Langsamster vorgesehener Reifen ist der Continental Contact Urban mit 0,00552, darauf 27 % Luft. Siehe Tabelle unten. |

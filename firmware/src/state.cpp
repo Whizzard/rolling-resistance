@@ -143,6 +143,7 @@ void finishPoint() {
 void begin() {
   g_phase = IDLE;
   g_run = RUN_NONE;
+  g_loadN = settings::loadN();   // Vorgabe LOAD_DEFAULT_N oder der gespeicherte Wert
 }
 
 void service() {
@@ -268,7 +269,7 @@ void clearFault() {
   logger::note("Fehler quittiert");
 }
 
-void setLoadN(float n) { g_loadN = n; }
+void setLoadN(float n) { g_loadN = n; settings::setLoadN(n); }
 float loadN() { return g_loadN; }
 
 uint8_t plateauIndex() { return g_plateau; }
