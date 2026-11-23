@@ -251,8 +251,8 @@ void printStatus() {
       Serial.print(" mm aus "); Serial.print(wheel::revsUsed()); Serial.println(" Radumdrehungen");
     } else {
       Serial.print("\u2014 ("); Serial.print(wheel::revsUsed());
-      Serial.print(" von "); Serial.print(WHEEL_CIRC_MIN_REVS);
-      Serial.println(" Radumdrehungen auf stetiger Fahrt)");
+      Serial.print(" von "); Serial.print(WHEEL_CIRC_WINDOW_REVS);
+      Serial.println(" Radumdrehungen)");
     }
   }
 
@@ -576,7 +576,7 @@ void buildStateJson(char* buf, size_t len) {
     static_cast<unsigned long>(millis()), sGeber,
     nDrum * 60.0f, nWheel * 60.0f, sURad,
     static_cast<unsigned long>(wheel::revsUsed()),
-    static_cast<unsigned long>(WHEEL_CIRC_MIN_REVS),
+    static_cast<unsigned long>(WHEEL_CIRC_WINDOW_REVS),
     sPlat, state::name(), static_cast<unsigned>(state::runMode()),
     static_cast<unsigned>(state::plateauIndex()), state::faultReason(), sLoad,
     speedctl::motorOpen() ? "true" : "false", speedctl::estopInput() ? "true" : "false",

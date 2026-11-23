@@ -1966,13 +1966,12 @@ U_Rad = U_Trommel · Trommelumdrehungen / Radumdrehungen     (dasselbe Zeitfenst
 
 Die Radumdrehungen sind exakt — das Fenster beginnt und endet auf einem Impuls des
 Laufradgebers —, die Trommelumdrehungen werden über die Zeit aufintegriert
-(`revsrc::revPerSec`). Das Fenster wächst, solange die Fahrt stetig ist
-(Drehzahlspanne unter `WHEEL_CIRC_STEADY` = 15 % — weit, weil Schwankungen sich bei
-der Integration herauskürzen und nur echte Rampen stören; die Regelung pendelt auf
-dem Plateau um ±3 %), und beginnt neu, wenn sich die Geschwindigkeit ändert. Der
-letzte gültige Wert bleibt dabei stehen; erst wenn das Rad steht, verfällt er. Angezeigt wird erst ab
-`WHEEL_CIRC_MIN_REVS` = 20 Radumdrehungen; bis dahin steht der Zähler darunter. So
-flattert der Wert nicht mit jedem Impuls, wie es der Momentanwert vom 2026-11-22 tat.
+(`revsrc::revPerSec`). Das Fenster **gleitet** über die letzten
+`WHEEL_CIRC_WINDOW_REVS` = 10 Radumdrehungen und wird bei jedem Impuls neu gerechnet:
+fortlaufend, aber geglättet. Bis es voll ist, steht der Zähler darunter; steht das
+Rad länger als `WHEEL_CIRC_GAP_MS`, verfällt es. So flattert der Wert nicht mit
+jedem Impuls, wie es der Momentanwert vom 2026-11-22 tat. Gemessen bei 15 km/h:
+1527 bis 1531 mm, von Fenster zu Fenster.
 Der Umfang liegt wegen der Einfederung unter dem Maßband-Wert und ist genau die
 Größe, die in die Auswertung gehört. `i` gibt dieselbe Zeile auf der Konsole aus.
 
