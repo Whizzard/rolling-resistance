@@ -44,24 +44,25 @@ void checkFaults() {
       speedctl::running() && speedctl::rampKmh() > 1.0f &&
       speedctl::duty() > STALL_DUTY_MIN && revsrc::kmh() < 1.0f;
 
-  if (torque::isSaturated())        reason = "FAULT: Waegezelle gesaettigt";
+  // Kurz, die Oberflaeche zeigt den Text so wie er ist.
+  if (torque::isSaturated())        reason = "FAULT: Waegezelle am Anschlag";
   else if (!torque::isResponding()) reason = "FAULT: HX711 antwortet nicht";
   else if (isCalibrated() && fabsf(torque::newtons()) > MAX_FORCE_N)
-                                    reason = "FAULT: Kraftgrenze ueberschritten";
+                                    reason = "FAULT: Kraftgrenze";
   else if (revsrc::revPerSec() * 60.0f > MAX_DRUM_RPM)
-                                    reason = "FAULT: Drehzahlgrenze ueberschritten";
+                                    reason = "FAULT: Drehzahlgrenze";
   else if (!vesc::connected())      reason = "FAULT: kein Regler";
-  else if (vesc::values().fault != 0) reason = "FAULT: Regler meldet Fehler";
-  else if (speedctl::estopInput())  reason = "FAULT: Not-Aus ausgeloest";
-  else if (speedctl::motorOpen())   reason = "FAULT: kein Motor am Regler (Not-Aus?)";
-  else if (stillstand)              reason = "FAULT: treibt, Trommel dreht nicht";
+  else if (vesc::values().fault != 0) reason = "FAULT: Reglerfehler";
+  else if (speedctl::estopInput())  reason = "FAULT: Not-Aus";
+  else if (speedctl::motorOpen())   reason = "FAULT: Trennung erkannt";
+  else if (stillstand)              reason = "FAULT: Trommel dreht nicht";
   // Riemenschlupf und fehlende Drehzahlpulse prüfen nur, wenn die Trommelmarken
   // wirklich zählen. Gegen die eigene Rechenquelle wären beide tautologisch.
   else if (revsrc::angleReference() && speedctl::rampKmh() > 1.0f && speed::stalled())
-                                    reason = "FAULT: keine Drehzahlpulse";
+                                    reason = "FAULT: keine Drehzahlimpulse";
   else if (revsrc::angleReference() && speed::slipDetected())
                                     reason = "FAULT: Riemenschlupf";
-  else if (!webui::linkAlive())     reason = "FAULT: Bedienverbindung weg";
+  else if (!webui::linkAlive())     reason = "FAULT: Bedienung weg";
 
   if (reason == nullptr) {
     g_faultSinceMs = 0;
