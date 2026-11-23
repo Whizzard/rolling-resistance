@@ -41,8 +41,11 @@ Die `.bin`-Dateien liegen nur als Rohdatenbeleg daneben.
 | `l_battery_regen_cut_start` | 1000 V | **42,5 V** | drosselt die Rueckspeisung ab, statt den Antrieb fallen zu lassen |
 | `l_battery_regen_cut_end` | 1100 V | **44 V** | |
 
-**Beides ist noch nicht erprobt.** Der Bremsversuch mit `foc_short_ls_on_zero_duty`
-steht aus und braucht den Motor.
+**Erprobt am 2026-11-23** (docs/07-sicherheit.md §3.2d): der Kurzschluss greift, aber
+erst **nach** dem Bremseinstieg — der durchquert in FOC immer die Rueckspeisezone. Mit
+Netzteil bremst 20 A bis etwa 54 km/h sauber, ab 56 km/h Fehler 1 beim Einstieg. Der
+Regen-Cut ist fuer diesen Millisekunden-Stoss zu langsam (1 kHz, 45-Hz-Filter) und hilft
+nur gegen langsame Rueckspeisung. `l_max_erpm_fbrake(_cc)` wirkt nur im BLDC-Code.
 
 ## Der eine Wert, der der Energiequelle folgen muss
 

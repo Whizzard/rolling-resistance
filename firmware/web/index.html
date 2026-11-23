@@ -140,7 +140,7 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .editor button { width: 26%; margin-left: 2%; }
 
 /* ---- Assistent: Vollbild ueber allem ---- */
-.wiz { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 18;
+.wiz { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 40;
        background: #eef1f4; padding: 24px 16px; overflow: auto; }
 .wiz h1 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase;
           color: #64737f; margin: 0 0 14px; }
@@ -494,6 +494,13 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
 <div class="wiz" id="wiz" hidden>
   <h1>Auslauf + Leerlauf</h1>
+  <div class="tiles" style="margin-bottom:12px">
+    <div class="tile half big"><div><div class="lab">Soll</div>
+      <div class="val"><span id="wizSoll">—</span><small>km/h</small></div></div></div>
+    <div class="tile half big"><div><div class="lab">Ist</div>
+      <div class="val"><span id="wizIst">—</span><small>km/h</small></div></div></div>
+  </div>
+  <div class="note bad" id="wizErr" hidden></div>
   <ol id="wizList"></ol>
   <div class="txt" id="wizTxt" hidden>—</div>
   <div class="big" id="wizBig" hidden>—</div>
@@ -554,7 +561,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     onMess = mess;
     $("pageMess").hidden = !mess;
     $("pageSetup").hidden = mess;
-    $("pin").hidden = !mess && !wizOpen;   /* angepinnt auf der Messseite und im Assistenten */
+    $("pin").hidden = !mess;
     $("tabMess").className = mess ? "on" : "";
     $("tabSetup").className = mess ? "" : "on";
     layoutPin();
@@ -692,10 +699,10 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     if (w > 0) wizOpen = true;
     $("wiz").hidden = !wizOpen;
     if (!wizOpen) return;
-    $("pin").hidden = false;
-    layoutPin();
-    $("wiz").style.top = (document.getElementsByClassName("tabs")[0].offsetHeight
-                          + $("pin").offsetHeight) + "px";
+    $("wizSoll").innerHTML = $("soll").innerHTML;
+    $("wizIst").innerHTML  = $("kmh").innerHTML;
+    $("wizErr").innerHTML = j.err || "";
+    $("wizErr").hidden = !j.err;
     /* Alle Schritte als Liste; der aktuelle hervorgehoben, erledigte gruen,
        bei Abbruch der laufende rot. Zahlen, sobald sie da sind. */
     var fmt = function (v) { return (v === null || v === undefined) ? "\u2014" : v; };
@@ -722,7 +729,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   }
   var lastGood = null;
   $("wizGo").onclick = function () { send("u"); };
-  function wizClose() { wizOpen = false; $("wiz").hidden = true; $("pin").hidden = !onMess; layoutPin(); }
+  function wizClose() { wizOpen = false; $("wiz").hidden = true; }
   $("wizCancel").onclick = function () { send("c"); send("uq"); lastGood = null; wizClose(); };
   $("wizOk").onclick = function () { if (lastJ && lastJ.wiz >= 4) send("uq"); lastGood = null; wizClose(); };
 
