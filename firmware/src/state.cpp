@@ -25,6 +25,21 @@ const char* g_faultReason = "";
 
 constexpr float SPEED_TOLERANCE_KMH = 0.5f;
 
+// Leerlaufmodell M_leer(w) = A0 + B0 w^2: waehrend eines Leerlauflaufs werden die
+// Messpunkte (w^2, M) als Regressionssummen gesammelt, am Ende wird gefittet und
+// gespeichert (settings::setBaseline). Keine Punktliste noetig.
+struct Fit { double n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0;
+  void add(double x, double y) { n++; sx += x; sy += y; sxx += x * x; sxy += x * y; }
+  bool solve(float& a, float& b) const {
+    const double den = n * sxx - sx * sx;
+    if (n < 3 || fabs(den) < 1e-12) return false;
+    b = static_cast<float>((n * sxy - sx * sy) / den);
+    a = static_cast<float>((sy - b * sx) / n);
+    return true;
+  }
+};
+Fit g_fit;
+
 void enterFault(const char* reason) {
   g_faultReason = reason;
   g_phase = FAULT;
@@ -102,6 +117,7 @@ void startRun(RunMode mode) {
     return;
   }
   g_run = mode;
+  g_fit = Fit();
   logger::note(mode == RUN_BASELINE ? "Leerlauf — Laufrad abgehoben"
                                     : "Messlauf");
   // Woher die Drehzahl kommt, steht EINMAL je Lauf im Protokoll — nicht je Punkt.
@@ -131,10 +147,24 @@ void finishPoint() {
                 g_loadN, tirepressure::bar(),
                 g_run == RUN_BASELINE ? "baseline" : "measure");
   if (revsrc::angleReference()) logger::angleBins();
+  if (g_run == RUN_BASELINE && !isnan(mNm)) {
+    const double w = revsrc::omega();
+    g_fit.add(w * w, mNm);
+  }
 
   if (g_plateau + 1 < settings::plateauCount()) {
     gotoPlateau(g_plateau + 1);
   } else {
+    if (g_run == RUN_BASELINE) {
+      float a0, b0;
+      if (g_fit.solve(a0, b0) && settings::setBaseline(a0, b0)) {
+        Serial.print("# Leerlaufmodell gespeichert: A0="); Serial.print(a0, 4);
+        Serial.print(" Nm  B0="); Serial.print(b0, 7); Serial.println(" Nm/(rad/s)^2");
+        Serial.println("# In config.h und docs/03-parameter.md eintragen.");
+      } else {
+        logger::note("Leerlaufmodell nicht gespeichert: zu wenige Punkte oder unplausibel");
+      }
+    }
     logger::note("Lauf beendet — Trommel laeuft aus");
     speedctl::coast();   // frei auslaufen, nicht bremsen (docs/05-pruefablauf.md §B8)
     g_run = RUN_NONE;

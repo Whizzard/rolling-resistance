@@ -17,6 +17,9 @@ constexpr char K_DIR[]   = "dir_sign";
 constexpr char K_PLAT[]  = "plateaus";
 constexpr char K_TARE[]  = "tare";
 constexpr char K_LOAD[]  = "load_n";
+constexpr char K_A0[] = "a0"; constexpr char K_B0[] = "b0";
+constexpr char K_A1[] = "a1"; constexpr char K_B1[] = "b1";
+constexpr char K_MRAD[] = "m_rad";
 
 float g_drum  = DRUM_CIRCUMFERENCE_M;
 float g_arm   = TORQUE_ARM_M;
@@ -26,6 +29,7 @@ int8_t g_dir  = static_cast<int8_t>(VESC_DIRECTION_SIGN);
 
 long    g_tare  = 0;
 float   g_load  = LOAD_DEFAULT_N;
+float   g_a0 = NAN, g_b0 = NAN, g_a1 = NAN, g_b1 = NAN, g_mRad = NAN;
 float   g_plat[PLATEAU_MAX];
 uint8_t g_platN = 0;
 
@@ -92,6 +96,11 @@ void begin() {
     if (g_nvs.isKey(K_DIR))   g_dir  = g_nvs.getChar(K_DIR, static_cast<int8_t>(VESC_DIRECTION_SIGN));
     if (g_nvs.isKey(K_TARE))  g_tare = g_nvs.getLong(K_TARE, 0);
     if (g_nvs.isKey(K_LOAD))  g_load = g_nvs.getFloat(K_LOAD, LOAD_DEFAULT_N);
+    if (g_nvs.isKey(K_A0)) g_a0 = g_nvs.getFloat(K_A0, NAN);
+    if (g_nvs.isKey(K_B0)) g_b0 = g_nvs.getFloat(K_B0, NAN);
+    if (g_nvs.isKey(K_A1)) g_a1 = g_nvs.getFloat(K_A1, NAN);
+    if (g_nvs.isKey(K_B1)) g_b1 = g_nvs.getFloat(K_B1, NAN);
+    if (g_nvs.isKey(K_MRAD)) g_mRad = g_nvs.getFloat(K_MRAD, NAN);
     const size_t bytes = g_nvs.isKey(K_PLAT) ? g_nvs.getBytesLength(K_PLAT) : 0;
     if (bytes > 0 && bytes % sizeof(float) == 0 && bytes <= sizeof(g_plat)) {
       g_nvs.getBytes(K_PLAT, g_plat, bytes);
@@ -118,6 +127,44 @@ void begin() {
   Serial.print("# Messgeschwindigkeiten:");
   for (uint8_t i = 0; i < g_platN; i++) { Serial.print(' '); Serial.print(g_plat[i], 1); }
   Serial.println(" km/h");
+}
+
+namespace {
+bool store2(const char* k1, float v1, const char* k2, float v2) {
+  if (!g_nvs.begin(NS, false)) return false;
+  const bool ok = g_nvs.putFloat(k1, v1) > 0 && g_nvs.putFloat(k2, v2) > 0;
+  g_nvs.end();
+  return ok;
+}
+bool store1(const char* k, float v) {
+  if (!g_nvs.begin(NS, false)) return false;
+  const bool ok = g_nvs.putFloat(k, v) > 0;
+  g_nvs.end();
+  return ok;
+}
+}  // namespace
+
+float baselineA0() { return g_a0; }
+float baselineB0() { return g_b0; }
+bool  haveBaseline() { return !isnan(g_a0) && !isnan(g_b0); }
+bool  setBaseline(float a0, float b0) {
+  if (isnan(a0) || isnan(b0) || fabsf(a0) > 20.0f || fabsf(b0) > 0.1f) return false;
+  g_a0 = a0; g_b0 = b0;
+  return store2(K_A0, a0, K_B0, b0);
+}
+float wheelA1() { return g_a1; }
+float wheelB1() { return g_b1; }
+bool  haveWheelModel() { return !isnan(g_a1) && !isnan(g_b1); }
+bool  setWheelModel(float a1, float b1) {
+  if (isnan(a1) || isnan(b1) || fabsf(a1) > 5.0f || fabsf(b1) > 0.1f) return false;
+  g_a1 = a1; g_b1 = b1;
+  return store2(K_A1, a1, K_B1, b1);
+}
+float wheelMassKg() { return g_mRad; }
+bool  setWheelMassKg(float kg) {
+  if (!(kg > 0.3f && kg < 10.0f)) return false;
+  g_mRad = kg;
+  return store1(K_MRAD, kg);
 }
 
 float loadN() { return g_load; }
@@ -224,6 +271,7 @@ void reset() {
   g_dir  = static_cast<int8_t>(VESC_DIRECTION_SIGN);
   g_tare = 0;
   g_load = LOAD_DEFAULT_N;
+  g_a0 = g_b0 = g_a1 = g_b1 = g_mRad = NAN;
   defaultPlateaus();
 }
 

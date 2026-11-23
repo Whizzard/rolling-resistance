@@ -305,6 +305,25 @@ constexpr float    ESTOP_SPEED_RATIO = 0.6f;
 // sinkender Drehzahl unter konstantem Stellwert sofort Strom. Gemessen nach dem
 // Not-Aus aus 28 km/h: etwa 3 km/h/s; die Regelung pendelt mit 0,1...0,2 km/h/s.
 constexpr float    ESTOP_DECEL_KMH_S = 0.5f;   // [gesch]
+
+// ------------------------------------------------- Live-Messung nur bei Konstanz
+// Verlustleistung und Crr werden NUR angezeigt, wenn die Fahrt konstant ist: beim
+// Beschleunigen steckt J*dw/dt im Moment, beim Einregeln pendelt es. Konstant
+// heisst: Antrieb faehrt, Istwert nahe am Sollwert, Beschleunigung klein, und das
+// seit STEADY_HOLD_MS. Dann wird ueber LIVE_WINDOW_MS gemittelt (gleitend, wie der
+// Laufradumfang). [gesch] 2026-11-23
+constexpr float    STEADY_DVDT_KMH_S = 0.3f;    // |dv/dt| darunter gilt als konstant
+constexpr float    STEADY_TOL_KMH    = 1.0f;    // |ist - soll| darunter
+constexpr uint32_t STEADY_HOLD_MS    = 2000;    // so lange muss es konstant sein
+constexpr uint32_t LIVE_WINDOW_MS    = 5000;    // Mittelungsfenster, 400 Zellenwerte
+
+// ------------------------------------------------- Verlustmodelle (settings.h)
+// M_leer(w) = A0 + B0 w^2 aus dem Leerlauf (Rad abgehoben, Befehl m0): die Firmware
+// fittet am Ende des Laufs selbst und speichert. M_Rad(w_Rad) = A1 + B1 w_Rad^2 aus
+// dem Laufrad-Auslauf (Befehl u): J_Rad aus der Radmasse, J = WHEEL_J_FACTOR m r^2.
+// [Literatur] 0,85 fuer ein 622er Laufrad, docs/08-staender.md §6.
+constexpr float   WHEEL_J_FACTOR = 0.85f;
+constexpr uint8_t SPINDOWN_MIN_REVS = 30;       // [gesch] weniger ist kein Fit
 constexpr uint32_t ESTOP_DETECT_MS  = 1000;   // [gesch] so lange muss der Befund stehen
 // [TBD] Hilfskontakt des Not-Aus an PIN_ESTOP_FB — noch nicht verdrahtet. Sobald er
 // liegt: true setzen. Der Kontakt soll nach Masse ziehen, wenn ausgeloest (interner
@@ -562,10 +581,15 @@ constexpr float VESC_BRAKE_CURRENT_STOP = 20.0f;
 // und langsam genug, dass ein Fehlgriff auffaellt, bevor es schnell wird.
 constexpr float SPEEDCTL_RAMP_KMH_PER_S = 2.0f;
 
-// [Festlegung] Trimmverstaerkung: Tastverhaeltnis je (km/h Abweichung · Sekunde).
-// Die Vorsteuerung traegt die Hauptlast, der Trimm holt nur Reibung und
-// Spannungsabfall nach.
-constexpr float SPEEDCTL_KP = 0.02f;
+// Trimm als PI-D (seit 2026-11-23). Vorher reiner Integrator mit 0,02 je
+// (km/h · s): mit 494 N Auflast pendelte die Trommel um +-0,8 km/h mit etwa 10 s
+// Periode, weil der Integrator bis zum Nulldurchgang der Abweichung weiter
+// aufzog. Jetzt: I-Anteil kleiner, dazu ein P-Anteil auf die Abweichung und ein
+// D-Anteil auf die gemessene Beschleunigung (revsrc::dvdtKmhS), der beim
+// Hochlaufen fruehzeitig wegnimmt. [gesch] Werte, am 2026-11-23 abgestimmt.
+constexpr float SPEEDCTL_KI  = 0.010f;   // Tastverhaeltnis je (km/h · s)
+constexpr float SPEEDCTL_KPP = 0.006f;   // Tastverhaeltnis je km/h Abweichung
+constexpr float SPEEDCTL_KD  = 0.010f;   // Tastverhaeltnis je (km/h/s) Beschleunigung
 
 // [Festlegung] Hoechste Aenderung des Tastverhaeltnisses je Sekunde.
 //

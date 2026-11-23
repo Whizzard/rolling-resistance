@@ -21,6 +21,7 @@ bool     g_brk    = false;  // Losbrechmessung laeuft
 float    g_brkDuty = 0.0f;  // Ergebnis: Tastverhaeltnis beim Losbrechen
 float    g_brkAmps = 0.0f;
 bool     g_motorOpen = false;   // Befund "kein Motor am Regler", rastend
+float    g_out = 0.0f;          // zuletzt gesendeter Stellwert (I + P + D)
 uint32_t g_openSince = 0;
 
 // Mechanische Drehzahl der Trommel aus der Reglerdrehzahl. Vorzeichenbehaftet:
@@ -41,7 +42,7 @@ float rpmFromKmh(float kmh) { return revPerSecFromKmh(kmh) * 60.0f; }
 // still, und zwei abgebrochene Starts am 2026-11-23 liessen sich nicht erklaeren.
 void dropout(const char* why) {
   g_run = false;
-  g_target = g_ramp = g_duty = 0.0f;
+  g_target = g_ramp = g_duty = g_out = 0.0f;
   g_fresh = true;
   vesc::release();
   g_refusal = why;
@@ -186,9 +187,14 @@ void service() {
     klemme = SPEEDCTL_START_DUTY;
   if (klemme > 0.95f) klemme = 0.95f;
 
-  // Trimm, asymmetrisch begrenzt (Regel 2)
+  // Trimm als PI-D (config.h), Aenderung je Runde asymmetrisch begrenzt (Regel 2).
+  // g_duty ist der I-Anteil samt Vorbesetzung; P und D kommen je Runde obendrauf
+  // und werden nicht integriert.
   const float err  = g_ramp - istKmh;
-  float       step = SPEEDCTL_KP * err * dt;
+  const float dvdtNow = revsrc::dvdtKmhS();
+  const float dTerm = isnan(dvdtNow) ? 0.0f : -SPEEDCTL_KD * dvdtNow;
+  const float pTerm = SPEEDCTL_KPP * err;
+  float       step = SPEEDCTL_KI * err * dt;
   const float up   = SPEEDCTL_DUTY_UP_PER_S   * dt;
   const float down = SPEEDCTL_DUTY_DOWN_PER_S * dt;
   if (step >  up)   step =  up;
@@ -197,6 +203,9 @@ void service() {
   g_duty += step;
   if (g_duty > klemme) g_duty = klemme;
   if (g_duty < 0.0f)   g_duty = 0.0f;
+  float out = g_duty + pTerm + dTerm;
+  if (out > klemme) out = klemme;
+  if (out < 0.0f)   out = 0.0f;
 
   // Not-Aus erkennen (speedctl.h, config.h ESTOP_*): Stellwert da, kein Strom,
   // UND die Drehzahl liegt weit unter der Leerlaufdrehzahl zu diesem Stellwert.
@@ -209,7 +218,7 @@ void service() {
   const float dvdt = revsrc::dvdtKmhS();
   const bool  rampingDown = g_ramp > g_target + 0.1f;
   const bool  decel = !isnan(dvdt) && dvdt < -ESTOP_DECEL_KMH_S && !rampingDown;
-  if (g_duty > STALL_DUTY_MIN && imot < ESTOP_IMOT_MAX_A && (lagging || decel)) {
+  if (out > STALL_DUTY_MIN && imot < ESTOP_IMOT_MAX_A && (lagging || decel)) {
     const uint32_t now = millis();
     if (g_openSince == 0) {
       g_openSince = now;
@@ -222,7 +231,8 @@ void service() {
     g_openSince = 0;
   }
 
-  vesc::setDuty(g_duty * settings::directionSign());
+  g_out = out;
+  vesc::setDuty(out * settings::directionSign());
 }
 
 bool motorOpen()  { return g_motorOpen; }
@@ -233,19 +243,19 @@ float rampKmh()   { return g_run ? g_ramp : 0.0f; }
 float kmh()       { const float k = kmhSigned(); return k > 0.0f ? k : 0.0f; }
 // Auch waehrend der Losbrechmessung liegt ein Stellwert an -- ohne g_brk hier
 // zeigte die Anzeige durchgehend 0, und genau diese Zahl ist das Messergebnis.
-float duty()      { return (g_run || g_brk) ? g_duty : 0.0f; }
+float duty()      { return g_run ? g_out : (g_brk ? g_duty : 0.0f); }
 bool  running()   { return g_run; }
 
 void stop() {
   g_run = false;
-  g_target = g_ramp = g_duty = 0.0f;
+  g_target = g_ramp = g_duty = g_out = 0.0f;
   g_fresh = true;
   vesc::setBrakeCurrent(VESC_BRAKE_CURRENT_STOP);
 }
 
 void coast() {
   g_run = false;
-  g_target = g_ramp = g_duty = 0.0f;
+  g_target = g_ramp = g_duty = g_out = 0.0f;
   g_fresh = true;
   vesc::release();
 }

@@ -56,6 +56,12 @@ void service();
 // Solange nie ein Client da war, true — der Stand lässt sich auch ohne WLAN
 // über die Konsole fahren.
 bool linkAlive();
+// Wer faehrt? Die Totmannschaltung gilt nur, wenn der Antrieb aus dem Browser
+// gestartet wurde. Wer von der Konsole startet, ist selbst der Bediener -- ein
+// schlafendes Handy darf ihm den Lauf nicht abwuergen (2026-11-23, mehrfach).
+bool inWebCommand();           // true, waehrend ein Browser-Befehl ausgefuehrt wird
+void setWebOperator(bool web); // beim Start merken
+bool webOperator();
 
 bool clientSeen();
 uint32_t msSinceClient();

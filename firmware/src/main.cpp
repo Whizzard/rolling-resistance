@@ -92,6 +92,67 @@ bool looksBad(const char* s) {
 // lang. Fuer das Fehlersuchen ueber USB -- tools/konsole.py schreibt sie mit.
 uint32_t g_liveUntil = 0, g_liveLast = 0;
 
+// ---------------------------------------------------------- Live bei Konstanz
+// Verlustleistung und Crr nur, wenn die Fahrt konstant ist (config.h STEADY_*),
+// gemittelt ueber LIVE_WINDOW_MS: Ring der Zellen-Rohwerte und der Winkel-
+// geschwindigkeit, gefuellt bei jedem neuen Zellenwert (80 je Sekunde).
+constexpr uint16_t LIVE_N = LIVE_WINDOW_MS * HX711_RATE_SPS / 1000;
+long     g_liveRaw[LIVE_N];
+float    g_liveW[LIVE_N];
+uint16_t g_liveHead = 0, g_liveCount = 0;
+uint32_t g_steadySince = 0;
+bool     g_steady = false;
+
+void liveReset() { g_liveCount = 0; g_liveHead = 0; }
+
+// Jede Runde: Konstanz pruefen. Bei jedem neuen Zellenwert: einsortieren.
+void liveService(bool newSample) {
+  const float dvdt = revsrc::dvdtKmhS();
+  const bool steadyNow = speedctl::running()
+      && !isnan(dvdt) && fabsf(dvdt) < STEADY_DVDT_KMH_S
+      && fabsf(speedctl::kmh() - speedctl::targetKmh()) < STEADY_TOL_KMH
+      && speedctl::rampKmh() >= speedctl::targetKmh() - 0.01f;   // Rampe angekommen
+  const uint32_t now = millis();
+  if (!steadyNow) { g_steadySince = 0; g_steady = false; liveReset(); return; }
+  if (g_steadySince == 0) g_steadySince = now;
+  g_steady = (now - g_steadySince) >= STEADY_HOLD_MS;
+  if (!g_steady) { liveReset(); return; }
+  if (newSample) {
+    g_liveRaw[g_liveHead] = torque::lastRaw();
+    g_liveW[g_liveHead]   = revsrc::omega();
+    g_liveHead = (g_liveHead + 1) % LIVE_N;
+    if (g_liveCount < LIVE_N) g_liveCount++;
+  }
+}
+
+// Ergebnis: alles NAN, solange nicht konstant, nicht kalibriert oder Fenster leer.
+// Korrigiert um Leerlauf und Radverluste, soweit die Modelle da sind.
+struct Live { float mNm, pW, crr; bool korrigiert; uint16_t n; };
+Live liveResult() {
+  Live r = {NAN, NAN, NAN, false, g_liveCount};
+  if (!g_steady || g_liveCount < HX711_RATE_SPS || !settings::calibrated()) return r;
+  double sraw = 0, sw = 0;
+  for (uint16_t i = 0; i < g_liveCount; i++) { sraw += g_liveRaw[i]; sw += g_liveW[i]; }
+  const float raw = static_cast<float>(sraw / g_liveCount);
+  const float w   = static_cast<float>(sw / g_liveCount);
+  float m = (raw - static_cast<float>(torque::tareOffset())) * settings::loadcellNPerCount()
+            * settings::torqueArmM();
+  if (settings::haveBaseline()) {
+    m -= settings::baselineA0() + settings::baselineB0() * w * w;
+    r.korrigiert = true;
+  }
+  if (settings::haveWheelModel() && wheel::valid()) {
+    const float rRad = wheel::circumferenceM() / (2.0f * PI);
+    const float wRad = w * settings::drumRadiusM() / rRad;
+    m -= (settings::wheelA1() + settings::wheelB1() * wRad * wRad) * settings::drumRadiusM() / rRad;
+  }
+  r.mNm = m;
+  r.pW  = m * w;
+  const float load = state::loadN();
+  if (!isnan(load) && load > 0.0f) r.crr = m / settings::drumRadiusM() / load;
+  return r;
+}
+
 // Laengste Schleifenrunde seit der letzten Abfrage. Der Webserver kann die
 // Hauptschleife blockieren, und ab 300 ms schlaegt der Totmann des Reglers zu,
 // ab 1 s gibt speedctl frei -- deshalb wird das gemessen, nicht vermutet.
@@ -115,6 +176,10 @@ void liveTelemetry() {
   long mean = 0, ripple = 0;
   torque::displayStats(mean, ripple);
   Serial.print(" counts=");  Serial.print(mean);
+  const Live lv = liveResult();
+  Serial.print(" konst=");   Serial.print(g_steady ? 1 : 0);
+  Serial.print(" pw=");      if (isnan(lv.pW)) Serial.print("-"); else Serial.print(lv.pW, 1);
+  Serial.print(" crr=");     if (isnan(lv.crr)) Serial.print("-"); else Serial.print(lv.crr, 4);
   Serial.print(" loopmax="); Serial.print(g_loopMaxMs);
   Serial.print(" vage=");    Serial.println(g_vescAgeMax);
   g_loopMaxMs = 0; g_vescAgeMax = 0;
@@ -135,6 +200,9 @@ void printHelp() {
   Serial.println("#   i       Zustand: Regler, Waegezelle, Geber, Bedienverbindung");
   Serial.println("#   g       Geberzaehler nullen (Verdrahtungstest)");
   Serial.println("#   j<s>    Live-Telemetrie, alle 200 ms, s Sekunden (Vorgabe 5)");
+  Serial.println("#   n<A0> <B0>  Leerlaufmodell setzen (m0 fittet es selbst)");
+  Serial.println("#   w<A1> <B1>  Radverlustmodell setzen   y<kg>  Laufradmasse");
+  Serial.println("#   u       Laufrad-Auslauf aufzeichnen (Rad abgehoben, anwerfen)");
   Serial.println("#   :<text> Terminalbefehl an den Regler (faults, hall_analyze 5, ...)");
   Serial.println("#   ><hex>  Rohpaket an den Regler, Antwort als Hex (z. B. >0e = mcconf)");
   Serial.print("# Grenze: "); Serial.print(V_MAX_KMH, 0);
@@ -296,6 +364,20 @@ void printStatus() {
     }
   }
 
+  Serial.print("# Modelle  Leerlauf ");
+  if (settings::haveBaseline()) {
+    Serial.print("A0="); Serial.print(settings::baselineA0(), 4);
+    Serial.print(" B0="); Serial.print(settings::baselineB0(), 7);
+  } else Serial.print("FEHLT (m0 mit abgehobenem Rad)");
+  Serial.print(" | Rad ");
+  if (settings::haveWheelModel()) {
+    Serial.print("A1="); Serial.print(settings::wheelA1(), 5);
+    Serial.print(" B1="); Serial.print(settings::wheelB1(), 8);
+  } else Serial.print("FEHLT (y<kg>, dann u)");
+  Serial.print(" | J_Rad ");
+  if (isnan(wheel::jRadKgm2())) Serial.println("unbekannt");
+  else { Serial.print(wheel::jRadKgm2(), 4); Serial.println(" kg m^2"); }
+
   Serial.print("# Messung  ");
   Serial.print(state::name());
   if (state::phase() == state::FAULT) {
@@ -393,6 +475,7 @@ void handleCommand(const String& cmd) {
 
   switch (cmd[0]) {
     case 'v':
+      webui::setWebOperator(webui::inWebCommand());   // wer startet, dem gilt der Totmann
       if (speedctl::setTargetKmh(arg)) note("");      // Soll zeigt die Kachel
       else                             fail(speedctl::lastRefusal());
       break;
@@ -414,6 +497,7 @@ void handleCommand(const String& cmd) {
     //     stillschweigend ein Leerlauf. Siehe docs/05-pruefablauf.md B4/B6.
     case 'm':
       if (cmd.length() < 2) { fail("m0 = Leerlauf, m1 = Messlauf"); break; }
+      webui::setWebOperator(webui::inWebCommand());
       if (cmd[1] == '0')      state::startBaseline();
       else if (cmd[1] == '1') state::startMeasure();
       else                  { fail("m0 = Leerlauf, m1 = Messlauf"); break; }
@@ -500,6 +584,29 @@ void handleCommand(const String& cmd) {
       Serial.println("# Losbrechmessung: Tastverhaeltnis steigt mit 0,01/s,"
                      " Abbruch bei 0,15 oder sobald sie sich regt.");
       break;
+    // --- Verlustmodelle und Laufrad (docs/10-firmware.md §8)
+    case 'n': case 'w': {
+      // n<A0> <B0> bzw. w<A1> <B1>: zwei Zahlen
+      const int sp = cmd.indexOf(' ');
+      if (sp < 2) { fail(cmd[0] == 'n' ? "n<A0> <B0>" : "w<A1> <B1>"); break; }
+      const float a = cmd.substring(1, sp).toFloat(), b = cmd.substring(sp + 1).toFloat();
+      const bool ok = cmd[0] == 'n' ? settings::setBaseline(a, b) : settings::setWheelModel(a, b);
+      if (ok) note("Modell uebernommen"); else fail("Modell unplausibel");
+      break;
+    }
+    case 'y':
+      if (settings::setWheelMassKg(arg)) note("Laufradmasse uebernommen");
+      else                                fail("Laufradmasse unplausibel");
+      break;
+    case 'u':
+      if (speedctl::running()) { fail("erst anhalten"); break; }
+      if (wheel::spindownBegin()) {
+        note("Auslauf laeuft: Rad abgehoben frei auslaufen lassen");
+        Serial.println("# Auslauf: Rad anwerfen und frei auslaufen lassen. Ende bei Stillstand.");
+      } else {
+        fail("Auslauf: Laufradmasse (y) und Umfang (einmal fahren) fehlen");
+      }
+      break;
     case 'i': printStatus(); break;
     case 'g': speed::resetCounters(); note("Geberzaehler genullt"); break;
     case 'j':
@@ -569,15 +676,18 @@ void buildStateJson(char* buf, size_t len) {
   char sLoad[16];
   num(sLoad, sizeof(sLoad), state::loadN(), 1);
 
-  // Live: Verlustleistung am Reifen und Crr -- ROH, also samt Trommelverlusten;
-  // die Auswertung zieht den Leerlauf ab (docs/09-messtheorie.md). Ohne
-  // Kalibrierung null, ohne Auflast kein Crr.
-  const float pW  = isnan(mNm) ? NAN : mNm * revsrc::omega();
-  const float crr = (isnan(roll) || isnan(state::loadN()) || state::loadN() <= 0.0f)
-                    ? NAN : roll / state::loadN();
+  // Live nur bei Konstanz, gemittelt (liveResult). Ohne Leerlaufmodell "roh".
+  const Live lv = liveResult();
   char sPW[16], sCrr[16];
-  num(sPW,  sizeof(sPW),  pW,  1);
-  num(sCrr, sizeof(sCrr), crr, 4);
+  num(sPW,  sizeof(sPW),  lv.pW,  1);
+  num(sCrr, sizeof(sCrr), lv.crr, 4);
+  char sA0[16], sB0[16], sA1[16], sB1[16], sMRad[16], sJ[16];
+  num(sA0, sizeof(sA0), settings::baselineA0(), 4);
+  num(sB0, sizeof(sB0), settings::baselineB0(), 7);
+  num(sA1, sizeof(sA1), settings::wheelA1(), 5);
+  num(sB1, sizeof(sB1), settings::wheelB1(), 8);
+  num(sMRad, sizeof(sMRad), settings::wheelMassKg(), 3);
+  num(sJ, sizeof(sJ), wheel::jRadKgm2(), 4);
 
   char sN[16], sPct[16], sKg[16], sM[16], sRoll[16];
   num(sN,   sizeof(sN),   fN,   2);
@@ -595,7 +705,9 @@ void buildStateJson(char* buf, size_t len) {
     "\"vin\":%.1f,\"imot\":%.2f,\"iin\":%.2f,\"watt\":%.0f,"
     "\"tfet\":%.1f,\"tmot\":%s,\"tmotOffen\":%s,"
     "\"counts\":%ld,\"raw\":%ld,\"tare\":%ld,\"ripple\":%ld,\"n\":%s,\"pct\":%s,\"kg\":%s,"
-    "\"nm\":%s,\"roll\":%s,\"pw\":%s,\"crr\":%s,\"err\":\"%s\","
+    "\"nm\":%s,\"roll\":%s,\"pw\":%s,\"crr\":%s,\"korr\":%s,\"konst\":%s,"
+    "\"a0\":%s,\"b0\":%s,\"a1\":%s,\"b1\":%s,\"mRad\":%s,\"jRad\":%s,\"auslauf\":%s,\"auslaufN\":%lu,"
+    "\"err\":\"%s\","
     "\"kal\":%s,\"saturiert\":%s,\"zelle\":%s,"
     "\"dir\":%d,\"lernt\":%s,\"brk\":%s,\"brkDuty\":%.4f,\"brkAmps\":%.1f,"
     "\"up\":%lu,\"geber\":[%s],"
@@ -616,7 +728,10 @@ void buildStateJson(char* buf, size_t len) {
     ok ? v.vIn : 0.0f, ok ? v.currentMotor : 0.0f, ok ? v.currentIn : 0.0f,
     ok ? v.vIn * v.currentIn : 0.0f,
     ok ? v.tempFet : 0.0f, sTmot, tmotOffen ? "true" : "false",
-    counts, mean, torque::tareOffset(), ripple, sN, sPct, sKg, sM, sRoll, sPW, sCrr, currentError(),
+    counts, mean, torque::tareOffset(), ripple, sN, sPct, sKg, sM, sRoll, sPW, sCrr,
+    lv.korrigiert ? "true" : "false", g_steady ? "true" : "false",
+    sA0, sB0, sA1, sB1, sMRad, sJ, wheel::spindownActive() ? "true" : "false",
+    static_cast<unsigned long>(wheel::spindownRevs()), currentError(),
     settings::calibrated() ? "true" : "false",
     torque::isSaturated() ? "true" : "false",
     torque::isResponding() ? "true" : "false",
@@ -659,7 +774,7 @@ void setup() {
   // USB-CDC: liest kein Rechner mit, laeuft der Sendepuffer voll, und jeder
   // print() blockiert bis zum Timeout -- gemessen 266 ms Schleifenrunde ohne
   // Mitleser. Lieber Zeilen verlieren als die Regelung anhalten.
-  Serial.setTxTimeoutMs(5);
+  Serial.setTxTimeoutMs(20);
   delay(200);
   Serial.println();
   Serial.println("# Fahrrad-Reifenpruefstand — Firmware");
@@ -705,8 +820,10 @@ void loop() {
   // Jeder neue Rohwert der Zelle wird im Messzustand in den umdrehungssynchronen
   // Akkumulator einsortiert. Das muss HIER stehen, wo update() gerufen wird:
   // nur dieser Aufruf weiß, dass gerade ein neuer Wert angekommen ist.
-  if (torque::update() && state::phase() == state::POINT) {
-    torque::accumulate(revsrc::markIndexInRev());
+  {
+    const bool fresh = torque::update();
+    if (fresh && state::phase() == state::POINT) torque::accumulate(revsrc::markIndexInRev());
+    liveService(fresh);
   }
 
   revsrc::service();
