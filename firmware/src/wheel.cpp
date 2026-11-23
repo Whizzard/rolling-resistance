@@ -118,8 +118,11 @@ void service() {
          * static_cast<float>(drumRevs / static_cast<double>(WHEEL_CIRC_WINDOW_REVS));
   // Merken, hoechstens alle 10 s und nur bei mehr als 1 mm Aenderung -- der NVS
   // soll nicht bei jeder Umdrehung beschrieben werden.
+  // ... und nur auf stetiger Fahrt: in der Rampe hinkt das Trommelintegral den
+  // Impulsen nach, und 1428 statt 1540 mm landeten so im Speicher (2026-11-23).
   static uint32_t lastStoreMs = 0;
-  if (millis() - lastStoreMs > 10000 &&
+  const float dvdt = revsrc::dvdtKmhS();
+  if (!isnan(dvdt) && fabsf(dvdt) < 0.3f && millis() - lastStoreMs > 10000 &&
       (isnan(settings::wheelCircM()) || fabsf(settings::wheelCircM() - g_circ) > 0.001f)) {
     settings::setWheelCircM(g_circ);
     lastStoreMs = millis();
