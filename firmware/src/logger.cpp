@@ -56,9 +56,15 @@ void angleBins() {
   Serial.println();
 }
 
+namespace { char g_last[96] = ""; }
+
 void note(const char* text) {
   Serial.print("# ");
   Serial.println(text);
+  strncpy(g_last, text, sizeof(g_last) - 1);
+  g_last[sizeof(g_last) - 1] = '\0';
 }
+
+const char* lastNote() { return g_last; }
 
 }  // namespace logger

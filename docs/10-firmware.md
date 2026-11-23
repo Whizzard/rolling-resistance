@@ -232,7 +232,8 @@ in die Auswertung hinterher.
 
 | Befehl | Größe | Beispiel | wofür |
 |---|---|---|---|
-| `l<N>` | Auflast | `l416.9` | Crr |
+| `l<N>` | Auflast | `l416.9` | Crr; auch unter *Einrichtung → Messung* |
+| `h<kmh>` / `h-<kmh>` | Messgeschwindigkeit dazu / weg | `h28.8` | Liste im NVS, immer sortiert; Messseite zeigt genau diese Punkte, *Messung*/*Leerlauf* fahren sie der Reihe nach ab |
 | `p<bar>` | Reifendruck | `p4.0` | nur Protokoll |
 | `r<m>` | Reifenradius | `r0.339` | **nur als Rückfall** — normalerweise aus dem Drehzahlverhältnis gemessen, L12 |
 | `w<A₁> <B₁>` | Radverlustmodell | `w0.012 0.000071` | aus dem Laufrad-Auslauf |

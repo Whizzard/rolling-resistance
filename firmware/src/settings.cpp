@@ -14,12 +14,50 @@ constexpr char K_ARM[]   = "arm";
 constexpr char K_CALIB[] = "calib_arm";
 constexpr char K_NPC[]   = "n_per_count";
 constexpr char K_DIR[]   = "dir_sign";
+constexpr char K_PLAT[]  = "plateaus";
 
 float g_drum  = DRUM_CIRCUMFERENCE_M;
 float g_arm   = TORQUE_ARM_M;
 float g_cal   = CALIB_ARM_M;
 float g_npc   = LOADCELL_N_PER_COUNT;
 int8_t g_dir  = static_cast<int8_t>(VESC_DIRECTION_SIGN);
+
+float   g_plat[PLATEAU_MAX];
+uint8_t g_platN = 0;
+
+// Zwei Geschwindigkeiten gelten als dieselbe, wenn sie sich um weniger als
+// 0,05 km/h unterscheiden — 28,8 soll nicht neben 28,80001 stehen.
+inline bool samePlateau(float a, float b) { return fabsf(a - b) < 0.05f; }
+inline bool okPlateau(float v) { return v >= V_MIN_KMH && v <= V_MAX_KMH; }
+
+void defaultPlateaus() {
+  g_platN = 0;
+  for (uint8_t i = 0; i < PLATEAU_COUNT && i < PLATEAU_MAX; i++) g_plat[g_platN++] = PLATEAUS_KMH[i];
+}
+
+// Sortieren und Doppelte entfernen; Einfuegesortierung, die Liste ist kurz.
+void tidyPlateaus() {
+  for (uint8_t i = 1; i < g_platN; i++) {
+    const float v = g_plat[i];
+    int8_t j = i - 1;
+    while (j >= 0 && g_plat[j] > v) { g_plat[j + 1] = g_plat[j]; j--; }
+    g_plat[j + 1] = v;
+  }
+  uint8_t n = 0;
+  for (uint8_t i = 0; i < g_platN; i++) {
+    if (!okPlateau(g_plat[i])) continue;
+    if (n > 0 && samePlateau(g_plat[n - 1], g_plat[i])) continue;
+    g_plat[n++] = g_plat[i];
+  }
+  g_platN = n;
+}
+
+bool storePlateaus() {
+  if (!g_nvs.begin(NS, false)) return false;
+  const size_t n = g_nvs.putBytes(K_PLAT, g_plat, g_platN * sizeof(float));
+  g_nvs.end();
+  return n == g_platN * sizeof(float);
+}
 
 // Grenzen der Plausibilitaet. Absichtlich weit: sie sollen Tippfehler um
 // Zehnerpotenzen abfangen, nicht die Konstruktion bevormunden.
@@ -45,8 +83,15 @@ void begin() {
     g_cal  = g_nvs.getFloat(K_CALIB, CALIB_ARM_M);
     g_npc  = g_nvs.getFloat(K_NPC,   LOADCELL_N_PER_COUNT);
     g_dir  = g_nvs.getChar(K_DIR, static_cast<int8_t>(VESC_DIRECTION_SIGN));
+    const size_t bytes = g_nvs.getBytesLength(K_PLAT);
+    if (bytes > 0 && bytes % sizeof(float) == 0 && bytes <= sizeof(g_plat)) {
+      g_nvs.getBytes(K_PLAT, g_plat, bytes);
+      g_platN = bytes / sizeof(float);
+      tidyPlateaus();
+    }
     g_nvs.end();
   }
+  if (g_platN == 0) defaultPlateaus();
   // Ein im NVS gelandeter Unsinnswert darf den Stand nicht vergiften.
   if (!okDrum(g_drum)) g_drum = DRUM_CIRCUMFERENCE_M;
   if (!okArm(g_arm))   g_arm  = TORQUE_ARM_M;
@@ -61,6 +106,31 @@ void begin() {
   Serial.print(", Kalibrierfaktor ");
   if (g_npc > 0.0f) Serial.println(g_npc, 8);
   else              Serial.println("NICHT KALIBRIERT");
+  Serial.print("# Messgeschwindigkeiten:");
+  for (uint8_t i = 0; i < g_platN; i++) { Serial.print(' '); Serial.print(g_plat[i], 1); }
+  Serial.println(" km/h");
+}
+
+uint8_t plateauCount() { return g_platN; }
+float plateauKmh(uint8_t i) { return i < g_platN ? g_plat[i] : 0.0f; }
+
+bool addPlateau(float kmh) {
+  if (!okPlateau(kmh) || g_platN >= PLATEAU_MAX) return false;
+  for (uint8_t i = 0; i < g_platN; i++)
+    if (samePlateau(g_plat[i], kmh)) return false;
+  g_plat[g_platN++] = kmh;
+  tidyPlateaus();
+  return storePlateaus();
+}
+
+bool removePlateau(float kmh) {
+  for (uint8_t i = 0; i < g_platN; i++) {
+    if (!samePlateau(g_plat[i], kmh)) continue;
+    for (uint8_t j = i; j + 1 < g_platN; j++) g_plat[j] = g_plat[j + 1];
+    g_platN--;
+    return storePlateaus();
+  }
+  return false;
 }
 
 float drumCircumferenceM() { return g_drum; }
@@ -123,12 +193,16 @@ void reset() {
   g_cal  = CALIB_ARM_M;
   g_npc  = LOADCELL_N_PER_COUNT;
   g_dir  = static_cast<int8_t>(VESC_DIRECTION_SIGN);
+  defaultPlateaus();
 }
 
 bool anyOverridden() {
+  bool plat = g_platN != PLATEAU_COUNT;
+  for (uint8_t i = 0; !plat && i < g_platN; i++)
+    plat = !samePlateau(g_plat[i], PLATEAUS_KMH[i]);
   return g_drum != DRUM_CIRCUMFERENCE_M || g_arm != TORQUE_ARM_M ||
          g_cal  != CALIB_ARM_M          || g_npc != LOADCELL_N_PER_COUNT ||
-         g_dir  != static_cast<int8_t>(VESC_DIRECTION_SIGN);
+         g_dir  != static_cast<int8_t>(VESC_DIRECTION_SIGN) || plat;
 }
 
 }  // namespace settings

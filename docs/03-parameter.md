@@ -230,12 +230,13 @@ eingetippt. *Frühere Fassungen dieses Dokuments nannten pauschal alles
 |---|---|---|---|---|
 | `V_MIN_KMH` | 10 | km/h | Festlegung | |
 | `V_MAX_KMH` | 60 | km/h | Festlegung | 100 km/h erst nach Trommelfreigabe |
-| `PLATEAUS_KMH` | 10,15,20,25,**28,8**,35,…,60 | km/h | Festlegung | 11 Stützstellen. 28,8 km/h ist die Referenzgeschwindigkeit der veröffentlichten Crr-Datenbank — zusammen mit 42,5 kg Last ein direkt vergleichbarer Punkt. |
+| `PLATEAUS_KMH` | 15, **28,8**, 40, 50, 60 | km/h | Festlegung | **Vorgabe** der Messgeschwindigkeiten; die gültige Liste liegt seit 2026-11-23 in den Einstellungen (NVS) und wird über *Einrichtung → Messung* gepflegt, sortiert, mit `h<kmh>` / `h-<kmh>`. 28,8 km/h ist die Referenzgeschwindigkeit der veröffentlichten Crr-Datenbank — zusammen mit 42,5 kg Last ein direkt vergleichbarer Punkt; 60 km/h ist `V_MAX_KMH`. Leerlauf und Messlauf fahren dieselbe Liste. |
+| `PLATEAU_MAX` | 16 | – | Festlegung | Platz für Messgeschwindigkeiten in den Einstellungen |
 | `RAMP_KMH_PER_S` | 0,5 | km/h/s | gesch | 2 min von 0 auf 60 |
 | `SETTLE_MS` | 15000 | ms | gesch | Einschwingen nach Plateauwechsel; nach ersten Messungen prüfen |
 | `AVG_REVS_PER_POINT` | 10 | – | gesch | bei 60 km/h ≈ 1,8 s, bei 10 km/h ≈ 10,8 s |
 | `WARMUP_MS` | 1800000 | ms | Literatur | **30 min**, wie beim Referenzprüfstand. Crr sinkt mit der Reifentemperatur deutlich. |
-| `WARMUP_KMH` | 28,8 | km/h | Festlegung | Geschwindigkeit, bei der die Warmlaufzeit zählt. Identisch mit `PLATEAUS_KMH[4]` und aus demselben Grund: es ist die Stützstelle der veröffentlichten Datenbank. Vorher stand die Zahl nur im Fließtext. |
+| `WARMUP_KMH` | 28,8 | km/h | Festlegung | Geschwindigkeit, bei der die Warmlaufzeit zählt. Identisch mit `PLATEAUS_KMH[1]` und aus demselben Grund: es ist die Stützstelle der veröffentlichten Datenbank. Vorher stand die Zahl nur im Fließtext. |
 | `WARMUP_TOL_KMH` | 1,0 | km/h | gesch | Band um `WARMUP_KMH`, innerhalb dessen Zeit angerechnet wird. Breiter als `SPEED_TOLERANCE_KMH`, weil hier nicht gemessen, sondern gewärmt wird. |
 | `DVDT_WINDOW_MS` | 1000 | ms | Festlegung | Fenster für dv/dt. `revsrc.cpp` legt acht Proben darin ab und fittet eine Gerade — eine Differenz aus zwei Proben rauscht zu stark für eine Gültigkeitsentscheidung. |
 | `DVDT_CONST_KMH_PER_S` | 0,010 | km/h/s | **ber** | Grenze für „konstant". Ein Rest an Beschleunigung erzeugt über `M = J·dω/dt` ein Scheinmoment: 1 % vom Signal eines guten Rennreifens sind 0,012 Nm, über `J` = 1,94 kg·m² also 0,0062 rad/s² und damit 0,010 km/h/s ([10-firmware](10-firmware.md) §7.1, L9). Punkte außerhalb werden als ungültig markiert, nicht verworfen. |

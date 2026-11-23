@@ -1921,6 +1921,9 @@ Befehle, identisch über serielle Konsole und Weboberfläche ([10-firmware](10-f
 | `z` | Einstellungen auf die Vorgaben aus `config.h` zurücksetzen |
 | `i` | **Zustand**: Regler, Wägezelle, Geber, Bedienverbindung |
 | `g` | Geberzähler nullen (Verdrahtungstest, siehe unten) |
+| `m0` / `m1` | Leerlauf / Messlauf: fährt die Messgeschwindigkeiten der Reihe nach ab |
+| `h<kmh>` / `h-<kmh>` | Messgeschwindigkeit aufnehmen / entfernen (Liste im NVS, sortiert) |
+| `l<N>` | Auflast, ohne sie startet kein Messlauf |
 | `?` | Hilfe |
 
 `i` ist der Befehl fürs Anschließen. Die Oberfläche zeigt dasselbe, aber am Stand

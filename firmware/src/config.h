@@ -195,13 +195,19 @@ constexpr float LOADCELL_N_PER_COUNT = 0.0f;
 constexpr float V_MIN_KMH = 10.0f;   // [Festlegung]
 constexpr float V_MAX_KMH = 60.0f;   // [Festlegung] 100 erst nach Trommelfreigabe
 
-// [Festlegung] Stützstellen. Baseline und Messung MÜSSEN dieselben benutzen,
-// sonst kann die Auswertung nicht punktweise subtrahieren.
+// [Festlegung] Stützstellen, VORGABE. Die gültige Liste liegt seit 2026-11-23 in
+// den Einstellungen (settings::plateauKmh, NVS) und wird über die Oberfläche
+// gepflegt; diese Werte gelten, solange dort nichts anderes steht oder nach
+// einem Zurücksetzen. Baseline und Messung MÜSSEN dieselbe Liste benutzen,
+// sonst kann die Auswertung nicht punktweise subtrahieren — deshalb ist es
+// EINE Liste für beide Läufe.
 // 28,8 km/h ist absichtlich dabei: das ist die Referenzgeschwindigkeit der
 // veröffentlichten Crr-Datenbank (200 1/min auf deren 77-cm-Trommel). Zusammen mit
-// STANDARD_LOAD_N erlaubt dieser Punkt einen Plausibilitätsvergleich.
-constexpr float PLATEAUS_KMH[] = {10, 15, 20, 25, 28.8f, 35, 40, 45, 50, 55, 60};
+// STANDARD_LOAD_N erlaubt dieser Punkt einen Plausibilitätsvergleich. 60 km/h ist
+// V_MAX_KMH, das obere Ende des freigegebenen Bereichs.
+constexpr float PLATEAUS_KMH[] = {15, 28.8f, 40, 50, 60};
 constexpr uint8_t PLATEAU_COUNT = sizeof(PLATEAUS_KMH) / sizeof(PLATEAUS_KMH[0]);
+constexpr uint8_t PLATEAU_MAX = 16;           // Platz in den Einstellungen
 
 constexpr float RAMP_KMH_PER_S = 0.5f;        // [gesch] 2 min von 0 auf 60
 constexpr uint32_t SETTLE_MS = 15000;         // [gesch] nach Plateauwechsel
@@ -211,7 +217,7 @@ constexpr uint8_t AVG_REVS_PER_POINT = 10;    // [gesch] ganze Umdrehungen
 // Vergleiche zwischen Reifen nicht belastbar.
 constexpr uint32_t WARMUP_MS = 1800000;
 // [Festlegung] Geschwindigkeit, bei der der Warmlauf zählt, und das Band darum.
-// WARMUP_KMH ist PLATEAUS_KMH[4] — dieselbe Stützstelle, aus demselben Grund.
+// WARMUP_KMH ist PLATEAUS_KMH[1] — dieselbe Stützstelle, aus demselben Grund.
 constexpr float WARMUP_KMH = 28.8f;
 constexpr float WARMUP_TOL_KMH = 1.0f;        // [gesch] Band, in dem Zeit zählt
 

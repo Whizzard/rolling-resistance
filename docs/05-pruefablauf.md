@@ -147,8 +147,10 @@ heute** am Ende. Rund zwei Stunden, davon 30 min Warmlauf. (11)
 ### B4 Baseline Vorlauf
 
 1. Laufrad mit dem Exzenterhebel **abheben**.
-2. `b`. Die Firmware fährt alle Plateaus aus `PLATEAUS_KMH` (10 … 28,8 … 60 km/h),
-   wartet je `SETTLE_MS` und mittelt über `AVG_REVS_PER_POINT` **ganze** Umdrehungen.
+2. *Leerlauf* auf der Messseite (Konsole `m0`). Die Firmware fährt alle
+   Messgeschwindigkeiten aus den Einstellungen der Reihe nach ab (Vorgabe
+   `PLATEAUS_KMH`: 15, 28,8, 40, 50, 60 km/h), wartet je `SETTLE_MS` und mittelt
+   über `AVG_REVS_PER_POINT` **ganze** Umdrehungen.
 3. Ergebnis `M_leer(ω)` → Fit `A₀ + B₀·ω²`. Nicht überspringen. (16)
 
 ### B5 Warmlauf
@@ -158,7 +160,8 @@ heute** am Ende. Rund zwei Stunden, davon 30 min Warmlauf. (11)
 
 ### B6 Messlauf
 
-1. `m`. **Dieselben Plateaus** wie in B4.
+1. *Messung* auf der Messseite (Konsole `m1`), vorher die Auflast eintragen.
+   **Dieselbe Liste** wie in B4 — es gibt nur eine.
 2. Während des Laufs:
    - [ ] nicht an den Aufbau fassen, nicht anlehnen
    - [ ] Türen und Lüftung nicht verändern

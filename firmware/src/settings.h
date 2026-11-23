@@ -45,6 +45,15 @@ bool setCalibArmM(float m);
 bool setLoadcellNPerCount(float nPerCount);
 bool setDirectionSign(int8_t sign);   // nur +1 oder -1
 
+// Messgeschwindigkeiten: die Plateaus, die Leerlauf- und Messlauf der Reihe
+// nach abfahren. Vorgabe PLATEAUS_KMH aus config.h, gepflegt über die
+// Oberfläche, im NVS. Die Liste ist IMMER aufsteigend sortiert und ohne
+// Doppelte; addPlateau fügt an der richtigen Stelle ein.
+uint8_t plateauCount();
+float   plateauKmh(uint8_t i);           // 0 ausserhalb der Liste
+bool    addPlateau(float kmh);           // false: unplausibel, voll oder schon drin
+bool    removePlateau(float kmh);        // false: nicht in der Liste
+
 // Zurück auf die Vorgaben aus config.h, NVS wird geleert.
 void reset();
 

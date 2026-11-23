@@ -73,7 +73,7 @@ void checkFaults() {
 
 void gotoPlateau(uint8_t idx) {
   g_plateau = idx;
-  if (!speedctl::setTargetKmh(PLATEAUS_KMH[idx])) {
+  if (!speedctl::setTargetKmh(settings::plateauKmh(idx))) {
     enterFault(speedctl::lastRefusal());
     return;
   }
@@ -87,6 +87,10 @@ void startRun(RunMode mode) {
   }
   if (mode == RUN_MEASURE && isnan(g_loadN)) {
     logger::note("Start abgelehnt: Auflast nicht gesetzt (Befehl 'l<N>')");
+    return;
+  }
+  if (settings::plateauCount() == 0) {
+    logger::note("Start abgelehnt: keine Messgeschwindigkeiten (Befehl 'h<kmh>')");
     return;
   }
   g_run = mode;
@@ -120,7 +124,7 @@ void finishPoint() {
                 g_run == RUN_BASELINE ? "baseline" : "measure");
   if (revsrc::angleReference()) logger::angleBins();
 
-  if (g_plateau + 1 < PLATEAU_COUNT) {
+  if (g_plateau + 1 < settings::plateauCount()) {
     gotoPlateau(g_plateau + 1);
   } else {
     logger::note("Lauf beendet — Trommel laeuft aus");
