@@ -839,84 +839,76 @@ muss:
 Zwei Spangen nötig, eine je Kopfseite. **Konstruiert wird nur eine**: sie ist
 symmetrisch zur M6-Achse und passt an beide Enden.
 
-Außenmaß **61,3 × 32,9 × 6,0 mm**, 8,7 cm³.
+Außenmaß **61,3 × 26,4 × 4,0 mm**, 4,8 cm³ (Fassung vom 2026-11-23).
 
 | | |
 |---|---|
-| Featurebaum | Platte · Mutterloecher · M4_Durchgaenge · M6_Durchgang · M6_Senkung · Verrundung |
+| Featurebaum | Platte · M4_Gewinde · M6_Durchgang · M6_Senkung · Verrundung |
 | `hardware/esp_spange.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
 
 #### Drei Löcher im Dreieck
 
 ```
-     o-----------------o     zwei M4, Mutter von unten eingelassen,
+     o-----------------o     zwei M4-Gewinde direkt in der Platte,
       \               /      50,0 mm auseinander
        \             /
         \           /        Kontur läuft zur Mitte hin zusammen
          \  +---+  /
-          \ |(O)| /          eine M6, mittig, 16,2 mm nach aussen
+          \ |(O)| /          eine M6, mittig, 12,7 mm nach aussen
            -+---+-            versetzt, Kopf in einer Flachsenkung
 ```
 
 | Merkmal | Maß |
 |---|---|
-| Platte | **6,0 mm** dick, Oberseite **glatt** |
-| M4-Durchgänge | Ø 4,5, auf den Bohrungen des Gehäuses |
-| Muttertaschen | Sechskant, 7,2 über Flächen (8,31 über Eck), 3,4 tief, **von unten** |
-| Material über einer Mutter | 2,60 mm |
-| M6-Durchgang | **Ø 6,5**, Achse 16,2 mm von der M4-Linie |
-| M6-Flachsenkung | **Ø 11, 4,5 mm tief** von oben — unter dem Kopf bleiben **1,5 mm** Boden (seit 2026-11-23, die Schrauben sind kurz) |
-| Verjüngung | 61,3 → 21,0 mm, Knick bei y = 6,2 (an der Gehäusekante) |
+| Platte | **4,0 mm** dick wie die Not-Aus-Spange, Oberseite **glatt** |
+| M4-Gewinde | **M4×0,7 direkt in der Platte**, modelliert (FreeCAD-Bohrung wie in `not-aus-spange.FCStd`), auf den Bohrungen des Gehäuses; knapp sechs Gänge |
+| M6-Durchgang | **Ø 6,5**, Achse 12,7 mm von der M4-Linie |
+| M6-Flachsenkung | **Ø 11, 2,5 mm tief** von oben — unter dem Kopf bleiben **1,5 mm** Boden. Für Kugelkopf ISO 7380 (Ø 10,5, 3,3 hoch), der Kopf steht 0,8 mm über |
+| Verjüngung | 61,3 → 15,0 mm, Knick bei y = 6,2 (an der Gehäusekante) |
 | Verrundung | r = 3,0 an den **sechs senkrechten** Umrisskanten |
 
 **Zwei Schrauben mit getrennten Aufgaben**, wie bei der Platinenaufnahme in §7.2:
 
-- Die **beiden M4** kommen von oben durch die Gehäusebohrungen in die
-  eingelassenen Muttern. Sie halten das Gehäuse.
+- Die **beiden M4** kommen von oben durch die Gehäusebohrungen direkt in die
+  Gewinde der Platte. Sie halten das Gehäuse.
 - Die **M6** geht durch die Spitze auf die Schiene. Sie hält die Spange.
 
-#### Warum die M6 so weit aussen sitzt
+#### Wie weit die M6 aussen sitzt
 
-Bemessen wurde sie ursprünglich nach der **Karosseriescheibe**, nicht nach dem
-Schraubenkopf: DIN 9021 für M6 ist Ø 18, ein Zylinderkopf nur Ø 10. Danach
-richteten sich Versatz *und* Spitze, damit die Scheibe vollflächig trägt und
-nicht an die Gehäusekante stößt:
+Versatz und Spitze richten sich nach dem **versenkten Kopf**: die Senkung soll die
+Gehäusekante nicht anschneiden, und neben ihr muss an der Spitze Wand stehen.
 
 | | |
 |---|---|
-| M6-Achse hinter der Gehäusekante | **10,0 mm** |
-| Spitze breit | 21,0 mm |
+| M6-Achse hinter der Gehäusekante | **6,5 mm** |
+| Senkungsrand vor der Gehäusekante | 1,0 mm |
+| Wand neben der Senkung | 2,0 mm je Seite, Spitze 15,0 mm breit |
 
-**Seit 2026-11-23 entfällt die Scheibe.** Die M6-Schrauben sind kurz und müssen
-tiefer; der Kopf sitzt jetzt in einer **Flachsenkung Ø 11, 4,5 mm tief**, so dass
-unter ihm 1,5 mm Boden bleiben. Eine Senkung in Scheibengröße ließe an der 21 mm
-breiten Spitze keine Wand mehr. Versatz und Spitzenbreite bleiben trotzdem
-unverändert: die Lage der M6 auf der Schiene soll sich nicht ändern, und neben
-dem Kopf bleiben so 5,0 mm Wand. Die Senkung ist für einen Zylinderkopf DIN 912
-bemessen; ein Sechskant SW 10 misst 11,05 über Eck und bräuchte Ø 12,5
-(`m6_head_d` in der Tabelle).
+Bis zum 2026-11-23 war die Spitze nach einer **Karosseriescheibe Ø 18** bemessen
+(M6-Achse 10 mm hinter der Kante, Spitze 21 mm). Die Schrauben sind kurz, ISO 7380
+mit Kugelkopf, und müssen tiefer — daher die Senkung, und mit ihr entfällt die
+Scheibe: eine Senkung in Scheibengröße ließe keine Wand. Die Spitze ist entsprechend
+schlanker geworden.
 
 #### Oberseite glatt, Ecken verrundet
 
-Keine erhöhten Auflagen — die Platte liegt vollflächig an der Kopfseite. Am
-Modell nachgesehen: **genau eine ebene Fläche** bei z = 6,0 mit 1533 mm², und die
-Bauhöhe ist 6,00 mm. Deshalb sitzen die Muttern in der Platte selbst, die dafür
-6,0 mm dick ist: 3,4 für die Mutter, 2,6 darüber.
+Keine erhöhten Auflagen — die Platte liegt vollflächig an der Kopfseite. Die
+ursprünglichen 6,0 mm Dicke waren allein den eingelassenen Muttern geschuldet; mit
+den Gewinden im Druck reichen 4,0 mm wie bei der Not-Aus-Spange.
 
 Verrundet werden **nur die senkrechten** Umrisskanten, nicht die oben und unten:
 dort gewinnt der Druck nichts, die Düse muss nur an den senkrechten Ecken
 abbremsen.
 
 > Die Kanten werden im Skript über ihre **Lage** gesucht, nicht über ihren Index.
-> Ein Index verschiebt sich bei jeder Änderung am Baum, eine Koordinate nicht —
-> und die senkrechten Kanten der Muttertaschen bleiben so zuverlässig scharf. Eine
-> verrundete Sechskanttasche hält keine Mutter. Findet das Skript nicht genau
-> sechs Kanten, bricht es ab, statt irgendwelche zu verrunden.
+> Ein Index verschiebt sich bei jeder Änderung am Baum, eine Koordinate nicht — und
+> die vielen Kanten des modellierten Gewindes bleiben so außen vor. Findet das
+> Skript nicht genau sechs Kanten, bricht es ab, statt irgendwelche zu verrunden.
 
-> **Druckrichtung:** mit der **glatten Oberseite nach unten** aufs Bett. Dann
-> öffnen sich die Muttertaschen nach oben und brauchen keine Stütze. Der Boden
+> **Druckrichtung:** mit der **glatten Oberseite nach unten** aufs Bett. Der Boden
 > der M6-Senkung liegt dann oben und wird über 11 mm gebrückt — bei 1,5 mm Dicke
 > und dem Ø-6,5-Loch in der Mitte ist das ein schmaler Ring, der ohne Stütze hält.
+> Die Gewinde sind durchgehend und in beiden Lagen gleich.
 
 ### 7.6 Halter für den XT60-Einbaustecker
 

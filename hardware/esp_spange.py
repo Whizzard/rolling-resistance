@@ -8,7 +8,7 @@ Enden.
 
 Drei Löcher im Dreieck:
 
-      o-------------o     zwei M4, Mutter von unten eingelassen
+      o-------------o     zwei M4-GEWINDE direkt in der Platte
        \           /      (Abstand M4_PITCH, Lochmitten)
         \         /
          \       /        Kontur läuft zur Mitte hin zusammen
@@ -17,18 +17,25 @@ Drei Löcher im Dreieck:
           | (O) |       eine M6, mittig, nach aussen versetzt, mit
           +-----+       Flachsenkung fuer den Schraubenkopf
 
-Die beiden M4 kommen von oben durch die Ø-4,5-Bohrungen am Rand der Kopfseite in
-die hier eingelassenen Muttern. Die M6 geht durch die überstehende Spitze auf die
-Schiene. Zwei Schrauben, zwei Aufgaben: die M4 halten das Gehäuse, die M6 hält
-die Spange.
+Die beiden M4 kommen von oben durch die Ø-4,5-Bohrungen am Rand der Kopfseite
+direkt in Gewinde, die in der Platte sitzen. Die M6 geht durch die überstehende
+Spitze auf die Schiene. Zwei Schrauben, zwei Aufgaben: die M4 halten das
+Gehäuse, die M6 hält die Spange.
 
-M6 SEIT 2026-11-23 VERSENKT: Die Schrauben sind kurz. Der Kopf sitzt in einer
-Flachsenkung Ø m6_head_d, so tief, dass unter ihm nur m6_rest = 1,5 mm Boden
-bleiben; der Durchgang ist 6,5 statt 6,6. Die Karosseriescheibe Ø 18, nach der
-Versatz und Spitze urspruenglich bemessen wurden, entfaellt damit — eine
-Senkung in Scheibengroesse liesse an der Spitze keine Wand mehr. Versatz und
-Spitzenbreite bleiben trotzdem, wie sie sind: die Spangen sind so gebaut, und
-die Lage der M6 auf der Schiene soll sich nicht aendern.
+FASSUNG VOM 2026-11-23 — schlanker, duenner, ohne Muttern:
+
+  * M4-GEWINDE statt Muttern. Wie bei der Not-Aus-Spange (hardware/not-aus-
+    spange.FCStd): PartDesign-Bohrung, ISO M4x0,7, Gewinde modelliert, durch.
+    Die Schraube greift in den Druck; 4 mm Platte sind knapp sechs Gaenge.
+  * PLATTE 4,0 mm wie die Not-Aus-Spange. Die 6,0 waren nur fuer die Muttern.
+  * M6 VERSENKT. Die Schrauben sind kurz, ISO 7380 Kugelkopf (Kopf Ø 10,5,
+    3,3 hoch). Flachsenkung Ø m6_head_d = 11, so tief, dass m6_rest = 1,5 mm
+    Boden bleiben; Durchgang 6,5. Der Kopf steht 0,8 mm ueber die Platte,
+    neben dem Gehaeuse, das stoert niemanden.
+  * SPITZE SCHLANKER. Versatz und Spitze richten sich jetzt nach dem KOPF
+    (Ø 11) statt nach der Karosseriescheibe Ø 18, die mit der Senkung
+    entfaellt. Die M6-Achse rueckt damit von 16,2 auf 12,7 mm hinter die
+    M4-Linie, die Spitze von 21 auf 15 mm Breite.
 
 Aufbau wie hall_gehaeuse.py und hx711_gehaeuse.py: PartDesign-Body mit
 Featurebaum plus Spreadsheet "Parameter", alle Skizzen voll bestimmt und über
@@ -36,15 +43,13 @@ Ausdrücke an die Tabelle gebunden. Maße in mm.
 
 Featurebaum:
     Platte        Sechseck-Umriss: breit unter dem Gehäuse, Spitze zur M6
-    Mutterloecher zwei Sechskanttaschen von unten, M4
-    M4_Durchgaenge zwei Ø 4,5 durch die Platte
+    M4_Gewinde    zwei Gewindebohrungen M4x0,7 durch die Platte
     M6_Durchgang  Ø 6,5 in der Spitze
     M6_Senkung    Flachsenkung Ø 11 von oben, bis 1,5 mm Boden bleiben
     Verrundung    die sechs senkrechten Umrisskanten
 
 Die Oberseite ist **glatt** — keine erhöhten Auflagen. Sie liegt vollflächig an
-der Kopfseite des Gehäuses. Die Muttern sitzen von unten in der Platte, die
-deshalb 6,0 mm dick ist: 3,4 für die Mutter, 2,6 darüber.
+der Kopfseite des Gehäuses.
 
 Koordinaten: x = 0 ist die Symmetrieachse, y = 0 die Linie der beiden M4.
 +y zeigt von der Gehäusemitte weg, nach draussen. z = 0 ist die Unterseite, die
@@ -82,38 +87,33 @@ def params(pitch):
         ('m4_pitch',   pitch,        'Lochabstand am Gehaeuse, Mitte zu Mitte'),
         ('screw_edge', SCREW_EDGE,   'Lochmitte bis Gehaeusekante, vorgegeben'),
 
-        ('m4_d',          4.5,  'Durchgang M4'),
-        ('nut_af',        7.2,  'Mutter M4 ueber Schluesselflaechen, 7,0 + Spiel'),
-        ('nut_h',         3.4,  'Mutter M4 hoch, 3,2 + Spiel'),
+        ('m4_thread',  'M4x0.7', 'Gewinde direkt in der Platte, wie Not-Aus-Spange'),
         ('m6_d',          6.5,  'Durchgang M6 zur Schiene'),
-        # Flachsenkung fuer den Schraubenkopf: Zylinderkopf DIN 912 M6 hat
-        # dk = 10, ein Sechskant SW 10 misst 11,05 ueber Eck -- dafuer 12,5.
-        ('m6_head_d',    11.0,  'Flachsenkung, Zylinderkopf dk 10 + Spiel'),
+        # Flachsenkung fuer den Kugelkopf ISO 7380 M6: dk 10,5, k 3,3.
+        ('m6_head_d',    11.0,  'Flachsenkung, Kugelkopf dk 10,5 + Spiel'),
         ('m6_rest',       1.5,  'Boden unter dem Schraubenkopf'),
         ('m6_cb_t', '=plate_t - m6_rest', 'Tiefe der Flachsenkung'),
 
-        ('m4_pad',       11.3,  'Material um eine Mutter: ueber Eck + 1,5 je Seite'),
-        ('plate_t',       6.0,  'Plattendicke: Mutter 3,4 + 2,6 darueber'),
+        ('m4_pad',       11.3,  'Material um die Gewinde: Platte so breit wie das Gehaeuse'),
+        ('plate_t',       4.0,  'Plattendicke, wie die Not-Aus-Spange'),
         ('fillet_r',      3.0,  'Verrundung der senkrechten Umrisskanten'),
 
-        # Versatz und Spitze wurden nach der KAROSSERIESCHEIBE DIN 9021 (Ø 18)
-        # bemasst, damit sie vollflaechig auflag und nicht an die Gehaeusekante
-        # stiess. Die Scheibe entfaellt seit der Flachsenkung (siehe Kopf); das
-        # Mass bleibt als Bezugsgroesse fuer die bestehende Geometrie stehen.
-        ('m6_washer_d',  18.0,  'Bezugsmass der Spitze, ehem. Karosseriescheibe'),
-        ('m6_clear',      1.0,  'Luft Scheibenrand bis Gehaeusekante'),
-        ('tip_wall',      1.5,  'Material neben der Scheibe an der Spitze'),
-        ('m6_offset', '=screw_edge + m6_washer_d / 2 + m6_clear',
+        # Versatz und Spitze richten sich nach dem versenkten KOPF: die Senkung
+        # soll die Gehaeusekante nicht anschneiden, und neben ihr muss an der
+        # Spitze Wand stehen bleiben.
+        ('m6_clear',      1.0,  'Luft Senkungsrand bis Gehaeusekante'),
+        ('tip_wall',      2.0,  'Wand neben der Senkung an der Spitze'),
+        ('m6_offset', '=screw_edge + m6_head_d / 2 + m6_clear',
                        'M4-Linie bis M6-Achse'),
 
         ('y_in',  '=-screw_edge', 'Innenkante, unter dem Gehaeuse'),
         ('y_hip', '=screw_edge',  'Hier beginnt die Verjuengung: an der Gehaeusekante'),
-        ('y_out', '=m6_offset + m6_washer_d / 2 + tip_wall',
-                  'Aussenkante: Scheibe liegt vollflaechig'),
+        ('y_out', '=m6_offset + m6_head_d / 2 + tip_wall',
+                  'Aussenkante: Wand neben der Senkung'),
 
         ('w_wide', '=m4_pitch + m4_pad', 'Breite unter dem Gehaeuse'),
-        ('w_tip',  '=m6_washer_d + 2 * tip_wall',
-                   'Breite an der Spitze: Scheibe liegt vollflaechig'),
+        ('w_tip',  '=m6_head_d + 2 * tip_wall',
+                   'Breite an der Spitze: Wand neben der Senkung'),
 
         ('len', '=y_out - y_in', 'Gesamtlaenge'),
     ]
@@ -184,24 +184,6 @@ def circle(sk, cx, cy, r, tag, expr_x, expr_y, expr_r):
     return g
 
 
-def hexagon(sk, cx, af, tag, e_cx):
-    """Sechskant um (cx, 0). Eckenradius af / sqrt(3).
-
-    Die Schlüsselflächen stehen SENKRECHT zu x: über Flächen (af) misst man in
-    x, über Eck (af / cos 30°) in y. Für die Funktion gleichgültig — der Sockel
-    ist rund —, aber die Prüfpunkte muessen es wissen.
-    """
-    rc = af / math.sqrt(3.0)
-    pts, exprs = [], []
-    for i in range(6):
-        a = math.radians(30.0 + 60.0 * i)
-        f = math.cos(a) / math.sqrt(3.0)
-        s = math.sin(a) / math.sqrt(3.0)
-        pts.append((cx + rc * math.cos(a), rc * math.sin(a)))
-        exprs.append(('%s %+.6f * Parameter.nut_af' % (e_cx, f),
-                      '%+.6f * Parameter.nut_af' % s))
-    return polygon(sk, pts, tag, exprs)
-
 
 # ------------------------------------------------------------------- Modell
 
@@ -256,20 +238,29 @@ def build(doc, sh):
              ('-Parameter.w_wide / 2', 'Parameter.y_hip')])
     pad(sk, 'Platte', 'Parameter.plate_t')
 
-    # 2 Muttertaschen von unten
-    sk = sketch_on(body, xy, 'Sk_Muttern')
+    # 2 M4-Gewinde durch die Platte: PartDesign-Bohrung mit modelliertem
+    #   ISO-Gewinde, genau wie in hardware/not-aus-spange.FCStd. Die Skizze
+    #   liefert nur die Mittelpunkte, den Durchmesser bestimmt das Gewinde.
+    sk = sketch_on(body, xy, 'Sk_M4', P(sh, 'plate_t'))
+    sk.setExpression('AttachmentOffset.Base.z', 'Parameter.plate_t')
     for sign, t in ((+1, 'p'), (-1, 'm')):
-        hexagon(sk, sign * hx, P(sh, 'nut_af'), 'mu' + t,
-                '%d * Parameter.m4_pitch / 2' % sign)
-    pocket(sk, 'Mutterloecher', 'Parameter.nut_h')
-
-    # 3 M4 durch die Platte
-    sk = sketch_on(body, xy, 'Sk_M4')
-    for sign, t in ((+1, 'p'), (-1, 'm')):
-        circle(sk, sign * hx, 0.0, P(sh, 'm4_d') / 2, 'm4' + t,
-               '%d * Parameter.m4_pitch / 2' % sign, '0',
-               'Parameter.m4_d / 2')
-    pocket(sk, 'M4_Durchgaenge', 'Parameter.plate_t + 1')
+        circle(sk, sign * hx, 0.0, 2.0, 'm4' + t,
+               '%d * Parameter.m4_pitch / 2' % sign, '0', '2')
+    h = body.newObject('PartDesign::Hole', 'M4_Gewinde')
+    h.Profile = sk
+    h.DepthType = 'ThroughAll'
+    h.Threaded = True
+    h.ThreadType = 'ISOMetricProfile'
+    thread = str(sh.get('m4_thread'))
+    sizes = h.getEnumerationsOfProperty('ThreadSize')
+    if thread not in sizes:
+        alt = [z for z in sizes if z.startswith('M4')]
+        if not alt:
+            raise RuntimeError('Gewinde %s nicht in %s' % (thread, sizes))
+        thread = alt[0]
+    h.ThreadSize = thread
+    h.ModelThread = True
+    doc.recompute()
 
     # 4 M6 in der Spitze
     sk = sketch_on(body, xy, 'Sk_M6')
@@ -417,8 +408,8 @@ def main():
           % (len([o for o in doc.Objects
                   if o.isDerivedFrom('Sketcher::SketchObject')]),
              offen if offen else 'keine'))
-    print('Material ueber der Mutter   %.2f mm'
-          % (P(sh, 'plate_t') - P(sh, 'nut_h')))
+    print('M4-Gewinde                  %s, modelliert, %.1f mm lang'
+          % (doc.getObject('M4_Gewinde').ThreadSize, P(sh, 'plate_t')))
     print('Verrundung                  r = %.1f mm an 6 Kanten'
           % P(sh, 'fillet_r'))
     print('M6-Achse hinter der Gehaeusekante %.2f mm'
