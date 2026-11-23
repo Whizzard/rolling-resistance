@@ -44,7 +44,7 @@ const uint8_t FIELD_BYTES[22] = {
 
 // ------------------------------------------------------------------ Senden
 void sendPayload(const uint8_t* payload, size_t len) {
-  uint8_t out[32];
+  uint8_t out[FRAME_MAX];
   const size_t n = frame(payload, len, out, sizeof(out));
   if (n) port().write(out, n);
 }
@@ -130,12 +130,33 @@ void onFwVersion(const uint8_t* d, size_t len) {
   Serial.print("  Hardware \""); Serial.print(g_hwName); Serial.println("\"");
 }
 
+// Durchgriff: Textantworten des Terminals zeilenweise, alles andere als Hex.
+void onPrint(const uint8_t* d, size_t len) {
+  Serial.print("# VESC> ");
+  for (size_t i = 1; i < len; i++) {
+    const char c = static_cast<char>(d[i]);
+    if (c == '\n') { Serial.println(); Serial.print("# VESC> "); }
+    else if (c != '\r' && c != '\0') Serial.print(c);
+  }
+  Serial.println();
+}
+
+void onOther(const uint8_t* d, size_t len) {
+  static const char HEXCHARS[] = "0123456789abcdef";
+  Serial.print("# V ");
+  for (size_t i = 0; i < len; i++) {
+    Serial.print(HEXCHARS[d[i] >> 4]); Serial.print(HEXCHARS[d[i] & 15]);
+  }
+  Serial.println();
+}
+
 void dispatch(const uint8_t* d, size_t len) {
   if (len == 0) return;
   switch (d[0]) {
     case COMM_GET_VALUES_SELECTIVE: onValues(d, len);    break;
     case COMM_FW_VERSION:           onFwVersion(d, len); break;
-    default: break;   // alles andere interessiert diese Variante nicht
+    case COMM_PRINT:                onPrint(d, len);     break;
+    default:                        onOther(d, len);     break;   // Durchgriff
   }
 }
 
@@ -144,6 +165,9 @@ void dispatch(const uint8_t* d, size_t len) {
 // ------------------------------------------------------------------ Schnittstelle
 
 void begin() {
+  // Eine Konfiguration (COMM_GET_MCCONF) ist knapp 500 Byte; der Vorgabepuffer
+  // von 256 Byte liefe ueber, bevor die Hauptschleife wieder liest.
+  port().setRxBufferSize(2048);
   port().begin(VESC_BAUD, SERIAL_8N1, PIN_DRIVE_RX, PIN_DRIVE_TX);
   g_rx.reset();
   sendId(COMM_FW_VERSION);   // kürzeste sinnvolle Transaktion: prüft Rahmen,
@@ -184,6 +208,19 @@ void service() {
 }
 
 const Values& values() { return g_val; }
+
+void terminal(const char* text) {
+  uint8_t p[PAYLOAD_MAX];
+  size_t n = 0;
+  p[n++] = COMM_TERMINAL_CMD;
+  while (*text && n < sizeof(p)) p[n++] = static_cast<uint8_t>(*text++);
+  sendPayload(p, n);
+}
+
+void raw(const uint8_t* payload, size_t len) {
+  if (len == 0 || len > PAYLOAD_MAX) return;
+  sendPayload(payload, len);
+}
 
 bool connected() { return g_val.seen && (millis() - g_lastValueMs) < 1000; }
 

@@ -648,6 +648,12 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       msg = "Wägezelle am Anschlag — überlastet oder Kabelbruch."; bad = true;
     } else if (!j.zelle) {
       msg = "HX711 antwortet nicht."; bad = true;
+    } else if (j.notaus) {
+      msg = "NOT-AUS ausgelöst: der Motor ist vom Regler getrennt und kurzgeschlossen. "
+          + "Regler und Bedienung laufen weiter."; bad = true;
+    } else if (j.motorOffen) {
+      msg = "Kein Motorstrom bei anliegendem Stellwert — Not-Aus ausgelöst oder Motor "
+          + "abgeklemmt. Antrieb freigegeben; nächster Sollwert startet neu."; bad = true;
     } else if (j.tmotOffen) {
       msg = "Motorfühler offen — der 6-polige Sensorstecker sitzt nicht. "
           + "Die Hall-Adern liegen im selben Stecker."; bad = true;

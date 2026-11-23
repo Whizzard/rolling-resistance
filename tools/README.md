@@ -10,6 +10,29 @@ Brauchen **pyserial**. PlatformIOs Umgebung hat es bereits:
 ~/.platformio/penv/bin/python tools/vesc_console.py /dev/cu.usbmodem3041
 ```
 
+## `konsole.py` — Konsole des Prüfstands über USB
+
+Spricht mit dem **ESP32**, nicht mit dem Regler: dasselbe Befehlsvokabular wie
+Oberfläche und serielle Konsole, mit Zeitstempeln mitgeschrieben. Fürs Fehlersuchen
+und Steuern vom Rechner aus, ohne Browser.
+
+```sh
+~/.platformio/penv/bin/python tools/konsole.py i                  # Zustand
+~/.platformio/penv/bin/python tools/konsole.py j8 v15 sleep:6 c   # Telemetrie, anfahren, freigeben
+~/.platformio/penv/bin/python tools/konsole.py ":faults"          # Terminal des Reglers, durchgereicht
+~/.platformio/penv/bin/python tools/konsole.py --watch 30         # nur mitlesen
+```
+
+Argumente sind Befehle der Reihe nach, `sleep:<s>` wartet dazwischen, `--log` schreibt
+den Mitschnitt zusätzlich in eine Datei. `j<s>` ist die Live-Telemetrie der Firmware
+(eine Zeile alle 200 ms), `:<text>` reicht einen Textbefehl an das Terminal des
+Reglers durch, `><hex>` ein Rohpaket. Befehlstabelle in
+[04-hardware](../docs/04-hardware.md) §14.1.
+
+Am 2026-11-23 damit gefunden: der Motor bestromte, drehte aber nicht — ERPM blieb 0,
+während der Strom bis 6,4 A stieg. `:hall_analyze 10` und `:foc_openloop 10 300`
+zeigten Sensoren und Leistungsteil in Ordnung, der Fehler lag in der Hall-Tabelle.
+
 ## `vesc_console.py` — Regler von Hand fahren
 
 Für den ersten Probelauf, bevor die Firmware dazwischensteht.

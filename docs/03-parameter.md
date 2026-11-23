@@ -291,6 +291,9 @@ Der MTB-Crr ist selbst gerechnet, weil die Quelle dort nur Watt ausweist:
 | `STALL_TIMEOUT_MS` | 2000 | ms | siehe §3. Dient zugleich als Grenze, ab der `revsrc` von den Trommelmarken auf die Reglerdrehzahl umschaltet. |
 | `STALL_DUTY_MIN` | 0,05 | – | gesch | Stellwert, ab dem „treibt, Trommel dreht nicht" ein Befund ist und kein Rauschen. Am 2026-11-18 lagen 0,045 Stellwert und 2,5 A Motorstrom an, während die Trommel stillstand — das ist Kommutierung, nicht Last ([04-hardware](04-hardware.md) §11). Ohne eigene Trommelmarken ist das der einzige Weg, Stillstand trotz Sollwert zu erkennen. |
 | `FAULT_SETTLE_MS` | 500 | ms | Entprellung der Fehlerkriterien |
+| `ESTOP_IMOT_MAX_A` | 0,3 | A | gesch | Motorstrom, unter dem bei anliegendem Stellwert **kein Motor am Regler** hängt (Not-Aus ausgelöst oder abgeklemmt). Mit Motor zog der stehende Antrieb am 2026-11-23 bei 0,11 Stellwert 6,6 A. **Prüfen:** Not-Aus auslösen, `v15`, `j` — Imot muss unter der Grenze bleiben. |
+| `ESTOP_DETECT_MS` | 1000 | ms | gesch | so lange muss der Befund stehen |
+| `ESTOP_FB_WIRED` | false | – | TBD | Hilfskontakt des Not-Aus an `PIN_ESTOP_FB` — noch nicht verdrahtet. Kontakt soll nach Masse ziehen, wenn ausgelöst. |
 | `LINK_TIMEOUT_MS` | 2000 | ms | **Totmannschaltung.** Solange ein Lauf fährt, muss der Bedienrechner sich melden; bleibt er länger aus, bricht der Lauf ab. Dieselbe Größenordnung wie `STALL_TIMEOUT_MS`. Die Oberfläche fragt 5×/s ab, es dürfen also zehn Abfragen ausfallen. Gilt **nicht**, solange nie ein Client da war — dann wird über die Konsole gefahren. [07-sicherheit](07-sicherheit.md) §4 |
 
 Die WLAN-Konstanten `WEBUI_*` stehen in [04-hardware](04-hardware.md) §13.1, weil sie

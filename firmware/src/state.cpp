@@ -52,6 +52,8 @@ void checkFaults() {
                                     reason = "FAULT: Drehzahlgrenze ueberschritten";
   else if (!vesc::connected())      reason = "FAULT: kein Regler";
   else if (vesc::values().fault != 0) reason = "FAULT: Regler meldet Fehler";
+  else if (speedctl::estopInput())  reason = "FAULT: Not-Aus ausgeloest";
+  else if (speedctl::motorOpen())   reason = "FAULT: kein Motor am Regler (Not-Aus?)";
   else if (stillstand)              reason = "FAULT: treibt, Trommel dreht nicht";
   // Riemenschlupf und fehlende Drehzahlpulse prüfen nur, wenn die Trommelmarken
   // wirklich zählen. Gegen die eigene Rechenquelle wären beide tautologisch.

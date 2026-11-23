@@ -18,6 +18,8 @@ uint32_t g_learnStart = 0;
 bool     g_brk    = false;  // Losbrechmessung laeuft
 float    g_brkDuty = 0.0f;  // Ergebnis: Tastverhaeltnis beim Losbrechen
 float    g_brkAmps = 0.0f;
+bool     g_motorOpen = false;   // Befund "kein Motor am Regler", rastend
+uint32_t g_openSince = 0;
 
 // Mechanische Drehzahl der Trommel aus der Reglerdrehzahl. Vorzeichenbehaftet:
 // in Messrichtung ist ERPM negativ (VESC_DIRECTION_SIGN).
@@ -50,10 +52,15 @@ void begin() {
   g_fresh = true;
   g_lastMs = millis();
   g_refusal = "";
+  g_motorOpen = false;
+  g_openSince = 0;
+  if (ESTOP_FB_WIRED) pinMode(PIN_ESTOP_FB, INPUT_PULLUP);
 }
 
 bool setTargetKmh(float kmh) {
   g_refusal = "";
+  g_motorOpen = false;
+  g_openSince = 0;
 
   if (kmh <= 0.0f) { coast(); return true; }
 
@@ -163,8 +170,27 @@ void service() {
   if (g_duty > klemme) g_duty = klemme;
   if (g_duty < 0.0f)   g_duty = 0.0f;
 
+  // Not-Aus am Strom erkennen (speedctl.h): Stellwert da, Strom weg, Drehung weg.
+  const float imot = fabsf(vesc::values().currentMotor);
+  if (g_duty > STALL_DUTY_MIN && imot < ESTOP_IMOT_MAX_A && istKmh < 1.0f) {
+    const uint32_t now = millis();
+    if (g_openSince == 0) {
+      g_openSince = now;
+    } else if (now - g_openSince >= ESTOP_DETECT_MS) {
+      coast();
+      g_motorOpen = true;
+      g_refusal = "kein Motorstrom bei Stellwert — Not-Aus ausgeloest oder Motor abgeklemmt";
+      return;
+    }
+  } else {
+    g_openSince = 0;
+  }
+
   vesc::setDuty(g_duty * settings::directionSign());
 }
+
+bool motorOpen()  { return g_motorOpen; }
+bool estopInput() { return ESTOP_FB_WIRED && digitalRead(PIN_ESTOP_FB) == LOW; }
 
 float targetKmh() { return g_target; }
 float rampKmh()   { return g_run ? g_ramp : 0.0f; }

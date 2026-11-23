@@ -56,6 +56,17 @@ void coast();
 // Grund der letzten Ablehnung, für die Oberfläche. "" wenn alles gut ging.
 const char* lastRefusal();
 
+// NOT-AUS. Zwei Wege, beide nur Erkennung — die Trennung macht die Hardware:
+//   motorOpen()  Befund aus dem Strom: Stellwert ueber STALL_DUTY_MIN, Motorstrom
+//                unter ESTOP_IMOT_MAX_A, keine Drehung, laenger als ESTOP_DETECT_MS.
+//                Dann wird der Antrieb freigegeben, der Befund bleibt stehen, bis ein
+//                neuer Sollwert kommt. Ohne Motor am Regler ist ein anliegender
+//                Stellwert sinnlos — und wird der Not-Aus zurueckgedreht, soll der
+//                Motor nicht mit vollem Stellwert anspringen.
+//   estopInput() der Hilfskontakt an PIN_ESTOP_FB, nur wenn ESTOP_FB_WIRED.
+bool motorOpen();
+bool estopInput();
+
 // Drehrichtung von Hand anlernen.
 //
 // Welches Vorzeichen der Reglerdrehzahl die MESSRICHTUNG ist, haengt an der
