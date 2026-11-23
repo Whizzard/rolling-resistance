@@ -57,8 +57,9 @@ void coast();
 const char* lastRefusal();
 
 // NOT-AUS. Zwei Wege, beide nur Erkennung — die Trennung macht die Hardware:
-//   motorOpen()  Befund aus dem Strom: Stellwert ueber STALL_DUTY_MIN, Motorstrom
-//                unter ESTOP_IMOT_MAX_A, keine Drehung, laenger als ESTOP_DETECT_MS.
+//   motorOpen()  Befund aus dem Strom: Stellwert ueber STALL_DUTY_MIN und Motorstrom
+//                unter ESTOP_IMOT_MAX_A, laenger als ESTOP_DETECT_MS. Keine
+//                Drehzahlbedingung -- die Geber melden die auslaufende Trommel noch.
 //                Dann wird der Antrieb freigegeben, der Befund bleibt stehen, bis ein
 //                neuer Sollwert kommt. Ohne Motor am Regler ist ein anliegender
 //                Stellwert sinnlos — und wird der Not-Aus zurueckgedreht, soll der
