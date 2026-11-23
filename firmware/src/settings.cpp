@@ -124,7 +124,10 @@ float loadN() { return g_load; }
 bool setLoadN(float n) {
   if (!(n > 0.0f && n < 5000.0f)) return false;
   g_load = n;
-  return store(K_LOAD, n);
+  if (!g_nvs.begin(NS, false)) return false;
+  const size_t k = g_nvs.putFloat(K_LOAD, n);
+  g_nvs.end();
+  return k > 0;
 }
 
 long tareOffset() { return g_tare; }
