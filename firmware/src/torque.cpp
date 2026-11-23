@@ -63,6 +63,7 @@ void begin() {
   pinMode(PIN_HX711_SCK, OUTPUT);
   pinMode(PIN_HX711_DOUT, INPUT);
   digitalWrite(PIN_HX711_SCK, LOW);
+  g_offset = settings::tareOffset();   // letzte Tara, ueberlebt den Neustart
   resetAccumulator();
 }
 
@@ -82,7 +83,10 @@ bool update() {
     g_tareSum += static_cast<double>(g_raw);
     g_tareN++;
     if (g_tareN >= TARE_SAMPLES || (millis() - g_tareStartMs) > TARE_TIMEOUT_MS) {
-      if (g_tareN > 0) g_offset = static_cast<long>(g_tareSum / g_tareN);
+      if (g_tareN > 0) {
+        g_offset = static_cast<long>(g_tareSum / g_tareN);
+        settings::setTareOffset(g_offset);
+      }
       g_tareBusy = false;
       resetAccumulator();
     }

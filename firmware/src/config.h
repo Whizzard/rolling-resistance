@@ -18,7 +18,8 @@
 // Er bleibt TBD, bis das Blech drauf ist und mit dem Maßband um die fertige
 // Oberfläche nachgemessen wurde (3 Messungen mitteln). 1 mm Fehler = 0,035 %.
 // Alle aus r abgeleiteten Momente verschieben sich mit diesem Wert.
-constexpr float DRUM_CIRCUMFERENCE_M = 2.837f;
+// [gem 2026-11-23] 2842 mm mit dem Massband um die fertige Oberflaeche.
+constexpr float DRUM_CIRCUMFERENCE_M = 2.842f;
 
 // [ber] U / 2π
 constexpr float DRUM_RADIUS_M = DRUM_CIRCUMFERENCE_M / (2.0f * PI);
@@ -197,7 +198,11 @@ constexpr float LOADCELL_CAPACITY_N = 49.03f;
 // keine Kräfte und kein Crr aus, sondern nur Rohwerte. Das ist Absicht:
 // ein erfundener Kalibrierfaktor wäre schlimmer als eine Lücke.
 // Ermittlung: docs/05-pruefablauf.md §2.
-constexpr float LOADCELL_N_PER_COUNT = 0.0f;
+// [gem 2026-11-23] Geeichtes 1-kg-Gewicht bei 330 mm, Zellenarm 84 mm, also
+// 38,53 N an der Zelle; Faktor ueber die Oberflaeche ermittelt (Befehl k). Ein
+// einzelnes Gewicht -- die Linearitaet ueber den Bereich ist damit noch nicht
+// geprueft (docs/03-parameter.md §2).
+constexpr float LOADCELL_N_PER_COUNT = 0.00002668f;
 
 // -------------------------------------------------------------- Messbetrieb
 

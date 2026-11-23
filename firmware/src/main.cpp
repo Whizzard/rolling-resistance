@@ -239,7 +239,14 @@ void printStatus() {
     Serial.print(" counts | Spitze-Spitze "); Serial.print(ripple);
     Serial.print(" | Null ");  Serial.print(torque::tareOffset());
     if (torque::isSaturated()) Serial.print(" | AM ANSCHLAG");
-    if (!settings::calibrated()) Serial.print(" | nicht kalibriert");
+    if (settings::calibrated()) {
+      Serial.print(" | Faktor "); Serial.print(settings::loadcellNPerCount(), 8);
+      Serial.print(" N/count | Kraft "); Serial.print(torque::newtons(), 2); Serial.print(" N");
+    } else {
+      Serial.print(" | nicht kalibriert");
+    }
+    Serial.print(" | Arme "); Serial.print(settings::torqueArmM() * 1000.0f, 1);
+    Serial.print(" / ");       Serial.print(settings::calibArmM() * 1000.0f, 1); Serial.print(" mm");
     Serial.println();
   } else {
     Serial.print("FEHLT — HX711 antwortet nicht auf DOUT GPIO ");
