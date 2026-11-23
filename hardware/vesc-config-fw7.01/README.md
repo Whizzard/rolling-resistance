@@ -62,3 +62,28 @@ werden. `s_pid_min_erpm` = 900 blockiert ausserdem die unterste Pruefstufe (10 k
 entsprechen 881 ERPM). Das sind Werkswerte der VESC-Firmware, nicht Reste der
 vorgefundenen Fremdkonfiguration — nachgewiesen am frisch geflashten Regler.
 Siehe `docs/06-offene-fragen.md` A15.
+
+## Hall-Tabelle neu erkannt, 2026-11-23
+
+Nach dem Neuverdrahten des Stands bestromte der Motor, drehte aber nicht: ERPM blieb
+exakt 0, während der Strom auf der Rampe bis 6,4 A stieg. `hall_analyze` und
+`foc_openloop` über den Durchgriff der Firmware zeigten Sensoren und Leistungsteil in
+Ordnung — die Zuordnung Hall-Zustand zu Winkel passte nicht mehr, also waren Hall-
+oder Phasenleitungen anders gesteckt als bei der Erkennung am 17.11.
+
+`foc_sensors_detect_apply 10` (über `tools/konsole.py ":foc_sensors_detect_apply 10"`)
+hat neu erkannt und gespeichert:
+
+| | `foc_hall_table` 0…7 |
+|---|---|
+| 17.11. | 255, 68, 0, 34, 134, 102, 167, 255 |
+| **23.11.** | **255, 2, 66, 33, 130, 166, 98, 255** |
+
+`vesc-mcconf-fw7.01-2026-11-23.bin` ist die Konfiguration danach, roh wie vom Regler
+(`COMM_GET_MCCONF`); gegenüber dem 17.11. unterscheiden sich nur die Tabelle und der
+Block der Stromoffsets (Bytes 287–302), den der Regler bei jedem Start neu
+kalibriert. `mcconf.xml` ist an den acht Tabellenwerten nachgeführt. Die Datei vom
+17.11. bleibt als Stand vor der Umverdrahtung liegen.
+
+Außerdem stand im Fehlerspeicher des Reglers ein `FAULT_CODE_DRV` vom Einschalten
+(0 A, 40,5 V, 0 Zyklen) — einmalig, nicht aktiv. Beobachten.

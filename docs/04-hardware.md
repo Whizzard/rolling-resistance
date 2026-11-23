@@ -1483,6 +1483,16 @@ Woher die Zuordnung kommt:
 > Welches Ende des Steckers Pin 1 ist, liegt ebenfalls nicht fest — maßgeblich ist
 > die Farbe, nicht die Position.
 
+> **„Beliebig" gilt nur bis zur Erkennung — danach ist die Reihenfolge festgelegt.**
+> Am 2026-11-23 bestromte der Motor nach dem Neuverdrahten, drehte aber nicht: ERPM
+> blieb exakt 0, der Strom stieg auf der Rampe bis 6,4 A. Die Hall-Tabelle im Regler
+> war unverändert, aber Hall- oder Phasenleitungen lagen anders als am 17.11. Behoben
+> über den Durchgriff der Firmware: `:foc_sensors_detect_apply 10`, neue Tabelle in
+> `hardware/vesc-config-fw7.01/README.md`. **Wer am Motorstecker oder an den Phasen
+> umsteckt, erkennt danach die Hall-Tabelle neu.** Ohne VESC-Tool geht das mit
+> `tools/konsole.py ":foc_sensors_detect_apply 10"`; vorher `":hall_analyze 10"`
+> zeigt, ob die Sensoren sechs Zustände liefern.
+
 ### 11.3 Prüfvorschrift vor dem Anschließen
 
 Ohne Versorgung, mit dem Multimeter:
