@@ -67,6 +67,9 @@ float wheelA1();     float wheelB1();     bool setWheelModel(float a1, float b1)
 bool  haveBaseline();  bool haveWheelModel();
 // Laufradmasse mit Reifen [kg]; daraus J_Rad = WHEEL_J_FACTOR m r_Rad^2. NAN = unbekannt.
 float wheelMassKg(); bool setWheelMassKg(float kg);
+// Letzter gemessener Laufradumfang [m] (wheel.h), ueberlebt den Stillstand und den
+// Neustart -- der Assistent braucht ihn, bevor sich etwas dreht. NAN = nie gemessen.
+float wheelCircM(); bool setWheelCircM(float m);
 
 // Statische Tara der Wägezelle (Rohwert bei leerem Arm). Im NVS, damit sie einen
 // Neustart überlebt -- vorher war sie nach jedem Flashen weg, und 241 000 counts

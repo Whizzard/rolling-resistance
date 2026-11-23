@@ -323,6 +323,13 @@ constexpr uint32_t LIVE_WINDOW_MS    = 5000;    // Mittelungsfenster, 400 Zellen
 // dem Laufrad-Auslauf (Befehl u): J_Rad aus der Radmasse, J = WHEEL_J_FACTOR m r^2.
 // [Literatur] 0,85 fuer ein 622er Laufrad, docs/08-staender.md §6.
 constexpr float   WHEEL_J_FACTOR = 0.85f;
+constexpr float   WHEEL_MASS_DEFAULT_KG = 1.5f;  // [Festlegung 2026-11-23] Vorgabe, am Stand wiegen
+// Assistent Auslauf + Leerlauf (state.h): Trommel auf diese Geschwindigkeit, Rad
+// abheben; der Schlupf verraet das Abheben, danach laeuft das Rad frei aus und
+// die Trommel faehrt die Leerlaufplateaus. [Festlegung] 40 km/h: hoch genug fuer
+// einen langen Auslauf, von Hand noch abzuheben.
+constexpr float   WIZ_KMH = 40.0f;
+constexpr float   WIZ_SLIP_RATIO = 0.90f;        // [gesch] darunter gilt das Rad als abgehoben
 constexpr uint8_t SPINDOWN_MIN_REVS = 30;       // [gesch] weniger ist kein Fit
 constexpr uint32_t ESTOP_DETECT_MS  = 1000;   // [gesch] so lange muss der Befund stehen
 // [TBD] Hilfskontakt des Not-Aus an PIN_ESTOP_FB — noch nicht verdrahtet. Sobald er

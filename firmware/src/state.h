@@ -20,7 +20,20 @@
 
 namespace state {
 
-enum Phase : uint8_t { IDLE = 0, TARE, SPINUP, SETTLE, POINT, COAST, FAULT };
+enum Phase : uint8_t { IDLE = 0, TARE, SPINUP, SETTLE, POINT, COAST, FAULT,
+                       WIZ_SPINUP, WIZ_LIFT };
+
+// ASSISTENT Auslauf + Leerlauf (config.h WIZ_*): startWizard() faehrt die Trommel
+// mit aufliegendem Rad auf WIZ_KMH (WIZ_SPINUP), wartet dann auf das Abheben
+// (WIZ_LIFT): dreht das Rad langsamer, als es ueber die Trommel muesste, ist es
+// abgehoben. Dann beginnt der Laufrad-Auslauf (wheel::spindownBegin) UND der
+// Leerlauflauf ueber alle Plateaus -- die Trommel ist in genau dem Zustand, den
+// er braucht. Beide Modelle werden am Ende gespeichert. wizardStep() fuer die
+// Oberflaeche: 0 aus, 1 hochfahren, 2 Rad abheben, 3 Auslauf und Leerlauf laufen,
+// 4 fertig.
+void startWizard();
+uint8_t wizardStep();
+void wizardAck();      // Schritt 4 quittieren
 enum RunMode : uint8_t { RUN_NONE = 0, RUN_BASELINE, RUN_MEASURE };
 
 void begin();

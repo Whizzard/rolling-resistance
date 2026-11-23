@@ -122,6 +122,37 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .field:after { content: ""; display: table; clear: both; }
 .field .hint { font-size: 12px; color: #7d8a95; margin-top: 6px; clear: both;
                padding-top: 6px; line-height: 1.45; }
+/* ---- kleines Symbol in einer Kachelbeschriftung, hier: Nullen ---- */
+.lab .ico { -webkit-appearance: none; border: 0; cursor: pointer; float: right;
+  font-family: inherit; font-size: 15px; line-height: 1; background: #e3e8ec;
+  color: #51606d; border-radius: 4px; padding: 3px 9px; margin: -4px 0 0; }
+.lab .ico.busy { background: #2f6f99; color: #fff; }
+
+/* ---- Einstellwerte: fest angezeigt, Aendern oeffnet den Editor ---- */
+.view { font-size: 25px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.view small { font-size: 14px; color: #8795a1; font-weight: 400; margin-left: 4px; }
+.view button { -webkit-appearance: none; border: 0; cursor: pointer; float: right;
+  font-family: inherit; font-size: 13px; font-weight: 700; background: #e3e8ec;
+  color: #51606d; border-radius: 5px; padding: 8px 14px; width: auto; margin: 0; }
+.editor { margin-top: 6px; }
+.editor:after { content: ""; display: table; clear: both; }
+.editor input { width: 44%; }
+.editor button { width: 26%; margin-left: 2%; }
+
+/* ---- Assistent: Vollbild ueber allem ---- */
+.wiz { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 40;
+       background: #eef1f4; padding: 24px 16px; overflow: auto; }
+.wiz h1 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase;
+          color: #64737f; margin: 0 0 14px; }
+.wiz .step { font-size: 24px; font-weight: 700; margin: 0 0 10px; }
+.wiz .txt { font-size: 16px; color: #28475c; line-height: 1.5; margin-bottom: 18px; }
+.wiz .big { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.wiz .big small { font-size: 16px; color: #8795a1; font-weight: 400; margin-left: 4px; }
+.wiz button { -webkit-appearance: none; border: 0; cursor: pointer; font-family: inherit;
+  font-size: 19px; font-weight: 700; border-radius: 8px; padding: 16px 0; width: 100%;
+  margin-top: 10px; background: #2f6f99; color: #fff; }
+.wiz button.plain { background: #c3ccd4; color: #16202a; }
+
 /* ---- Waage: Rohwert mit Skala ---- */
 .rawline { font-size: 25px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .rawline span { font-size: 14px; color: #7d8a95; font-weight: 400; margin-left: 8px; }
@@ -251,7 +282,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     <h2>Zelle</h2>
     <div class="tiles">
       <div class="tile half big"><div>
-        <div class="lab">Last</div>
+        <div class="lab">Last <button type="button" class="ico" id="bTare" title="Nullen">\u2300</button></div>
         <div class="val"><span id="kg">—</span><small>kg</small></div>
         <div class="sub" id="ppSub">—</div>
       </div></div>
@@ -327,17 +358,27 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
     <h2>Trommel</h2>
     <div class="field">
-      <label for="fDrum">Trommelumfang (mm)</label>
-      <input type="text" id="fDrum" inputmode="decimal">
-      <button type="button" id="bDrum">Übernehmen</button>
+      <label>Trommelumfang</label>
+      <div class="view"><span id="vDrum">—</span><small>mm</small>
+        <button type="button" id="eDrum">Ändern</button></div>
+      <div class="editor" id="edDrum" hidden>
+        <input type="text" id="fDrum" inputmode="decimal">
+        <button type="button" id="bDrum">OK</button>
+        <button type="button" class="plain" id="xDrum">Abbruch</button>
+      </div>
       <div class="hint">Ø <b id="dia">—</b> mm</div>
     </div>
 
     <h2>Waage</h2>
     <div class="field">
-      <label for="fArm">Trommelachse – Waage (mm)</label>
-      <input type="text" id="fArm" inputmode="decimal">
-      <button type="button" id="bArm">Übernehmen</button>
+      <label>Trommelachse – Waage</label>
+      <div class="view"><span id="vArm">—</span><small>mm</small>
+        <button type="button" id="eArm">Ändern</button></div>
+      <div class="editor" id="edArm" hidden>
+        <input type="text" id="fArm" inputmode="decimal">
+        <button type="button" id="bArm">OK</button>
+        <button type="button" class="plain" id="xArm">Abbruch</button>
+      </div>
     </div>
     <div class="field">
       <label>Rohwert</label>
@@ -345,8 +386,6 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       <div class="scale"><div class="mid"></div><div class="dot" id="rawDot"></div></div>
       <div class="scalelab"><span>−100 %</span><span>0</span><span>+100 %</span></div>
       <div class="hint">Null <b id="tare">—</b> · Spitze-Spitze <b id="ripple">—</b></div>
-      <button type="button" class="plain" id="bTare"
-              style="float:none;width:100%;margin:8px 0 0 0">Nullen</button>
     </div>
     <div class="field">
       <label>Kalibrieren</label>
@@ -394,12 +433,14 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       <button type="button" id="bAdd" style="margin-top:8px">Hinzufügen</button>
     </div>
     <div class="field">
-      <label for="fLoad">Auflast (N)</label>
-      <input type="text" id="fLoad" inputmode="decimal">
-      <button type="button" id="bLoad">Übernehmen</button>
-      <div class="hint">Gewicht auf dem Laufrad, geht in Crr ein. Ohne Auflast
-        startet kein Messlauf. Die publizierte Datenbank misst mit 416,9 N
-        (42,5 kg).</div>
+      <label>Auflast</label>
+      <div class="view"><span id="vLoad">—</span><small>N</small>
+        <button type="button" id="eLoad">Ändern</button></div>
+      <div class="editor" id="edLoad" hidden>
+        <input type="text" id="fLoad" inputmode="decimal">
+        <button type="button" id="bLoad">OK</button>
+        <button type="button" class="plain" id="xLoad">Abbruch</button>
+      </div>
     </div>
 
     <h2>Verlustmodelle</h2>
@@ -409,13 +450,17 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         B0 <b id="b0">—</b> Nm/(rad/s)² — Leerlauf mit abgehobenem Rad fahren.</div>
     </div>
     <div class="field">
-      <label for="fMRad">Laufradmasse mit Reifen (g)</label>
-      <input type="text" id="fMRad" inputmode="decimal">
-      <button type="button" id="bMRad">Übernehmen</button>
+      <label>Laufradmasse mit Reifen</label>
+      <div class="view"><span id="vMRad">—</span><small>g</small>
+        <button type="button" id="eMRad">Ändern</button></div>
+      <div class="editor" id="edMRad" hidden>
+        <input type="text" id="fMRad" inputmode="decimal">
+        <button type="button" id="bMRad">OK</button>
+        <button type="button" class="plain" id="xMRad">Abbruch</button>
+      </div>
       <div class="hint">J <b id="jRad">—</b> kg·m² · A1 <b id="a1">—</b> · B1 <b id="b1">—</b></div>
       <button type="button" class="plain" id="bAuslauf"
-              style="float:none;width:100%;margin:8px 0 0 0">Auslauf aufzeichnen</button>
-      <div class="hint" id="auslaufHint" hidden>—</div>
+              style="float:none;width:100%;margin:8px 0 0 0">Assistent Auslauf + Leerlauf</button>
     </div>
 
     <h2>Hall-Geber</h2>
@@ -437,6 +482,16 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     </div>
   </div>
 
+</div>
+
+<div class="wiz" id="wiz" hidden>
+  <h1>Auslauf + Leerlauf</h1>
+  <div class="step" id="wizStep">—</div>
+  <div class="txt" id="wizTxt">—</div>
+  <div class="big" id="wizBig" hidden>—</div>
+  <button type="button" id="wizGo" hidden>Starten</button>
+  <button type="button" class="plain" id="wizCancel" hidden>Abbrechen</button>
+  <button type="button" id="wizOk" hidden>Schließen</button>
 </div>
 
 <div class="stopbar">
@@ -550,20 +605,36 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     var v = numOf("fAdd");
     if (!isNaN(v)) { send("h" + v); $("fAdd").value = ""; }
   };
-  $("bLoad").onclick = function () { send("l" + numOf("fLoad")); };
   $("stop").onclick  = function () { send("s"); };
 
   /* ---------- Einrichtung ---------- */
   function numOf(id) {
     return parseFloat(($(id).value || "").replace(",", "."));
   }
-  /* Laengen in mm, Gewicht in g -- die Firmware rechnet in m und kg (SI, CLAUDE.md),
-     umgerechnet wird nur hier, an der Eingabe. */
-  $("bDrum").onclick  = function () { send("d" + (numOf("fDrum") / 1000)); };
-  $("bArm").onclick   = function () { send("a" + (numOf("fArm") / 1000)); };
+  /* Einstellwerte stehen fest; Aendern oeffnet den Editor mit dem aktuellen Wert,
+     OK schickt, Abbruch schliesst. Laengen in mm, Gewicht in g -- die Firmware
+     rechnet in m und kg (SI, CLAUDE.md), umgerechnet wird nur hier. */
+  var editing = {};
+  function editor(key, prefix, scale) {
+    $("e" + key).onclick = function () {
+      $("f" + key).value = $("v" + key).innerHTML;
+      editing[key] = true; $("ed" + key).hidden = false; $("f" + key).focus();
+    };
+    $("x" + key).onclick = function () { editing[key] = false; $("ed" + key).hidden = true; };
+    $("b" + key).onclick = function () {
+      var v = numOf("f" + key);
+      if (!isNaN(v)) send(prefix + (v / scale));
+      editing[key] = false; $("ed" + key).hidden = true;
+    };
+  }
+  editor("Drum", "d", 1000);
+  editor("Arm",  "a", 1000);
+  editor("MRad", "y", 1000);
+  editor("Load", "l", 1);
+  function view(key, v, d) { if (!editing[key]) $("v" + key).innerHTML = de(v, d); }
+
   $("bTare").onclick  = function () { send("t"); };
-  $("bMRad").onclick  = function () { send("y" + (numOf("fMRad") / 1000)); };
-  $("bAuslauf").onclick = function () { send("u"); };
+  $("bAuslauf").onclick = function () { wizOpen = true; paintWiz(lastJ); };
   $("bCalib").onclick = function () {
     /* Abstand erst setzen, dann kalibrieren; die Warteschlange haelt die Reihenfolge. */
     send("b" + (numOf("fCal") / 1000));
@@ -601,6 +672,42 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   function fill(id, v, d) {
     if (document.activeElement !== $(id)) $(id).value = de(v, d);
   }
+
+  /* ---------- Assistent Auslauf + Leerlauf ----------
+     Die Firmware fuehrt (wiz 1..4), die Seite zeigt nur den Schritt. */
+  var wizOpen = false, lastJ = null;
+  function paintWiz(j) {
+    if (!j) return;
+    var w = j.wiz || 0;
+    if (w > 0) wizOpen = true;
+    $("wiz").hidden = !wizOpen;
+    if (!wizOpen) return;
+    var step = "", txt = "", big = null;
+    if (w === 0) {
+      step = "1 \u00b7 Vorbereiten";
+      txt = "Rad aufgelegt, Auflast dran, Raum frei. Die Trommel f\u00e4hrt auf "
+          + de(j.wizKmh, 0) + " km/h. Laufradmasse " + de(j.mRad * 1000, 0) + " g.";
+    } else if (w === 1) {
+      step = "2 \u00b7 Trommel f\u00e4hrt hoch"; txt = "Warten, bis die Drehzahl steht."; big = de(j.kmh, 1) + "<small>km/h</small>";
+    } else if (w === 2) {
+      step = "3 \u00b7 Rad abheben"; txt = "Jetzt den Hebel ziehen. Sobald das Rad langsamer wird als die Trommel, geht es weiter.";
+      big = de(j.kmh, 1) + "<small>km/h</small>";
+    } else if (w === 3) {
+      step = "4 \u00b7 Auslauf und Leerlauf laufen"; txt = "Rad l\u00e4uft frei aus, die Trommel f\u00e4hrt die Leerlaufplateaus. Nichts anfassen.";
+      big = j.auslaufN + "<small>Radumdrehungen</small> \u00b7 " + de(j.kmh, 0) + "<small>km/h</small>";
+    } else {
+      step = "5 \u00b7 Fertig";
+      txt = "Leerlauf A0 " + (j.a0 === null ? "\u2014" : j.a0) + " Nm, B0 " + (j.b0 === null ? "\u2014" : j.b0)
+          + "<br>Rad A1 " + (j.a1 === null ? "\u2014" : j.a1) + " Nm, B1 " + (j.b1 === null ? "\u2014" : j.b1);
+    }
+    $("wizStep").innerHTML = step; $("wizTxt").innerHTML = txt;
+    $("wizBig").hidden = (big === null); if (big !== null) $("wizBig").innerHTML = big;
+    $("wizGo").hidden = (w !== 0); $("wizCancel").hidden = (w === 0 || w === 4); $("wizOk").hidden = (w !== 4 && w !== 0);
+    $("wizOk").innerHTML = (w === 4) ? "Schlie\u00dfen" : "Zur\u00fcck";
+  }
+  $("wizGo").onclick = function () { send("u"); };
+  $("wizCancel").onclick = function () { send("c"); wizOpen = false; $("wiz").hidden = true; };
+  $("wizOk").onclick = function () { if (lastJ && lastJ.wiz === 4) send("uq"); wizOpen = false; $("wiz").hidden = true; };
 
   /* ---------- Anzeige ---------- */
   var build = null;   /* Kennung der Firmware; aendert sie sich, ist diese Seite alt */
@@ -641,7 +748,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     var kal = j.kal;
     $("kg").className  = "val" + (kal ? "" : " dim");
     $("pct").className = "val" + (kal ? "" : " dim");
-    show("kg",  j.kg,  3);
+    show("kg",  j.tara ? null : j.kg,  3);
     show("pct", j.pct, 1);
     show("pw",  j.pw,  1);
     show("crr", j.crr, 4);
@@ -692,15 +799,16 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
          : "\u2014");
 
     /* Einrichtung */
-    if (j.load !== null && j.load !== undefined) fill("fLoad", j.load, 1);
-    fill("fDrum", j.drumU * 1000,  1);
-    fill("fArm",  j.arm * 1000,    1);
-    fill("fCal",  j.calArm * 1000, 1);
+    if (j.load !== null && j.load !== undefined) view("Load", j.load, 1);
+    view("Drum", j.drumU * 1000, 1);
+    view("Arm",  j.arm * 1000,   1);
+    fill("fCal", j.calArm * 1000, 1);
     $("dia").innerHTML = de(j.drumU / Math.PI * 1000, 1);
     /* Rohwert absolut und als Anteil des 24-Bit-Bereichs (+-8 388 607) */
     var FS = 8388607, pct = j.raw / FS * 100;
     /* gross: genullt; klein: der absolute Rohwert und seine Lage im Bereich */
-    $("raw").innerHTML = j.counts;
+    $("raw").innerHTML = j.tara ? "\u2014" : j.counts;
+    $("bTare").className = "ico" + (j.tara ? " busy" : "");
     $("rawPct").innerHTML = j.raw + " \u00b7 " + de(pct, 2) + " %";
     $("rawDot").style.left = (50 + Math.max(-50, Math.min(50, pct / 2))) + "%";
     $("tare").innerHTML = j.tare;
@@ -710,9 +818,9 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("a1").innerHTML = (j.a1 === null) ? "\u2014" : j.a1;
     $("b1").innerHTML = (j.b1 === null) ? "\u2014" : j.b1;
     $("jRad").innerHTML = (j.jRad === null) ? "\u2014" : j.jRad;
-    if (j.mRad !== null && j.mRad !== undefined) fill("fMRad", j.mRad * 1000, 0);
-    $("auslaufHint").hidden = !j.auslauf;
-    $("auslaufHint").innerHTML = "l\u00e4uft \u00b7 " + j.auslaufN + " Umdrehungen";
+    if (j.mRad !== null && j.mRad !== undefined) view("MRad", j.mRad * 1000, 0);
+    lastJ = j;
+    paintWiz(j);
     $("calHint").innerHTML = kal
       ? "Erneutes Kalibrieren überschreibt den Faktor. Vorher nullen."
       : "Noch nicht kalibriert — bis dahin gibt es nur Rohwerte, keine Kräfte.";
