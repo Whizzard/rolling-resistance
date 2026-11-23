@@ -294,6 +294,13 @@ constexpr float STALL_DUTY_MIN = 0.20f;
 // 2026-11-23), ohne Motor nur das Messrauschen des Reglers.
 // [gesch] Pruefen: Not-Aus ausloesen, v15, Imot in der Live-Telemetrie (Befehl j)
 // ablesen; er muss unter dieser Grenze bleiben.
+// Stellwert, ab dem die Not-Aus-Erkennung ueberhaupt prueft. NICHT STALL_DUTY_MIN:
+// die stieg am 2026-11-23 auf 0,20 (Losbrechen unter Last), und damit war die
+// Erkennung unter etwa 30 km/h blind -- bei 15 km/h liegt der Stellwert um 0,10,
+// bei 28,8 um 0,19. Ein Motor am Regler zieht bei jedem Stellwert ueber 0,05 mehr
+// als ESTOP_IMOT_MAX_A, sobald er Drehmoment liefert; die Drehzahl- und
+// Verzoegerungsbedingung fangen den Leerlauf ab. [gesch]
+constexpr float    ESTOP_DUTY_MIN   = 0.05f;
 constexpr float    ESTOP_IMOT_MAX_A = 0.3f;
 // Der Strom allein reicht NICHT: bei 28 km/h konstant zog der Motor nur 0,2 A
 // (2026-11-23), das ist Leerlauf, kein Not-Aus. Dazu muss die Drehzahl deutlich
@@ -354,6 +361,21 @@ constexpr float   SPINDOWN_MIN_KMH  = 5.0f;     // [gesch] darunter endet der Au
 // l_max_erpm_fbrake(_cc) wirkt nur im BLDC-Code, nicht in FOC.
 constexpr float   BRAKE_MAX_KMH       = 45.0f;    // [gesch] 54 ok, 56 nicht; Rand nach unten. Anheben nur in 2-km/h-Schritten mit Blick auf vin
 constexpr uint32_t BRAKE_FAULT_HOLD_MS = 3000;    // [gesch] nach einem Reglerfehler so lange nicht wieder bremsen (500 ms davon verwirft der Regler selbst)
+
+// GEFUEHRTER MESSLAUF (run.h, docs/11-messablauf-review.md §2 und §3).
+constexpr uint8_t  RUN_POINTS_PER_PLATEAU = 3;    // [Festlegung] R4: Streuung je Plateau aus drei Punkten zu je AVG_REVS_PER_POINT
+constexpr float    RUN_CTRL_MASS_KG  = 1.0f;      // [gemessen] geeichtes Kontrollgewicht, haengt bei CALIB_ARM_M
+constexpr float    RUN_CTRL_OK_PCT   = 0.5f;      // [gesch] Kontrollgewicht: Abweichung darunter ok
+constexpr float    RUN_CTRL_WARN_PCT = 1.0f;      // [gesch] darunter Warnung W10, darueber nur Nochmal oder Abbruch
+constexpr uint32_t RUN_CTRL_AVG_MS   = 2000;      // [gesch] Mittelungszeit beim Kontrollgewicht (160 Zellenwerte)
+constexpr uint32_t RUN_NOISE_MS      = 5000;      // [Festlegung] Rauschfenster der Systempruefung im Stillstand
+constexpr float    RUN_DRIFT_LIMIT_N = 0.02f;     // [ber] docs/09-messtheorie.md §8.8: Vor-/Nachlauf auf F_roll, darueber W08
+constexpr float    RUN_ANCHOR_WARN_N = 0.03f;     // [gesch] Ankerdrift auf F_roll, darueber W04
+// Typ-B-Anteile der Unsicherheit je Punkt (R9), relativ. Herkunft docs/03-parameter.md.
+constexpr float    UNC_K_REL   = 0.002f;          // [gesch] Kalibrierfaktor: Kontrollgewicht 0,05 %, Mittelung, Arm
+constexpr float    UNC_L_REL   = 0.0012f;         // [ber] 0,1 mm auf TORQUE_ARM_M 84 mm
+constexpr float    UNC_N_REL   = 0.005f;          // [gesch] Auflast: Plattformwaage 20 g, Hebelgeometrie
+constexpr float    UNC_RAD_REL = 0.005f;          // [ber] J_Rad +-1,5 % -> 0,52 % von M_Reifen (docs/09 §3.2)
 constexpr float   SPEEDCTL_BRAKE_ABOVE_KMH = 2.0f;   // [gesch] ab so viel ueber Soll wird gebremst
 constexpr float   SPEEDCTL_BRAKE_UNTIL_KMH = 0.5f;   // [gesch] bis so viel ueber Soll
 constexpr uint32_t ESTOP_DETECT_MS  = 1000;   // [gesch] so lange muss der Befund stehen

@@ -274,7 +274,7 @@ void service() {
   const float dvdt = revsrc::dvdtKmhS();
   const bool  rampingDown = g_ramp > g_target + 0.1f;
   const bool  decel = !isnan(dvdt) && dvdt < -ESTOP_DECEL_KMH_S && !rampingDown;
-  if (out > STALL_DUTY_MIN && imot < ESTOP_IMOT_MAX_A && (lagging || decel)) {
+  if (out > ESTOP_DUTY_MIN && imot < ESTOP_IMOT_MAX_A && (lagging || decel)) {
     const uint32_t now = millis();
     if (g_openSince == 0) {
       g_openSince = now;
