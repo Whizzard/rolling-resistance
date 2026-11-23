@@ -656,6 +656,10 @@ void pollSerial() {
 
 void setup() {
   Serial.begin(115200);
+  // USB-CDC: liest kein Rechner mit, laeuft der Sendepuffer voll, und jeder
+  // print() blockiert bis zum Timeout -- gemessen 266 ms Schleifenrunde ohne
+  // Mitleser. Lieber Zeilen verlieren als die Regelung anhalten.
+  Serial.setTxTimeoutMs(5);
   delay(200);
   Serial.println();
   Serial.println("# Fahrrad-Reifenpruefstand — Firmware");
