@@ -43,6 +43,7 @@ float rampKmh();       // was der Regler gerade anstrebt, gerampt
 float kmh();           // Istwert, aus der Reglerdrehzahl
 float duty();          // Stellwert, der gesendet wird
 bool  running();
+bool  braking();       // Abstieg laeuft gerade ueber Bremsstrom
 
 // Schnellstmöglicher Stopp: Bremsen mit VESC_BRAKE_CURRENT_STOP.
 // ACHTUNG: speist bei hoher Drehzahl zurück. Mit Akku am Bus geprüft; am Netzteil

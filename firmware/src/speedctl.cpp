@@ -22,6 +22,7 @@ float    g_brkDuty = 0.0f;  // Ergebnis: Tastverhaeltnis beim Losbrechen
 float    g_brkAmps = 0.0f;
 bool     g_motorOpen = false;   // Befund "kein Motor am Regler", rastend
 float    g_out = 0.0f;          // zuletzt gesendeter Stellwert (I + P + D)
+bool     g_braking = false;     // Abstieg: Bremsstrom statt Stellwert
 uint32_t g_openSince = 0;
 
 // Mechanische Drehzahl der Trommel aus der Reglerdrehzahl. Vorzeichenbehaftet:
@@ -42,6 +43,7 @@ float rpmFromKmh(float kmh) { return revPerSecFromKmh(kmh) * 60.0f; }
 // still, und zwei abgebrochene Starts am 2026-11-23 liessen sich nicht erklaeren.
 void dropout(const char* why) {
   g_run = false;
+  g_braking = false;
   g_target = g_ramp = g_duty = g_out = 0.0f;
   g_fresh = true;
   vesc::release();
@@ -83,6 +85,7 @@ bool setTargetKmh(float kmh) {
   g_refusal = "";
   g_motorOpen = false;
   g_openSince = 0;
+  g_braking = false;
 
   if (kmh <= 0.0f) { coast(); return true; }
 
@@ -161,6 +164,18 @@ void service() {
 
   const float istKmh = kmhSigned();
 
+  // Herunterfahren: bremsen statt rekuperieren (config.h SPEEDCTL_BRAKE_*).
+  if (istKmh > g_target + SPEEDCTL_BRAKE_ABOVE_KMH) g_braking = true;
+  if (g_braking) {
+    if (istKmh > g_target + SPEEDCTL_BRAKE_UNTIL_KMH) {
+      vesc::setBrakeCurrent(VESC_BRAKE_CURRENT_STOP);
+      g_out = 0.0f;
+      return;
+    }
+    g_braking = false;
+    g_fresh = true;              // auf dem Sollwert wieder anknuepfen
+  }
+
   if (g_fresh) {
     // Dort anknuepfen, wo die Trommel dreht. Siehe Regel 1 in speedctl.h.
     g_fresh = false;
@@ -169,10 +184,16 @@ void service() {
     if (g_duty < 0.0f) g_duty = 0.0f;
   }
 
-  // Sollwert rampen
+  // Sollwert rampen, vor dem Ziel abflachend (config.h SPEEDCTL_APPROACH_*)
   if (g_ramp < g_target) {
-    g_ramp += SPEEDCTL_RAMP_KMH_PER_S * dt;
+    float k = (g_target - g_ramp) / SPEEDCTL_APPROACH_KMH;
+    if (k > 1.0f) k = 1.0f;
+    if (k < SPEEDCTL_APPROACH_MIN) k = SPEEDCTL_APPROACH_MIN;
+    g_ramp += SPEEDCTL_RAMP_KMH_PER_S * k * dt;
     if (g_ramp > g_target) g_ramp = g_target;
+    // ... und nie weiter als SPEEDCTL_LEAD_KMH vor der Trommel (config.h).
+    const float lead = (istKmh > 0.0f ? istKmh : 0.0f) + SPEEDCTL_LEAD_KMH;
+    if (g_ramp > lead && lead < g_target) g_ramp = lead;
   } else if (g_ramp > g_target) {
     g_ramp -= SPEEDCTL_RAMP_KMH_PER_S * dt;
     if (g_ramp < g_target) g_ramp = g_target;
@@ -192,7 +213,11 @@ void service() {
   // und werden nicht integriert.
   const float err  = g_ramp - istKmh;
   const float dvdtNow = revsrc::dvdtKmhS();
-  const float dTerm = isnan(dvdtNow) ? 0.0f : -SPEEDCTL_KD * dvdtNow;
+  // D nur auf die Beschleunigung UEBER die Rampe hinaus: solange die Rampe
+  // steigt, ist Beschleunigen gewollt, und ein D dagegen vergroesserte nur
+  // den Nachlauf und damit das Ueberschwingen (2,1 km/h am 2026-11-23).
+  const float wanted = (g_ramp < g_target - 0.01f) ? SPEEDCTL_RAMP_KMH_PER_S : 0.0f;
+  const float dTerm = isnan(dvdtNow) ? 0.0f : -SPEEDCTL_KD * (dvdtNow - wanted);
   const float pTerm = SPEEDCTL_KPP * err;
   float       step = SPEEDCTL_KI * err * dt;
   const float up   = SPEEDCTL_DUTY_UP_PER_S   * dt;
@@ -200,7 +225,11 @@ void service() {
   if (step >  up)   step =  up;
   if (step < -down) step = -down;
 
-  g_duty += step;
+  // Anti-Windup: liegt der Stellwert an der Klemme und die Abweichung draengt
+  // weiter nach oben, integriert der I-Anteil nicht -- sonst steht beim
+  // Erreichen des Sollwerts ein Ueberschuss, der erst abgebaut werden muss.
+  const bool saturated = (g_duty >= klemme - 1e-4f) && err > 0.0f;
+  if (!saturated) g_duty += step;
   if (g_duty > klemme) g_duty = klemme;
   if (g_duty < 0.0f)   g_duty = 0.0f;
   float out = g_duty + pTerm + dTerm;
@@ -245,9 +274,11 @@ float kmh()       { const float k = kmhSigned(); return k > 0.0f ? k : 0.0f; }
 // zeigte die Anzeige durchgehend 0, und genau diese Zahl ist das Messergebnis.
 float duty()      { return g_run ? g_out : (g_brk ? g_duty : 0.0f); }
 bool  running()   { return g_run; }
+bool  braking()   { return g_run && g_braking; }
 
 void stop() {
   g_run = false;
+  g_braking = false;
   g_target = g_ramp = g_duty = g_out = 0.0f;
   g_fresh = true;
   vesc::setBrakeCurrent(VESC_BRAKE_CURRENT_STOP);
@@ -255,6 +286,7 @@ void stop() {
 
 void coast() {
   g_run = false;
+  g_braking = false;
   g_target = g_ramp = g_duty = g_out = 0.0f;
   g_fresh = true;
   vesc::release();

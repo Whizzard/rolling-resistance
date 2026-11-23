@@ -95,6 +95,16 @@ void service() {
       const double dt = (lastUs - prevPulseUs) * 1e-6;
       if (dt > 1e-3) {
         const double w = 2.0 * PI / WHEEL_MARKS_PER_REV / dt;
+        // Unter SPINDOWN_MIN_KMH am Rad ist Schluss -- bis zum Stillstand dauert es
+        // Minuten, und die langsamen Umdrehungen tragen kaum noch bei.
+        const double uRad = isnan(g_circ) ? settings::wheelCircM() : g_circ;
+        if (!isnan(uRad) && w * uRad / (2.0 * PI) * 3.6 < SPINDOWN_MIN_KMH) {
+          spindownFinish();
+          g_sdPrevUs = lastUs;
+          g_head = (g_head + 1) % (N + 1); g_hist[g_head] = g_drumInt;
+          if (g_filled < N + 1) g_filled++;
+          return;
+        }
         if (g_sdPrevW > 0.0) {
           const double dwdt = (w - g_sdPrevW) / dt;          // ueber dieses Intervall
           const double m = -static_cast<double>(g_sdJ) * dwdt; // Verlustmoment
@@ -131,7 +141,9 @@ void service() {
 
 float jRadKgm2() {
   const float m = settings::wheelMassKg();
-  const float u = isnan(g_circ) ? settings::wheelCircM() : g_circ;   // live, sonst gemerkt
+  // Der GEMERKTE Umfang stammt aus konstanter Fahrt; der Livewert ist beim
+  // Abheben vom Schlupf verfaelscht (1,70 statt 1,54 m am 2026-11-23).
+  const float u = isnan(settings::wheelCircM()) ? g_circ : settings::wheelCircM();
   if (isnan(m) || isnan(u)) return NAN;
   const float r = u / (2.0f * PI);
   return WHEEL_J_FACTOR * m * r * r;

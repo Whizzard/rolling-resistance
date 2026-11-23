@@ -331,6 +331,14 @@ constexpr float   WHEEL_MASS_DEFAULT_KG = 1.5f;  // [Festlegung 2026-11-23] Vorg
 constexpr float   WIZ_KMH = 40.0f;
 constexpr float   WIZ_SLIP_RATIO = 0.90f;        // [gesch] darunter gilt das Rad als abgehoben
 constexpr uint8_t SPINDOWN_MIN_REVS = 30;       // [gesch] weniger ist kein Fit
+constexpr float   SPINDOWN_MIN_KMH  = 5.0f;     // [gesch] darunter endet der Auslauf; Stillstand dauert ewig
+// HERUNTERFAHREN = BREMSEN. Liegt der Sollwert unter dem Istwert, wird nicht das
+// Tastverhaeltnis gesenkt -- das ist in FOC Rekuperation in den Bus, und das
+// Netzteil nimmt nichts auf: 43,8 V, Fehler 1 beim Sprung 40 -> 15 km/h am
+// 2026-11-23 (docs/07-sicherheit.md §3.1). Stattdessen Bremsstrom
+// VESC_BRAKE_CURRENT_STOP bis knapp ueber den Sollwert, dann wieder stellen.
+constexpr float   SPEEDCTL_BRAKE_ABOVE_KMH = 2.0f;   // [gesch] ab so viel ueber Soll wird gebremst
+constexpr float   SPEEDCTL_BRAKE_UNTIL_KMH = 0.5f;   // [gesch] bis so viel ueber Soll
 constexpr uint32_t ESTOP_DETECT_MS  = 1000;   // [gesch] so lange muss der Befund stehen
 // [TBD] Hilfskontakt des Not-Aus an PIN_ESTOP_FB — noch nicht verdrahtet. Sobald er
 // liegt: true setzen. Der Kontakt soll nach Masse ziehen, wenn ausgeloest (interner
@@ -587,6 +595,17 @@ constexpr float VESC_BRAKE_CURRENT_STOP = 20.0f;
 // [Festlegung] Rampe des inneren Sollwerts. 2 km/h je Sekunde sind 30 s von 0 auf 60
 // und langsam genug, dass ein Fehlgriff auffaellt, bevor es schnell wird.
 constexpr float SPEEDCTL_RAMP_KMH_PER_S = 2.0f;
+// [gesch 2026-11-23] Die Rampe flacht auf den letzten SPEEDCTL_APPROACH_KMH vor dem
+// Sollwert bis auf SPEEDCTL_APPROACH_MIN der Steigung ab. Grund: die Trommel
+// hinkt der vollen Rampe unter Last um 3 km/h nach; laeuft die Rampe mit voller
+// Steigung ins Ziel, kommt die Trommel mit Schwung an -- 1,9 km/h Ueberschwingen.
+constexpr float SPEEDCTL_APPROACH_KMH = 4.0f;
+constexpr float SPEEDCTL_APPROACH_MIN = 0.25f;
+// [gesch 2026-11-23] Die Rampe laeuft der Trommel hoechstens so weit voraus. Sonst
+// integriert der Trimm waehrend des ganzen Hochlaufs gegen eine grosse Abweichung
+// und steht beim Erreichen des Ziels 0,04 ueber dem stationaeren Stellwert --
+// das waren die 2 km/h Ueberschwingen trotz Daempfung und Anti-Windup.
+constexpr float SPEEDCTL_LEAD_KMH = 1.5f;
 
 // Trimm als PI-D (seit 2026-11-23). Vorher reiner Integrator mit 0,02 je
 // (km/h · s): mit 494 N Auflast pendelte die Trommel um +-0,8 km/h mit etwa 10 s
@@ -594,9 +613,9 @@ constexpr float SPEEDCTL_RAMP_KMH_PER_S = 2.0f;
 // aufzog. Jetzt: I-Anteil kleiner, dazu ein P-Anteil auf die Abweichung und ein
 // D-Anteil auf die gemessene Beschleunigung (revsrc::dvdtKmhS), der beim
 // Hochlaufen fruehzeitig wegnimmt. [gesch] Werte, am 2026-11-23 abgestimmt.
-constexpr float SPEEDCTL_KI  = 0.010f;   // Tastverhaeltnis je (km/h · s)
-constexpr float SPEEDCTL_KPP = 0.006f;   // Tastverhaeltnis je km/h Abweichung
-constexpr float SPEEDCTL_KD  = 0.010f;   // Tastverhaeltnis je (km/h/s) Beschleunigung
+constexpr float SPEEDCTL_KI  = 0.008f;   // Tastverhaeltnis je (km/h · s)
+constexpr float SPEEDCTL_KPP = 0.008f;   // Tastverhaeltnis je km/h Abweichung
+constexpr float SPEEDCTL_KD  = 0.015f;   // Tastverhaeltnis je (km/h/s) Beschleunigung ueber die Rampe hinaus
 
 // [Festlegung] Hoechste Aenderung des Tastverhaeltnisses je Sekunde.
 //
