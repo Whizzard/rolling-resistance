@@ -262,13 +262,10 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         <div class="lab">Laufrad</div>
         <div class="val"><span id="nRad">—</span><small>1/min</small></div>
       </div></div>
-      <div class="tile"><div>
-        <div class="lab">Reifen Ø</div>
-        <div class="val"><span id="dReifen">—</span><small>mm</small></div>
-      </div></div>
-      <div class="tile"><div>
-        <div class="lab">Reifenumfang</div>
-        <div class="val"><span id="uReifen">—</span><small>mm</small></div>
+      <div class="tile half"><div>
+        <div class="lab">Laufradumfang</div>
+        <div class="val"><span id="uRad">—</span><small>mm</small></div>
+        <div class="sub" id="uRadSub">—</div>
       </div></div>
     </div>
 
@@ -394,7 +391,6 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
 <div class="stopbar">
   <button type="button" id="stop">STOP</button>
-  <p id="stopHint">20 A Bremsstrom · <b>Not-Aus ist der Schalter am Stand</b></p>
 </div>
 
 <script>
@@ -553,17 +549,19 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     } else if (j.phase === "FAULT") {
       rh = "<b>FEHLER</b> \u2014 " + j.sfault + " \u00b7 Antrieb ist aus, quittieren nur im Stillstand";
     } else {
-      rh = ph + (j.load === null ? " \u00b7 Auflast nicht gesetzt" : "");
+      rh = "";                        /* Normalbetrieb: kein Text */
     }
     $("runHint").innerHTML = rh;
+    $("runHint").hidden = (rh === "");
     $("bQuit").hidden = (j.phase !== "FAULT");
 
     $("st").className = j.link ? "dot ok" : "dot";
     $("st").title = j.link ? "Regler verbunden" : "kein Regler";
 
     show("kmh", j.link ? j.kmh : null, 1);
-    $("soll").innerHTML = j.faehrt ? de(j.soll, 0) : "—";
-    $("soll").className  = "val" + (j.faehrt ? "" : " dim");
+    /* Soll: beim Fahren der Sollwert, beim Bremsen 0, nur im Leerlauf ein Strich. */
+    $("soll").innerHTML = j.faehrt ? de(j.soll, 0) : (j.bremst ? "0" : "—");
+    $("soll").className  = "val" + ((j.faehrt || j.bremst) ? "" : " dim");
     paintGrid(j.faehrt ? j.soll : -1);
 
     /* Wägezelle */
@@ -598,9 +596,12 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
        null, solange nicht beides dreht. */
     show("nTrommel", j.nTrommel, 1);
     show("nRad",     j.nRad,     1);
-    show("dReifen",  j.dReifen,  1);
-    show("uReifen",  (j.dReifen === null || j.dReifen === undefined)
-                     ? null : j.dReifen * Math.PI, 0);
+    /* Umfang: integriert ueber ein Fenster stetiger Fahrt; erscheint erst, wenn
+       genug Radumdrehungen zusammen sind, und flattert dann nicht mehr. */
+    show("uRad",     j.uRad,     0);
+    $("uRadSub").innerHTML = (j.uRad === null || j.uRad === undefined)
+      ? (j.uRadN > 0 ? j.uRadN + " von " + j.uRadMin + " Umdrehungen" : "\u2014")
+      : ("aus " + j.uRadN + " Umdrehungen");
 
     /* Antrieb einmessen */
     $("dirSign").innerHTML = (j.dir > 0 ? "+1" : "\u22121");
@@ -662,8 +663,8 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     } else if (j.faehrt && j.rampe > 3 && j.kmh < 1) {
       msg = "Sollwert steht an, die Trommel dreht nicht — der Regler hat die "
           + "Kommutierung verloren. Hall-Tabelle erneut erkennen."; bad = true;
-    } else if (j.note) {
-      msg = j.note;
+    } else if (j.note && j.noteBad) {
+      msg = j.note; bad = true;      /* Hinweise bleiben der Konsole, hier nur Fehler */
     }
     $("note").innerHTML = msg;
     $("note").className = bad ? "note bad" : "note";

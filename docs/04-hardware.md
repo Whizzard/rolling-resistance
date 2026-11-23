@@ -110,7 +110,7 @@ die Firmware noch nicht anfasst.
 | 2 | `PIN_ESTOP_FB` | Not-Aus-Rückmeldung | in, Pull-up | nur **Anzeige**; die Trennung erfolgt in Hardware. **Noch nicht verdrahtet** (`ESTOP_FB_WIRED` = false); bis dahin erkennt die Firmware den Not-Aus am fehlenden Motorstrom ([07-sicherheit](07-sicherheit.md) §4) |
 | 4 | `PIN_MARK` | Drehzahlmarken Trommel | in, Interrupt | **8** Marken/Umdrehung |
 | 5 | `PIN_INDEX` | Indexmarke Trommel | in, Interrupt | 1/Umdrehung, triggert die Mittelung |
-| 6 | `PIN_WHEEL` | Drehzahl des Prüflaufrads | in, Interrupt | **1** Magnet/Umdrehung (`WHEEL_MARKS_PER_REV`); liefert den wirksamen Reifendurchmesser, später den Laufrad-Auslaufversuch |
+| 6 | `PIN_WHEEL` | Drehzahl des Prüflaufrads | in, Interrupt | **1** Magnet/Umdrehung (`WHEEL_MARKS_PER_REV`); liefert den wirksamen Laufradumfang (§14.1), später den Laufrad-Auslaufversuch |
 | 7 | `PIN_MOTOR_HALL` | Motor-Hall (eine Phase) | in, Interrupt | zugleich die hochauflösende Drehzahlquelle |
 | 8 | `PIN_I2C_SDA` | I²C SDA | bidir | S3-Vorgabebelegung; frei für den IR-Fühler |
 | 9 | `PIN_I2C_SCL` | I²C SCL | out | dito |
@@ -1955,19 +1955,26 @@ genauso high zieht wie einen ohne Magnet davor; `low` heißt Magnet vor dem Gebe
 die LED im Gehäuse leuchtet dann. Die Prüfzähler sind von den Messzählern getrennt,
 `g` nullt sie jederzeit.
 
-**Reifendurchmesser aus den Drehzahlen.** Die Messseite zeigt unter *Laufrad* die
-Trommel- und die Laufraddrehzahl in 1/min und daraus den Durchmesser und Umfang des
-Reifens in mm. Am Latsch sind die Umfangsgeschwindigkeiten gleich, also
+**Laufradumfang aus dem Drehzahlverhältnis, integriert.** Die Messseite zeigt unter
+*Laufrad* die Trommel- und die Laufraddrehzahl in 1/min und den **wirksamen
+Abrollumfang** des Laufrads in mm. Am Latsch sind die Umfangsgeschwindigkeiten
+gleich, also
 
 ```
-d_Reifen = d_Trommel · n_Trommel / n_Rad
+U_Rad = U_Trommel · Trommelumdrehungen / Radumdrehungen     (dasselbe Zeitfenster)
 ```
 
-mit `d_Trommel` aus dem eingestellten Trommelumfang. Das ist der **wirksame
-Abrolldurchmesser unter Last**, nicht das Nennmaß des Reifens — er liegt wegen der
-Einfederung unter dem Maßband-Wert und ist genau die Größe, die in die Auswertung
-gehört. Angezeigt wird er nur, solange beides dreht; `i` gibt dieselbe Zeile auf
-der Konsole aus.
+Die Radumdrehungen sind exakt — das Fenster beginnt und endet auf einem Impuls des
+Laufradgebers —, die Trommelumdrehungen werden über die Zeit aufintegriert
+(`revsrc::revPerSec`). Das Fenster wächst, solange die Fahrt stetig ist
+(Drehzahlspanne unter `WHEEL_CIRC_STEADY` = 15 % — weit, weil Schwankungen sich bei
+der Integration herauskürzen und nur echte Rampen stören; die Regelung pendelt auf
+dem Plateau um ±3 %), und beginnt neu, wenn sich die Geschwindigkeit ändert. Der
+letzte gültige Wert bleibt dabei stehen; erst wenn das Rad steht, verfällt er. Angezeigt wird erst ab
+`WHEEL_CIRC_MIN_REVS` = 20 Radumdrehungen; bis dahin steht der Zähler darunter. So
+flattert der Wert nicht mit jedem Impuls, wie es der Momentanwert vom 2026-11-22 tat.
+Der Umfang liegt wegen der Einfederung unter dem Maßband-Wert und ist genau die
+Größe, die in die Auswertung gehört. `i` gibt dieselbe Zeile auf der Konsole aus.
 
 > **Die Konsole liegt bei dieser Variante auf der nativen USB-Buchse**, nicht auf
 > UART0: `ARDUINO_USB_CDC_ON_BOOT=1` in `platformio.ini`. Am 2026-11-18 war nur

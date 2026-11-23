@@ -30,6 +30,8 @@ float motorRevPerSec();
 // wie an der Trommel: Fenster über eine ganze Umdrehung. 0, solange kein
 // vollständiges Fenster vorliegt oder das Rad steht.
 float wheelRevPerSec();
+// Impulszähler des Laufrads und Zeitstempel des letzten Impulses, als Paar.
+void wheelPulses(uint32_t& count, uint32_t& lastUs);
 
 // true, wenn die Trommeldrehzahl aus Motordrehzahl/i um mehr als SLIP_TOLERANCE
 // abweicht. Liefert false, solange eine der beiden Quellen noch kein Fenster hat.
