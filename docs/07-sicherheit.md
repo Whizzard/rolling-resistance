@@ -269,7 +269,7 @@ weiter" ist es wirksam, gegen „Trommel dreht noch" nicht.
 | Trommeldrehzahl über Grenze | `MAX_DRUM_RPM` = 341 1/min | FAULT, Antrieb aus |
 | Motortemperatur | **TBD**, siehe A5 | FAULT, Antrieb aus |
 | **Bedienverbindung abgerissen** | `LINK_TIMEOUT_MS` = 2000 ms | FAULT, Antrieb aus |
-| **Kein Motor am Regler** (Not-Aus ausgelöst oder Motor abgeklemmt): Stellwert > `STALL_DUTY_MIN`, Motorstrom < `ESTOP_IMOT_MAX_A` = 0,3 A. Ohne Drehzahlbedingung: die Hall-Geber bleiben am Regler und melden die auslaufende Trommel noch 25 s lang (gemessen 2026-11-23 aus 60 km/h) | `ESTOP_DETECT_MS` = 1000 ms | Antrieb freigegeben, Meldung in Oberfläche und Konsole; im Lauf FAULT. Seit 2026-11-23 |
+| **Kein Motor am Regler** (Not-Aus ausgelöst oder Motor abgeklemmt): Stellwert > `STALL_DUTY_MIN`, Motorstrom < `ESTOP_IMOT_MAX_A` = 0,3 A **und** Drehzahl < `ESTOP_SPEED_RATIO` = 0,6 × Leerlaufdrehzahl zum Stellwert. Strom allein gab Fehlalarm im Leerlauf (0,2 A bei 28 km/h); Stillstand allein kam 25 s zu spät, weil die Hall-Geber die auslaufende Trommel melden (beides 2026-11-23). Ein angeschlossener Motor kann nicht stromlos hinter seiner Spannung zurückbleiben | `ESTOP_DETECT_MS` = 1000 ms | Antrieb freigegeben, Meldung in Oberfläche und Konsole; im Lauf FAULT. Seit 2026-11-23 |
 | **Not-Aus-Hilfskontakt** an `PIN_ESTOP_FB` | nur wenn `ESTOP_FB_WIRED` | FAULT; **noch nicht verdrahtet (TBD)** |
 
 FAULT ist rastend: Quittierung nur im Stillstand über die Konsole oder das Bedienfeld.

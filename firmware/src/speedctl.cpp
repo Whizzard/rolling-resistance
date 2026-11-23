@@ -141,7 +141,7 @@ void service() {
     return;
   }
 
-  if (!g_run) return;
+  if (!g_run) { clearMotorOpenIfStopped(); return; }
 
   // Ohne Messwerte vom Regler wird nicht gestellt — blind das Tastverhaeltnis
   // hochzufahren waere genau der Fehler, gegen den die Vorsteuerung gebaut ist.
@@ -186,12 +186,15 @@ void service() {
   if (g_duty > klemme) g_duty = klemme;
   if (g_duty < 0.0f)   g_duty = 0.0f;
 
-  // Not-Aus am Strom erkennen (speedctl.h): Stellwert da, Strom weg. OHNE
-  // Stillstandsbedingung: die Hall-Geber bleiben am Regler, und die auslaufende
-  // Trommel liefert nach dem Not-Aus noch 25 s lang eine Drehzahl (2026-11-23,
-  // aus 60 km/h). Ein angeschlossener Motor zieht unter Stellwert immer Strom.
+  // Not-Aus erkennen (speedctl.h, config.h ESTOP_*): Stellwert da, kein Strom,
+  // UND die Drehzahl liegt weit unter der Leerlaufdrehzahl zu diesem Stellwert.
+  // Nur Strom: Fehlalarm im Leerlauf (0,2 A bei 28 km/h). Nur Stillstand: die
+  // Hall-Geber melden die auslaufende Trommel noch 25 s (beides 2026-11-23).
   const float imot = fabsf(vesc::values().currentMotor);
-  if (g_duty > STALL_DUTY_MIN && imot < ESTOP_IMOT_MAX_A) {
+  const float rpmNoLoad = g_duty * noLoadRpm();
+  const bool  lagging = rpmNoLoad > 0.0f &&
+                        fabsf(rpmSigned()) < ESTOP_SPEED_RATIO * rpmNoLoad;
+  if (g_duty > STALL_DUTY_MIN && imot < ESTOP_IMOT_MAX_A && lagging) {
     const uint32_t now = millis();
     if (g_openSince == 0) {
       g_openSince = now;
@@ -208,6 +211,14 @@ void service() {
 }
 
 bool motorOpen()  { return g_motorOpen; }
+
+// Im Stillstand ohne Sollwert verfaellt der Befund von selbst, samt Meldung.
+void clearMotorOpenIfStopped() {
+  if (g_motorOpen && !g_run && fabsf(rpmSigned()) < 5.0f) {
+    g_motorOpen = false;
+    logger::note("");
+  }
+}
 bool estopInput() { return ESTOP_FB_WIRED && digitalRead(PIN_ESTOP_FB) == LOW; }
 
 float targetKmh() { return g_target; }

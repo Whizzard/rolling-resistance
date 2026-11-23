@@ -271,6 +271,14 @@ constexpr float STALL_DUTY_MIN = 0.05f;
 // [gesch] Pruefen: Not-Aus ausloesen, v15, Imot in der Live-Telemetrie (Befehl j)
 // ablesen; er muss unter dieser Grenze bleiben.
 constexpr float    ESTOP_IMOT_MAX_A = 0.3f;
+// Der Strom allein reicht NICHT: bei 28 km/h konstant zog der Motor nur 0,2 A
+// (2026-11-23), das ist Leerlauf, kein Not-Aus. Dazu muss die Drehzahl deutlich
+// unter der liegen, die der Stellwert an Spannung vorgibt (Leerlaufkennlinie
+// MOTOR_NO_LOAD_RPM_PER_V): ein angeschlossener Motor, der langsamer dreht als
+// seine Spannung verlangt, zieht zwingend Strom. Nach dem Not-Aus laeuft die
+// Trommel aus, der Stellwert bleibt, die Luecke waechst -- aus 28 km/h nach
+// wenigen Sekunden. [gesch] 0,6: unter 60 % der Leerlaufdrehzahl zum Stellwert.
+constexpr float    ESTOP_SPEED_RATIO = 0.6f;
 constexpr uint32_t ESTOP_DETECT_MS  = 1000;   // [gesch] so lange muss der Befund stehen
 // [TBD] Hilfskontakt des Not-Aus an PIN_ESTOP_FB — noch nicht verdrahtet. Sobald er
 // liegt: true setzen. Der Kontakt soll nach Masse ziehen, wenn ausgeloest (interner
