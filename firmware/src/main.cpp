@@ -537,7 +537,8 @@ void buildStateJson(char* buf, size_t len) {
   num(sRoll,sizeof(sRoll),roll, 3);
 
   snprintf(buf, len,
-    "{\"link\":%s,\"fault\":%u,\"faultTxt\":\"%s\",\"status\":%u,\"age\":%lu,"
+    "{\"build\":\"" __DATE__ " " __TIME__ "\","
+    "\"link\":%s,\"fault\":%u,\"faultTxt\":\"%s\",\"status\":%u,\"age\":%lu,"
     "\"fw\":\"%s\",\"note\":\"%s\",\"noteBad\":%s,\"bremst\":%s,"
     "\"kmh\":%.1f,\"soll\":%.0f,\"rampe\":%.1f,\"duty\":%.3f,\"faehrt\":%s,"
     "\"erpm\":%ld,\"rpm\":%.1f,"

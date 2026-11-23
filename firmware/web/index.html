@@ -54,9 +54,11 @@ body {
 .pin .wrap { max-width: 980px; margin: 0 auto; }
 
 /* ---- Meldungen ---- */
-.note { border-radius: 4px; padding: 8px 12px; font-size: 13px; margin-bottom: 9px;
+.note { border-radius: 4px; padding: 8px 12px; font-size: 13px; margin: 2px 0 6px;
         background: #e4ecf2; border-left: 6px solid #2f6f99; color: #28475c; }
-.note.bad { background: #fdf0ee; border-left-color: #c0392b; color: #a4291f; }
+.note.bad { background: #c0392b; border-left-color: #8e2117; color: #fff;
+            font-size: 17px; font-weight: 700; padding: 12px 14px; }
+.pin .runhint { margin: 0 0 6px; }
 
 /* ---- Kacheln ---- */
 .tiles { margin: -4px -4px 4px; }
@@ -200,17 +202,17 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   <div class="pin" id="pin"><div class="wrap">
     <div class="tiles">
       <div class="tile half big"><div>
-        <div class="lab">Ist</div>
-        <div class="val"><span id="kmh">—</span><small>km/h</small></div>
-      </div></div>
-      <div class="tile half big"><div>
         <div class="lab">Soll</div>
         <div class="val"><span id="soll">—</span><small>km/h</small></div>
       </div></div>
+      <div class="tile half big"><div>
+        <div class="lab">Ist</div>
+        <div class="val"><span id="kmh">—</span><small>km/h</small></div>
+      </div></div>
     </div>
+    <div class="note" id="note" hidden></div>
+    <div class="runhint" id="runHint" hidden>—</div>
   </div></div>
-
-  <div class="note" id="note" hidden></div>
 
   <!-- ===================== MESSUNG ===================== -->
   <div id="pageMess">
@@ -284,7 +286,6 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       <button type="button" id="bLeer">Leerlauf</button>
       <button type="button" id="coast">Auslaufen</button>
     </div>
-    <div class="runhint" id="runHint">—</div>
     <button type="button" class="plain" id="bQuit" hidden
             style="-webkit-appearance:none;border:0;cursor:pointer;font-family:inherit;
                    font-size:15px;font-weight:700;background:#c3ccd4;color:#16202a;
@@ -555,7 +556,13 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   }
 
   /* ---------- Anzeige ---------- */
+  var build = null;   /* Kennung der Firmware; aendert sie sich, ist diese Seite alt */
+
   function paint(j) {
+    if (j.build) {
+      if (build === null) build = j.build;
+      else if (build !== j.build) { location.reload(); return; }
+    }
     vmax = j.vmax; vmin = j.vmin; step = j.step; soll = j.soll;
     var list = j.plateaus || [], key = list.join(",");
     if (key !== gridKey) { buildGrid(list); buildChips(list); gridKey = key; }
@@ -579,9 +586,11 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("st").title = j.link ? "Regler verbunden" : "kein Regler";
 
     show("kmh", j.link ? j.kmh : null, 1);
-    /* Soll: beim Fahren der Sollwert, beim Bremsen 0, nur im Leerlauf ein Strich. */
-    $("soll").innerHTML = j.faehrt ? de(j.soll, 0) : (j.bremst ? "0" : "—");
-    $("soll").className  = "val" + ((j.faehrt || j.bremst) ? "" : " dim");
+    /* Soll: beim Fahren der Sollwert; 0 beim Bremsen und nach jedem Stopp durch
+       einen Fehler (Not-Aus, FAULT); nur beim freien Auslaufen ein Strich. */
+    var gestoppt = j.bremst || j.motorOffen || j.notaus || j.phase === "FAULT";
+    $("soll").innerHTML = j.faehrt ? de(j.soll, 0) : (gestoppt ? "0" : "—");
+    $("soll").className  = "val" + ((j.faehrt || gestoppt) ? "" : " dim");
     paintGrid(j.faehrt ? j.soll : -1);
 
     /* Wägezelle */
@@ -686,6 +695,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("note").innerHTML = msg;
     $("note").className = bad ? "note bad" : "note";
     $("note").hidden = (msg === "");
+    layoutPin();
 
     $("foot").innerHTML =
       "FW " + (j.fw || "?") + " · max " + de(j.vmax, 0) + " km/h · "
