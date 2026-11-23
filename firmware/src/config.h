@@ -68,7 +68,11 @@ constexpr float TORQUE_ARM_M = 0.084f;
 //
 // Beide Arme sind zur Laufzeit ueberschreibbar (settings.h) — sie werden AM AUFBAU
 // ausgemessen, und ein Kalibrierlauf, der zum Uebersetzen zwingt, wird nicht gemacht.
-constexpr float CALIB_ARM_M = 0.160f;
+// [Festlegung 2026-11-23] 330 mm: mit dem geeichten 1-kg-Gewicht 38,5 N an der
+// Zelle, 79 % der 5-kg-Zelle -- deckt den Messbereich (48...64 %) nach oben ab und
+// laesst Reserve. Bohrung noch nicht gesetzt; nach dem Bohren den Abstand Achse bis
+// Lochmitte messen und den gemessenen Wert eintragen.
+constexpr float CALIB_ARM_M = 0.330f;
 
 // [Festlegung] DIREKTANTRIEB: die Trommel sitzt auf dem Rotor des Nabenmotors,
 // Motor- und Trommeldrehzahl sind identisch. Der verbaute Hoverboard-Motor dreht mit
