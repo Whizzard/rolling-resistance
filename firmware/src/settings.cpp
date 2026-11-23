@@ -77,13 +77,16 @@ void begin() {
 
   // Nur lesend oeffnen und gleich wieder schliessen — der NVS-Handle soll nicht
   // ueber die ganze Laufzeit offen bleiben.
+  // Jeden Schluessel erst auf Existenz pruefen: ein getFloat auf einen
+  // fehlenden Schluessel protokolliert "nvs_get_blob len fail ... NOT_FOUND"
+  // als FEHLER auf die Konsole -- dieselbe falsche rote Zeile wie oben.
   if (g_nvs.begin(NS, true)) {
-    g_drum = g_nvs.getFloat(K_DRUM,  DRUM_CIRCUMFERENCE_M);
-    g_arm  = g_nvs.getFloat(K_ARM,   TORQUE_ARM_M);
-    g_cal  = g_nvs.getFloat(K_CALIB, CALIB_ARM_M);
-    g_npc  = g_nvs.getFloat(K_NPC,   LOADCELL_N_PER_COUNT);
-    g_dir  = g_nvs.getChar(K_DIR, static_cast<int8_t>(VESC_DIRECTION_SIGN));
-    const size_t bytes = g_nvs.getBytesLength(K_PLAT);
+    if (g_nvs.isKey(K_DRUM))  g_drum = g_nvs.getFloat(K_DRUM,  DRUM_CIRCUMFERENCE_M);
+    if (g_nvs.isKey(K_ARM))   g_arm  = g_nvs.getFloat(K_ARM,   TORQUE_ARM_M);
+    if (g_nvs.isKey(K_CALIB)) g_cal  = g_nvs.getFloat(K_CALIB, CALIB_ARM_M);
+    if (g_nvs.isKey(K_NPC))   g_npc  = g_nvs.getFloat(K_NPC,   LOADCELL_N_PER_COUNT);
+    if (g_nvs.isKey(K_DIR))   g_dir  = g_nvs.getChar(K_DIR, static_cast<int8_t>(VESC_DIRECTION_SIGN));
+    const size_t bytes = g_nvs.isKey(K_PLAT) ? g_nvs.getBytesLength(K_PLAT) : 0;
     if (bytes > 0 && bytes % sizeof(float) == 0 && bytes <= sizeof(g_plat)) {
       g_nvs.getBytes(K_PLAT, g_plat, bytes);
       g_platN = bytes / sizeof(float);
