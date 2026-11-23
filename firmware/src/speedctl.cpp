@@ -46,6 +46,13 @@ void dropout(const char* why) {
   g_refusal = why;
   logger::note(why);
 }
+// Im Stillstand ohne Sollwert verfaellt der Befund von selbst, samt Meldung.
+void clearMotorOpenIfStopped() {
+  if (g_motorOpen && !g_run && fabsf(rpmSigned()) < 5.0f) {
+    g_motorOpen = false;
+    logger::note("");
+  }
+}
 
 // Leerlaufdrehzahl bei Vollaussteuerung und der MOMENTANEN Busspannung.
 //
@@ -211,14 +218,6 @@ void service() {
 }
 
 bool motorOpen()  { return g_motorOpen; }
-
-// Im Stillstand ohne Sollwert verfaellt der Befund von selbst, samt Meldung.
-void clearMotorOpenIfStopped() {
-  if (g_motorOpen && !g_run && fabsf(rpmSigned()) < 5.0f) {
-    g_motorOpen = false;
-    logger::note("");
-  }
-}
 bool estopInput() { return ESTOP_FB_WIRED && digitalRead(PIN_ESTOP_FB) == LOW; }
 
 float targetKmh() { return g_target; }
