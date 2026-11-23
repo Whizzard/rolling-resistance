@@ -9,7 +9,7 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 
 | Symbol | Konstante | Wert | Einheit | Herkunft | Ermittlung |
 |---|---|---|---|---|---|
-| U | `DRUM_CIRCUMFERENCE_M` | **2,931** | m | gem | Über die fertige Oberfläche gemessen, Ø 933 mm ([09-messtheorie](09-messtheorie.md) §1.5). Der frühere Wert 3,000 galt der geplanten Ø-955-Trommel und war 2,4 % zu groß. Nach jeder Änderung an der Oberfläche neu messen: Maßband um die Trommel, 3 Messungen mitteln. 1 mm Fehler = 0,03 %. |
+| U | `DRUM_CIRCUMFERENCE_M` | **2,842** | m | gem | **2026-11-23 mit dem Maßband um die fertige Oberfläche: 2842 mm**, Ø 904,6 mm. Hier stand zwischendurch 2,931 (Ø 933), während `config.h` 2,837 führte — beides ersetzt ([09-messtheorie](09-messtheorie.md) §1.5). Der frühere Wert 3,000 galt der geplanten Ø-955-Trommel und war 2,4 % zu groß. Nach jeder Änderung an der Oberfläche neu messen: Maßband um die Trommel, 3 Messungen mitteln. 1 mm Fehler = 0,03 %. |
 | r | `DRUM_RADIUS_M` | **0,4665** | m | ber | U / 2π |
 | L | `TORQUE_ARM_M` | **0,084** | m | **gem** | **Am Aufbau 2026-11-23: 84 mm** Trommelachse bis Waage (Ansage, Messschieber-Genauigkeit noch nicht bestätigt). Vorher 0,080 geplant. Gilt für die **5-kg-Zelle**. Auslegungsfall stationär 1,88 Nm → 23,5 N = 48 % FS; samt Rampe 2,51 Nm → 31,4 N = 64 %; ΔCrr 0,0005 → 1,22 N — dieselben Ausnutzungen wie zuvor mit 10 kg bei 0,040 m: halbe Zelle, doppelter Arm. Herleitung [08-staender](08-staender.md) §5.2. Bohrungen 80,0 mm (Zelle) und 160,0 mm (Kalibrierung), je ±0,1 mm. Verbaut sind laut Ansage etwa 80 mm — **ausmessen**, der Arm geht linear in jedes Moment ein (§2). |
 | J | `DRUM_INERTIA_KGM2` | **1,94** | kg·m² | ber | Aus der Geometrie der **Ø-903-Trommel**, passend zu `DRUM_CIRCUMFERENCE_M` = 2,837 in `config.h`. **Achtung, offener Widerspruch:** die Zeile `J` weiter unten in diesem Abschnitt nennt **2,07** für die Ø-933-Trommel, und `DRUM_CIRCUMFERENCE_M` steht in diesem Dokument als 2,931. Welche Trommel gilt, ist nicht entschieden — siehe [06-offene-fragen](06-offene-fragen.md) A14. Bis dahin ist `config.h` in sich stimmig (2,837 / 1,94) und dieses Dokument nicht. |
@@ -24,14 +24,14 @@ Herkunft: `gem` = gemessen · `ber` = berechnet · `DB` = Datenblatt · `gesch` 
 | Symbol | Konstante | Wert | Einheit | Herkunft | Ermittlung |
 |---|---|---|---|---|---|
 | — | `LOADCELL_CAPACITY_N` | 49,03 | N | Ansage 2026-11-16 | **5 kg**. Die Unterlagen nannten bis dahin 10 kg — Typenschild nachlesen, dann auf DB setzen. |
-| — | `LOADCELL_N_PER_COUNT` | **TBD** | N/count | TBD | Kalibrierung: Wiegeteil in Messlage, bekanntes Gewicht am Kalibrierpunkt anhängen, Rohwerte vorher/nachher mitteln, dividieren. Mindestens 3 Gewichte über den Bereich, Linearität prüfen. |
+| — | `LOADCELL_N_PER_COUNT` | **0,00002668** | N/count | **gem** | **Kalibriert 2026-11-23:** geeichtes 1-kg-Gewicht bei 330 mm, Zellenarm 84 mm → 38,53 N an der Zelle, Faktor über die Einrichtungsseite. Ein Gewicht, die Linearität über den Bereich steht noch aus. Vorschrift: Wiegeteil in Messlage, bekanntes Gewicht am Kalibrierpunkt anhängen, Rohwerte vorher/nachher mitteln, dividieren. Mindestens 3 Gewichte über den Bereich, Linearität prüfen. |
 | — | `HX711_GAIN_PULSES` | 1 | – | DB | 1 = Kanal A Gain 128, 3 = Kanal B Gain 32 |
 | — | `HX711_RATE_SPS` | 80 | 1/s | DB | RATE-Pin auf VCC. Bei 60 km/h ≈ 14 Samples pro Umdrehung. |
 | — | `TARE_SAMPLES` | 200 | – | gesch | statische Tara, ≈ 2,5 s bei 80 SPS |
 | `TARE_TIMEOUT_MS` | 5000 | ms | Festlegung | Abbruch der Tara, wenn nicht genug Werte kommen. Die Tara läuft seit dem 2026-11-20 **nicht blockierend** (`tareBegin`/`tareBusy`/`tareCount`); ohne Abbruch würde ein stummer HX711 den Zustand `TARE` auf Dauer besetzen. |
 | — | `DISPLAY_AVG_N` | 40 | – | Festlegung | Gleitender Mittelwert für die **Anzeige**, 0,5 s bei 80 SPS. Ein mit 80 Hz zappelnder Zahlenwert ist weder lesbar noch aussagekräftig ([10-firmware](10-firmware.md) W5, D6). Hat mit der umdrehungssynchronen Mittelung der **Messung** (`AVG_REVS_PER_POINT`) nichts zu tun — die beiden laufen unabhängig. |
 
-> Solange `LOADCELL_N_PER_COUNT` TBD ist, gibt die Firmware keine Crr-Werte aus, sondern
+> Seit dem 2026-11-23 ist der Faktor gesetzt. Solange `LOADCELL_N_PER_COUNT` TBD wäre, gäbe die Firmware keine Crr-Werte aus, sondern
 > nur Rohwerte. Das ist Absicht.
 
 ## 3 Drehzahlaufnehmer

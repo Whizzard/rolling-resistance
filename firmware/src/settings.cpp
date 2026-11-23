@@ -15,6 +15,7 @@ constexpr char K_CALIB[] = "calib_arm";
 constexpr char K_NPC[]   = "n_per_count";
 constexpr char K_DIR[]   = "dir_sign";
 constexpr char K_PLAT[]  = "plateaus";
+constexpr char K_TARE[]  = "tare";
 
 float g_drum  = DRUM_CIRCUMFERENCE_M;
 float g_arm   = TORQUE_ARM_M;
@@ -22,6 +23,7 @@ float g_cal   = CALIB_ARM_M;
 float g_npc   = LOADCELL_N_PER_COUNT;
 int8_t g_dir  = static_cast<int8_t>(VESC_DIRECTION_SIGN);
 
+long    g_tare  = 0;
 float   g_plat[PLATEAU_MAX];
 uint8_t g_platN = 0;
 
@@ -86,6 +88,7 @@ void begin() {
     if (g_nvs.isKey(K_CALIB)) g_cal  = g_nvs.getFloat(K_CALIB, CALIB_ARM_M);
     if (g_nvs.isKey(K_NPC))   g_npc  = g_nvs.getFloat(K_NPC,   LOADCELL_N_PER_COUNT);
     if (g_nvs.isKey(K_DIR))   g_dir  = g_nvs.getChar(K_DIR, static_cast<int8_t>(VESC_DIRECTION_SIGN));
+    if (g_nvs.isKey(K_TARE))  g_tare = g_nvs.getLong(K_TARE, 0);
     const size_t bytes = g_nvs.isKey(K_PLAT) ? g_nvs.getBytesLength(K_PLAT) : 0;
     if (bytes > 0 && bytes % sizeof(float) == 0 && bytes <= sizeof(g_plat)) {
       g_nvs.getBytes(K_PLAT, g_plat, bytes);
@@ -112,6 +115,16 @@ void begin() {
   Serial.print("# Messgeschwindigkeiten:");
   for (uint8_t i = 0; i < g_platN; i++) { Serial.print(' '); Serial.print(g_plat[i], 1); }
   Serial.println(" km/h");
+}
+
+long tareOffset() { return g_tare; }
+
+bool setTareOffset(long counts) {
+  g_tare = counts;
+  if (!g_nvs.begin(NS, false)) return false;
+  const size_t n = g_nvs.putLong(K_TARE, counts);
+  g_nvs.end();
+  return n > 0;
 }
 
 uint8_t plateauCount() { return g_platN; }
@@ -196,6 +209,7 @@ void reset() {
   g_cal  = CALIB_ARM_M;
   g_npc  = LOADCELL_N_PER_COUNT;
   g_dir  = static_cast<int8_t>(VESC_DIRECTION_SIGN);
+  g_tare = 0;
   defaultPlateaus();
 }
 
