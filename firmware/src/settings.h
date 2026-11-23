@@ -54,6 +54,10 @@ float   plateauKmh(uint8_t i);           // 0 ausserhalb der Liste
 bool    addPlateau(float kmh);           // false: unplausibel, voll oder schon drin
 bool    removePlateau(float kmh);        // false: nicht in der Liste
 
+// Auflast auf dem Laufrad, Vorgabe LOAD_DEFAULT_N, am Stand änderbar (Befehl l).
+float loadN();
+bool  setLoadN(float n);
+
 // Statische Tara der Wägezelle (Rohwert bei leerem Arm). Im NVS, damit sie einen
 // Neustart überlebt -- vorher war sie nach jedem Flashen weg, und 241 000 counts
 // wurden als 6,4 N angezeigt (2026-11-23). 0 = nie genullt.
