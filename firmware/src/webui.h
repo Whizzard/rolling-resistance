@@ -46,7 +46,10 @@ typedef void (*StateJsonFn)(char* buf, size_t len);
 
 // htmlGz zeigt auf die gzip-gebackene Oberfläche im PROGMEM. Auch sie kommt von
 // außen, damit jede Variante ihre eigene Seite ausliefern kann.
-void begin(CommandFn handler, StateJsonFn state,
+// Zweiter JSON-Lieferant fuer /api/run (gefuehrter Messlauf, run.h): eigener Pfad
+// und eigener, groesserer Puffer, damit /api/state klein und schnell bleibt.
+// Dateien unter /runs/ kommen aus dem LittleFS (Protokolle), /runs listet sie.
+void begin(CommandFn handler, StateJsonFn state, StateJsonFn runJson,
            const uint8_t* htmlGz, size_t htmlGzLen);
 // Aus der Hauptschleife rufen: fuehrt die Befehle aus, die der Webserver
 // eingereiht hat. Netzwerk wird hier nicht mehr bedient.

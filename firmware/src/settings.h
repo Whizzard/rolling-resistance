@@ -65,6 +65,10 @@ bool  setLoadN(float n);
 float baselineA0();  float baselineB0();  bool setBaseline(float a0, float b0);
 float wheelA1();     float wheelB1();     bool setWheelModel(float a1, float b1);
 bool  haveBaseline();  bool haveWheelModel();
+// Alter seit dem letzten Setzen IN DIESER SITZUNG, ms. UINT32_MAX, wenn der Wert aus
+// dem NVS stammt, also vor dem Start gesetzt wurde: dann kennt niemand sein Alter,
+// und der gefuehrte Messlauf (run.h) fragt nach, ob er noch gilt.
+uint32_t baselineAgeMs(); uint32_t wheelModelAgeMs(); uint32_t tareAgeMs();
 // Laufradmasse mit Reifen [kg]; daraus J_Rad = WHEEL_J_FACTOR m r_Rad^2. NAN = unbekannt.
 float wheelMassKg(); bool setWheelMassKg(float kg);
 // Letzter gemessener Laufradumfang [m] (wheel.h), ueberlebt den Stillstand und den

@@ -93,6 +93,14 @@ gelten gleich für die serielle Konsole und die Weboberfläche.
 Firmware: Hauptvariante `esp32s3` (Zustandsmaschine, Plateaus, Protokoll) — siehe **Stand
 heute** am Ende. Rund zwei Stunden, davon 30 min Warmlauf. (11)
 
+> **Seit 2026-11-23 führt die Firmware durch B3 bis B9:** *Messung* im Bedienfeld öffnet
+> den geführten Messlauf (`run.h`, [11-messablauf-review](11-messablauf-review.md) §3).
+> Er prüft vor dem Start Regler, Zelle, Rauschen, Kalibrierstand und Modelle, nullt,
+> fragt das Kontrollgewicht ab, fährt bei Bedarf den Leerlauf-Vorlauf, dann allein
+> Warmlauf, Plateaus mit drei Punkten, Ankerpunkt und Anhalten, optional den Nachlauf,
+> und legt Protokoll und Daten unter `/runs/` ab. Die Schritte unten bleiben die
+> Referenz dafür, was der Mensch dabei tut. **Noch nicht am Stand gefahren.**
+
 | # | Schritt | Dauer |
 |---|---|---|
 | B0 | Vor dem Einschalten | 5 min |

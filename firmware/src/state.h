@@ -21,7 +21,34 @@
 namespace state {
 
 enum Phase : uint8_t { IDLE = 0, TARE, SPINUP, SETTLE, POINT, COAST, FAULT,
-                       WIZ_SPINUP, WIZ_LIFT };
+                       WIZ_SPINUP, WIZ_LIFT, HOLD };
+enum RunMode : uint8_t { RUN_NONE = 0, RUN_BASELINE, RUN_MEASURE };
+
+// SEQUENZEN (seit 2026-11-23, fuer den gefuehrten Messlauf in run.h): ein Lauf
+// ist eine Liste von Geschwindigkeiten mit je pointsPer Messpunkten. Jeder
+// fertige Punkt kommt mit seiner Streuung an onPoint; am Ende onDone(true). Bei
+// coastAtEnd laeuft die Trommel danach aus (Befehle m0/m1), sonst bleibt sie auf
+// der letzten Geschwindigkeit in HOLD, und der Aufrufer entscheidet.
+// HOLD ist "faehrt mit Sollwert, aber nicht in einem Lauf": die Abschaltkriterien
+// gelten, gemessen wird nicht. Warmlauf des Messlaufs.
+struct PointStats {
+  float    v;        // km/h, Mittel der Umdrehungen
+  float    vSd;      // km/h, Streuung der Umdrehungsmittel
+  float    raw;      // Counts, Mittel
+  float    mNm;      // Nm, NAN ohne Kalibrierung
+  float    sdNm;     // Nm, Streuung der Umdrehungsmittel (Typ A)
+  float    dvdtMax;  // km/h/s, groesste Beschleunigung waehrend des Punkts
+  float    imot, vin, tfet, tmot;
+  uint8_t  revs, plateau, k;   // k: Punkt innerhalb des Plateaus, ab 0
+  bool     ok;       // konstant gefahren, kein Reglerfehler
+  uint32_t tMs;
+};
+typedef void (*PointFn)(const PointStats&);
+typedef void (*SeqDoneFn)(bool completed);
+bool startSequence(RunMode mode, const float* kmh, uint8_t n, uint8_t pointsPer,
+                   bool coastAtEnd, PointFn onPoint, SeqDoneFn onDone);
+bool startHold(float kmh);     // aus IDLE oder HOLD; false mit Grund in logger::lastNote()
+void endHold();                // HOLD -> IDLE, Antrieb bleibt wie er ist
 
 // ASSISTENT Auslauf + Leerlauf (config.h WIZ_*): startWizard() faehrt die Trommel
 // mit aufliegendem Rad auf WIZ_KMH (WIZ_SPINUP), wartet dann auf das Abheben
@@ -34,7 +61,6 @@ enum Phase : uint8_t { IDLE = 0, TARE, SPINUP, SETTLE, POINT, COAST, FAULT,
 void startWizard();
 uint8_t wizardStep();
 void wizardAck();      // Schritt 4 quittieren
-enum RunMode : uint8_t { RUN_NONE = 0, RUN_BASELINE, RUN_MEASURE };
 
 void begin();
 void service();

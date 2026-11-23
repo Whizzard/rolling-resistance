@@ -249,6 +249,7 @@ in die Auswertung hinterher.
 | `w<A₁> <B₁>` | Radverlustmodell von Hand | `w0.012 0.000071` | aus dem Laufrad-Auslauf |
 | `n<A₀> <B₀>` | Leerlaufmodell von Hand | `n0.004 0.000209` | der Leerlauflauf `m0` fittet und speichert es seit 2026-11-23 selbst; aus dem Baseline-Lauf |
 | `t` | statische Tara | | Offset |
+| `R` | **Geführter Messlauf** | `R`, dann `Rk`/`Rs`/`Rn`/`Rx`, `Rm<k>=<v>` | Vierzehn Schritte ([11-messablauf-review](11-messablauf-review.md) §3): Lauf anlegen, Sichtprüfung, Systemprüfung, Nullen, Kontrollgewicht, Leerlaufmodell (übernehmen oder Vorlauf mit abgehobenem Rad), Radmodell, Rad aufgelegt; dann allein Warmlauf (`WARMUP_MS` bei `WARMUP_KMH`, Live-Punkt je Minute), Plateaus mit `RUN_POINTS_PER_PLATEAU` Punkten, Ankerpunkt, Anhalten; optional Nachlauf Leerlauf; Protokoll `.md` und Daten `.csv` im LittleFS unter `/runs/<Kennung>`, abrufbar über `/runs`. Warnungen W01…W12 im Protokoll. Im Bedienfeld hinter *Messung*. Seit 2026-11-23 |
 
 | | P | Anforderung |
 |---|---|---|

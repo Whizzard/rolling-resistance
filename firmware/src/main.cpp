@@ -36,6 +36,7 @@
 #include "vesc/vesc.h"
 #include "vesc/packet.h"
 #include "wheel.h"
+#include "run.h"
 
 namespace {
 
@@ -154,6 +155,13 @@ Live liveResult() {
   return r;
 }
 
+// Live-Werte fuer den gefuehrten Messlauf (run.h): Warmlaufverlauf je Minute.
+bool liveForRun(run::LiveVals& out) {
+  const Live lv = liveResult();
+  out.mNm = lv.mNm; out.pW = lv.pW; out.crr = lv.crr; out.korr = lv.korrigiert;
+  return !isnan(lv.pW);
+}
+
 // Laengste Schleifenrunde seit der letzten Abfrage. Der Webserver kann die
 // Hauptschleife blockieren, und ab 300 ms schlaegt der Totmann des Reglers zu,
 // ab 1 s gibt speedctl frei -- deshalb wird das gemessen, nicht vermutet.
@@ -188,6 +196,7 @@ void liveTelemetry() {
 
 void printHelp() {
   Serial.println("# Befehle:");
+  Serial.println("#   R / Rk / Rs / Rn / Rx / Rm<k>=<v>  gefuehrter Messlauf (run.h)");
   Serial.println("#   v<kmh>  Zielgeschwindigkeit      s  STOP (bremst)");
   Serial.println("#   c       auslaufen lassen        q  Fehler quittieren");
   Serial.println("#   m0      Leerlauf (Rad abgehoben)       m1  Messlauf");
@@ -465,6 +474,12 @@ void handleCommand(const String& cmd) {
 
   // Durchgriff zum Regler, nur von der Konsole sinnvoll (vesc.h).
   if (cmd[0] == ':') { vesc::terminal(cmd.c_str() + 1); return; }
+  // Gefuehrter Messlauf (run.h). Wer ihn startet, dem gilt der Totmann.
+  if (cmd[0] == 'R') {
+    if (cmd.length() == 1) webui::setWebOperator(webui::inWebCommand());
+    if (!run::command(cmd.c_str() + 1)) fail(logger::lastNote()[0] ? logger::lastNote() : "Messlauf: abgelehnt");
+    return;
+  }
   if (cmd[0] == '>') {
     uint8_t p[vesc::PAYLOAD_MAX];
     size_t n = 0;
@@ -717,7 +732,7 @@ void buildStateJson(char* buf, size_t len) {
     "\"plateaus\":[%s],\"phase\":\"%s\",\"run\":%u,\"plateau\":%u,"
     "\"sfault\":\"%s\",\"load\":%s,\"motorOffen\":%s,\"notaus\":%s,"
     "\"drumU\":%.4f,\"arm\":%.4f,\"calArm\":%.4f,\"npc\":%.8f,"
-    "\"vmax\":%.0f,\"vmin\":%.0f,\"step\":%.0f,\"fsN\":%.1f}",
+    "\"vmax\":%.0f,\"vmin\":%.0f,\"step\":%.0f,\"fsN\":%.1f,\"rs\":%u}",
     ok ? "true" : "false",
     static_cast<unsigned>(v.fault), vesc::faultText(v.fault),
     static_cast<unsigned>(v.status), static_cast<unsigned long>(v.ageMs),
@@ -753,7 +768,8 @@ void buildStateJson(char* buf, size_t len) {
     speedctl::motorOpen() ? "true" : "false", speedctl::estopInput() ? "true" : "false",
     settings::drumCircumferenceM(), settings::torqueArmM(),
     settings::calibArmM(), settings::loadcellNPerCount(),
-    V_MAX_KMH, V_MIN_KMH, SPEED_STEP_KMH, LOADCELL_CAPACITY_N);
+    V_MAX_KMH, V_MIN_KMH, SPEED_STEP_KMH, LOADCELL_CAPACITY_N,
+    static_cast<unsigned>(run::step()));
 }
 
 void pollSerial() {
@@ -793,7 +809,8 @@ void setup() {
   logger::begin();
   tirepressure::begin();
   state::begin();
-  webui::begin(handleCommand, buildStateJson,
+  run::begin(liveForRun);
+  webui::begin(handleCommand, buildStateJson, run::json,
                WEBUI_HTML_GZ, WEBUI_HTML_GZ_LEN);
   vesc::begin();
 
@@ -835,6 +852,7 @@ void loop() {
   wheel::service();
   speedctl::service();
   state::service();
+  run::service();
   pollSerial();
   liveTelemetry();
 

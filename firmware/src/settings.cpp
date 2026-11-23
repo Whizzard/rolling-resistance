@@ -147,12 +147,18 @@ bool store1(const char* k, float v) {
 }
 }  // namespace
 
+// 0 = in dieser Sitzung nie gesetzt (settings.h: Alter dann unbekannt).
+uint32_t g_a0SetMs = 0, g_a1SetMs = 0, g_tareSetMs = 0;
+static uint32_t ageOf(uint32_t t) { return t ? millis() - t : UINT32_MAX; }
+uint32_t baselineAgeMs()   { return ageOf(g_a0SetMs); }
+uint32_t wheelModelAgeMs() { return ageOf(g_a1SetMs); }
+uint32_t tareAgeMs()       { return ageOf(g_tareSetMs); }
 float baselineA0() { return g_a0; }
 float baselineB0() { return g_b0; }
 bool  haveBaseline() { return !isnan(g_a0) && !isnan(g_b0); }
 bool  setBaseline(float a0, float b0) {
   if (isnan(a0) || isnan(b0) || fabsf(a0) > 20.0f || fabsf(b0) > 0.1f) return false;
-  g_a0 = a0; g_b0 = b0;
+  g_a0 = a0; g_b0 = b0; g_a0SetMs = millis();
   return store2(K_A0, a0, K_B0, b0);
 }
 float wheelA1() { return g_a1; }
@@ -160,7 +166,7 @@ float wheelB1() { return g_b1; }
 bool  haveWheelModel() { return !isnan(g_a1) && !isnan(g_b1); }
 bool  setWheelModel(float a1, float b1) {
   if (isnan(a1) || isnan(b1) || fabsf(a1) > 5.0f || fabsf(b1) > 0.1f) return false;
-  g_a1 = a1; g_b1 = b1;
+  g_a1 = a1; g_b1 = b1; g_a1SetMs = millis();
   return store2(K_A1, a1, K_B1, b1);
 }
 float wheelMassKg() { return g_mRad; }
@@ -190,7 +196,7 @@ bool setLoadN(float n) {
 long tareOffset() { return g_tare; }
 
 bool setTareOffset(long counts) {
-  g_tare = counts;
+  g_tare = counts; g_tareSetMs = millis();
   if (!g_nvs.begin(NS, false)) return false;
   const size_t n = g_nvs.putLong(K_TARE, counts);
   g_nvs.end();

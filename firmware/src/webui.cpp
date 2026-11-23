@@ -4,6 +4,7 @@
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <ESPmDNS.h>
+#include <LittleFS.h>
 
 #include "config.h"
 
@@ -15,7 +16,7 @@ namespace webui {
 namespace {
 
 // Befehle vom Webserver an die Hauptschleife (webui.h: eigene Task).
-struct CmdMsg { char text[48]; };
+struct CmdMsg { char text[160]; };   // Metadaten des Messlaufs (Rm...) brauchen Platz
 QueueHandle_t g_cmdQueue = nullptr;
 TaskHandle_t  g_task = nullptr;
 
@@ -23,6 +24,7 @@ WebServer     g_server(WEBUI_PORT);
 DNSServer     g_dns;
 CommandFn     g_cmd     = nullptr;
 StateJsonFn   g_state   = nullptr;
+StateJsonFn   g_runJson = nullptr;
 const uint8_t* g_html   = nullptr;
 size_t        g_htmlLen = 0;
 
@@ -158,13 +160,50 @@ void handleState() {
   // Einstellungen, dazu seit 2026-11-22 der Verdrahtungstest der Geber und das
   // Laufrad (zusammen gut 150 Byte). Zu klein, und snprintf schneidet still ab —
   // die Seite bekaeme kaputtes JSON.
-  char buf[1536];
+  char buf[2048];
   buf[0] = '\0';
   if (g_state) g_state(buf, sizeof(buf));
   if (buf[0] == '\0') snprintf(buf, sizeof(buf), "{}");
 
   g_server.sendHeader("Cache-Control", "no-store");
   g_server.send(200, "application/json; charset=utf-8", buf);
+}
+
+// Gefuehrter Messlauf: eigener Puffer, bis zu 48 Messpunkte mit Streuung.
+void handleRun() {
+  touch();
+  g_other++;
+  static char buf[8192];
+  buf[0] = '\0';
+  if (g_runJson) g_runJson(buf, sizeof(buf));
+  if (buf[0] == '\0') snprintf(buf, sizeof(buf), "{}");
+  g_server.sendHeader("Cache-Control", "no-store");
+  g_server.send(200, "application/json; charset=utf-8", buf);
+}
+
+// Protokolle aus dem Flash: /runs listet, /runs/<datei> liefert zum Herunterladen.
+void handleRuns() {
+  g_other++;
+  const String uri = g_server.uri();
+  if (uri == "/runs" || uri == "/runs/") {
+    String html = "<!doctype html><meta charset=utf-8><title>Messlaeufe</title>"
+                  "<body style='font-family:system-ui;padding:16px'><h2>Messl\u00e4ufe</h2><ul>";
+    File dir = LittleFS.open("/runs");
+    if (dir) { File f = dir.openNextFile(); while (f) {
+        html += "<li><a href='/runs/" + String(f.name()) + "'>" + String(f.name()) + "</a> " + String(f.size()) + " B</li>";
+        f = dir.openNextFile(); } }
+    html += "</ul>";
+    g_server.send(200, "text/html; charset=utf-8", html);
+    return;
+  }
+  if (uri.indexOf("..") >= 0 || !LittleFS.exists(uri)) { g_server.send(404, "text/plain", "nicht da"); return; }
+  File f = LittleFS.open(uri, "r");
+  if (!f) { g_server.send(404, "text/plain", "nicht da"); return; }
+  const String name = uri.substring(uri.lastIndexOf('/') + 1);
+  g_server.sendHeader("Content-Disposition", "attachment; filename=\"" + name + "\"");
+  g_server.sendHeader("Cache-Control", "no-store");
+  g_server.streamFile(f, uri.endsWith(".csv") ? "text/csv; charset=utf-8" : "text/markdown; charset=utf-8");
+  f.close();
 }
 
 // Befehl annehmen -- aber nur, wenn er frisch ist.
@@ -222,6 +261,7 @@ void webTask(void*) {
 // Jede unbekannte Adresse zeigt die Oberfläche. Der DNS beantwortet ohnehin alles mit
 // der eigenen Adresse — was immer jemand eintippt, er will hierher.
 void handleNotFound() {
+  if (g_server.uri().startsWith("/runs/")) { handleRuns(); return; }
   g_other++;
   if (redirectedToName()) return;
   sendIndex();
@@ -247,10 +287,11 @@ void handleProbeMsft()  { probe("Microsoft Connect Test", 200, "text/plain"); }
 
 }  // namespace
 
-void begin(CommandFn handler, StateJsonFn state,
+void begin(CommandFn handler, StateJsonFn state, StateJsonFn runJson,
            const uint8_t* htmlGz, size_t htmlGzLen) {
   g_cmd     = handler;
   g_state   = state;
+  g_runJson = runJson;
   g_html    = htmlGz;
   g_htmlLen = htmlGzLen;
 
@@ -283,6 +324,8 @@ void begin(CommandFn handler, StateJsonFn state,
   // Nur POST. Ein vom Browser wiederholter GET landet damit in onNotFound und
   // zeigt die Oberflaeche -- statt den Antrieb in Gang zu setzen.
   g_server.on("/api/cmd", HTTP_POST, handleCmd);
+  g_server.on("/api/run", handleRun);
+  g_server.on("/runs", handleRuns);
 
   g_server.on("/hotspot-detect.html", handleProbeApple);     // iOS, macOS
   g_server.on("/library/test/success.html", handleProbeApple);

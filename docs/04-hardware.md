@@ -1934,6 +1934,7 @@ Befehle, identisch über serielle Konsole und Weboberfläche ([10-firmware](10-f
 | `i` | **Zustand**: Regler, Wägezelle, Geber, Bedienverbindung |
 | `g` | Geberzähler nullen (Verdrahtungstest, siehe unten) |
 | `m0` / `m1` | Leerlauf / Messlauf: fährt die Messgeschwindigkeiten der Reihe nach ab |
+| `R` / `Rk` / `Rs` / `Rn` / `Rx` / `Rm<k>=<v>` | Geführter Messlauf (`run.h`, [11-messablauf-review](11-messablauf-review.md) §3): starten, Hauptknopf, Nebenknopf, Nochmal, abbrechen, Metadaten (t Reifen, w Laufrad, b bar, c °C, l kg, p mm, n Notiz, d Unixzeit). Im Bedienfeld hinter *Messung*. Protokoll und Daten unter `/runs/` |
 | `h<kmh>` / `h-<kmh>` | Messgeschwindigkeit aufnehmen / entfernen (Liste im NVS, sortiert) |
 | `l<N>` | Auflast, ohne sie startet kein Messlauf |
 | `n<A0> <B0>` / `w<A1> <B1>` | Leerlauf- und Radverlustmodell von Hand setzen; `m0` fittet das Leerlaufmodell selbst, `u` das Radverlustmodell |

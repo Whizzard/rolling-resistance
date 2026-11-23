@@ -161,6 +161,33 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
   margin-top: 10px; background: #2f6f99; color: #fff; }
 .wiz button.plain { background: #c3ccd4; color: #16202a; }
 
+/* ---- Gefuehrter Messlauf: liegt wie der Assistent ueber allem ---- */
+.wiz table { width: 100%; border-collapse: collapse; font-size: 13px;
+             font-variant-numeric: tabular-nums; margin: 4px 0 8px; }
+.wiz th, .wiz td { text-align: right; padding: 4px 6px; border-bottom: 1px solid #e3e8ec; white-space: nowrap; }
+.wiz th { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #64737f; }
+.wiz th:first-child, .wiz td:first-child { text-align: left; }
+.wiz td.ok { color: #1f8a5c; font-weight: 700; }
+.wiz td.miss { color: #c0392b; font-weight: 700; }
+.wiz td.due { color: #b57a00; font-weight: 700; }
+.wiz .tw { overflow-x: auto; }
+.wiz .panel { background: #fff; border-left: 6px solid #2f6f99; border-radius: 6px;
+              padding: 10px 12px 12px; margin-bottom: 14px; }
+.wiz .bar { height: 10px; background: #e3e8ec; border-radius: 5px; margin: 8px 0 4px; overflow: hidden; }
+.wiz .bar div { height: 100%; width: 0; background: #2f6f99; }
+.wiz .btns button { width: 49%; }
+.wiz .btns button + button { margin-left: 2%; }
+.wiz .btns:after { content: ""; display: table; clear: both; }
+.wiz li.skip { color: #6b4b00; background: #f6e7c3; }
+.wiz h2 { margin: 14px 0 4px; }
+.wiz a.dl { display: inline-block; background: #2f6f99; color: #fff; text-decoration: none;
+            font-weight: 700; border-radius: 6px; padding: 12px 16px; margin: 6px 6px 6px 0; }
+.wiz .field input { width: 100%; font-size: 17px; padding: 8px; }
+.wiz .field { padding: 6px 0; margin: 0; background: none; }
+.wiz .cols { margin: 0 -4px; }
+.wiz .cols:after { content: ""; display: table; clear: both; }
+.wiz .cols .field { float: left; width: 50%; padding: 4px; }
+
 /* ---- Waage: Rohwert mit Skala ---- */
 .rawline { font-size: 25px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .rawline span { font-size: 14px; color: #7d8a95; font-weight: 400; margin-left: 8px; }
@@ -509,6 +536,31 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   <button type="button" id="wizOk" hidden>Schließen</button>
 </div>
 
+<div class="wiz" id="run" hidden>
+  <h1>Messlauf <span id="runId"></span></h1>
+  <div class="tiles" style="margin-bottom:8px">
+    <div class="tile half big"><div><div class="lab">Soll</div>
+      <div class="val"><span id="runSoll">—</span><small>km/h</small></div></div></div>
+    <div class="tile half big"><div><div class="lab">Ist</div>
+      <div class="val"><span id="runIst">—</span><small>km/h</small></div></div></div>
+  </div>
+  <div class="note bad" id="runErr" hidden></div>
+  <div class="panel">
+    <div class="step" id="runTitle">—</div>
+    <div class="txt" id="runTxt" hidden></div>
+    <div id="runBody"></div>
+    <div class="btns">
+      <button type="button" id="runOk" hidden>Weiter</button>
+      <button type="button" class="plain" id="runAlt" hidden>—</button>
+      <button type="button" class="plain" id="runRedo" hidden>Nochmal</button>
+    </div>
+  </div>
+  <h2>A · Vorbereitung</h2><ol id="runA"></ol>
+  <h2>B · Messfahrt</h2><ol id="runB"></ol>
+  <h2>C · Abschluss</h2><ol id="runC"></ol>
+  <button type="button" class="plain" id="runCancel">Abbrechen</button>
+</div>
+
 <div class="stopbar">
   <button type="button" id="stop">STOP</button>
 </div>
@@ -615,7 +667,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     }
   }
 
-  $("bMess").onclick = function () { send("m1"); };
+  $("bMess").onclick = function () { runOpen = true; $("run").hidden = false; send("R"); pollRun(); };
   $("bLeer").onclick = function () { send("m0"); };
   $("coast").onclick = function () { send("c"); };
   $("bAdd").onclick  = function () {
@@ -733,6 +785,165 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   $("wizCancel").onclick = function () { send("c"); send("uq"); lastGood = null; wizClose(); };
   $("wizOk").onclick = function () { if (lastJ && lastJ.wiz >= 4) send("uq"); lastGood = null; wizClose(); };
 
+  /* ---------- Gefuehrter Messlauf (run.h) ----------
+     Eigener Abruf /api/run, solange die Ueberlagerung offen ist. Die Firmware
+     liefert Titel, Text und Knopfbeschriftungen je Schritt; hier stehen nur die
+     Tabellen. Schritt 1 ist ein Formular, dessen Felder als Rm-Befehle gehen. */
+  var runOpen = false, runBusy = false, runStep = -1, runSub = -1, runShown = null;
+  var RUN_STEPS = [
+    ["A", "Lauf anlegen"], ["A", "Sichtpr\u00fcfung, Not-Aus"], ["A", "Systempr\u00fcfung"],
+    ["A", "Nullen"], ["A", "Kontrollgewicht"], ["A", "Leerlaufmodell"], ["A", "Radmodell"],
+    ["A", "Rad aufgelegt, Auflast"], ["B", "Warmlauf"], ["B", "Plateaus"],
+    ["B", "Ankerpunkt"], ["B", "Anhalten"], ["C", "Nachlauf Leerlauf"], ["C", "Protokoll"]
+  ];
+  function fm(v, d) { return (v === null || v === undefined) ? "\u2014" : de(v, d); }
+  function tbl(head, rows) {
+    var h = '<div class="tw"><table><tr>', i, j;
+    for (i = 0; i < head.length; i++) h += "<th>" + head[i] + "</th>";
+    h += "</tr>";
+    for (i = 0; i < rows.length; i++) {
+      h += "<tr>";
+      for (j = 0; j < rows[i].length; j++) {
+        var c = rows[i][j], cls = "";
+        if (typeof c === "object" && c !== null) { cls = c.c; c = c.t; }
+        h += '<td class="' + cls + '">' + c + "</td>";
+      }
+      h += "</tr>";
+    }
+    return h + "</table></div>";
+  }
+  function runForm() {
+    var pos = $("vLoad").innerHTML;   /* Auflast aus der Einrichtung, N -> kg */
+    var kg = parseFloat(pos.replace(",", ".")) / 9.80665;
+    return '<div class="cols">'
+      + '<div class="field"><label>Reifen</label><input id="rTire" value=""></div>'
+      + '<div class="field"><label>Laufrad</label><input id="rWheel" value=""></div>'
+      + '<div class="field"><label>Druck bar</label><input id="rBar" inputmode="decimal" value=""></div>'
+      + '<div class="field"><label>Raum \u00b0C</label><input id="rTemp" inputmode="decimal" value=""></div>'
+      + '<div class="field"><label>Auflast kg</label><input id="rLoad" inputmode="decimal" value="' + (isNaN(kg) ? "" : de(kg, 1)) + '"></div>'
+      + '<div class="field"><label>Laufgewicht mm</label><input id="rPos" inputmode="numeric" value=""></div>'
+      + '</div><div class="field"><label>Notiz</label><input id="rNote" value=""></div>';
+  }
+  /* Felder nacheinander schicken, dann Weiter. Zeit als Ortszeit in Sekunden. */
+  function runSubmitMeta() {
+    var now = new Date();
+    var local = Math.round((now.getTime() - now.getTimezoneOffset() * 60000) / 1000);
+    var list = [
+      "Rmt=" + $("rTire").value, "Rmw=" + $("rWheel").value,
+      "Rmb=" + $("rBar").value.replace(",", "."), "Rmc=" + $("rTemp").value.replace(",", "."),
+      "Rml=" + $("rLoad").value.replace(",", "."), "Rmp=" + $("rPos").value,
+      "Rmn=" + $("rNote").value, "Rmd=" + local, "Rk"
+    ];
+    var i = 0;
+    function next() {
+      if (i >= list.length) { pollRun(); return; }
+      var x = new XMLHttpRequest();
+      x.open("POST", "/api/cmd?c=" + encodeURIComponent(list[i++]) + "&t=" + encodeURIComponent(lastUp), true);
+      x.onload = next; x.onerror = next;
+      x.send();
+    }
+    next();
+  }
+  function paintRun(r) {
+    var s = r.step || 0, i;
+    $("runId").innerHTML = r.id || "";
+    $("runSoll").innerHTML = $("soll").innerHTML;
+    $("runIst").innerHTML  = $("kmh").innerHTML;
+    var err = (lastJ && lastJ.err) || "";
+    $("runErr").innerHTML = err; $("runErr").hidden = !err;
+    $("runTitle").innerHTML = r.title || "";
+    $("runTxt").innerHTML = r.txt || ""; $("runTxt").hidden = !r.txt;
+    /* Inhalt je Schritt. Das Formular (Schritt 1) nur einmal aufbauen. */
+    var body = "", key = s + "/" + r.sub;
+    if (s === 1) { if (runShown !== "form") { $("runBody").innerHTML = runForm(); runShown = "form"; } }
+    else {
+      if (s === 3 && r.checks) {
+        var rows = [];
+        for (i = 0; i < r.checks.length; i++) {
+          var c = r.checks[i];
+          rows.push([c[0], { t: c[1] > 0 ? "ok" : (c[1] === 0 ? "f\u00e4llig" : "fehlt"), c: c[1] > 0 ? "ok" : (c[1] === 0 ? "due" : "miss") }, c[2]]);
+        }
+        body = rows.length ? tbl(["Pr\u00fcfung", "", "Wert"], rows) : '<div class="bar"><div style="width:' + Math.min(100, r.subMs / 50) + '%"></div></div>';
+      }
+      if (s === 4) body = (r.tareSigma === null) ? '<div class="txt">\u2026</div>' : '<div class="txt">\u03c3 ' + fm(r.tareSigma, 1) + ' Counts</div>';
+      if (s === 5 && r.sub >= 1) body = '<div class="tiles"><div class="tile half"><div><div class="lab">Ist</div><div class="val">' + fm(r.ctrlNm, 3) + '<small>Nm</small></div><div class="sub">Soll ' + fm(r.ctrlSoll, 3) + ' Nm</div></div></div>'
+        + '<div class="tile half"><div><div class="lab">Abweichung</div><div class="val">' + (r.ctrlDev === null ? "\u2014" : ((r.ctrlDev >= 0 ? "+" : "") + de(r.ctrlDev, 2))) + '<small>%</small></div></div></div></div>';
+      if ((s === 6 || s === 13) && (r.sub >= 2 || s === 13)) {
+        var pts = (s === 6) ? (r.pre || []) : (r.post || []), rr = [];
+        for (i = 0; i < pts.length; i++) rr.push(s === 6 ? [fm(pts[i][0], 1), fm(pts[i][2], 4), fm(pts[i][3], 4)] : [fm(pts[i][0], 1), fm(pts[i][1], 4), fm(pts[i][2], 3) + " N"]);
+        if (rr.length) body = tbl(s === 6 ? ["km/h", "M Nm", "\u03c3"] : ["km/h", "M Nm", "\u0394 F_roll"], rr);
+        if (s === 6 && r.a0 !== null && r.sub >= 3) body += '<div class="txt">A\u2080 ' + fm(r.a0, 4) + ' \u00b7 B\u2080 ' + (r.b0 === null ? "\u2014" : r.b0.toExponential(2).replace(".", ",")) + '</div>';
+      }
+      if (s === 9) {
+        var min = Math.floor(r.subMs / 60000), w = r.warm || [], last = w.length ? w[w.length - 1] : null;
+        body = '<div class="bar"><div style="width:' + Math.min(100, r.subMs / r.warmMs * 100) + '%"></div></div>'
+          + '<div class="txt">' + min + ' von ' + Math.round(r.warmMs / 60000) + ' min'
+          + (last ? ' \u00b7 P ' + fm(last[1], 1) + ' W \u00b7 Crr ' + fm(last[2], 5) : '') + '</div>';
+      }
+      if (s === 10 || s === 11 || s === 12 || s === 14 || s === 99) {
+        var p = r.pts || [], rows2 = [];
+        for (i = 0; i < p.length; i++) rows2.push([fm(p[i][0], 1), p[i][1], fm(p[i][2], 4), fm(p[i][3], 4), fm(p[i][4], 5), fm(p[i][5], 5), { t: p[i][6] ? "ja" : "nein", c: p[i][6] ? "ok" : "miss" }]);
+        if (rows2.length && s < 14) body = tbl(["km/h", "#", "M Nm", "\u03c3", "Crr roh", "Crr korr.", "g\u00fcltig"], rows2);
+        if (s === 11 || s === 12) { var a = r.anchor || [], ra = [];
+          for (i = 0; i < a.length; i++) ra.push([fm(a[i][0], 1), a[i][1], fm(a[i][2], 4), fm(a[i][5], 5)]);
+          if (ra.length) body += "<h2>Anker</h2>" + tbl(["km/h", "#", "M Nm", "Crr korr."], ra); }
+      }
+      if (s === 14 || s === 99) {
+        var st = r.stat || [], rs = [];
+        for (i = 0; i < st.length; i++) rs.push([fm(st[i][0], 1), st[i][1] + "/" + st[i][2], fm(st[i][3], 4), fm(st[i][4], 4), fm(st[i][5], 5), fm(st[i][6], 5), "\u00b1 " + fm(st[i][7], 5)]);
+        if (rs.length) body += tbl(["km/h", "n", "M Nm", "\u03c3", "Crr roh", "Crr korr.", "u"], rs);
+        var wn = r.warn || [];
+        if (wn.length) { body += "<h2>Warnungen</h2><ul>"; for (i = 0; i < wn.length; i++) body += "<li>" + wn[i] + "</li>"; body += "</ul>"; }
+        else body += '<div class="txt">keine Warnungen</div>';
+        if (r.md) body += '<a class="dl" href="' + r.md + '">Protokoll .md</a>';
+        if (r.csv) body += '<a class="dl" href="' + r.csv + '">Daten .csv</a>';
+        body += '<div class="sub"><a href="/runs">alle Messl\u00e4ufe</a></div>';
+      }
+      if (runShown !== key || s >= 3) { $("runBody").innerHTML = body; runShown = key; }
+    }
+    /* Knoepfe */
+    $("runOk").innerHTML = r.ok || ""; $("runOk").hidden = !r.ok;
+    $("runAlt").innerHTML = r.alt || ""; $("runAlt").hidden = !r.alt;
+    $("runRedo").innerHTML = r.redo || ""; $("runRedo").hidden = !r.redo;
+    $("runCancel").hidden = (s === 14 || s === 99 || s === 0);
+    /* Schrittliste */
+    var html = { A: "", B: "", C: "" }, now = (s === 99) ? -1 : s;
+    for (i = 0; i < RUN_STEPS.length; i++) {
+      var n = i + 1, cls = "";
+      if (s === 99) cls = (n < runAbortStep) ? "done" : (n === runAbortStep ? "bad" : "");
+      else cls = (n < now) ? "done" : (n === now ? "now" : "");
+      html[RUN_STEPS[i][0]] += '<li class="' + cls + '">' + n + " \u00b7 " + RUN_STEPS[i][1] + "</li>";
+    }
+    $("runA").innerHTML = html.A; $("runB").innerHTML = html.B; $("runC").innerHTML = html.C;
+    if (s !== 99) runAbortStep = s;
+    runStep = s; runSub = r.sub;
+  }
+  var runAbortStep = 0;
+  function pollRun() {
+    if (!runOpen || runBusy) return;
+    runBusy = true;
+    var x = new XMLHttpRequest();
+    x.open("GET", "/api/run", true);
+    x.timeout = 1500;
+    x.onload = function () {
+      runBusy = false;
+      try { paintRun(JSON.parse(x.responseText)); }
+      catch (e) { $("runErr").innerHTML = "Anzeigefehler: " + e; $("runErr").hidden = false; }
+    };
+    x.onerror = x.ontimeout = function () { runBusy = false; };
+    x.send();
+  }
+  function runClose() { runOpen = false; runShown = null; $("run").hidden = true; }
+  $("runOk").onclick = function () {
+    if (runStep === 1) { runSubmitMeta(); return; }
+    if (runStep === 14 || runStep === 99) { send("Rk"); runClose(); return; }
+    send("Rk"); setTimeout(pollRun, 300);
+  };
+  $("runAlt").onclick  = function () { send("Rs"); setTimeout(pollRun, 300); };
+  $("runRedo").onclick = function () { send("Rn"); setTimeout(pollRun, 300); };
+  $("runCancel").onclick = function () { send("Rx"); setTimeout(pollRun, 300); };
+  setInterval(pollRun, 500);
+
   /* ---------- Anzeige ---------- */
   var build = null;   /* Kennung der Firmware; aendert sie sich, ist diese Seite alt */
 
@@ -845,6 +1056,8 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     if (j.mRad !== null && j.mRad !== undefined) view("MRad", j.mRad * 1000, 0);
     lastJ = j;
     paintWiz(j);
+    if (j.rs > 0 && !runOpen) { runOpen = true; $("run").hidden = false; pollRun(); }
+    if (j.rs === 0 && runOpen && runStep > 0 && runStep !== 14 && runStep !== 99) runClose();
     $("calHint").innerHTML = kal
       ? "Erneutes Kalibrieren überschreibt den Faktor. Vorher nullen."
       : "Noch nicht kalibriert — bis dahin gibt es nur Rohwerte, keine Kräfte.";

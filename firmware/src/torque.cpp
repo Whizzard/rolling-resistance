@@ -16,7 +16,8 @@ long     g_ring[DISPLAY_AVG_N] = {0};
 uint8_t  g_ri = 0, g_rn = 0;
 
 // Statische Tara, nicht blockierend: gesammelt wird in update().
-double   g_tareSum = 0.0;
+double   g_tareSum = 0.0, g_tareSumSq = 0.0;
+float    g_tareSigma = NAN;
 uint16_t g_tareN = 0;
 bool     g_tareBusy = false;
 uint32_t g_tareStartMs = 0;
@@ -81,10 +82,14 @@ bool update() {
   // HX711 den Zustand nicht auf Dauer besetzt.
   if (g_tareBusy) {
     g_tareSum += static_cast<double>(g_raw);
+    g_tareSumSq += static_cast<double>(g_raw) * static_cast<double>(g_raw);
     g_tareN++;
     if (g_tareN >= TARE_SAMPLES || (millis() - g_tareStartMs) > TARE_TIMEOUT_MS) {
       if (g_tareN > 0) {
         g_offset = static_cast<long>(g_tareSum / g_tareN);
+        const double mean = g_tareSum / g_tareN;
+        const double var = g_tareN > 1 ? (g_tareSumSq - g_tareN * mean * mean) / (g_tareN - 1) : 0.0;
+        g_tareSigma = var > 0.0 ? static_cast<float>(sqrt(var)) : 0.0f;
         settings::setTareOffset(g_offset);
       }
       g_tareBusy = false;
@@ -141,6 +146,7 @@ float powerW(float omega) {
 
 void tareBegin() {
   g_tareSum = 0.0;
+  g_tareSumSq = 0.0;
   g_tareN = 0;
   g_tareBusy = true;
   g_tareStartMs = millis();
@@ -148,6 +154,7 @@ void tareBegin() {
 
 bool     tareBusy()  { return g_tareBusy; }
 uint16_t tareCount() { return g_tareN; }
+float    tareSigma() { return g_tareSigma; }
 
 long tareOffset() { return g_offset; }
 
@@ -170,6 +177,7 @@ void resetAccumulator() {
 }
 
 uint32_t sampleCount() { return g_count; }
+double   sumRaw()      { return g_sum; }
 
 float averageRaw() {
   if (g_count == 0) return NAN;
