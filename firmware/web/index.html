@@ -280,6 +280,11 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       <button type="button" id="coast">Auslaufen</button>
     </div>
     <div class="runhint" id="runHint">—</div>
+    <button type="button" class="plain" id="bQuit" hidden
+            style="-webkit-appearance:none;border:0;cursor:pointer;font-family:inherit;
+                   font-size:15px;font-weight:700;background:#c3ccd4;color:#16202a;
+                   border-radius:6px;padding:12px 0;width:100%;margin-top:8px">
+      Fehler quittieren</button>
 
     <footer id="foot"></footer>
   </div>
@@ -481,6 +486,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   }
 
   $("bMess").onclick = function () { send("m1"); };
+  $("bQuit").onclick = function () { send("q"); };
   $("bLeer").onclick = function () { send("m0"); };
   $("coast").onclick = function () { send("c"); };
   $("bAdd").onclick  = function () {
@@ -545,11 +551,12 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
          + (j.plateau + 1) + " von " + list.length + " \u00b7 "
          + de(list[j.plateau] || 0, 1) + " km/h \u00b7 " + ph;
     } else if (j.phase === "FAULT") {
-      rh = "<b>FEHLER</b> \u2014 " + j.sfault + " \u00b7 quittieren mit <code>q</code> im Stillstand";
+      rh = "<b>FEHLER</b> \u2014 " + j.sfault + " \u00b7 Antrieb ist aus, quittieren nur im Stillstand";
     } else {
       rh = ph + (j.load === null ? " \u00b7 Auflast nicht gesetzt" : "");
     }
     $("runHint").innerHTML = rh;
+    $("bQuit").hidden = (j.phase !== "FAULT");
 
     $("st").className = j.link ? "dot ok" : "dot";
     $("st").title = j.link ? "Regler verbunden" : "kein Regler";

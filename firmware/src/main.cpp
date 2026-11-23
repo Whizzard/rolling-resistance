@@ -202,6 +202,10 @@ void printStatus() {
 
   Serial.print("# Messung  ");
   Serial.print(state::name());
+  if (state::phase() == state::FAULT) {
+    Serial.print(" \u2014 "); Serial.print(state::faultReason());
+    Serial.print(" (quittieren: q)");
+  }
   if (state::runMode() != state::RUN_NONE) {
     Serial.print(state::runMode() == state::RUN_BASELINE ? " Leerlauf" : " Messlauf");
     Serial.print(" Plateau "); Serial.print(state::plateauIndex() + 1);
