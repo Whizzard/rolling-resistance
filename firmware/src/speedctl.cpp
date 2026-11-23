@@ -186,9 +186,12 @@ void service() {
   if (g_duty > klemme) g_duty = klemme;
   if (g_duty < 0.0f)   g_duty = 0.0f;
 
-  // Not-Aus am Strom erkennen (speedctl.h): Stellwert da, Strom weg, Drehung weg.
+  // Not-Aus am Strom erkennen (speedctl.h): Stellwert da, Strom weg. OHNE
+  // Stillstandsbedingung: die Hall-Geber bleiben am Regler, und die auslaufende
+  // Trommel liefert nach dem Not-Aus noch 25 s lang eine Drehzahl (2026-11-23,
+  // aus 60 km/h). Ein angeschlossener Motor zieht unter Stellwert immer Strom.
   const float imot = fabsf(vesc::values().currentMotor);
-  if (g_duty > STALL_DUTY_MIN && imot < ESTOP_IMOT_MAX_A && istKmh < 1.0f) {
+  if (g_duty > STALL_DUTY_MIN && imot < ESTOP_IMOT_MAX_A) {
     const uint32_t now = millis();
     if (g_openSince == 0) {
       g_openSince = now;
