@@ -416,10 +416,13 @@ constexpr uint8_t  WEBUI_AP_IP[4] = {4, 3, 2, 1};
 // SICHERHEITSGRENZE. Totmannschaltung: solange ein Lauf fährt, muss der
 // Bedienrechner sich melden. Bleibt er länger aus, bricht der Lauf ab — ein
 // Abschaltkriterium wie jedes andere, docs/07-sicherheit.md §4.
-// [Festlegung] 2000 ms, dieselbe Größenordnung wie STALL_TIMEOUT_MS. Die
-// Oberfläche fragt 5×/s ab, es dürfen also zehn Abfragen ausfallen, bevor es greift.
-// Gilt NICHT, solange nie ein Client da war: dann wird über die Konsole gefahren.
-constexpr uint32_t LINK_TIMEOUT_MS = 2000;
+// [Festlegung 2026-11-23] 10 s. Vorher 2000 ms -- das brach Fahrten ab, obwohl
+// das Handy die Seite offen hatte: der Webserver der Arduino-Bibliothek bedient
+// nur EINEN Client, und eine leere Vorab-Verbindung von iOS haelt ihn bis zu 5 s
+// (HTTP_MAX_DATA_WAIT); die Abfragen der Seite warten derweil. 10 s liegen
+// darueber und sind fuer einen Bediener am Stand immer noch ein Totmann.
+// Gilt NICHT, solange nie ein Client da war: dann wird ueber die Konsole gefahren.
+constexpr uint32_t LINK_TIMEOUT_MS = 10000;
 
 // --------------------------------------------------------- Motorregler (VESC)
 // Nur fuer die Reglervariante (env:esp32s3-vesc). Die Hauptfirmware benutzt sie

@@ -299,7 +299,7 @@ Der MTB-Crr ist selbst gerechnet, weil die Quelle dort nur Watt ausweist:
 | `ESTOP_DECEL_KMH_S` | 0,5 | km/h/s | gesch | zweiter Weg: Trommel wird ohne Strom schneller als das langsamer, und der Sollwert sinkt nicht — ein angeschlossener Motor zöge sofort Strom. Nach dem Not-Aus aus 28 km/h etwa 3 km/h/s, die Regelung pendelt mit 0,1…0,2. |
 | `ESTOP_DETECT_MS` | 1000 | ms | gesch | so lange muss der Befund stehen |
 | `ESTOP_FB_WIRED` | false | – | TBD | Hilfskontakt des Not-Aus an `PIN_ESTOP_FB` — noch nicht verdrahtet. Kontakt soll nach Masse ziehen, wenn ausgelöst. |
-| `LINK_TIMEOUT_MS` | 2000 | ms | **Totmannschaltung.** Solange ein Lauf fährt, muss der Bedienrechner sich melden; bleibt er länger aus, bricht der Lauf ab. Dieselbe Größenordnung wie `STALL_TIMEOUT_MS`. Die Oberfläche fragt 5×/s ab, es dürfen also zehn Abfragen ausfallen. Gilt **nicht**, solange nie ein Client da war — dann wird über die Konsole gefahren. [07-sicherheit](07-sicherheit.md) §4 |
+| `LINK_TIMEOUT_MS` | **10000** | ms | **Totmannschaltung.** Seit 2026-11-23 10 s, vorher 2 s: der Einzelclient-Webserver hängt bis 5 s an leeren Vorab-Verbindungen von iOS, die Abfragen der Seite warten so lange — zwei Fahrten brachen deshalb ab. Solange ein Lauf fährt, muss der Bedienrechner sich melden; bleibt er länger aus, bricht der Lauf ab. Dieselbe Größenordnung wie `STALL_TIMEOUT_MS`. Die Oberfläche fragt 5×/s ab, es dürfen also zehn Abfragen ausfallen. Gilt **nicht**, solange nie ein Client da war — dann wird über die Konsole gefahren. [07-sicherheit](07-sicherheit.md) §4 |
 
 Die WLAN-Konstanten `WEBUI_*` stehen in [04-hardware](04-hardware.md) §13.1, weil sie
 zum Aufbau gehören und nicht zur Physik.
