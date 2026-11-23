@@ -34,6 +34,7 @@
 #include "logger.h"
 #include "tirepressure.h"
 #include "vesc/vesc.h"
+#include "vesc/packet.h"
 
 namespace {
 
@@ -41,6 +42,30 @@ bool  g_linkWasAlive = true;
 char  g_note[96] = "";          // letzte Rueckmeldung an die Oberflaeche
 
 void note(const char* s) { strncpy(g_note, s, sizeof(g_note) - 1); g_note[sizeof(g_note)-1] = '\0'; }
+
+// Live-Telemetrie auf die Konsole (Befehl j<s>): eine Zeile alle 200 ms, s Sekunden
+// lang. Fuer das Fehlersuchen ueber USB -- tools/konsole.py schreibt sie mit.
+uint32_t g_liveUntil = 0, g_liveLast = 0;
+
+void liveTelemetry() {
+  const uint32_t now = millis();
+  if (now >= g_liveUntil || now - g_liveLast < 200) return;
+  g_liveLast = now;
+  const vesc::Values& v = vesc::values();
+  Serial.print("# J ");      Serial.print(now);
+  Serial.print(" ist=");     Serial.print(speedctl::kmh(), 1);
+  Serial.print(" rampe=");   Serial.print(speedctl::rampKmh(), 1);
+  Serial.print(" duty=");    Serial.print(speedctl::duty(), 3);
+  Serial.print(" erpm=");    Serial.print(v.erpm);
+  Serial.print(" imot=");    Serial.print(v.currentMotor, 2);
+  Serial.print(" iin=");     Serial.print(v.currentIn, 2);
+  Serial.print(" vin=");     Serial.print(v.vIn, 1);
+  Serial.print(" fault=");   Serial.print(v.fault);
+  Serial.print(" phase=");   Serial.print(state::name());
+  long mean = 0, ripple = 0;
+  torque::displayStats(mean, ripple);
+  Serial.print(" counts=");  Serial.println(mean);
+}
 
 void printHelp() {
   Serial.println("# Befehle:");
@@ -56,6 +81,9 @@ void printHelp() {
   Serial.println("#   x       Losbrechmoment messen (Tastverhaeltnis steigt langsam)");
   Serial.println("#   i       Zustand: Regler, Waegezelle, Geber, Bedienverbindung");
   Serial.println("#   g       Geberzaehler nullen (Verdrahtungstest)");
+  Serial.println("#   j<s>    Live-Telemetrie, alle 200 ms, s Sekunden (Vorgabe 5)");
+  Serial.println("#   :<text> Terminalbefehl an den Regler (faults, hall_analyze 5, ...)");
+  Serial.println("#   ><hex>  Rohpaket an den Regler, Antwort als Hex (z. B. >0e = mcconf)");
   Serial.print("# Grenze: "); Serial.print(V_MAX_KMH, 0);
   Serial.println(" km/h (docs/07-sicherheit.md §5)");
 }
@@ -142,6 +170,11 @@ void printStatus() {
   if (speedctl::running() && speedctl::rampKmh() > 3.0f && speedctl::kmh() < 1.0f)
     Serial.println("#          ACHTUNG Sollwert steht an, Trommel dreht nicht."
                    " Kommutierung verloren \u2014 Hall-Tabelle erneut erkennen.");
+  if (speedctl::estopInput())
+    Serial.println("#          NOT-AUS ausgeloest (Hilfskontakt).");
+  if (speedctl::motorOpen())
+    Serial.println("#          KEIN MOTOR AM REGLER: Stellwert lag an, aber kein Motorstrom."
+                   " Not-Aus ausgeloest oder Motor abgeklemmt. Antrieb freigegeben.");
 
   // Der offene Fuehler ist zugleich der Verdacht auf die Hall-Geber: TMP und die
   // drei Hall-Adern liegen im SELBEN 6-poligen Stecker (docs/04-hardware.md
@@ -277,6 +310,19 @@ void handleCommand(const String& cmd) {
   if (cmd.length() == 0) return;
   const float arg = cmd.substring(1).toFloat();
 
+  // Durchgriff zum Regler, nur von der Konsole sinnvoll (vesc.h).
+  if (cmd[0] == ':') { vesc::terminal(cmd.c_str() + 1); return; }
+  if (cmd[0] == '>') {
+    uint8_t p[vesc::PAYLOAD_MAX];
+    size_t n = 0;
+    for (unsigned i = 1; i + 1 < cmd.length() && n < sizeof(p); i += 2) {
+      char h[3] = {cmd[i], cmd[i + 1], 0};
+      p[n++] = static_cast<uint8_t>(strtoul(h, nullptr, 16));
+    }
+    if (n) vesc::raw(p, n); else note("Hexnutzlast fehlt");
+    return;
+  }
+
   switch (cmd[0]) {
     case 'v':
       if (speedctl::setTargetKmh(arg)) {
@@ -383,6 +429,10 @@ void handleCommand(const String& cmd) {
       break;
     case 'i': printStatus(); break;
     case 'g': speed::resetCounters(); note("Geberzaehler genullt"); break;
+    case 'j':
+      g_liveUntil = millis() + static_cast<uint32_t>((arg > 0.0f ? arg : 5.0f) * 1000.0f);
+      g_liveLast = 0;
+      break;
     case '?': printHelp(); note(""); break;
     default:  note("unbekannter Befehl"); break;
   }
@@ -469,7 +519,7 @@ void buildStateJson(char* buf, size_t len) {
     "\"up\":%lu,\"geber\":[%s],"
     "\"nTrommel\":%.1f,\"nRad\":%.1f,\"dReifen\":%s,"
     "\"plateaus\":[%s],\"phase\":\"%s\",\"run\":%u,\"plateau\":%u,"
-    "\"sfault\":\"%s\",\"load\":%s,"
+    "\"sfault\":\"%s\",\"load\":%s,\"motorOffen\":%s,\"notaus\":%s,"
     "\"drumU\":%.4f,\"arm\":%.4f,\"calArm\":%.4f,\"npc\":%.8f,"
     "\"vmax\":%.0f,\"vmin\":%.0f,\"step\":%.0f,\"fsN\":%.1f}",
     ok ? "true" : "false",
@@ -496,13 +546,15 @@ void buildStateJson(char* buf, size_t len) {
     nDrum * 60.0f, nWheel * 60.0f, sDTire,
     sPlat, state::name(), static_cast<unsigned>(state::runMode()),
     static_cast<unsigned>(state::plateauIndex()), state::faultReason(), sLoad,
+    speedctl::motorOpen() ? "true" : "false", speedctl::estopInput() ? "true" : "false",
     settings::drumCircumferenceM(), settings::torqueArmM(),
     settings::calibArmM(), settings::loadcellNPerCount(),
     V_MAX_KMH, V_MIN_KMH, SPEED_STEP_KMH, LOADCELL_CAPACITY_N);
 }
 
 void pollSerial() {
-  static char line[32];
+  // 1100 Zeichen: eine Reglerkonfiguration als Hex (>0d + 493 Byte) muss hineinpassen.
+  static char line[1100];
   static uint8_t n = 0;
   while (Serial.available()) {
     const char c = Serial.read();
@@ -558,6 +610,7 @@ void loop() {
   speedctl::service();
   state::service();
   pollSerial();
+  liveTelemetry();
 
   // Totmannschaltung: reisst die Bedienverbindung ab, wird der Antrieb freigegeben.
   // Nur die FLANKE auswerten, sonst wuerde jeder Durchlauf release() senden.

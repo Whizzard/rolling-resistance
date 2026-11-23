@@ -33,6 +33,8 @@ enum : uint8_t {
   COMM_SET_CURRENT         = 6,
   COMM_SET_CURRENT_BRAKE   = 7,
   COMM_SET_RPM             = 8,
+  COMM_TERMINAL_CMD        = 20,   // Textbefehl an das Terminal des Reglers
+  COMM_PRINT               = 21,   // Textantwort des Terminals
   COMM_ALIVE               = 30,
   COMM_GET_VALUES_SELECTIVE = 50,
 };
@@ -91,5 +93,17 @@ const char* hwName();        // "410" beim FSESC 4.20
 // Fehlercode im Klartext. Unbekannte Codes werden als solche gemeldet und nicht
 // auf einen falschen Namen abgebildet.
 const char* faultText(uint8_t code);
+
+// DURCHGRIFF fuer die Fehlersuche ueber die USB-Konsole (docs/04-hardware.md 14.1):
+//   terminal(text)   schickt einen Textbefehl an das Terminal des Reglers, so wie
+//                    das VESC-Tool es tut ("faults", "hall_analyze 5", ...). Die
+//                    Antworten kommen als COMM_PRINT und werden als "# VESC> ..."
+//                    auf die Konsole geschrieben.
+//   raw(payload)     schickt eine beliebige Nutzlast (Kennung + Daten). Antworten,
+//                    die der Treiber nicht selbst verarbeitet, erscheinen als
+//                    "# V <hex>" -- so laesst sich z. B. COMM_GET_MCCONF (14) holen.
+// Beides ist Werkzeug, kein Betriebsweg: die Firmware wertet nichts davon aus.
+void terminal(const char* text);
+void raw(const uint8_t* payload, size_t len);
 
 }  // namespace vesc

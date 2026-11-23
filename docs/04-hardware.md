@@ -107,7 +107,7 @@ die Firmware noch nicht anfasst.
 
 | GPIO | Konstante | Funktion | Richtung | Anmerkung |
 |---|---|---|---|---|
-| 2 | `PIN_ESTOP_FB` | Not-Aus-Rückmeldung | in | nur **Anzeige** des Zustands; die Trennung erfolgt in Hardware |
+| 2 | `PIN_ESTOP_FB` | Not-Aus-Rückmeldung | in, Pull-up | nur **Anzeige**; die Trennung erfolgt in Hardware. **Noch nicht verdrahtet** (`ESTOP_FB_WIRED` = false); bis dahin erkennt die Firmware den Not-Aus am fehlenden Motorstrom ([07-sicherheit](07-sicherheit.md) §4) |
 | 4 | `PIN_MARK` | Drehzahlmarken Trommel | in, Interrupt | **8** Marken/Umdrehung |
 | 5 | `PIN_INDEX` | Indexmarke Trommel | in, Interrupt | 1/Umdrehung, triggert die Mittelung |
 | 6 | `PIN_WHEEL` | Drehzahl des Prüflaufrads | in, Interrupt | **1** Magnet/Umdrehung (`WHEEL_MARKS_PER_REV`); liefert den wirksamen Reifendurchmesser, später den Laufrad-Auslaufversuch |
@@ -1924,6 +1924,9 @@ Befehle, identisch über serielle Konsole und Weboberfläche ([10-firmware](10-f
 | `m0` / `m1` | Leerlauf / Messlauf: fährt die Messgeschwindigkeiten der Reihe nach ab |
 | `h<kmh>` / `h-<kmh>` | Messgeschwindigkeit aufnehmen / entfernen (Liste im NVS, sortiert) |
 | `l<N>` | Auflast, ohne sie startet kein Messlauf |
+| `j<s>` | Live-Telemetrie auf die Konsole, alle 200 ms für s Sekunden — zum Mitschreiben mit `tools/konsole.py` |
+| `:<text>` | **Durchgriff** zum Terminal des Reglers, wie im VESC-Tool: `:faults`, `:hall_analyze 5`. Antworten als `# VESC> …` |
+| `><hex>` | Rohpaket an den Regler, Antwort als `# V <hex>`. `>0e` holt die Motorkonfiguration, `>11` die App-Konfiguration |
 | `?` | Hilfe |
 
 `i` ist der Befehl fürs Anschließen. Die Oberfläche zeigt dasselbe, aber am Stand

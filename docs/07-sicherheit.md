@@ -51,6 +51,11 @@ Der Not-Aus trennt den Leistungspfad **in Hardware**. Ein Softwarebefehl zählt 
 - Rückmeldung an den ESP32 nur zur Anzeige
 - danach läuft die Trommel frei aus
 
+> **Stand 2026-11-23, so ist es gebaut:** ein **manueller** Not-Aus über drei Relais,
+> der den Motor vom Regler trennt und zugleich kurzschließt. Regler, ESP32 und
+> Bedienung bleiben am Netz. Eine Rückmeldung gibt es noch nicht; die Firmware
+> erkennt den Fall am **Motorstrom** (§4): Stellwert da, Strom weg, Drehung weg.
+
 **Gebremst wird über Kurzschluss der drei Phasen** — Schaltung in
 [04-hardware](04-hardware.md) §9. Gemessen: **25 s** aus über 400 1/min. Zwei Pfade,
 beide in dieselbe Richtung: Bus weg → gebremst, GPIO low → gebremst, Reset → gebremst.
@@ -264,6 +269,8 @@ weiter" ist es wirksam, gegen „Trommel dreht noch" nicht.
 | Trommeldrehzahl über Grenze | `MAX_DRUM_RPM` = 341 1/min | FAULT, Antrieb aus |
 | Motortemperatur | **TBD**, siehe A5 | FAULT, Antrieb aus |
 | **Bedienverbindung abgerissen** | `LINK_TIMEOUT_MS` = 2000 ms | FAULT, Antrieb aus |
+| **Kein Motor am Regler** (Not-Aus ausgelöst oder Motor abgeklemmt): Stellwert > `STALL_DUTY_MIN`, Motorstrom < `ESTOP_IMOT_MAX_A` = 0,3 A, keine Drehung | `ESTOP_DETECT_MS` = 1000 ms | Antrieb freigegeben, Meldung in Oberfläche und Konsole; im Lauf FAULT. Seit 2026-11-23 |
+| **Not-Aus-Hilfskontakt** an `PIN_ESTOP_FB` | nur wenn `ESTOP_FB_WIRED` | FAULT; **noch nicht verdrahtet (TBD)** |
 
 FAULT ist rastend: Quittierung nur im Stillstand über die Konsole oder das Bedienfeld.
 

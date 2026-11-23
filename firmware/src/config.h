@@ -259,6 +259,19 @@ constexpr uint32_t FAULT_SETTLE_MS = 500;     // Entprellung der Fehlerkriterien
 // still — das ist Kommutierung, nicht Last (docs/04-hardware.md §11). Ohne eigene
 // Trommelmarken ist das der einzige Weg, Stillstand trotz Sollwert zu erkennen.
 constexpr float STALL_DUTY_MIN = 0.05f;
+// NOT-AUS ERKENNEN. Der manuelle Not-Aus trennt den Motor ueber drei Relais vom
+// Regler und schliesst ihn kurz; Regler, ESP32 und Bedienung bleiben am Netz. Es
+// gibt keine Rueckmeldung — erkennbar ist der Fall am STROM: mit Motor zieht ein
+// stehender Antrieb bei anliegendem Stellwert mehrere Ampere (6,6 A bei 0,11 am
+// 2026-11-23), ohne Motor nur das Messrauschen des Reglers.
+// [gesch] Pruefen: Not-Aus ausloesen, v15, Imot in der Live-Telemetrie (Befehl j)
+// ablesen; er muss unter dieser Grenze bleiben.
+constexpr float    ESTOP_IMOT_MAX_A = 0.3f;
+constexpr uint32_t ESTOP_DETECT_MS  = 1000;   // [gesch] so lange muss der Befund stehen
+// [TBD] Hilfskontakt des Not-Aus an PIN_ESTOP_FB — noch nicht verdrahtet. Sobald er
+// liegt: true setzen. Der Kontakt soll nach Masse ziehen, wenn ausgeloest (interner
+// Pull-up; unverdrahtet liest der Pin "nicht ausgeloest").
+constexpr bool     ESTOP_FB_WIRED   = false;
 
 // ---------------------------------------------------------------- Pinbelegung
 // Board: ESP32-S3-DevKitC-1, Modul WROOM-1 N16R8. Begründung docs/04-hardware.md §4.
