@@ -249,7 +249,7 @@ span temperature coefficients of typical cells ~0.02 % FS/K; at 10 K and 49 N th
 
 ### W7 Drum bearings: inside or outside? Docs contradict themselves, load dependence remains
 
-[README](../README.md), `config.h` (comment on `DRUM_LOSS_CONST_NM`) and
+[../README](../README.md), `config.h` (comment on `DRUM_LOSS_CONST_NM`) and
 [03-parameters](03-parameters.md) §1 say the drum bearings lie **inside** the cradle and
 cancel out. [04-hardware](04-hardware.md) §2 describes the setup: drum on its
 **own shaft** in two 6902 bearings on the stand, motor coupled via flange. Thus the

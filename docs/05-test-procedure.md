@@ -25,7 +25,7 @@ are the same on the serial console and in the web UI.
 ### A0 Connect
 
 1. Flash the test variant: `cd firmware && pio run -e esp32s3-vesc -t upload -t monitor`.
-2. Join Wi-Fi `Pruefstand` — QR `hardware/qr-wlan.png`, password in `config.h`.
+2. Join Wi-Fi `Pruefstand` — QR `hardware/qr-wlan.png`, password in `firmware/src/secrets.h` (both outside the repo).
 3. Open the web UI: `http://tire.local/` or `http://4.3.2.1/` — QR
    `hardware/qr-ui.png`. Tab **Setup**.
 4. Enter `i`. Motor controller, load cell and control connection must **all three** be
@@ -45,7 +45,7 @@ are the same on the serial console and in the web UI.
 1. Drum stationary, **wheel lifted**, drum nudged by hand and allowed to settle (rotor
    free in its detent position). Weighing part in measuring position, cables routed as in
    operation, arm free. (3)
-2. Zeroing: `t`. 200 samples. Turn the drum a quarter turn further; the raw value must
+2. Zeroing: `t`. 80 samples. Turn the drum a quarter turn further; the raw value must
    stay the same.
 3. **Weigh the calibration weight yourself** (the 1 kg weight is certified), hang it on the
    mark of the calibration arm, plumb. **At most 1.27 kg** — on the 330 mm arm that is the
@@ -111,7 +111,9 @@ today** at the end. About two hours, of which 30 min warm-up. (11)
 > opens the guided measurement run (`run.h`, [11-run-review](11-run-review.md) §3).
 > Before starting it checks motor controller, cell, noise, calibration status, lever arm
 > and models, tares with the wheel lifted and checks the zero by turning the drum further,
-> prompts for the check weight, runs the idle pre-run baseline if needed, then on its own
+> checks the load-cell end stop (live bar, peak 100 to 140 % of full scale) and then
+> prompts for the check weight (continue only once the live torque shows the weight is
+> off), runs the idle pre-run baseline if needed, then on its own
 > warm-up, reference point, plateaus with three points each, reference point and stop,
 > optionally zero check and post-run baseline, and stores report and data under
 > `/runs/`. Every point is corrected by `J·dω/dt`; pressure and tire temperature come
@@ -168,9 +170,9 @@ today** at the end. About two hours, of which 30 min warm-up. (11)
 ### B3 Static tare
 
 1. **Lift the wheel.** Nudge the drum by hand, let it settle, stationary. (20)
-2. `t`. `TARE_SAMPLES` = 200 samples, ≈ 2.5 s.
+2. `t`. `TARE_SAMPLES` = 80 samples, 1 s at full rate; with a browser polling, 2 to 4 s.
 3. Turn the drum a **quarter turn** further, let it settle: the display must stay at zero
-   (< 0.02 N on F_roll). Otherwise something is holding the rotor.
+   (< 0.25 N on F_roll; up to 0.1 N of standstill cogging is normal and cancels in Crr). Otherwise something is holding the rotor.
 4. Repeat after **every** mechanical intervention, including after changing the outrigger
    height or rerouting a cable.
 
@@ -206,7 +208,7 @@ today** at the end. About two hours, of which 30 min warm-up. (11)
 
 1. Lift the wheel, enter the room temperature.
 2. The firmware reads the zero (drum stationary, wheel free): deviation from the offset
-   > 0.02 N on F_roll is drift of the cell, cable or preload (W14).
+   > 0.25 N on F_roll is drift of the cell, cable or preload (W14); the fine check is the post-run baseline.
 3. `b`, immediately afterwards, in the warm state.
 
 ### B8 Spin down and strip down

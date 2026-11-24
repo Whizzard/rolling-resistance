@@ -48,6 +48,7 @@ struct Values {
   float    currentIn    = 0.0f;  // A, dito. Auf Hardware 4.x GERECHNET, nicht gemessen
   float    duty   = 0.0f;    // −1 … +1
   int32_t  erpm   = 0;
+  int32_t  tacho  = 0;       // Tachozaehler des Reglers, 6 Schritte je elektrische Umdrehung, zaehlt auch von Hand gedreht
   float    vIn    = 0.0f;    // V
   uint8_t  fault  = 0;
   uint8_t  status = 0;       // Bit0 Timeout des Reglers, Bit1 Kill-Switch

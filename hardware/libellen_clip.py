@@ -31,38 +31,37 @@ Ebene wie die Schraubenauflage und die Unterseite ist eine einzige Fläche. Die
 Senkung entfällt, der Kopf steht oben auf.
 
 Die Libelle soll von DREI Seiten sichtbar bleiben: von oben und von beiden
-Längsseiten. Deshalb hält der Clip sie an den STIRNSEITEN:
+Längsseiten. Der Clip hält sie an den STIRNSEITEN und richtet sie mit den Leisten
+quer aus; festgehalten wird sie mit doppelseitigem Klebeband am Boden des Fachs
+(Fassung 2026-11-24: die frueheren Schnappnasen oben sind weg, die Stirnwaende
+schliessen BUENDIG mit der Oberkante der Libelle ab).
 
-    Stirnwaende   je wall_t dick, bis knapp über die Libelle hoch, an den
-                  Pads, flexibel.
-    Nasen         kleine Dreiecke oben an der Innenseite jeder Stirnwand,
-                  nose_d tief über die Oberkante der Libelle, nose_w breit,
-                  mittig. Die Schräge zeigt nach oben: beim Eindrücken von
-                  oben biegt die Libelle die Stirnwände auseinander, die Nasen
-                  schnappen über die Oberkante. Rund 27° zur Senkrechten
-                  (nose_d : nose_h = 1 : 2), die Unterseite waagerecht.
-                  Lösen: eine Stirnwand mit dem Daumen nach aussen drücken,
-                  Libelle anheben.
-    Leisten       zwei niedrige Leisten rail_h hoch entlang der Längsseiten,
-                  über die GANZE Länge. Sie richten die Libelle quer aus und
-                  versteifen die dünne Grundplatte. Von der Libelle verdecken
-                  sie unten rail_h, der Rest der Längsseite bleibt frei.
+    Stirnwaende   je wall_t dick, genau vial_h hoch ueber der Platte, buendig
+                  mit der Libelle.
+    Stuetzen      Stuetz-Schraegen AUSSEN an jeder Stirnwand, je eine links und
+                  rechts neben dem Schraubenkopf auf den Laengsleisten: ein Keil
+                  von der Oberkante der Stirnwand hinunter zum Plattenende, rail_t
+                  breit. Sie verhindern, dass die Wand nach aussen kippt -- die
+                  erste Fassung mit 1,5-mm-Waenden war labil.
+    Leisten       zwei Leisten rail_h hoch entlang der Laengsseiten, ueber die
+                  GANZE Laenge. Sie richten die Libelle quer aus und versteifen
+                  die Grundplatte; aussen gehen sie in die Stuetzen ueber.
 
-Die Stirnwand biegt sich beim Einschnappen um nose_d an der Oberkante aus; bei
-wall_t = 1,5 und rund 14 mm freier Höhe über den Leisten ist das weniger als
-1 % Dehnung am Fuss — PETG und PLA machen das dauerhaft mit. Der Schraubenkopf
-sitzt mit head_clear Luft neben der Wand und unterhalb dessen, wo sie sich
-bewegt.
+Der Schraubenkopf sitzt zwischen den beiden Stuetzen (lichte Weite cav_w, der
+Kopf hat head_d) mit head_clear Luft zur Stirnwand; der Schraubendreher kommt
+von oben senkrecht hin.
 
 Featurebaum:
     Grundplatte       Quader base_l x base_w x base_t, z = 0 ist die Auflage
     Leisten           2 x rail_t breit, rail_h hoch, volle Länge, aussen
-    Stirnwaende       2 x wall_t dick, volle Breite, wall_h hoch über der Platte
-    Nasen             2 x Dreieck in XZ, nose_w breit, mittig
+    Stirnwaende       2 x wall_t dick, volle Breite, wall_h = vial_h hoch
+    Stuetzen          Keile in XZ ueber die volle Breite ...
+    Stuetzen_frei     ... und die Mitte (cav_w) wieder herausgenommen: zwei Rippen
+                      je Ende bleiben stehen
     M6_Loecher        2 x Ø m6_d durch die Grundplatte
 
-Druck: flach, Grundplatte aufs Bett. Die Nasen stehen 0,6 mm frei über — eine
-Düsenbreite, das druckt jeder FDM-Drucker ohne Stütze.
+Druck: flach, Grundplatte aufs Bett. Keine Ueberhaenge: die Keile fallen nach
+aussen ab.
 
 Das Libellenmass 15,1 x 15,1 x 40 ist am Teil GEMESSEN (2026-11-23). Der
 Kopfdurchmesser der M6 ist der Normwert ISO 7380 und dient nur dazu, das Pad
@@ -88,7 +87,6 @@ PARAMS = [
     ('vial_h',       15.1, 'Libelle hoch (z), gemessen'),
     ('fit_l',         0.3, 'Spiel in der Laenge, GESAMT'),
     ('fit_w',         0.3, 'Spiel in der Breite, GESAMT'),
-    ('fit_h',         0.1, 'Luft zwischen Oberkante Libelle und Nasenunterseite'),
 
     # Schraube M6, Linsenkopf ISO 7380: dk ~10,5, k ~4
     ('m6_d',          6.6, 'M6 Durchgang, wie die anderen Halter'),
@@ -96,14 +94,11 @@ PARAMS = [
     ('head_edge',     2.0, 'Rand neben dem Kopf bis zum Plattenende'),
     ('head_clear',    1.0, 'Luft zwischen Kopf und Stirnwand'),
 
-    # Koerper
-    ('base_t',        1.5, 'Grundplatte dick = Material unter dem Schraubenkopf, VORGABE'),
-    ('rail_t',        1.2, 'Laengsleiste dick'),
+    # Koerper (2026-11-24: mehr Fleisch als die erste Fassung mit 1,5 / 1,2 / 1,5)
+    ('base_t',        2.0, 'Grundplatte dick = Material unter dem Schraubenkopf'),
+    ('rail_t',        1.6, 'Laengsleiste dick, zugleich Breite der Stuetzen'),
     ('rail_h',        2.0, 'Laengsleiste hoch ueber der Platte; so viel ist seitlich verdeckt'),
-    ('wall_t',        1.5, 'Stirnwand dick; duenn genug zum Federn'),
-    ('nose_d',        0.6, 'Nase ueber die Oberkante der Libelle'),
-    ('nose_h',        1.2, 'Nase hoch -> Schraege rund 27 Grad zur Senkrechten'),
-    ('nose_w',       10.0, 'Nase breit, mittig auf der Stirnwand'),
+    ('wall_t',        2.0, 'Stirnwand dick'),
 
     # Abgeleitet
     ('cav_l',  '=vial_l + fit_l',                  'Fach lang'),
@@ -113,7 +108,7 @@ PARAMS = [
     ('cav_x0', '=m6_x + head_d / 2 + head_clear + wall_t', 'Fach beginnt'),
     ('base_l', '=2 * cav_x0 + cav_l',              'Grundplatte lang'),
     ('m6_pitch', '=base_l - 2 * m6_x',             'Lochabstand der M6'),
-    ('wall_h', '=vial_h + fit_h + nose_h',         'Stirnwand hoch ueber der Platte'),
+    ('wall_h', '=vial_h',                          'Stirnwand hoch ueber der Platte, buendig mit der Libelle'),
 ]
 
 
@@ -256,24 +251,33 @@ def build(doc, sh):
          'Parameter.wall_t', 'Parameter.base_w')
     pad(sk, 'Stirnwaende', 'Parameter.wall_h')
 
-    # 4 Nasen: Dreiecke in der XZ-Ebene (lokal x = global x, lokal y = global z),
-    #   oben an der Innenseite jeder Stirnwand, symmetrisch um y = 0 gezogen.
-    #   Ecken: oben an der Wand, unten an der Wand, unten an der Spitze -> die
-    #   Hypotenuse ist die Einfuehrschraege, die Unterseite waagerecht.
+    # 4 Stuetz-Schraegen: Keile in der XZ-Ebene (lokal x = global x, lokal y =
+    #   global z), aussen an jeder Stirnwand von deren Oberkante hinunter zum
+    #   Plattenende, auf Leistenhoehe aufsetzend. Erst ueber die volle Breite
+    #   gezogen, dann die Mitte (cav_w) wieder herausgenommen -> je Ende zwei
+    #   Rippen rail_t breit, auf den Laengsleisten, der Schraubenkopf dazwischen.
     ztop = base_t + P(sh, 'wall_h')
-    zbot = ztop - P(sh, 'nose_h')
+    zrail = base_t + P(sh, 'rail_h')
     e_top = 'Parameter.base_t + Parameter.wall_h'
-    e_bot = 'Parameter.base_t + Parameter.wall_h - Parameter.nose_h'
-    sk = sketch_on(body, xz, 'Sk_Nasen')
-    poly(sk, [(cav_x0, ztop), (cav_x0 + P(sh, 'nose_d'), zbot), (cav_x0, zbot)], 'nl',
-         [('Parameter.cav_x0', e_top),
-          ('Parameter.cav_x0 + Parameter.nose_d', e_bot),
-          ('Parameter.cav_x0', e_bot)])
-    poly(sk, [(cav_x1, ztop), (cav_x1, zbot), (cav_x1 - P(sh, 'nose_d'), zbot)], 'nr',
-         [('Parameter.cav_x0 + Parameter.cav_l', e_top),
-          ('Parameter.cav_x0 + Parameter.cav_l', e_bot),
-          ('Parameter.cav_x0 + Parameter.cav_l - Parameter.nose_d', e_bot)])
-    pad(sk, 'Nasen', 'Parameter.nose_w', midplane=True)
+    e_rail = 'Parameter.base_t + Parameter.rail_h'
+    xl, xr = cav_x0 - wall_t, cav_x1 + wall_t
+    e_xl, e_xr = 'Parameter.cav_x0 - Parameter.wall_t', 'Parameter.cav_x0 + Parameter.cav_l + Parameter.wall_t'
+    sk = sketch_on(body, xz, 'Sk_Stuetzen')
+    poly(sk, [(0.0, zrail), (xl, zrail), (xl, ztop)], 'sl',
+         [('0', e_rail), (e_xl, e_rail), (e_xl, e_top)])
+    poly(sk, [(xr, zrail), (base_l, zrail), (xr, ztop)], 'sr',
+         [(e_xr, e_rail), ('Parameter.base_l', e_rail), (e_xr, e_top)])
+    pad(sk, 'Stuetzen', 'Parameter.base_w', midplane=True)
+    sk = sketch_on(body, xz, 'Sk_Stuetzen_frei')
+    rect(sk, 0.0, zrail, xl, ztop - zrail + 1.0, 'fl',
+         '0', e_rail, e_xl, 'Parameter.wall_h - Parameter.rail_h + 1')
+    rect(sk, xr, zrail, base_l - xr, ztop - zrail + 1.0, 'fr',
+         e_xr, e_rail, 'Parameter.base_l - (' + e_xr + ')', 'Parameter.wall_h - Parameter.rail_h + 1')
+    f = body.newObject('PartDesign::Pocket', 'Stuetzen_frei')
+    f.Profile = sk
+    f.setExpression('Length', 'Parameter.cav_w')
+    f.Midplane = True
+    doc.recompute()
 
     # 5 M6-Loecher, eines je Pad, durch die Grundplatte.
     sk = sketch_on(body, xy, 'Sk_M6')
@@ -360,7 +364,7 @@ def check(body, sh):
     cav_x1 = cav_x0 + cav_l
     xc = (cav_x0 + cav_x1) / 2
     ztop = base_t + P(sh, 'wall_h')
-    zbot = ztop - P(sh, 'nose_h')
+    zrail = base_t + P(sh, 'rail_h')
 
     # Grundplatte: Material unter dem Kopf, Luft im Loch
     for x in (P(sh, 'm6_x'), base_l - P(sh, 'm6_x')):
@@ -389,20 +393,27 @@ def check(body, sh):
     for xw in (cav_x0 - P(sh, 'wall_t') / 2, cav_x1 + P(sh, 'wall_t') / 2):
         if not inside(xw, 0.0, ztop - 0.2):
             print('FEHLER Stirnwand fehlt bei x = %.1f' % xw); ok = False
-    # Nasen: Material im Dreieck, Luft darunter (Libelle) und neben der Nase
-    q = P(sh, 'nose_d') / 4
-    for xn, sign in ((cav_x0, +1), (cav_x1, -1)):
-        if not inside(xn + sign * q, 0.0, zbot + P(sh, 'nose_h') / 2):
-            print('FEHLER Nase fehlt bei x = %.1f' % xn); ok = False
-        if inside(xn + sign * q, 0.0, zbot - 0.3):
-            print('FEHLER Nase ragt unter die Libellenoberkante bei x = %.1f' % xn); ok = False
-        if inside(xn + sign * q, P(sh, 'nose_w') / 2 + 0.5, zbot + P(sh, 'nose_h') / 2):
-            print('FEHLER Nase zu breit bei x = %.1f' % xn); ok = False
+    # Stuetzen: Rippe aussen auf halber Hoehe, Luft daneben (ueber dem Kopf) und
+    # oberhalb der Schraege
+    for xw, sign in ((cav_x0 - P(sh, 'wall_t'), -1), (cav_x1 + P(sh, 'wall_t'), +1)):
+        xm = xw + sign * 1.0                       # 1 mm vor der Wand: Keil fast voll hoch
+        zq = zrail + 0.5 * (ztop - zrail)
+        yr = base_w / 2 - P(sh, 'rail_t') / 2
+        if not inside(xm, yr, zq):
+            print('FEHLER Stuetze fehlt bei x = %.1f' % xm); ok = False
+        if inside(xm, 0.0, zq):
+            print('FEHLER Stuetze ueber dem Schraubenkopf bei x = %.1f' % xm); ok = False
+        xe = xw + sign * (P(sh, 'cav_x0') - P(sh, 'wall_t') - 0.5)   # kurz vor dem Plattenende
+        if inside(xe, yr, zq):
+            print('FEHLER Schraege faellt nicht ab bei x = %.1f' % xe); ok = False
+    # Stirnwand buendig: kein Material ueber ztop
+    if inside(cav_x0 - P(sh, 'wall_t') / 2, 0.0, ztop + 0.3):
+        print('FEHLER Stirnwand steht ueber die Libelle'); ok = False
     # Kopf neben der Wand frei
     gap = cav_x0 - P(sh, 'wall_t') - (P(sh, 'm6_x') + P(sh, 'head_d') / 2)
     print('Luft Kopf-Stirnwand %.1f mm, Lochabstand %.1f mm' % (gap, P(sh, 'm6_pitch')))
-    print('Seitlich verdeckt %.1f von %.1f mm, Nase %.1f mm ueber der Oberkante'
-          % (P(sh, 'rail_h'), P(sh, 'vial_h'), P(sh, 'nose_d')))
+    print('Seitlich verdeckt %.1f von %.1f mm, Stirnwand buendig, Stuetzen %.1f breit'
+          % (P(sh, 'rail_h'), P(sh, 'vial_h'), P(sh, 'rail_t')))
     return ok
 
 

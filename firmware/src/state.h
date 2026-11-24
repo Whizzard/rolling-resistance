@@ -89,6 +89,10 @@ float loadN();
 
 // Fortschritt (für Anzeige)
 uint8_t plateauIndex();
+uint8_t pointIndex();          // Punkt innerhalb des Plateaus, ab 0
+uint8_t seqLength();           // Geschwindigkeiten der laufenden Sequenz
+uint8_t pointsPerPlateau();
+uint32_t settleElapsedMs();    // in SETTLE: seit Beginn des Einschwingens
 uint8_t revsInPoint();
 
 const char* faultReason();

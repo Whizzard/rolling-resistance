@@ -156,6 +156,12 @@ void checkFaults() {
     snprintf(rbuf, sizeof(rbuf), "FAULT: Regler: %s", vesc::faultText(vesc::values().fault));
     reason = rbuf;
   }
+  // Die Regelung hat sich selbst abgeschaltet (Dropout: keine Reglerwerte, Not-Aus-
+  // Pfad), waehrend hier noch gefahren wird: ohne diesen Fall blieb die Maschine am
+  // 2026-11-24 in POINT stehen, der gefuehrte Lauf wartete ewig auf seinen Punkt.
+  else if (!speedctl::running() && (g_phase == SPINUP || g_phase == SETTLE || g_phase == POINT ||
+                                    g_phase == HOLD || g_phase == WIZ_SPINUP))
+                                    reason = "FAULT: Regelung hat abgeschaltet";
   else if (speedctl::estopInput())  reason = "FAULT: Not-Aus";
   else if (speedctl::motorOpen())   reason = "FAULT: Trennung erkannt";
   else if (stillstand)              reason = "FAULT: Trommel dreht nicht";
@@ -555,6 +561,10 @@ void setLoadN(float n) { g_loadN = n; settings::setLoadN(n); }
 float loadN() { return g_loadN; }
 
 uint8_t plateauIndex() { return g_plateau; }
+uint8_t pointIndex() { return g_k; }
+uint8_t seqLength() { return g_seqN; }
+uint8_t pointsPerPlateau() { return g_pointsPer; }
+uint32_t settleElapsedMs() { return g_phase == SETTLE ? millis() - g_settleStartMs : 0; }
 uint8_t revsInPoint() { return g_revs; }
 const char* faultReason() { return g_faultReason; }
 

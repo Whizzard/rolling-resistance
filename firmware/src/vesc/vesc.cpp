@@ -36,7 +36,7 @@ char     g_hwName[16] = {0};
 //   15 Fehlercode    · 21 Statusbyte
 // Das sind 22 Nutzbytes statt der 74 einer vollen Abfrage.
 constexpr uint32_t MASK = (1UL << 0) | (1UL << 1) | (1UL << 2) | (1UL << 3) |
-                          (1UL << 6) | (1UL << 7) | (1UL << 8) |
+                          (1UL << 6) | (1UL << 7) | (1UL << 8) | (1UL << 13) |
                           (1UL << 15) | (1UL << 21);
 
 // Breite jedes Feldes in Bytes, Bit 0 bis 21. Wird gebraucht, um nicht abgefragte
@@ -109,6 +109,7 @@ void onValues(const uint8_t* d, size_t len) {
       case 6:  g_val.duty         = be16(d + i) / 1000.0f;break;
       case 7:  g_val.erpm         = be32(d + i);          break;
       case 8:  g_val.vIn          = be16(d + i) / 10.0f;  break;
+      case 13: g_val.tacho        = be32(d + i);          break;
       case 15: g_val.fault        = d[i];                 break;
       case 21: g_val.status       = d[i];                 break;
       default: break;                                     // übersprungen

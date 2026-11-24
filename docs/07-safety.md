@@ -308,6 +308,7 @@ keeps driving" it is effective, against "drum is still turning" it is not.
 | **Control link lost** | `LINK_TIMEOUT_MS` = 10 s (2 s until 2026-11-23; iOS holds the single-client web server for up to 5 s with empty preconnections while the page's requests wait) | FAULT, drive off |
 | **No motor on the controller** (emergency stop triggered or motor disconnected): duty cycle > `ESTOP_DUTY_MIN` = 0.05 (until the evening of 2026-11-23 `STALL_DUTY_MIN` = 0.20, hence blind below 30 km/h), motor current < `ESTOP_IMOT_MAX_A` = 0.3 A **and** (speed < `ESTOP_SPEED_RATIO` = 0.6 × no-load speed for the duty cycle **or** drum decelerates faster than `ESTOP_DECEL_KMH_S` = 0.5 km/h/s without the setpoint decreasing). Current alone gave a false alarm at no load (0.2 A at 28 km/h); standstill alone came 25 s too late because the Hall sensors report the coasting drum (both 2026-11-23). A connected motor cannot lag behind its voltage without drawing current | `ESTOP_DETECT_MS` = 1000 ms | Drive released, message in UI and console; FAULT during a run. Since 2026-11-23 |
 | **Emergency stop auxiliary contact** on `PIN_ESTOP_FB` | only if `ESTOP_FB_WIRED` | FAULT; **not yet wired (TBD)** |
+| **Control loop switched itself off** while the state machine is still in a driving phase (dropout: no controller values for 1 s, breakaway failed) | immediate, debounced by `FAULT_SETTLE_MS` | FAULT, sequence ends, guided run aborts. Since 2026-11-24: before that the state machine stayed in POINT with the drum at rest and the run waited forever |
 
 FAULT holds as long as the drum turns and clears itself two seconds after standstill
 (since 2026-11-23; previously latching with acknowledgement, which was only a nuisance at
@@ -493,6 +494,7 @@ been incorporated into firmware and parameter list. Ordered by frequency of trou
 | Page freezes, message only after refresh | A JS error in `paint()` was swallowed by the error handler. | Errors are shown in red; the page reloads when the firmware reports a different build id. |
 | Overshoot when ramping up | Pure integrator, ramp ran into the target at full slope, drum lagged 3 km/h. | PI-D, anti-windup, D only beyond the ramp slope, ramp at most 1.5 km/h ahead of the drum, flattening before the target. 0.8–1.0 km/h, then ±0.2. |
 | Main loop stalled 266 ms without a reader | USB-CDC blocks when the computer is not reading. | `Serial.setTxTimeoutMs(20)`. Open: with telemetry windows over a minute, USB output pauses intermittently; loop and drive keep running. |
+| Main loop stalled 980 ms at the end of a baseline point, control loop dropped out ("no controller values for over 1 s"), state machine hung in POINT (2026-11-24) | The point record and the angle bins are over 30 single `print()` calls; with nobody reading USB each one waited the 20 ms timeout. | Transmit buffer 8 kB and timeout 0: with a reader the buffer never fills, without one output is dropped. The status line (`i`) now names the longest loop section. The state machine treats a stopped control loop in a driving phase as a FAULT (§4). |
 
 **The physics behind it:**
 

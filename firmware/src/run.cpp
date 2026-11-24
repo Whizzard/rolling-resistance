@@ -29,6 +29,7 @@ LiveFn   g_live = nullptr;
 struct Meta {
   char tire[40] = "", wheel[32] = "", note[64] = "";
   float bar = NAN, tempC = NAN, tempEndC = NAN, loadKg = NAN;
+  float loadCalcKg = NAN, loadMeasKg = NAN;   // aus der Position gerechnet / mit der Haengewaage gemessen
   int posMm = 0;
   uint32_t epoch = 0, epochMs = 0;   // Unixzeit vom Browser und millis() dabei
 };
@@ -55,12 +56,20 @@ struct Record {
   bool     tareCheckOk = false;
   float    ctrlNm = NAN, ctrlDev = NAN;   // Kontrollgewicht: Ist und Abweichung %
   bool     ctrlSkipped = false;
+  float    ctrlAdoptedFrom = NAN;         // Faktor vor der Uebernahme aus dem Kontrollgewicht (NAN: nicht uebernommen)
+  bool     ctrlOnHint = false;            // Weiter gedrueckt, aber das Gewicht haengt noch
+  int32_t  turnTacho0 = 0;                // Tacho beim Beginn des Weiterdrehens
+  float    turnDeg = NAN;                 // bisher gedreht, Grad (NAN ohne Regler)
+  uint32_t turnStillMs = 0;               // seit wann nach der Viertelumdrehung still
+  float    stopPeakPct = NAN;             // Anschlagpruefung: Spitze in % vom Zellenendwert
+  bool     stopSkipped = false;
   Point    pre[PLATEAU_MAX];  uint8_t preN = 0;
   Point    post[PLATEAU_MAX]; uint8_t postN = 0;
   float    a0 = NAN, b0 = NAN, a0Old = NAN, b0Old = NAN;   // Leerlaufmodell dieses Laufs und das davor
   bool     baseTaken = false;   // uebernommen statt gefahren
   bool     wheelUsed = false;
   Warm     warm[WARM_N]; uint8_t warmN = 0;
+  LiveVals liveLast = {NAN, NAN, NAN, false}; uint32_t liveLastMs = 0;   // letzter gueltiger Live-Wert im Warmlauf
   float    barWarm = NAN, tTireWarm = NAN;   // Druck und Reifentemperatur am Ende des Warmlaufs
   Point    meas[MEAS_N]; uint8_t measN = 0;
   Point    anchorPre[RUN_POINTS_PER_PLATEAU]; uint8_t anchorPreN = 0;   // Referenzpunkt direkt nach dem Warmlauf
@@ -129,6 +138,11 @@ void fmtTime(uint32_t t, char* out, size_t n, bool withTime) {
 }
 
 float omegaOf(float kmh) { return kmh / 3.6f / settings::drumRadiusM(); }
+// Rohwert-Differenz der Zelle als Kraft auf F_roll, N. NAN ohne Kalibrierung.
+float countsToFrollN(float counts) {
+  if (!settings::calibrated() || isnan(counts)) return NAN;
+  return counts * settings::loadcellNPerCount() * settings::torqueArmM() / settings::drumRadiusM();
+}
 float rDrum() { return settings::drumRadiusM(); }
 // Rohwert-Mittel der Stichprobe als Moment ueber der Tara, Nm. NAN ohne Kalibrierung.
 float sampleOffsetNm() {
@@ -330,6 +344,10 @@ void seqDone(bool completed) {
 }
 
 // ------------------------------------------------------------- Systempruefung
+// Nur, was JETZT da sein muss und jetzt pruefbar ist: Regler, Motor, Zelle, Faktor,
+// Arm, Drehzahlquelle, Druck, Plateaus, Auflast. Was spaetere Schritte selbst
+// erledigen (Nullen, Leerlaufmodell, Radmodell, Umfang), steht hier nicht --
+// eine Liste mit "kommt spaeter" verwirrt nur (2026-11-24).
 void runChecks() {
   g_r.checkN = 0;
   const vesc::Values& v = vesc::values();
@@ -345,7 +363,9 @@ void runChecks() {
     if (isnan(fN)) addCheck("Waegezelle", 1, "antwortet");
     else addCheck("Waegezelle", 1, "antwortet · %.1f %% vom Endwert", fabsf(fN) / LOADCELL_CAPACITY_N * 100.0f);
   }
-  addCheck("Rauschen Stillstand", 1, "protokolliert: Spitze-Spitze %.0f Counts (%lu s), Grenze TBD", g_r.noisePp, static_cast<unsigned long>(RUN_NOISE_MS / 1000));
+  { const float n = countsToFrollN(g_r.noisePp);
+    if (isnan(n)) addCheck("Rauschen Stillstand", 1, "Spitze-Spitze %.0f Counts in %lu s", g_r.noisePp, static_cast<unsigned long>(RUN_NOISE_MS / 1000));
+    else addCheck("Rauschen Stillstand", 1, "Spitze-Spitze %.3f N auf F_roll in %lu s (zum Vergleich: Rennreifen 1,5 N, Driftgrenze %.2f N)", n, static_cast<unsigned long>(RUN_NOISE_MS / 1000), RUN_DRIFT_LIMIT_N); }
   if (settings::calibrated()) addCheck("Kalibrierfaktor", 1, "%.4g N/Count", settings::loadcellNPerCount());
   else addCheck("Kalibrierfaktor", -1, "nicht kalibriert (TBD)");
   // Der Faktor gilt nur fuer den Zellenarm, mit dem kalibriert wurde (docs/12 D2).
@@ -353,23 +373,12 @@ void runChecks() {
     addCheck("Zellenarm", -1, "L jetzt %.1f mm, kalibriert bei %.1f mm: neu kalibrieren", settings::torqueArmM() * 1000.0f, settings::armAtCalM() * 1000.0f);
   else addCheck("Zellenarm", 1, "%.1f mm · L_kal %.1f mm%s", settings::torqueArmM() * 1000.0f, settings::calibArmM() * 1000.0f,
                 isnan(settings::armAtCalM()) ? " (Arm bei Kalibrierung unbekannt)" : "");
-  const uint32_t ta = settings::tareAgeMs();
-  if (ta == UINT32_MAX) addCheck("Tara", 0, "aus dem Speicher, Alter unbekannt → Schritt 4");
-  else addCheck("Tara", 0, "vor %lu min → Schritt 4 erneuert", static_cast<unsigned long>(ta / 60000));
-  if (!settings::haveBaseline()) addCheck("Leerlaufmodell", -1, "fehlt → Schritt 6");
-  else if (settings::baselineAgeMs() == UINT32_MAX) addCheck("Leerlaufmodell", 0, "aus dem Speicher, Alter unbekannt → Schritt 6");
-  else addCheck("Leerlaufmodell", 1, "vor %lu min · A0 %.4f · B0 %.2e", static_cast<unsigned long>(settings::baselineAgeMs() / 60000), settings::baselineA0(), settings::baselineB0());
-  if (!settings::haveWheelModel()) addCheck("Radmodell", -1, "fehlt → Einrichtung, Assistent Auslauf");
-  else addCheck("Radmodell", wheel::jRadMeasured() ? 1 : 0, "A1 %.5f · B1 %.2e · J %.4f kg·m² %s", settings::wheelA1(), settings::wheelB1(), wheel::jRadKgm2(),
-                wheel::jRadMeasured() ? "gemessen" : "GESCHAETZT (Bifilar fehlt, u ±3,5 %)");
-  if (isnan(settings::wheelCircM())) addCheck("Radumfang", -1, "nie gemessen");
-  else addCheck("Radumfang", 1, "%.0f mm", settings::wheelCircM() * 1000.0f);
   addCheck("Umdrehungen", revsrc::realRevolutions() || !speedctl::running() ? 1 : 0, "Quelle %s%s", revsrc::sourceName(),
            revsrc::realRevolutions() ? "" : " (ohne Index: gerechnete Umdrehungen, Restfehler im Budget)");
   if (tirepressure::source() == tirepressure::SRC_BLE && tirepressure::fresh())
     addCheck("Reifendruck", 1, "%s · %.2f bar · %.1f °C · Batterie %.0f %%", tirepressure::name(), tirepressure::bar(), tirepressure::tempC(), tirepressure::battery());
   else if (!isnan(g_r.meta.bar)) addCheck("Reifendruck", 1, "Handeingabe %.2f bar (kein AirSpy)", g_r.meta.bar);
-  else addCheck("Reifendruck", -1, "weder AirSpy noch Eingabe");
+  else addCheck("Reifendruck", -1, "weder AirSpy noch Eingabe: Rad drehen und Nochmal pruefen, oder abbrechen und in Schritt 1 eintragen (Eingaben bleiben erhalten)");
   if (!g_r.plateauN) addCheck("Plateaus", -1, "keine Messgeschwindigkeiten");
   else {
     char l[48]; size_t p = 0;
@@ -394,7 +403,9 @@ void writeMd(Print& o) {
   o.print("Reifen: "); o.print(g_r.meta.tire); o.print(" · Laufrad: "); o.print(g_r.meta.wheel);
   o.print(" · Druck kalt: "); pf(o, g_r.meta.bar, 2); o.print(" bar · nach Warmlauf: "); pf(o, g_r.barWarm, 2); o.print(" bar");
   o.print(" · Auflast: "); pf(o, g_r.meta.loadKg, 1);
-  o.print(" kg ("); pf(o, g_r.loadN, 1); o.print(" N) · Laufgewicht: "); o.print(g_r.meta.posMm); o.println(" mm  ");
+  o.print(" kg ("); pf(o, g_r.loadN, 1); o.print(" N), eingegeben");
+  if (g_r.meta.posMm) { o.print(" · Laufgewicht bei "); o.print(g_r.meta.posMm); o.print(" mm"); }
+  o.println("  ");
   o.print("Raumtemperatur Start: "); pf(o, g_r.meta.tempC, 1); o.print(" °C · Ende: "); pf(o, g_r.meta.tempEndC, 1);
   o.print(" °C · Reifentemperatur nach Warmlauf: "); pf(o, g_r.tTireWarm, 1); o.print(" °C · Start ");
   fmtTime(g_r.meta.epoch, t, sizeof(t), true); o.print(t); o.print(" · Ende ");
@@ -412,11 +423,13 @@ void writeMd(Print& o) {
     o.print("| "); o.print(c.name); o.print(" | "); o.print(c.res > 0 ? "ok" : c.res == 0 ? "faellig, erledigt" : "FEHLT");
     o.print(" | "); o.print(c.val); o.println(" |");
   }
-  o.print("| Nullen, Rad abgehoben | ok | σ = "); pf(o, g_r.tareSigma, 1); o.println(" Counts |");
+  o.print("| Nullen, Rad abgehoben | ok | Rauschen σ = "); pf(o, countsToFrollN(g_r.tareSigma), 4); o.print(" N auf F_roll ("); pf(o, g_r.tareSigma, 0); o.println(" Counts) |");
   o.print("| Nullpruefung Weiterdrehen | "); o.print(isnan(g_r.tareCheckN) ? "nicht gemacht" : (g_r.tareCheckOk ? "ok" : "ABWEICHUNG (W13)"));
   o.print(" | "); if (!isnan(g_r.tareCheckN)) { pf(o, g_r.tareCheckN, 3); o.print(" N auf F_roll, Grenze "); o.print(RUN_ZERO_LIMIT_N, 2); o.print(" N"); } o.println(" |");
-  o.print("| Kontrollgewicht | "); o.print(g_r.ctrlSkipped ? "uebersprungen" : (fabsf(g_r.ctrlDev) < RUN_CTRL_OK_PCT ? "ok" : "Warnung"));
-  o.print(" | "); if (g_r.ctrlSkipped) o.print("W01"); else { pf(o, g_r.ctrlNm, 3); o.print(" Nm · "); pf(o, g_r.ctrlDev, 2); o.print(" %"); } o.println(" |");
+  o.print("| Kontrollgewicht | "); o.print(g_r.ctrlSkipped ? "uebersprungen" : (!isnan(g_r.ctrlAdoptedFrom) ? "ALS KALIBRIERUNG UEBERNOMMEN (W18)" : (fabsf(g_r.ctrlDev) < RUN_CTRL_OK_PCT ? "ok" : "Warnung (W10)")));
+  o.print(" | "); if (g_r.ctrlSkipped) o.print("W01"); else { pf(o, g_r.ctrlNm, 3); o.print(" Nm · "); pf(o, g_r.ctrlDev, 2); o.print(" %"); if (!isnan(g_r.ctrlAdoptedFrom)) { o.print(" · Faktor vorher "); o.print(g_r.ctrlAdoptedFrom, 8); } } o.println(" |");
+  o.print("| Anschlag Waegezelle | "); o.print(g_r.stopSkipped || isnan(g_r.stopPeakPct) ? "uebersprungen" : ((g_r.stopPeakPct >= RUN_STOP_MIN_PCT && g_r.stopPeakPct <= RUN_STOP_MAX_PCT) ? "ok" : "AUSSERHALB (W16)"));
+  o.print(" | "); if (!isnan(g_r.stopPeakPct)) { o.print("Spitze "); pf(o, g_r.stopPeakPct, 0); o.print(" %% FS, Soll "); o.print(RUN_STOP_MIN_PCT, 0); o.print(" bis "); o.print(RUN_STOP_MAX_PCT, 0); o.print(" %%"); } else o.print("W17"); o.println(" |");
   o.print("| Nullpunkt nach dem Lauf | "); o.print(isnan(g_r.zeroEndN) ? "nicht geprueft" : (fabsf(g_r.zeroEndN) <= RUN_ZERO_LIMIT_N ? "ok" : "DRIFT (W14)"));
   o.print(" | "); if (!isnan(g_r.zeroEndN)) { pf(o, g_r.zeroEndN, 3); o.print(" N auf F_roll"); } o.println(" |");
   o.println();
@@ -552,10 +565,10 @@ void abortRun(const char* why) {
   if (g_step == S_ABORT || g_step == S_OFF) return;
   strncpy(g_r.abortWhy, why ? why : "abgebrochen", sizeof(g_r.abortWhy) - 1);
   warn("W06", "Lauf abgebrochen in Schritt %u: %s", static_cast<unsigned>(g_step), g_r.abortWhy);
-  if (speedctl::running()) state::stopRun();
+  go(S_ABORT);   // zuerst, damit der Rueckruf der Sequenz (seqDone) nicht erneut hier landet
+  if (state::phase() != state::IDLE && state::phase() != state::FAULT) state::stopRun();
   torque::sampleStop();
   writeFiles();
-  go(S_ABORT);
 }
 
 // ------------------------------------------------------------- Start
@@ -567,7 +580,14 @@ void startRun() {
   for (uint8_t i = 0; i < g_r.plateauN; i++) g_r.plateaus[i] = settings::plateauKmh(i);
   g_r.loadN = state::loadN();
   g_r.meta.loadKg = isnan(g_r.loadN) ? NAN : g_r.loadN / 9.80665f;
-  g_r.meta.bar = tirepressure::bar();
+  // Kopfdaten des letzten Laufs vorbelegen (NVS): nach Abbruch oder Neustart nicht von vorn.
+  { const settings::RunMeta& rm = settings::runMeta();
+    strncpy(g_r.meta.tire, rm.tire, sizeof(g_r.meta.tire) - 1);
+    strncpy(g_r.meta.wheel, rm.wheel, sizeof(g_r.meta.wheel) - 1);
+    strncpy(g_r.meta.note, rm.note, sizeof(g_r.meta.note) - 1);
+    g_r.meta.tempC = rm.tempC; g_r.meta.posMm = rm.posMm;
+    if (!isnan(rm.loadKg) && rm.loadKg > 0) { g_r.meta.loadKg = rm.loadKg; g_r.loadN = rm.loadKg * 9.80665f; }
+    g_r.meta.bar = (tirepressure::source() == tirepressure::SRC_BLE && tirepressure::fresh()) ? tirepressure::bar() : rm.bar; }
   g_r.a0Old = settings::baselineA0(); g_r.b0Old = settings::baselineB0();
   // Referenzpunkt = Warmlaufgeschwindigkeit; die Plateaus folgen aufsteigend.
   g_r.anchorKmh = WARMUP_KMH;
@@ -588,11 +608,25 @@ void setMeta(char key, const char* val) {
     case 'b': m.bar = f > 0 ? f : NAN; if (f > 0) tirepressure::setManual(f); break;
     case 'c': m.tempC = val[0] ? f : NAN; break;
     case 'e': m.tempEndC = val[0] ? f : NAN; break;
-    case 'l': if (f > 0) { m.loadKg = f; g_r.loadN = f * 9.80665f; state::setLoadN(g_r.loadN); } break;
-    case 'p': m.posMm = static_cast<int>(f); break;
+    case 'l':   // gemessen (Haengewaage): uebersteuert die Rechnung; leer loescht
+      m.loadMeasKg = f > 0 ? f : NAN;
+      if (f > 0) { m.loadKg = f; g_r.loadN = f * 9.80665f; state::setLoadN(g_r.loadN); }
+      else if (!isnan(m.loadCalcKg)) { m.loadKg = m.loadCalcKg; g_r.loadN = m.loadKg * 9.80665f; state::setLoadN(g_r.loadN); }
+      break;
+    case 'p': { m.posMm = static_cast<int>(f);
+      const float n = settings::loadFromPosN(f / 1000.0f);
+      m.loadCalcKg = isnan(n) ? NAN : n / 9.80665f;
+      if (!isnan(n) && isnan(m.loadMeasKg)) { m.loadKg = m.loadCalcKg; g_r.loadN = n; state::setLoadN(n); }
+      break; }
     case 'd': m.epoch = static_cast<uint32_t>(strtoul(val, nullptr, 10)); m.epochMs = millis();
               fmtTime(m.epoch, g_r.id, sizeof(g_r.id), false); break;
     default: break;
+  }
+  if (key == 't' || key == 'w' || key == 'n' || key == 'b' || key == 'c' || key == 'l' || key == 'p') {
+    settings::RunMeta rm;
+    strncpy(rm.tire, m.tire, sizeof(rm.tire)); strncpy(rm.wheel, m.wheel, sizeof(rm.wheel)); strncpy(rm.note, m.note, sizeof(rm.note));
+    rm.bar = m.bar; rm.tempC = m.tempC; rm.loadKg = m.loadKg; rm.posMm = m.posMm;
+    settings::setRunMeta(rm);
   }
 }
 
@@ -600,6 +634,27 @@ void setMeta(char key, const char* val) {
 float zeroDeviationN() {
   const float m = sampleOffsetNm();
   return isnan(m) ? NAN : m / rDrum();
+}
+// Kontrollgewicht: Sollmoment und ob es gerade noch haengt (Live-Moment ueber der
+// Haelfte des Solls). Unkalibriert gilt es als abgenommen, sonst gaebe es kein Weiter.
+float ctrlSollNm() { return RUN_CTRL_MASS_KG * 9.80665f * settings::calibArmM(); }
+float liveNm() { const float f = torque::newtons(); return isnan(f) ? NAN : f * settings::torqueArmM(); }
+bool  ctrlWeightOn() { const float m = liveNm(); return !isnan(m) && m > 0.5f * ctrlSollNm(); }
+// Das Kontrollgewicht IST die Kalibrierung: dasselbe Gewicht an derselben Marke. Weicht
+// es ab, kann der alte Faktor genauso falsch gewesen sein wie der Aufbau heute -- das
+// entscheidet der Mensch. Uebernehmen setzt den Faktor aus der eben gemessenen
+// Stichprobe neu (wie der Befehl k), die Abweichung wird damit 0; der alte Faktor
+// steht im Protokoll (W18).
+void adoptCtrlAsCalibration() {
+  if (isnan(g_r.ctrlNm) || torque::sampleN() == 0) return;
+  const float delta = torque::sampleMean() - torque::tareOffset();
+  if (fabsf(delta) < 1.0f) { warn("W18", "Kontrollgewicht ohne Ausschlag, Faktor nicht uebernommen"); return; }
+  const float old = settings::loadcellNPerCount();
+  const float nPerCount = ctrlSollNm() / settings::torqueArmM() / fabsf(delta);
+  if (!settings::setLoadcellNPerCount(nPerCount)) { warn("W18", "Faktor %.3e unplausibel, nicht uebernommen", nPerCount); return; }
+  g_r.ctrlAdoptedFrom = old;
+  warn("W18", "Kalibrierfaktor aus dem Kontrollgewicht uebernommen: %.4e -> %.4e N/count (%+.2f %%)", old, nPerCount, g_r.ctrlDev);
+  g_r.ctrlNm = ctrlSollNm(); g_r.ctrlDev = 0.0f;
 }
 
 // ------------------------------------------------------------- Knoepfe
@@ -618,8 +673,19 @@ void onOk() {
       else if (g_sub == 4) go(S_CTRL);                                 // Ergebnis -> weiter
       break;
     case S_CTRL:
-      if (g_sub == 0) { torque::sampleBegin(); sub(1); }              // haengt -> messen
-      else if (g_sub == 2) go(S_BASE);                                 // Ergebnis -> weiter
+      // Reihenfolge: erst der Anschlag, dann das Gewicht. Liegt der Arm beim
+      // Kontrollgewicht schon am Anschlag, ist die Messung wertlos.
+      if (g_sub == 0) {                                                // Anschlag erreicht -> bewerten, dann Gewicht
+        if (isnan(g_r.stopPeakPct) || g_r.stopPeakPct < RUN_STOP_MIN_PCT || g_r.stopPeakPct > RUN_STOP_MAX_PCT)
+          warn("W16", "Anschlag bei %.0f %% FS, Soll %.0f bis %.0f %%", g_r.stopPeakPct, RUN_STOP_MIN_PCT, RUN_STOP_MAX_PCT);
+        sub(1);
+      }
+      else if (g_sub == 1) { torque::sampleBegin(); sub(2); }         // haengt -> messen
+      else if (g_sub == 3) {                                           // Ergebnis -> weiter, wenn das Gewicht ab ist
+        if (ctrlWeightOn()) { g_r.ctrlOnHint = true; break; }         // sonst stehen bleiben und es sagen
+        if (fabsf(g_r.ctrlDev) >= RUN_CTRL_OK_PCT) warn("W10", "Kontrollgewicht weicht %.2f %% ab, weiter ohne Uebernahme", g_r.ctrlDev);
+        go(S_BASE);
+      }
       break;
     case S_BASE:
       if (g_sub == 0) sub(1);                       // Neu fahren -> Rad frei bestaetigen
@@ -647,8 +713,9 @@ void onAlt() {
       if (g_sub == 4) { warn("W13", "Nullpunkt winkelabhaengig: %.3f N auf F_roll, trotzdem weiter", g_r.tareCheckN); go(S_CTRL); }
       break;
     case S_CTRL:
-      if (g_sub == 0) { g_r.ctrlSkipped = true; warn("W01", "Kontrollgewicht uebersprungen"); go(S_BASE); }
-      else if (g_sub == 2) { warn("W10", "Kontrollgewicht weicht %.2f %% ab, trotzdem weiter", g_r.ctrlDev); go(S_BASE); }
+      if (g_sub == 0) { g_r.stopSkipped = true; g_r.stopPeakPct = NAN; warn("W17", "Anschlagpruefung uebersprungen"); sub(1); }
+      else if (g_sub == 1) { g_r.ctrlSkipped = true; warn("W01", "Kontrollgewicht uebersprungen"); go(S_BASE); }
+      else if (g_sub == 3 && !isnan(g_r.ctrlNm)) adoptCtrlAsCalibration();   // dieser Wert gilt ab jetzt
       break;
     case S_BASE:
       if (g_sub == 0 && settings::haveBaseline()) {
@@ -666,8 +733,35 @@ void onAlt() {
     default: break;
   }
 }
+// Zurueck: einen Schritt der Vorbereitung zurueck, solange nichts faehrt. In der
+// Messfahrt gibt es kein Zurueck, nur Abbrechen.
+bool canBack() {
+  if (speedctl::running()) return false;
+  switch (g_step) {
+    case S_VISUAL: case S_CHECKS: case S_WHEEL: case S_READY: return true;
+    case S_TARE: return g_sub != 1 && g_sub != 3;
+    case S_CTRL: return g_sub != 2;
+    case S_BASE: return g_sub == 0 || g_sub == 1 || g_sub == 4;
+    default: return false;
+  }
+}
+void onBack() {
+  if (!canBack()) return;
+  torque::sampleStop();
+  switch (g_step) {
+    case S_VISUAL: go(S_META); break;
+    case S_CHECKS: go(S_VISUAL); break;
+    case S_TARE:   go(S_CHECKS); g_r.noisePp = 0; break;
+    case S_CTRL:   if (g_sub == 0) go(S_TARE); else { g_r.stopPeakPct = NAN; sub(0); } break;
+    case S_BASE:   if (g_sub == 1) sub(0); else go(S_CTRL); break;
+    case S_WHEEL:  go(S_BASE); break;
+    case S_READY:  go(S_WHEEL); break;
+    default: break;
+  }
+}
 void onRedo() {
-  if (g_step == S_CTRL && g_sub == 2) sub(0);
+  if (g_step == S_CHECKS && g_sub == 1) { g_r.noisePp = 0; sub(0); }   // nach Beheben unter Einrichtung
+  if (g_step == S_CTRL && g_sub == 3) sub(1);
   if (g_step == S_TARE && g_sub == 4) { g_r.tareCheckN = NAN; sub(0); }
 }
 
@@ -698,7 +792,22 @@ void service() {
     case S_TARE:
       if (g_sub == 1 && state::phase() == state::IDLE && !torque::tareBusy() && inSubMs() > 300) {
         g_r.tareSigma = torque::tareSigma();
+        g_r.turnTacho0 = vesc::values().tacho; g_r.turnDeg = NAN; g_r.turnStillMs = 0;
         sub(2);   // -> Weiterdrehen
+      }
+      if (g_sub == 2) {
+        // Der Tacho des Reglers zaehlt die Hall-Schritte auch beim Drehen von Hand.
+        // Ist die Viertelumdrehung erreicht und die Trommel wieder still, geht es von
+        // selbst weiter; der Knopf bleibt fuer den Fall ohne Regler.
+        if (vesc::connected()) {
+          const int32_t d = vesc::values().tacho - g_r.turnTacho0;
+          g_r.turnDeg = fabsf(static_cast<float>(d)) * 360.0f / VESC_TACHO_PER_REV;
+          const bool still = revsrc::revPerSec() < 0.05f && fabsf(static_cast<float>(vesc::values().erpm)) < 5.0f;
+          if (g_r.turnDeg >= RUN_TURN_DEG && still) {
+            if (g_r.turnStillMs == 0) g_r.turnStillMs = millis();
+            else if (millis() - g_r.turnStillMs >= RUN_TURN_STILL_MS) { torque::sampleBegin(); sub(3); }
+          } else g_r.turnStillMs = 0;
+        } else g_r.turnDeg = NAN;
       }
       if (g_sub == 3 && inSubMs() >= RUN_ZERO_AVG_MS) {
         torque::sampleStop();
@@ -708,12 +817,15 @@ void service() {
       }
       break;
     case S_CTRL:
-      if (g_sub == 1 && inSubMs() >= RUN_CTRL_AVG_MS) {
+      if (g_sub == 0) {   // Anschlag: Spitze der Zellenkraft in % FS mitfuehren
+        const float fN = torque::newtons();
+        if (!isnan(fN)) { const float pct = fabsf(fN) / LOADCELL_CAPACITY_N * 100.0f; if (isnan(g_r.stopPeakPct) || pct > g_r.stopPeakPct) g_r.stopPeakPct = pct; }
+      }
+      if (g_sub == 2 && inSubMs() >= RUN_CTRL_AVG_MS) {
         torque::sampleStop();
         const float m = sampleOffsetNm();
-        const float soll = RUN_CTRL_MASS_KG * 9.80665f * settings::calibArmM();
-        g_r.ctrlNm = m; g_r.ctrlDev = (m / soll - 1.0f) * 100.0f;
-        sub(2);
+        g_r.ctrlNm = m; g_r.ctrlDev = (m / ctrlSollNm() - 1.0f) * 100.0f;
+        sub(3);
       }
       break;
     case S_BASE:
@@ -723,10 +835,14 @@ void service() {
       if (g_sub == 0) {
         // je Minute ein Live-Punkt; nach WARMUP_MS weiter
         const uint8_t minute = inSubMs() / 60000;
+        // Live-Wert mitfuehren: der Minutenpunkt nimmt den letzten gueltigen der Minute,
+        // nicht den Zufall des Augenblicks (der war bei 30 km/h meist gerade nicht konstant).
+        { LiveVals lv; if (g_live && g_live(lv)) { g_r.liveLast = lv; g_r.liveLastMs = millis(); } }
         if (minute >= 1 && g_r.warmN < WARM_N && (g_r.warmN == 0 || g_r.warm[g_r.warmN - 1].min < minute)) {
-          LiveVals lv; Warm& w = g_r.warm[g_r.warmN++];
+          Warm& w = g_r.warm[g_r.warmN++];
           w.min = minute; w.bar = tirepressure::bar(); w.tTire = tirepressure::tempC();
-          if (g_live && g_live(lv)) { w.m = lv.mNm; w.p = lv.pW; w.crr = lv.crr; } else { w.m = w.p = w.crr = NAN; }
+          if (g_r.liveLastMs && millis() - g_r.liveLastMs < 60000) { w.m = g_r.liveLast.mNm; w.p = g_r.liveLast.pW; w.crr = g_r.liveLast.crr; }
+          else { w.m = w.p = w.crr = NAN; }
         }
         if (inSubMs() >= WARMUP_MS) sub(1);
         if (state::phase() != state::HOLD) { abortRun("Warmlauf unterbrochen"); return; }
@@ -767,6 +883,7 @@ bool command(const char* t) {
     case 'k': onOk(); return true;
     case 's': onAlt(); return true;
     case 'n': onRedo(); return true;
+    case 'b': onBack(); return true;
     case 'x':
       if (g_step == S_OFF) return true;
       if (g_step == S_REPORT || g_step == S_ABORT) { go(S_OFF); return true; }
@@ -809,24 +926,54 @@ void json(char* buf, size_t len) {
   switch (g_step) {
     case S_META:   title = "Lauf anlegen"; ok = "Weiter"; break;
     case S_VISUAL: title = "Sichtpruefung"; txt = "Trommel, Wiegeteil frei, Kupplung, Rad gesichert, Blockierkeil raus, Not-Aus griffbereit."; ok = "Geprueft"; break;
-    case S_CHECKS: title = "Systempruefung"; if (g_sub == 1) { ok = checksBlock() ? "" : "Weiter"; txt = checksBlock() ? "Etwas fehlt. Unter Einrichtung beheben, dann neu starten." : ""; } else txt = "Rauschen im Stillstand, 5 s."; break;
+    case S_CHECKS: title = "Systempruefung";
+      if (g_sub == 1) { ok = checksBlock() ? "" : "Weiter"; redo = "Nochmal pruefen";
+        txt = checksBlock() ? "Rot markiertes beheben (Einrichtung bleibt erreichbar), dann Nochmal pruefen." : "Alles da, was fuer den Lauf jetzt gebraucht wird."; }
+      else txt = "Rauschen im Stillstand, 5 s.";
+      break;
     case S_TARE:   title = "Nullen";
       if (g_sub == 0) { txt = "Rad mit dem Exzenter ABHEBEN. Trommel von Hand anstossen und auspendeln lassen: der Rotor muss frei in seine Rastlage fallen, sonst steckt das Rastmoment im Nullpunkt."; ok = "Rad frei, Trommel steht"; }
-      else if (g_sub == 1) txt = "Trommel steht. 200 Werte.";
-      else if (g_sub == 2) { txt = "Trommel von Hand eine Viertelumdrehung weiterdrehen, auspendeln lassen."; ok = "Weitergedreht"; }
+      else if (g_sub == 1) { static char ttxt[40]; snprintf(ttxt, sizeof(ttxt), "Trommel steht. %u Werte.", static_cast<unsigned>(TARE_SAMPLES)); txt = ttxt; }
+      else if (g_sub == 2) { txt = isnan(g_r.turnDeg) ? "Trommel von Hand eine Viertelumdrehung weiterdrehen, auspendeln lassen."
+                                                        : "Trommel von Hand weiterdrehen, bis der Balken voll ist, dann loslassen: die Messung startet von selbst, wenn sie still steht.";
+                             ok = isnan(g_r.turnDeg) ? "Weitergedreht" : (g_r.turnDeg >= RUN_TURN_DEG ? "Steht, messen" : ""); }
       else if (g_sub == 3) txt = "misst";
       else { ok = g_r.tareCheckOk ? "Weiter" : ""; alt = g_r.tareCheckOk ? "" : "Trotzdem weiter"; redo = "Nochmal nullen";
              txt = g_r.tareCheckOk ? "" : "Nullpunkt haengt vom Winkel ab: haelt etwas den Rotor fest (Rad auf der Trommel, Kabel)?"; }
       break;
-    case S_CTRL:   title = "Kontrollgewicht";
-      if (g_sub == 0) { txt = "1000 g an die Marke des Kalibrierarms haengen, Rad bleibt abgehoben."; ok = "Haengt"; alt = "Ueberspringen"; }
-      else if (g_sub == 1) txt = "misst";
-      else { ok = fabsf(g_r.ctrlDev) < RUN_CTRL_OK_PCT ? "Weiter" : ""; alt = (fabsf(g_r.ctrlDev) >= RUN_CTRL_OK_PCT && fabsf(g_r.ctrlDev) < RUN_CTRL_WARN_PCT) ? "Trotzdem weiter" : ""; redo = "Nochmal";
-             txt = fabsf(g_r.ctrlDev) >= RUN_CTRL_WARN_PCT ? "Abweichung zu gross: Kalibrierung pruefen." : "Gewicht abnehmen."; }
-      break;
+    case S_CTRL: {
+      static char ctxt[560];
+      const float lcal = settings::calibArmM() * 1000.0f;
+      title = "Kontrollgewicht";
+      if (g_sub == 0) { title = "Anschlag Waegezelle";
+        snprintf(ctxt, sizeof(ctxt), "Rad abgehoben, nichts haengt am Arm. Den Arm von Hand LANGSAM in Zugrichtung gegen den Anschlag druecken, bis der Balken nicht mehr steigt, dann loslassen. Der Anschlag muss zwischen %.0f und %.0f %% des Zellenendwerts greifen: darunter begrenzt er die Messung (und das Kontrollgewicht laege schon auf), darueber schuetzt er die Zelle nicht (150 %% sind das Limit). Steigt der Wert ueber %.0f %%, ohne dass es haelt: loslassen.",
+                 RUN_STOP_MIN_PCT, RUN_STOP_MAX_PCT, RUN_STOP_MAX_PCT);
+        txt = ctxt; ok = "Anschlag erreicht"; alt = "Ueberspringen"; }
+      else if (g_sub == 1) { snprintf(ctxt, sizeof(ctxt), "Das geeichte %.0f-g-Gewicht an die Marke bei %.0f mm vom Drehpunkt haengen (Einrichtung: Kalibrierarm), lotrecht, ohne Haken oder Schnur mitzuwiegen. Rad bleibt abgehoben. Prueft die ganze Kette Zelle, Arm, Faktor gegen die Kalibrierung. Der Arm darf dabei nicht am Anschlag liegen.",
+                                RUN_CTRL_MASS_KG * 1000.0f, lcal); txt = ctxt; ok = "Haengt"; alt = "Ueberspringen"; }
+      else if (g_sub == 2) txt = "misst, 2 s";
+      else {
+        const bool good = fabsf(g_r.ctrlDev) < RUN_CTRL_OK_PCT;
+        const bool on = ctrlWeightOn();
+        const bool adopted = !isnan(g_r.ctrlAdoptedFrom);
+        // Weiter gibt es, sobald das Gewicht nachweislich ab ist (Live-Moment) -- die
+        // Abweichung sperrt nie, sie warnt (W10). Uebernehmen macht den heutigen Wert
+        // zur Kalibrierung (aus der eben genommenen Stichprobe, das Gewicht darf schon ab sein).
+        ok = "Weiter"; alt = (adopted || good) ? "" : "Als Kalibrierung uebernehmen"; redo = "Nochmal";
+        const char* hang = on ? (g_r.ctrlOnHint ? " GEWICHT HAENGT NOCH: abnehmen, dann Weiter." : " Gewicht abnehmen, dann Weiter.") : " Gewicht ist ab.";
+        if (!on) g_r.ctrlOnHint = false;
+        if (adopted) { snprintf(ctxt, sizeof(ctxt), "Uebernommen: Faktor %.4e statt %.4e N/count.%s", settings::loadcellNPerCount(), g_r.ctrlAdoptedFrom, hang); txt = ctxt; }
+        else if (good) { snprintf(ctxt, sizeof(ctxt), "Stimmt mit der Kalibrierung.%s", hang); txt = ctxt; }
+        else {
+          snprintf(ctxt, sizeof(ctxt), "%+.1f %% gegen den gespeicherten Faktor. Entweder stimmt heute etwas nicht (Gewicht nicht an der %.0f-mm-Marke, Haken oder Schnur mitgewogen, Arm am Anschlag, Kabel) -- dann Nochmal. Oder die alte Kalibrierung war es -- dann Uebernehmen, der heutige Wert gilt. Weiter laesst den alten Faktor und traegt W10 ein.%s",
+                   g_r.ctrlDev, lcal, hang);
+          txt = ctxt;
+        }
+      }
+      break; }
     case S_BASE:   title = "Leerlaufmodell";
       if (g_sub == 0) { ok = "Neu fahren"; alt = settings::haveBaseline() ? "Uebernehmen" : ""; txt = settings::haveBaseline() ? (settings::baselineAgeMs() == UINT32_MAX ? "Gespeichert, Alter unbekannt." : "Aus dieser Sitzung.") : "Kein Modell vorhanden."; }
-      else if (g_sub == 1) { title = "Rad abgehoben?"; txt = "Rad bleibt frei von der Trommel, Kontrollgewicht ist abgenommen."; ok = "Ja, Vorlauf starten"; }
+      else if (g_sub == 1) { title = "Rad abgehoben?"; txt = ctrlWeightOn() ? "Kontrollgewicht haengt noch: abnehmen." : "Rad bleibt frei von der Trommel, nichts haengt am Arm."; ok = ctrlWeightOn() ? "" : "Ja, Vorlauf starten"; }
       else if (g_sub == 2) { title = "Leerlauf Vorlauf"; }
       else if (g_sub == 3) { title = "Anhalten"; }
       else { title = "Rad absenken"; txt = "Trommel steht. Rad auf die Trommel."; ok = "Abgesenkt"; }
@@ -850,15 +997,60 @@ void json(char* buf, size_t len) {
     case S_ABORT:  title = "Abgebrochen"; txt = g_r.abortWhy; ok = "Schliessen"; break;
     default: break;
   }
+  // Der Schrittname steht schon im Gliederungspunkt darueber; der Titel geht nur
+  // noch hinaus, wenn ein Unterschritt einen eigenen hat (2026-11-24).
+  static const char* const BASE[] = {"", "Lauf anlegen", "Sichtpruefung", "Systempruefung", "Nullen", "Anschlag, Kontrollgewicht",
+                                     "Leerlaufmodell", "Radmodell", "Rad aufgelegt", "Warmlauf", "Plateaus",
+                                     "Referenzpunkt danach", "Anhalten", "Nachlauf Leerlauf", "Protokoll"};
+  if (g_step >= 1 && g_step <= 14 && strcmp(title, BASE[g_step]) == 0) title = "";
   J("{\"step\":%u,\"sub\":%u,\"id\":", static_cast<unsigned>(g_step), static_cast<unsigned>(g_sub)); JS(g_r.id);
   J(",\"title\":"); JS(title); J(",\"txt\":"); JS(txt);
-  J(",\"ok\":"); JS(ok); J(",\"alt\":"); JS(alt); J(",\"redo\":"); JS(redo);
+  J(",\"ok\":"); JS(ok); J(",\"alt\":"); JS(alt); J(",\"redo\":"); JS(redo); J(",\"back\":%s", canBack() ? "true" : "false");
   J(",\"subMs\":%lu,\"warmMs\":%lu", static_cast<unsigned long>(inSubMs()), static_cast<unsigned long>(WARMUP_MS));
-  J(",\"tareSigma\":"); JN(g_r.tareSigma, 1);
+  { LiveVals lv; const bool ok = g_live && g_live(lv);   // Live-Werte fuer die Anzeige, NAN solange nicht konstant
+    J(",\"lvP\":"); JN(ok ? lv.pW : NAN, 1); J(",\"lvCrr\":"); JN(ok ? lv.crr : NAN, 5); J(",\"lvM\":"); JN(ok ? lv.mNm : NAN, 4); }
+  // FORTSCHRITT, wo gemessen wird: Anteil 0..1 und eine Zeile Text dazu.
+  { float prog = NAN; char ptxt[120] = "";
+    const bool seqStep = (g_step == S_BASE && g_sub == 2) || g_step == S_PLATEAUS || g_step == S_ANCHOR || (g_step == S_POST && g_sub == 2);
+    if (g_step == S_CHECKS && g_sub == 0) { prog = static_cast<float>(inSubMs()) / RUN_NOISE_MS; snprintf(ptxt, sizeof(ptxt), "Rauschen im Stillstand, %lu s", static_cast<unsigned long>(RUN_NOISE_MS / 1000)); }
+    else if (g_step == S_TARE && g_sub == 1) {
+      // Die Tara endet nach TARE_SAMPLES Werten ODER nach TARE_TIMEOUT_MS; der Balken
+      // folgt dem, was zuerst kommt, sonst springt er bei langsamer Zelle von 25 % auf fertig.
+      const float byCount = static_cast<float>(torque::tareCount()) / TARE_SAMPLES, byTime = static_cast<float>(inSubMs()) / TARE_TIMEOUT_MS;
+      prog = byCount > byTime ? byCount : byTime;
+      snprintf(ptxt, sizeof(ptxt), "Nullen: %u von %u Werten", torque::tareCount(), static_cast<unsigned>(TARE_SAMPLES)); }
+    else if (g_step == S_TARE && g_sub == 2 && !isnan(g_r.turnDeg)) { prog = g_r.turnDeg / RUN_TURN_DEG;
+      snprintf(ptxt, sizeof(ptxt), g_r.turnDeg >= RUN_TURN_DEG ? "%.0f Grad gedreht, auspendeln lassen" : "%.0f von %.0f Grad gedreht", g_r.turnDeg, RUN_TURN_DEG); }
+    else if ((g_step == S_TARE && g_sub == 3) || (g_step == S_POST && g_sub == 1)) { prog = static_cast<float>(inSubMs()) / RUN_ZERO_AVG_MS; snprintf(ptxt, sizeof(ptxt), "Nullpunkt lesen, %lu s", static_cast<unsigned long>(RUN_ZERO_AVG_MS / 1000)); }
+    else if (g_step == S_CTRL && g_sub == 2) { prog = static_cast<float>(inSubMs()) / RUN_CTRL_AVG_MS; snprintf(ptxt, sizeof(ptxt), "Kontrollgewicht lesen, %lu s", static_cast<unsigned long>(RUN_CTRL_AVG_MS / 1000)); }
+    else if (seqStep) {
+      const uint8_t n = state::seqLength(), pi = state::plateauIndex(), pp = state::pointsPerPlateau(), k = state::pointIndex();
+      const state::Phase ph = state::phase();
+      float within = 0.0f; const char* what = "";
+      if (ph == state::SPINUP) { what = "Hochfahren"; within = 0.0f; }
+      else if (ph == state::SETTLE) { what = "Einschwingen"; within = 0.5f * (static_cast<float>(state::settleElapsedMs()) / SETTLE_MS); if (within > 0.5f) within = 0.5f; }
+      else if (ph == state::POINT) { what = "Messen"; within = 0.5f + 0.5f * ((k + static_cast<float>(state::revsInPoint()) / AVG_REVS_PER_POINT) / (pp ? pp : 1)); }
+      if (n) prog = (pi + within) / n;
+      const bool isRef = (g_step == S_PLATEAUS && pi == 0) || g_step == S_ANCHOR;
+      if (ph == state::POINT) snprintf(ptxt, sizeof(ptxt), "%s %s %.1f km/h: Punkt %u von %u, Umdrehung %u von %u", isRef ? "Referenz" : (g_step == S_PLATEAUS ? "Plateau" : "Leerlauf"), what, speedctl::targetKmh(), k + 1, pp, state::revsInPoint() + 1, static_cast<unsigned>(AVG_REVS_PER_POINT));
+      else if (ph == state::SETTLE) snprintf(ptxt, sizeof(ptxt), "%s %.1f km/h: Einschwingen, %lu s von mindestens %lu s", isRef ? "Referenz" : (g_step == S_PLATEAUS ? "Plateau" : "Leerlauf"), speedctl::targetKmh(), static_cast<unsigned long>(state::settleElapsedMs() / 1000), static_cast<unsigned long>(SETTLE_MS / 1000));
+      else snprintf(ptxt, sizeof(ptxt), "%s: Hochfahren auf %.1f km/h (%u von %u)", g_step == S_PLATEAUS ? "Plateaus" : (g_step == S_ANCHOR ? "Referenz" : "Leerlauf"), speedctl::targetKmh(), pi + 1, n);
+    }
+    J(",\"prog\":"); JN(isnan(prog) ? NAN : (prog < 0 ? 0 : (prog > 1 ? 1 : prog)), 3); J(",\"progTxt\":"); JS(ptxt); }
+  J(",\"tareSigma\":"); JN(g_r.tareSigma, 1); J(",\"tareSigmaN\":"); JN(countsToFrollN(g_r.tareSigma), 4);
   J(",\"tareChk\":"); JN(g_r.tareCheckN, 3); J(",\"zeroEnd\":"); JN(g_r.zeroEndN, 3); J(",\"zeroLim\":%.3f", RUN_ZERO_LIMIT_N);
-  J(",\"ctrlNm\":"); JN(g_r.ctrlNm, 3); J(",\"ctrlDev\":"); JN(g_r.ctrlDev, 2);
+  J(",\"ctrlNm\":"); JN(g_r.ctrlNm, 3); J(",\"ctrlDev\":"); JN(g_r.ctrlDev, 2); J(",\"ctrlOn\":%s", ctrlWeightOn() ? "true" : "false");
+  J(",\"ctrlAdopted\":%s,\"turnDeg\":", isnan(g_r.ctrlAdoptedFrom) ? "false" : "true"); JN(g_r.turnDeg, 0);
   J(",\"ctrlSoll\":%.3f", RUN_CTRL_MASS_KG * 9.80665f * settings::calibArmM());
+  J(",\"ctrlKg\":"); JN(isnan(g_r.ctrlNm) ? NAN : g_r.ctrlNm / 9.80665f / settings::calibArmM(), 3);
+  J(",\"ctrlSollKg\":%.3f,\"calArmMm\":%.1f", RUN_CTRL_MASS_KG, settings::calibArmM() * 1000.0f);
+  { const float fN = torque::newtons();
+    J(",\"stopLive\":"); JN(isnan(fN) ? NAN : fabsf(fN) / LOADCELL_CAPACITY_N * 100.0f, 1);
+    J(",\"stopPeak\":"); JN(g_r.stopPeakPct, 1);
+    J(",\"stopMin\":%.0f,\"stopMax\":%.0f,\"stopBar\":%.0f", RUN_STOP_MIN_PCT, RUN_STOP_MAX_PCT, RUN_STOP_BAR_PCT); }
   J(",\"bar\":"); JN(tirepressure::bar(), 2); J(",\"barWarm\":"); JN(g_r.barWarm, 2); J(",\"tTire\":"); JN(tirepressure::tempC(), 1);
+  J(",\"meta\":{\"t\":"); JS(g_r.meta.tire); J(",\"w\":"); JS(g_r.meta.wheel); J(",\"n\":"); JS(g_r.meta.note);
+  J(",\"b\":"); JN(g_r.meta.bar, 2); J(",\"c\":"); JN(g_r.meta.tempC, 1); J(",\"l\":"); JN(g_r.meta.loadMeasKg, 1); J(",\"lc\":"); JN(g_r.meta.loadCalcKg, 1); J(",\"p\":%d}", g_r.meta.posMm);
   J(",\"checks\":[");
   for (uint8_t i = 0; i < g_r.checkN; i++) { J("%s[", i ? "," : ""); JS(g_r.checks[i].name); J(",%d,", g_r.checks[i].res); JS(g_r.checks[i].val); J("]"); }
   J("],\"pre\":[");

@@ -1018,45 +1018,42 @@ tray from behind and sits on three sides.
 ### 7.8 Clip for the vials
 
 For aligning the frame, **block levels 15.1 × 15.1 × 40 mm** (measured on the part,
-2026-11-23) go onto the profiles. One clip per vial: a **1.5 mm thin
-base plate** with **two M6 button head** in the profile slot, one per end, the vial
-in between. 1.5 mm under the screw head is a given; the whole plate is that
-thick so that the vial lies in the same plane as the screw seat and the
-underside is a single surface. No counterbore, the head stands on top.
+2026-11-23) go onto the profiles. One clip per vial: a **2.0 mm base plate** with **two
+M6 button heads** in the profile slot, one per end, the vial in between and taped to the
+floor of the pocket with double-sided tape. The plate is as thick as the material under
+the screw head, so the vial lies in the same plane as the screw seat and the underside is
+a single surface. No counterbore, the head stands on top.
 
-Outer dimensions **70.3 × 17.8 × 17.9 mm**, 3.0 cm³, hole spacing **55.8 mm**.
+Second version, 2026-11-24: the first one with 1.5 mm walls and snap hooks on top was
+flimsy. Now the walls are flush with the top of the vial, thicker, and braced from the
+outside.
+
+Outer dimensions **71.3 × 18.6 × 17.1 mm**, 4.6 cm³, hole spacing **56.8 mm**.
 
 | | |
 |---|---|
-| Feature tree | Grundplatte · Leisten · Stirnwaende · Nasen · M6_Loecher |
+| Feature tree | Grundplatte · Leisten · Stirnwaende · Stuetzen · Stuetzen_frei · M6_Loecher |
 | `hardware/libellen_clip.py` | builds the tree from scratch, exports `.step` and `.stl` |
 
-**The vial remains visible from three sides** — from above and from both long sides.
-It is therefore held at the end faces:
+**The vial remains visible from three sides**, from above and from both long sides. It
+is located at the end faces and by the longitudinal bars, and held by the tape:
 
 | | |
 |---|---|
-| End walls | 1.5 mm thick, 16.4 mm high above the plate, springy |
-| Snap hooks | 0.6 mm over the top edge, 10 mm wide, centered; slope about 27° to the vertical |
-| Longitudinal bars | 1.2 mm thick, **2.0 mm high**, full length — align crosswise and stiffen the plate |
-| Clearance | 0.3 mm in length and width, 0.1 mm under the snap hooks |
+| End walls | 2.0 mm thick, **15.1 mm high = flush with the vial**, no hooks |
+| Buttresses | one wedge on each side of every screw, on the longitudinal bars, 1.6 mm wide, from the top of the end wall down to the plate end; the screw head sits between them with 1 mm of air to the wall |
+| Longitudinal bars | 1.6 mm thick, **2.0 mm high**, full length; align crosswise, stiffen the plate and carry the buttresses |
+| Clearance | 0.3 mm in length and width |
 
-Insertion from above: the vial pushes the end walls apart via the slopes,
-the snap hooks snap over the top edge. Release: push one end wall outward with the thumb,
-lift the vial. The wall thereby flexes 0.6 mm at the top edge,
-at 1.5 mm thickness and about 14 mm of free height above the bar under 1 % strain
-at the foot. The screw head sits with 1 mm of air next to the wall and below where
-it moves.
-
-> **Do not overtighten.** Under the head there is 1.5 mm of plastic on 52 mm² of ring area
-> — hand-tight is enough, the clamping holds, and too much torque presses the head into the
-> material and warps the plate on which the vial lies.
+> **Do not overtighten.** Under the head there is 2.0 mm of plastic on 52 mm² of ring
+> area; hand-tight is enough, the clamping holds, and too much torque presses the head
+> into the material and warps the plate on which the vial lies.
 
 > The head diameter 10.5 mm is the standard value ISO 7380 for M6 and determines only the
 > length of the pads; other screws are entered as `head_d` in the table.
 
-> **Print:** flat, base plate on the bed. The snap hooks protrude 0.6 mm freely, one
-> nozzle width, without support.
+> **Print:** flat, base plate on the bed. No overhangs, the wedges slope outward and
+> down.
 
 ### 7.9 Spacer disc with locating key
 
@@ -1077,6 +1074,49 @@ at the cutout and outside at the circumference, are rounded with **r = 1 mm**. O
 
 > **Print:** bar-free side on the bed, the bar stands on top. No overhangs. If
 > the bar sits too tight in the slot, increase `nose_fit`, do not file the bar down.
+
+### 7.10 Clip for the 1 kg calibration weight
+
+The certified 1 kg weight has a waisted neck (just under 33 mm) under a 45 mm head, the
+neck centre about 15 mm below the top of the head. The clip snaps onto the neck from the
+side and hangs the weight from the 2 mm wire of the beam rider (§7.11). The weight only
+has to hang freely under the rider, so there is no cross member over the head.
+
+| | |
+|---|---|
+| Collar | C-ring, inside Ø 33.6, 4 mm wall, 8 mm high, opening 30 mm towards +y: it springs open 3 mm when pushed onto the neck and then holds by form. The head rests on the collar top |
+| Posts | two 8 × 8 mm posts outside the head (1.5 mm air, 48 mm clear) from the collar lugs up to 3 mm above the head; there they bend inward at 45° (from z 26 to 40, the slanted part stays 8 mm thick) to 20.3 mm clear, i.e. rider width plus 1 mm air on each side, and run vertically to 85 mm |
+| Pivot | Ø 2.3 hole through both posts along x, 77 mm above the collar bottom. The 2 mm wire lies across the tube: post, rider hump, post; secure it outside on both sides. The tube runs lengthwise between the posts (bottom edge 37 mm above the collar bottom, rider legs end at 25 mm, head top at 23 mm). When the weight swings, the posts move beside the rider, never over it, so the rider's clamp screws are never in the way |
+| Outer size | 64 × 35.2 × 85 mm, 14.6 cm³ |
+| `hardware/gewichtsclip.py` | builds the tree, exports `.step` and `.stl`; rider and tube dimensions are parameters |
+
+> **Print:** standing on the collar. Posts vertical or 45°, wire hole short and
+> horizontal. No support.
+
+### 7.11 Rider for the balance beam
+
+Slides along the calibration arm, a rectangular tube **15 wide × 25 high**, like a
+saddle, and is clamped with **two M6 across below the tube**, one at each end (±22 mm):
+through-hole Ø 6.4 on the front leg, a **modelled M6 thread** (PartDesign hole, ISO
+profile, as in the ESP clamp) in the back leg. With 0.1 to 0.15 mm layers the thread
+prints usably; otherwise run a tap through once, it finds the turns.
+Tightening pulls the legs together and clamps the tube. The screws sit outside the range
+the clip's posts sweep when the weight swings. The legs are only 1.5 mm thick; at each
+screw a 2.5 mm boss (13 mm long from the end, 45° run-in) carries thread and screw head.
+On top, centred, a **hump over the full width of the rider** (12 mm long on top, 45°
+flanks both sides) with the Ø 2.3 hole for the 2 mm wire, **15 mm above the tube top,
+axis across the tube, parallel to the clamp screws**. The hole runs through the whole
+width, so the wire bears over 18 mm and has no long free span. The hole centre is the
+point of application along the arm; drill the hole to size after printing.
+
+| | |
+|---|---|
+| Size | 56 mm along the tube, 18.3 wide (23.3 over the bosses), 57 high; legs 1.5 mm, 12 mm below the tube, top plate 4 mm, 0.3 mm play across; 19 cm³ |
+| `hardware/waagereiter.py` | builds the tree, exports `.step` and `.stl` |
+
+> **Print:** lying on its end face, so the profile reads as a U on the bed. All walls
+> vertical; hump and bosses have 45° run-ins on the side facing the bed; the cross holes
+> are short bridges. No support.
 
 ## 8 Mark mounting on the drum
 

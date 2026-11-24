@@ -100,6 +100,7 @@ uint32_t g_liveUntil = 0, g_liveLast = 0;
 constexpr uint16_t LIVE_N = LIVE_WINDOW_MS * HX711_RATE_SPS / 1000;
 long     g_liveRaw[LIVE_N];
 float    g_liveW[LIVE_N];
+uint32_t g_liveT[LIVE_N];
 uint16_t g_liveHead = 0, g_liveCount = 0;
 uint32_t g_steadySince = 0;
 bool     g_steady = false;
@@ -107,10 +108,10 @@ bool     g_steady = false;
 void liveReset() { g_liveCount = 0; g_liveHead = 0; }
 
 // Jede Runde: Konstanz pruefen. Bei jedem neuen Zellenwert: einsortieren.
+// Konstant heisst hier nur: Antrieb faehrt, Rampe angekommen, Istwert im Toleranzband.
+// Die Beschleunigung prueft liveResult() NETTO ueber das Fenster (config.h, STEADY_*).
 void liveService(bool newSample) {
-  const float dvdt = revsrc::dvdtKmhS();
   const bool steadyNow = speedctl::running()
-      && !isnan(dvdt) && fabsf(dvdt) < STEADY_DVDT_KMH_S
       && fabsf(speedctl::kmh() - speedctl::targetKmh()) < STEADY_TOL_KMH
       && speedctl::rampKmh() >= speedctl::targetKmh() - 0.01f;   // Rampe angekommen
   const uint32_t now = millis();
@@ -121,6 +122,7 @@ void liveService(bool newSample) {
   if (newSample) {
     g_liveRaw[g_liveHead] = torque::lastRaw();
     g_liveW[g_liveHead]   = revsrc::omega();
+    g_liveT[g_liveHead]   = now;
     g_liveHead = (g_liveHead + 1) % LIVE_N;
     if (g_liveCount < LIVE_N) g_liveCount++;
   }
@@ -128,14 +130,28 @@ void liveService(bool newSample) {
 
 // Ergebnis: alles NAN, solange nicht konstant, nicht kalibriert oder Fenster leer.
 // Korrigiert um Leerlauf und Radverluste, soweit die Modelle da sind.
-struct Live { float mNm, pW, crr; bool korrigiert; uint16_t n; };
+struct Live { float mNm, pW, crr; bool korrigiert; uint16_t n; float dvdtNet; };
 Live liveResult() {
-  Live r = {NAN, NAN, NAN, false, g_liveCount};
-  if (!g_steady || g_liveCount < HX711_RATE_SPS || !settings::calibrated()) return r;
-  double sraw = 0, sw = 0;
-  for (uint16_t i = 0; i < g_liveCount; i++) { sraw += g_liveRaw[i]; sw += g_liveW[i]; }
-  const float raw = static_cast<float>(sraw / g_liveCount);
-  const float w   = static_cast<float>(sw / g_liveCount);
+  Live r = {NAN, NAN, NAN, false, g_liveCount, NAN};
+  if (!g_steady || g_liveCount < 3 || !settings::calibrated()) return r;
+  // Nur die Werte der letzten LIVE_WINDOW_MS; der Ring kann bei langsamer Zelle aelter sein.
+  const uint32_t now = millis();
+  double sraw = 0, sw = 0, st = 0, stt = 0, stw = 0; uint16_t n = 0; uint32_t tMin = now, tMax = 0;
+  for (uint16_t i = 0; i < g_liveCount; i++) {
+    if (now - g_liveT[i] > LIVE_WINDOW_MS) continue;
+    const double t = static_cast<double>(g_liveT[i]) / 1000.0;
+    sraw += g_liveRaw[i]; sw += g_liveW[i]; st += t; stt += t * t; stw += t * g_liveW[i]; n++;
+    if (g_liveT[i] < tMin) tMin = g_liveT[i];
+    if (g_liveT[i] > tMax) tMax = g_liveT[i];
+  }
+  r.n = n;
+  if (n < 3 || tMax - tMin < LIVE_MIN_MS) return r;
+  // Netto-Beschleunigung ueber das Fenster: Steigung der Ausgleichsgeraden omega(t), in km/h/s.
+  const double den = n * stt - st * st;
+  if (den > 0.0) r.dvdtNet = static_cast<float>((n * stw - st * sw) / den) * settings::drumRadiusM() * 3.6f;
+  if (isnan(r.dvdtNet) || fabsf(r.dvdtNet) >= STEADY_DVDT_KMH_S) return r;
+  const float raw = static_cast<float>(sraw / n);
+  const float w   = static_cast<float>(sw / n);
   float m = (raw - static_cast<float>(torque::tareOffset())) * settings::loadcellNPerCount()
             * settings::torqueArmM();
   if (settings::haveBaseline()) {
@@ -166,6 +182,8 @@ bool liveForRun(run::LiveVals& out) {
 // Hauptschleife blockieren, und ab 300 ms schlaegt der Totmann des Reglers zu,
 // ab 1 s gibt speedctl frei -- deshalb wird das gemessen, nicht vermutet.
 uint32_t g_loopMaxMs = 0, g_loopPrevMs = 0, g_vescAgeMax = 0;
+uint32_t    g_sectMaxMs = 0;          // laengster Schleifenabschnitt der Berichtsperiode
+const char* g_sectMaxName = "-";
 
 void liveTelemetry() {
   const uint32_t now = millis();
@@ -190,8 +208,9 @@ void liveTelemetry() {
   Serial.print(" pw=");      if (isnan(lv.pW)) Serial.print("-"); else Serial.print(lv.pW, 1);
   Serial.print(" crr=");     if (isnan(lv.crr)) Serial.print("-"); else Serial.print(lv.crr, 4);
   Serial.print(" loopmax="); Serial.print(g_loopMaxMs);
+  Serial.print(" sect=");    Serial.print(g_sectMaxName); Serial.print(':'); Serial.print(g_sectMaxMs);
   Serial.print(" vage=");    Serial.println(g_vescAgeMax);
-  g_loopMaxMs = 0; g_vescAgeMax = 0;
+  g_loopMaxMs = 0; g_vescAgeMax = 0; g_sectMaxMs = 0; g_sectMaxName = "-";
 }
 
 void printHelp() {
@@ -213,6 +232,7 @@ void printHelp() {
   Serial.println("#   n<A0> <B0>  Leerlaufmodell setzen (m0 fittet es selbst)");
   Serial.println("#   w<A1> <B1>  Radverlustmodell setzen   y<kg>  Laufradmasse");
   Serial.println("#   Y<kgm2>  J_Rad GEMESSEN (Bifilarpendel), Y0 loescht -> Schaetzung 0,85 m r^2");
+  Serial.println("#   Ae<kg> Aw<kg> Aa<m>  Hebelwaage: Leergewicht, Laufgewicht, Radarm   Ap<m>  Position -> Auflast");
   Serial.println("#   u       Assistent Auslauf + Leerlauf (Trommel hoch, Rad abheben); uq quittiert");
   Serial.println("#   :<text> Terminalbefehl an den Regler (faults, hall_analyze 5, ...)");
   Serial.println("#   ><hex>  Rohpaket an den Regler, Antwort als Hex (z. B. >0e = mcconf)");
@@ -411,9 +431,10 @@ void printStatus() {
   else { Serial.print(state::loadN(), 1); Serial.println(" N"); }
 
   Serial.print("# Schleife laengste Runde "); Serial.print(g_loopMaxMs);
-  Serial.print(" ms, aelteste Reglerwerte "); Serial.print(g_vescAgeMax);
+  Serial.print(" ms (laengster Abschnitt "); Serial.print(g_sectMaxName); Serial.print(' '); Serial.print(g_sectMaxMs);
+  Serial.print(" ms), aelteste Reglerwerte "); Serial.print(g_vescAgeMax);
   Serial.println(" ms seit letzter Abfrage");
-  g_loopMaxMs = 0; g_vescAgeMax = 0;
+  g_loopMaxMs = 0; g_vescAgeMax = 0; g_sectMaxMs = 0; g_sectMaxName = "-";
 
   Serial.print("# Bedienung ");
   Serial.print(webui::linkAlive() ? "Browser verbunden" : "kein Browser");
@@ -621,6 +642,20 @@ void handleCommand(const String& cmd) {
       if (settings::setWheelJKgm2(arg)) note(arg == 0.0f ? "J_Rad gemessen geloescht, Schaetzung gilt" : "J_Rad gemessen uebernommen");
       else                               fail("J_Rad unplausibel (0,01 bis 2 kg m^2)");
       break;
+    case 'A': {   // Hebelwaage: Ae<kg> Leergewicht, Aw<kg> Laufgewicht, Aa<m> Radarm, Ap<m> Position -> Auflast
+      const float v = cmd.length() > 2 ? cmd.substring(2).toFloat() : 0.0f;
+      bool ok = false;
+      switch (cmd.length() > 1 ? cmd[1] : '?') {
+        case 'e': ok = settings::setLoadEmptyKg(v);  break;
+        case 'w': ok = settings::setLoadWeightKg(v); break;
+        case 'a': ok = settings::setLoadArmM(v);     break;
+        case 'p': { const float n = settings::loadFromPosN(v);
+          if (!isnan(n)) { state::setLoadN(n); snprintf(g_note, sizeof(g_note), "Auflast aus Position %.0f mm: %.1f N (%.1f kg)", v * 1000.0f, n, n / 9.80665f); return; }
+          break; }
+        default: break;
+      }
+      if (ok) note("Hebelwaage uebernommen"); else fail("Ae<kg> Aw<kg> Aa<m> Ap<m>: Wert unplausibel");
+      break; }
     case 'u':
       if (cmd.length() > 1 && cmd[1] == 'q') { state::wizardAck(); break; }   // uq: Schritt 4 quittieren
       webui::setWebOperator(webui::inWebCommand());
@@ -719,6 +754,8 @@ void buildStateJson(char* buf, size_t len) {
   else snprintf(sPAge, sizeof(sPAge), "%lu", static_cast<unsigned long>(tirepressure::ageMs()));
   char sJMeas[16];
   num(sJMeas, sizeof(sJMeas), settings::wheelJKgm2(), 4);
+  char sLd[96];
+  snprintf(sLd, sizeof(sLd), "\"ldEmpty\":%.3f,\"ldWeight\":%.3f,\"ldArm\":%.4f", settings::loadEmptyKg(), settings::loadWeightKg(), settings::loadArmM());
   // Trommelmarken: woher die Umdrehung kommt (speed.h RevSource) und Zaehler der Auswertung.
   char sMark[80];
   snprintf(sMark, sizeof(sMark), "\"mSrc\":%u,\"mPpr\":%u,\"mRes\":%lu,\"mMiss\":%lu,\"mGl\":%lu",
@@ -744,12 +781,12 @@ void buildStateJson(char* buf, size_t len) {
     "\"counts\":%ld,\"raw\":%ld,\"tare\":%ld,\"ripple\":%ld,\"n\":%s,\"pct\":%s,\"kg\":%s,"
     "\"nm\":%s,\"roll\":%s,\"pw\":%s,\"crr\":%s,\"korr\":%s,\"konst\":%s,"
     "\"a0\":%s,\"b0\":%s,\"a1\":%s,\"b1\":%s,\"mRad\":%s,\"jRad\":%s,\"jMeas\":%s,\"auslauf\":%s,\"auslaufN\":%lu,"
-    "\"bar\":%s,\"tTire\":%s,\"pSrc\":\"%s\",\"pName\":\"%s\",\"pBatt\":%s,\"pAge\":%s,\"pFresh\":%s,\"revSrc\":\"%s\","
+    "\"bar\":%s,\"tTire\":%s,\"pSrc\":\"%s\",\"pName\":\"%s\",\"pBatt\":%s,\"pAge\":%s,\"pFresh\":%s,\"pConn\":%s,\"revSrc\":\"%s\","
     "\"wiz\":%u,\"wizKmh\":%.0f,\"tara\":%s,\"abstieg\":%s,\"uRadMem\":%s,"
     "\"err\":\"%s\","
     "\"kal\":%s,\"saturiert\":%s,\"zelle\":%s,"
     "\"dir\":%d,\"lernt\":%s,\"brk\":%s,\"brkDuty\":%.4f,\"brkAmps\":%.1f,"
-    "\"up\":%lu,\"geber\":[%s],%s,"
+    "\"up\":%lu,\"geber\":[%s],%s,%s,"
     "\"nTrommel\":%.1f,\"nRad\":%.1f,\"uRad\":%s,\"uRadN\":%lu,\"uRadMin\":%lu,"
     "\"plateaus\":[%s],\"phase\":\"%s\",\"run\":%u,\"plateau\":%u,"
     "\"sfault\":\"%s\",\"load\":%s,\"motorOffen\":%s,\"notaus\":%s,"
@@ -772,7 +809,7 @@ void buildStateJson(char* buf, size_t len) {
     sA0, sB0, sA1, sB1, sMRad, sJ, sJMeas, wheel::spindownActive() ? "true" : "false",
     static_cast<unsigned long>(wheel::spindownRevs()),
     sBar, sTTire, tirepressure::sourceName(), tirepressure::name(), sPBatt, sPAge,
-    tirepressure::fresh() ? "true" : "false", revsrc::sourceName(),
+    tirepressure::fresh() ? "true" : "false", tirepressure::connected() ? "true" : "false", revsrc::sourceName(),
     static_cast<unsigned>(state::wizardStep()), WIZ_KMH, torque::tareBusy() ? "true" : "false",
     speedctl::braking() ? "true" : "false", sURadMem,
     currentError(),
@@ -783,7 +820,7 @@ void buildStateJson(char* buf, size_t len) {
     speedctl::learning() ? "true" : "false",
     speedctl::breakingAway() ? "true" : "false",
     speedctl::breakawayDuty(), speedctl::breakawayAmps(),
-    static_cast<unsigned long>(millis()), sGeber, sMark,
+    static_cast<unsigned long>(millis()), sGeber, sMark, sLd,
     nDrum * 60.0f, nWheel * 60.0f, sURad,
     static_cast<unsigned long>(wheel::revsUsed()),
     static_cast<unsigned long>(WHEEL_CIRC_WINDOW_REVS),
@@ -815,11 +852,15 @@ void pollSerial() {
 }  // namespace
 
 void setup() {
-  Serial.begin(115200);
   // USB-CDC: liest kein Rechner mit, laeuft der Sendepuffer voll, und jeder
-  // print() blockiert bis zum Timeout -- gemessen 266 ms Schleifenrunde ohne
-  // Mitleser. Lieber Zeilen verlieren als die Regelung anhalten.
-  Serial.setTxTimeoutMs(20);
+  // print() blockiert bis zum Timeout. Mit 20 ms Timeout gemessen: 266 ms je Runde
+  // ohne Mitleser, und am 2026-11-24 eine Runde von 980 ms am Ende eines
+  // Messpunkts (logger::point und die Winkel-Bins sind ueber 30 einzelne prints) --
+  // der Regler galt 1 s als stumm, die Regelung schaltete ab. Darum: grosser Puffer
+  // und Timeout 0. Mit Mitleser laeuft der Puffer nie voll, ohne wird verworfen.
+  Serial.setTxBufferSize(8192);
+  Serial.begin(115200);
+  Serial.setTxTimeoutMs(0);
   delay(200);
   Serial.println();
   Serial.println("# Fahrrad-Reifenpruefstand — Firmware");
@@ -859,26 +900,31 @@ void loop() {
       if (looksBad(seen)) fail(seen); else note(seen);
     }
   }
-  statusled::service();
-  webui::service();
-  vesc::service();
+  // Jeder Abschnitt wird gestoppt; der laengste der Berichtsperiode steht mit
+  // Namen in der Statuszeile ('i'). So ist ein Blockierer zu finden, ohne zu raten.
+#define TIMED(name, call) do { const uint32_t t0_ = millis(); call; const uint32_t dt_ = millis() - t0_; \
+    if (dt_ > g_sectMaxMs) { g_sectMaxMs = dt_; g_sectMaxName = name; } } while (0)
+  TIMED("statusled", statusled::service());
+  TIMED("webui", webui::service());
+  TIMED("vesc", vesc::service());
 
   // Jeder neue Rohwert der Zelle wird im Messzustand in den umdrehungssynchronen
   // Akkumulator einsortiert. Das muss HIER stehen, wo update() gerufen wird:
   // nur dieser Aufruf weiß, dass gerade ein neuer Wert angekommen ist.
-  {
+  TIMED("torque", {
     const bool fresh = torque::update();
     if (fresh && state::phase() == state::POINT) torque::accumulate(revsrc::markIndexInRev());
     liveService(fresh);
-  }
+  });
 
-  revsrc::service();
-  wheel::service();
-  speedctl::service();
-  state::service();
-  run::service();
-  pollSerial();
-  liveTelemetry();
+  TIMED("revsrc", revsrc::service());
+  TIMED("wheel", wheel::service());
+  TIMED("speedctl", speedctl::service());
+  TIMED("state", state::service());
+  TIMED("run", run::service());
+  TIMED("serial", pollSerial());
+  TIMED("telemetry", liveTelemetry());
+#undef TIMED
 
   // Totmannschaltung: reisst die Bedienverbindung ab, wird der Antrieb freigegeben.
   // Nur die FLANKE auswerten, sonst wuerde jeder Durchlauf release() senden.

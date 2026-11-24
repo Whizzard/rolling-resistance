@@ -183,7 +183,13 @@ void handleRun() {
   g_server.send(200, "application/json; charset=utf-8", buf);
 }
 
-// Protokolle aus dem Flash: /runs listet, /runs/<datei> liefert zum Herunterladen.
+// Protokolle aus dem Flash: /runs listet, /runs/<datei> liefert zum Herunterladen,
+// /runs/<datei>?view zeigt sie als Text im Browser.
+//
+// Herunterladen heisst application/octet-stream: text/markdown mit Content-Disposition
+// zeigte Safari auf dem iPad trotzdem im Fenster an (2026-11-24, iOS 12), und aus
+// der Ansicht laesst sich die Datei nicht per AirDrop weitergeben. Einen unbekannten
+// Typ bietet es ueber das Teilen-Blatt an, am Mac landet er im Download-Ordner.
 void handleRuns() {
   g_other++;
   const String uri = g_server.uri();
@@ -192,7 +198,7 @@ void handleRuns() {
                   "<body style='font-family:system-ui;padding:16px'><h2>Messl\u00e4ufe</h2><ul>";
     File dir = LittleFS.open("/runs");
     if (dir) { File f = dir.openNextFile(); while (f) {
-        html += "<li><a href='/runs/" + String(f.name()) + "'>" + String(f.name()) + "</a> " + String(f.size()) + " B</li>";
+        html += "<li><a href='/runs/" + String(f.name()) + "'>" + String(f.name()) + "</a> " + String(f.size()) + " B &middot; <a href='/runs/" + String(f.name()) + "?view'>ansehen</a></li>";
         f = dir.openNextFile(); } }
     html += "</ul>";
     g_server.send(200, "text/html; charset=utf-8", html);
@@ -202,9 +208,13 @@ void handleRuns() {
   File f = LittleFS.open(uri, "r");
   if (!f) { g_server.send(404, "text/plain", "nicht da"); return; }
   const String name = uri.substring(uri.lastIndexOf('/') + 1);
-  g_server.sendHeader("Content-Disposition", "attachment; filename=\"" + name + "\"");
   g_server.sendHeader("Cache-Control", "no-store");
-  g_server.streamFile(f, uri.endsWith(".csv") ? "text/csv; charset=utf-8" : "text/markdown; charset=utf-8");
+  if (g_server.hasArg("view")) {
+    g_server.streamFile(f, "text/plain; charset=utf-8");
+  } else {
+    g_server.sendHeader("Content-Disposition", "attachment; filename=\"" + name + "\"");
+    g_server.streamFile(f, "application/octet-stream");
+  }
   f.close();
 }
 

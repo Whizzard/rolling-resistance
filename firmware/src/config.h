@@ -169,6 +169,7 @@ constexpr uint8_t MOTOR_POLE_PAIRS = 15;
 // der Vergleich mit den Trommelmarken bleibt als Plausibilitätsprüfung sinnvoll
 // (erkennt einen ausgefallenen Aufnehmer).
 constexpr uint8_t MOTOR_PULSES_PER_REV = MOTOR_POLE_PAIRS;
+constexpr uint16_t VESC_TACHO_PER_REV = 6 * MOTOR_POLE_PAIRS;   // [gemessen] 900 Tachoschritte auf 10 Umdrehungen (hardware/vesc-config-fw7.01); zaehlt auch beim Drehen von Hand
 
 // --------------------------------------------------- Motor, elektrisch
 // Am 2026-11-17 am verbauten Motor gemessen, Regler FSESC 4.20 mit Firmware 5.02.
@@ -210,11 +211,11 @@ constexpr float MOTOR_NO_LOAD_RPM_PER_V = 19.1f;
 
 constexpr uint8_t HX711_GAIN_PULSES = 1;   // [DB] 1 = Kanal A / Gain 128
 constexpr uint16_t HX711_RATE_SPS   = 80;  // [DB] RATE-Pin auf VCC
-constexpr uint16_t TARE_SAMPLES     = 200; // [gesch] ≈ 2,5 s bei 80 SPS
+constexpr uint16_t TARE_SAMPLES     = 80;  // [gesch] 1 s bei 80 SPS; 200 bis 2026-11-24. Das Rauschen braucht nicht mehr: 143 Counts Spitze-Spitze sind 0,001 N auf F_roll, gemittelt ueber 80 Werte verschwindend. Die Zeit bestimmt in der Praxis die Hauptschleife (gepollter HX711, mit Browser 20..40 Werte/s)
 // [Festlegung] Abbruch der Tara, wenn nicht genug Werte kommen. 200 Werte sind bei
 // 80 SPS rund 2,5 s; 5000 ms lassen Luft und verhindern, dass ein stummer HX711 den
 // Zustand TARE auf Dauer besetzt.
-constexpr uint32_t TARE_TIMEOUT_MS  = 5000;
+constexpr uint32_t TARE_TIMEOUT_MS  = 15000; // [gesch] Notbremse fuer einen stummen HX711; mit Browser-Last kommen nur 20..40 Werte/s an, 200 brauchen dann bis 10 s
 
 // [Festlegung] Gleitender Mittelwert für die ANZEIGE, nicht für die Messung. Der
 // HX711 liefert HX711_RATE_SPS Werte je Sekunde; ein mit 80 Hz zappelnder Zahlenwert
@@ -298,12 +299,21 @@ constexpr float POINT_DVDT_NET_MAX_KMH_S = DVDT_CONST_KMH_PER_S / UNC_J_REL;
 // Nur ein Vorschlagswert für die Bedienung — die tatsächliche Last wird gemessen
 // bzw. über den Befehl 'l<wert>' eingegeben und geht LINEAR in Crr ein.
 constexpr float STANDARD_LOAD_N = 416.9f;
-// [gem 2026-11-23] Auflast, wie der Stand gerade bestueckt ist: 7,2 kg leer (Arm
-// und Rad, am Rad gewogen) plus 10,4 kg bei 84 cm ueber den Radarm von 20,2 cm,
-// also 7,2 + 10,4 * 84 / 20,2 = 50,4 kg. Vorgabe fuer settings::loadN; am Stand
-// ueber die Oberflaeche aenderbar, wenn das Gewicht wandert. Fuer die
-// Standardlast 416,9 N muesste es bei 68,6 cm haengen.
-constexpr float LOAD_DEFAULT_N = 494.3f;
+// AUFLAST AUS DER HEBELWAAGE (docs/08-stand.md §5, docs/09 §5.2). Die Schwinge traegt
+// Rad und Arm (Leergewicht, an der Achse gewogen) und ein Laufgewicht, das bei b vom
+// Drehpunkt haengt; der Radarm ist a. Dann gilt
+//     N = (m_leer + m_gewicht * b / a) * g
+// Die Firmware rechnet das aus der Position b, die der Bediener im Lauf eintraegt
+// (Massband am Holm, Null auf der Pivotachse). Eine Messung mit der Haengewaage an
+// der Achse darf den Wert uebersteuern und prueft damit das Hebelmodell.
+// [gem 2026-11-23] 7,2 kg leer, 10,4 kg Laufgewicht, a = 20,2 cm, b = 84 cm -> 50,4 kg.
+// Alle drei zur Laufzeit ueberschreibbar (settings.h, Einrichtung -> Auflast).
+constexpr float LOAD_EMPTY_KG     = 7.2f;    // [gem] Rad und Arm, an der Achse gewogen, ohne Laufgewicht
+constexpr float LOAD_WEIGHT_KG    = 10.4f;   // [gem] Laufgewicht
+constexpr float LOAD_ARM_A_M      = 0.202f;  // [gem] Drehpunkt -> Radachse, waagerecht
+constexpr float LOAD_POS_DEFAULT_M = 0.84f;  // [gem] Position des Laufgewichts beim Stand vom 2026-11-23
+// [ber] Vorgabe fuer settings::loadN, aus den vier Werten oben: 494,3 N.
+constexpr float LOAD_DEFAULT_N = (LOAD_EMPTY_KG + LOAD_WEIGHT_KG * LOAD_POS_DEFAULT_M / LOAD_ARM_A_M) * 9.80665f;
 
 // [Festlegung] Auslegungsobergrenze des Rollwiderstandsbeiwerts. Der Prüfstand ist
 // für schnelle Straßenreifen gedacht, nicht für MTB: der langsamste vorgesehene Reifen
@@ -371,10 +381,16 @@ constexpr float    ESTOP_DECEL_KMH_S = 0.5f;   // [gesch]
 // heisst: Antrieb faehrt, Istwert nahe am Sollwert, Beschleunigung klein, und das
 // seit STEADY_HOLD_MS. Dann wird ueber LIVE_WINDOW_MS gemittelt (gleitend, wie der
 // Laufradumfang). [gesch] 2026-11-23
-constexpr float    STEADY_DVDT_KMH_S = 0.3f;    // |dv/dt| darunter gilt als konstant
+// Seit 2026-11-24 abends zaehlt die NETTO-Beschleunigung ueber das Mittelungsfenster
+// (Ausgleichsgerade, wie beim Messpunkt), nicht der Momentanwert: die aus dem Regler
+// gerechnete Geschwindigkeit zappelt bei 30 km/h um +-0,1 km/h zwischen zwei Abfragen,
+// der Momentanwert riss das Gate von 0,3 km/h/s staendig und loeschte das Fenster --
+// der Warmlauf zeigte darum nie Leistung und Crr.
+constexpr float    STEADY_DVDT_KMH_S = 0.3f;    // |dv/dt| NETTO ueber das Fenster darunter gilt als konstant
 constexpr float    STEADY_TOL_KMH    = 1.0f;    // |ist - soll| darunter
-constexpr uint32_t STEADY_HOLD_MS    = 2000;    // so lange muss es konstant sein
-constexpr uint32_t LIVE_WINDOW_MS    = 5000;    // Mittelungsfenster, 400 Zellenwerte
+constexpr uint32_t STEADY_HOLD_MS    = 2000;    // so lange muss es konstant sein, bevor das Fenster fuellt
+constexpr uint32_t LIVE_WINDOW_MS    = 5000;    // Mittelungsfenster, bis 400 Zellenwerte
+constexpr uint32_t LIVE_MIN_MS       = 1500;    // [gesch] so viel Fenster muss gefuellt sein, bevor ein Wert erscheint (die Hauptschleife sieht mit Browser nur 20..40 Zellenwerte/s, eine feste Anzahl waere Zufall)
 
 // ------------------------------------------------- Verlustmodelle (settings.h)
 // M_leer(w) = A0 + B0 w^2 aus dem Leerlauf (Rad abgehoben, Befehl m0): die Firmware
@@ -418,6 +434,12 @@ constexpr float    RUN_CTRL_OK_PCT   = 0.5f;      // [gesch] Kontrollgewicht: Ab
 constexpr float    RUN_CTRL_WARN_PCT = 1.0f;      // [gesch] darunter Warnung W10, darueber nur Nochmal oder Abbruch
 constexpr uint32_t RUN_CTRL_AVG_MS   = 2000;      // [gesch] Mittelungszeit beim Kontrollgewicht (160 Zellenwerte, torque::sample*)
 constexpr uint32_t RUN_NOISE_MS      = 5000;      // [Festlegung] Rauschfenster der Systempruefung im Stillstand
+// ANSCHLAG der Waegezelle (docs/08-stand.md §7.5): der Arm wird von Hand gegen den
+// Anschlag gedrueckt; die Spitze muss UEBER dem Endwert liegen (sonst begrenzt der
+// Anschlag im Messbereich) und UNTER der zulaessigen Ueberlast der Zelle (150 % FS).
+constexpr float    RUN_STOP_MIN_PCT  = 100.0f;    // [Festlegung] darunter greift der Anschlag zu frueh
+constexpr float    RUN_STOP_MAX_PCT  = 140.0f;    // [Festlegung] darueber schuetzt er die Zelle nicht (Zelle: 150 % zulaessig)
+constexpr float    RUN_STOP_BAR_PCT  = 160.0f;    // [Festlegung] Skalenende des Balkens in der Oberflaeche
 constexpr float    RUN_DRIFT_LIMIT_N = 0.02f;     // [ber] docs/09-measurement-theory.md §8.8: Vor-/Nachlauf auf F_roll, darueber W08
 constexpr float    RUN_ANCHOR_WARN_N = 0.03f;     // [gesch] Ankerdrift auf F_roll (Referenzpunkt vor und nach den Plateaus), darueber W04
 // NULLPUNKT, zweimal geprueft (docs/12-methodology-review.md K2, W6):
@@ -426,9 +448,21 @@ constexpr float    RUN_ANCHOR_WARN_N = 0.03f;     // [gesch] Ankerdrift auf F_ro
 //    fest (Rad auf der Trommel), und der Offset enthaelt das Rastmoment dieses Winkels.
 //  - nach dem Auslauf, Rad abgehoben, Trommel steht: die Zelle muss den Offset wieder
 //    zeigen. Was fehlt, ist Drift von Zelle, Kabel oder Vorspannung ueber den Lauf.
-// Beide Grenzen auf F_roll bezogen wie das Driftkriterium.
-constexpr float    RUN_ZERO_LIMIT_N  = 0.02f;     // [ber] = RUN_DRIFT_LIMIT_N, darueber W13 bzw. W14
+// Beide auf F_roll bezogen. Die Grenze ist BEWUSST WEITER als das Driftkriterium
+// (0,02 N): im Stillstand haelt die Haftreibung der Stehlager den Rotor gegen das
+// Rastmoment fest, und so viel Rastmoment (0,01 bis 0,02 Nm, auf F_roll 0,02 bis 0,05 N)
+// bleibt je nach Winkel als Offset stehen; dazu langsames Rauschen. Beides kuerzt sich
+// in Crr heraus (Tara steckt in Leerlauf UND Messung) bzw. mittelt sich beim Drehen weg.
+// Die Stillstandspruefungen sollen Grobes fangen: Kabel liegt an, Arm am Anschlag,
+// etwas drueckt. Die feine Pruefung ist Vorlauf gegen Nachlauf (RUN_DRIFT_LIMIT_N).
+// Am 2026-11-24 gab die Viertelumdrehung +0,05 und +0,10 N: Motorlager (zwischen
+// Rotor und Stator) und Stehlager halten zusammen rund 0,05 Nm Rastmoment fest, das
+// sind 0,1 N auf F_roll -- die natuerliche Unschaerfe eines Stillstands-Nullpunkts
+// an dieser Maschine. Darueber hinaus heisst: etwas haelt den Arm.
+constexpr float    RUN_ZERO_LIMIT_N  = 0.25f;     // [gesch] darueber W13 bzw. W14
 constexpr uint32_t RUN_ZERO_AVG_MS   = 2000;      // [gesch] Mittelungszeit der Nullpruefungen
+constexpr float    RUN_TURN_DEG       = 90.0f;     // [gesch] Nullpruefung: so weit wird die Trommel von Hand weitergedreht (ueber den Tacho des Reglers ueberwacht)
+constexpr uint32_t RUN_TURN_STILL_MS  = 1500;      // [gesch] danach so lange still, dann misst die Nullpruefung von selbst
 // Typ-B-Anteile der Unsicherheit je Punkt (R9), relativ. Herkunft docs/03-parameters.md.
 constexpr float    UNC_K_REL     = 0.002f;        // [gesch] Kalibrierfaktor: Kontrollgewicht 0,05 %, Mittelung, Linearitaet
 constexpr float    UNC_LCAL_REL  = 0.001f;        // [gesch] CALIB_ARM_M: 0,1 mm auf 330 mm plus Lotrichtung der Aufhaengung
@@ -804,7 +838,7 @@ constexpr uint16_t AIRSPY_CHR_UUID16    = 0xFFF4;
 constexpr uint8_t  AIRSPY_TAG_PRESSURE  = 0x2E;
 constexpr uint8_t  AIRSPY_TAG_TEMP      = 0x22;
 constexpr uint8_t  AIRSPY_TAG_BATTERY   = 0x1E;
-constexpr uint8_t  AIRSPY_AVG_N         = 10;     // [Festlegung] gleitendes Mittel, 5 s bei 2 Hz
+constexpr uint8_t  AIRSPY_AVG_N         = 1;      // [Festlegung] 1 = aktueller Wert, kein Mittel (2026-11-24: der Druck schwankt kaum, lieber frisch); >1 = gleitendes Mittel ueber so viele Werte
 constexpr uint32_t AIRSPY_STALE_MS      = 10000;  // [gesch] danach gilt der Wert als alt (Sensor schlaeft ~10 min nach Stillstand)
 // Verbindungsintervall in 1,25-ms-Einheiten: 400..500 ms statt 30..50, sonst ist die
 // Knopfzelle in einem Tag leer (airspy/docs/20-protocol.md §3.3). Eine Bitte, keine

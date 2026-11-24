@@ -30,11 +30,13 @@
 // Befehle (Konsole und Oberflaeche, Praefix 'R'):
 //   R          starten             Rk  Hauptknopf des Schritts (Weiter, Bestaetigt, Neu)
 //   Rs         Nebenknopf (Ueberspringen, Uebernehmen)
-//   Rn         Nochmal (Kontrollgewicht)
+//   Rn         Nochmal (Kontrollgewicht, Systempruefung)
+//   Rb         Zurueck, einen Schritt der Vorbereitung (nur solange nichts faehrt)
 //   Rx         abbrechen und schliessen
 //   Rm<k>=<v>  Metadaten: t Reifen, w Laufrad, b Druck bar, c Raum °C (Start),
-//              e Raum °C (Ende), l Auflast kg, p Position Laufgewicht mm, n Notiz,
-//              d Unixzeit s
+//              e Raum °C (Ende), p Position Laufgewicht mm (-> Auflast aus der
+//              Hebelwaage, settings::loadFromPosN), l Auflast GEMESSEN kg (Haengewaage,
+//              uebersteuert die Rechnung, leer = Rechnung), n Notiz, d Unixzeit s
 //
 #include <Arduino.h>
 

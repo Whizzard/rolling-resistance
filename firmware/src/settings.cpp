@@ -22,6 +22,9 @@ constexpr char K_A1[] = "a1"; constexpr char K_B1[] = "b1";
 constexpr char K_MRAD[] = "m_rad";
 constexpr char K_URAD[] = "u_rad";
 constexpr char K_JRAD[] = "j_rad";       // gemessenes J_Rad, Bifilarpendel
+constexpr char K_LD_EMPTY[] = "ld_empty"; constexpr char K_LD_WEIGHT[] = "ld_weight"; constexpr char K_LD_ARM[] = "ld_arm";
+constexpr char K_RM_TIRE[] = "rm_tire"; constexpr char K_RM_WHEEL[] = "rm_wheel"; constexpr char K_RM_NOTE[] = "rm_note";
+constexpr char K_RM_BAR[] = "rm_bar"; constexpr char K_RM_TEMP[] = "rm_temp"; constexpr char K_RM_LOAD[] = "rm_load"; constexpr char K_RM_POS[] = "rm_pos";
 constexpr char K_ARMCAL[] = "arm_at_cal"; // Zellenarm bei der Kalibrierung
 
 float g_drum  = DRUM_CIRCUMFERENCE_M;
@@ -36,6 +39,8 @@ float   g_a0 = NAN, g_b0 = NAN, g_a1 = NAN, g_b1 = NAN, g_mRad = WHEEL_MASS_DEFA
 float   g_uRad = NAN;
 float   g_jRad = NAN;
 float   g_armCal = NAN;
+RunMeta g_rm = {"", "", "", NAN, NAN, NAN, 0};
+float   g_ldEmpty = LOAD_EMPTY_KG, g_ldWeight = LOAD_WEIGHT_KG, g_ldArm = LOAD_ARM_A_M;
 float   g_plat[PLATEAU_MAX];
 uint8_t g_platN = 0;
 
@@ -110,6 +115,16 @@ void begin() {
     if (g_nvs.isKey(K_URAD)) g_uRad = g_nvs.getFloat(K_URAD, NAN);
     if (g_nvs.isKey(K_JRAD)) g_jRad = g_nvs.getFloat(K_JRAD, NAN);
     if (g_nvs.isKey(K_ARMCAL)) g_armCal = g_nvs.getFloat(K_ARMCAL, NAN);
+    if (g_nvs.isKey(K_LD_EMPTY))  g_ldEmpty  = g_nvs.getFloat(K_LD_EMPTY,  LOAD_EMPTY_KG);
+    if (g_nvs.isKey(K_LD_WEIGHT)) g_ldWeight = g_nvs.getFloat(K_LD_WEIGHT, LOAD_WEIGHT_KG);
+    if (g_nvs.isKey(K_LD_ARM))    g_ldArm    = g_nvs.getFloat(K_LD_ARM,    LOAD_ARM_A_M);
+    if (g_nvs.isKey(K_RM_TIRE))  g_nvs.getString(K_RM_TIRE, g_rm.tire, sizeof(g_rm.tire));
+    if (g_nvs.isKey(K_RM_WHEEL)) g_nvs.getString(K_RM_WHEEL, g_rm.wheel, sizeof(g_rm.wheel));
+    if (g_nvs.isKey(K_RM_NOTE))  g_nvs.getString(K_RM_NOTE, g_rm.note, sizeof(g_rm.note));
+    if (g_nvs.isKey(K_RM_BAR))   g_rm.bar = g_nvs.getFloat(K_RM_BAR, NAN);
+    if (g_nvs.isKey(K_RM_TEMP))  g_rm.tempC = g_nvs.getFloat(K_RM_TEMP, NAN);
+    if (g_nvs.isKey(K_RM_LOAD))  g_rm.loadKg = g_nvs.getFloat(K_RM_LOAD, NAN);
+    if (g_nvs.isKey(K_RM_POS))   g_rm.posMm = g_nvs.getInt(K_RM_POS, 0);
     const size_t bytes = g_nvs.isKey(K_PLAT) ? g_nvs.getBytesLength(K_PLAT) : 0;
     if (bytes > 0 && bytes % sizeof(float) == 0 && bytes <= sizeof(g_plat)) {
       g_nvs.getBytes(K_PLAT, g_plat, bytes);
@@ -190,6 +205,27 @@ bool  setWheelJKgm2(float j) {
   return store1(K_JRAD, j);
 }
 float armAtCalM() { return g_armCal; }
+
+float loadEmptyKg()  { return g_ldEmpty; }
+float loadWeightKg() { return g_ldWeight; }
+float loadArmM()     { return g_ldArm; }
+bool setLoadEmptyKg(float kg)  { if (!(kg >= 0.0f && kg < 100.0f)) return false; g_ldEmpty = kg;  return store1(K_LD_EMPTY, kg); }
+bool setLoadWeightKg(float kg) { if (!(kg >= 0.0f && kg < 100.0f)) return false; g_ldWeight = kg; return store1(K_LD_WEIGHT, kg); }
+bool setLoadArmM(float m)      { if (!(m > 0.02f && m < 2.0f)) return false;      g_ldArm = m;    return store1(K_LD_ARM, m); }
+float loadFromPosN(float posM) {
+  if (isnan(posM) || posM < 0.0f || posM > 3.0f || g_ldArm <= 0.0f) return NAN;
+  return (g_ldEmpty + g_ldWeight * posM / g_ldArm) * 9.80665f;
+}
+
+const RunMeta& runMeta() { return g_rm; }
+void setRunMeta(const RunMeta& m) {
+  g_rm = m;
+  if (!g_nvs.begin(NS, false)) return;
+  g_nvs.putString(K_RM_TIRE, m.tire); g_nvs.putString(K_RM_WHEEL, m.wheel); g_nvs.putString(K_RM_NOTE, m.note);
+  g_nvs.putFloat(K_RM_BAR, m.bar); g_nvs.putFloat(K_RM_TEMP, m.tempC); g_nvs.putFloat(K_RM_LOAD, m.loadKg);
+  g_nvs.putInt(K_RM_POS, m.posMm);
+  g_nvs.end();
+}
 
 float wheelCircM() { return g_uRad; }
 bool  setWheelCircM(float m) {
@@ -309,6 +345,8 @@ void reset() {
   g_uRad = NAN;
   g_jRad = NAN;
   g_armCal = NAN;
+  g_rm = RunMeta{"", "", "", NAN, NAN, NAN, 0};
+  g_ldEmpty = LOAD_EMPTY_KG; g_ldWeight = LOAD_WEIGHT_KG; g_ldArm = LOAD_ARM_A_M;
   defaultPlateaus();
 }
 

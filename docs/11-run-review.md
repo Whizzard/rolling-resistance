@@ -168,7 +168,10 @@ Everything that can go wrong during the run without aborting is a warning with a
 identifier that appears in the report: W01 check weight skipped, W02 idle-loss model
 older than the session, W03 point invalid (which one, why), W04 anchor drift above
 threshold, W05 post-run baseline skipped, W06 controller fault during the run, W07
-temperature not entered. An evaluation can filter by them.
+temperature not entered, W10 check weight off by ≥ 0.5 % and the stored factor kept, W13
+zero depends on angle, W14 zero drifted during the run, W16 end stop outside 100 to
+140 % FS, W17 end-stop check skipped, W18 calibration factor adopted from the check
+weight (old and new factor in the message). An evaluation can filter by them.
 
 ### R11 Evaluation from the run record, not from the console
 
@@ -199,8 +202,8 @@ need hands, **A** run alone, **E** are inputs.
 | 1 | Create run: tire, wheel, pressure, room temperature, wheel load, sliding-weight position, note | E | header data |
 | 2 | Visual inspection per SOP B0, emergency stop within reach | H | confirmed / time |
 | 3 | System check: controller, cell, noise, bus, models, age | A | table ok/missing |
-| 4 | Zeroing, drum at rest | A | offset, noise σ |
-| 5 | Check weight 1000 g at 330 mm | H, skippable | deviation % or W01 |
+| 4 | Zeroing, drum at rest; then a quarter turn by hand, monitored through the controller's tachometer (progress bar in degrees), second reading starts by itself once the drum is still | A | offset, noise σ, zero after the turn (W13) |
+| 5 | End stop of the load cell first (push the arm by hand, live bar, peak must land at 100 to 140 % of full scale; an end stop already resting would make the check weight worthless), then check weight 1000 g at 330 mm. The deviation never blocks: *continue* keeps the stored factor (W10 if ≥ 0.5 %), *adopt as calibration* makes today's reading the factor (W18, old factor in the report), *again* repeats. Continue only once the live torque shows the weight is off | H, skippable | peak % FS or W17; deviation % or W01; W10 / W18 |
 | 6 | Idle-loss model: adopt or new (lift wheel → pre-run baseline → lower wheel) | H+A | A₀, B₀, 5 points, drift relative to stored |
 | 7 | Wheel-loss model for this wheel: adopt or spin-down assistant | H+A | A₁, B₁, J_Rad, circumference |
 | 8 | Wheel placed, wheel load and position confirmed | H | confirmed |
@@ -234,7 +237,7 @@ Tire · Wheel · Pressure · Load · Room temperature · Operator · Build
 ```
 
 Every number with unit, SI internally, km/h and bar only in the columns named that way
-([CLAUDE.md](../CLAUDE.md)). No number without provenance: measured, calculated, entered,
+([../CLAUDE](../CLAUDE.md)). No number without provenance: measured, calculated, entered,
 adopted (with time).
 
 ## 5 Open decisions

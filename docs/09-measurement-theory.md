@@ -491,7 +491,7 @@ firmware remembers the arm at calibration and the measurement run blocks if it w
 
 1. Balance in measuring position, **wheel lifted**, drum nudged by hand and allowed to settle
    (rotor free in the detent position, §5.3), cables routed as in operation.
-2. Static tare (`t`), 200 samples.
+2. Static tare (`t`), 80 samples.
 3. Hang a known weight at the **mark of the calibration arm** at `L_cal` = 330.0 mm.
    Torque `M_cal = m · g · L_cal`. Average the raw value over 200 samples.
 4. Repeat with at least **three** masses over the range. At `L_cal` = 330 mm the
@@ -560,7 +560,7 @@ standstill `T_arm = T_last` holds: if the rotor stands at an arbitrary angle and
 angle, typically 0.05 to 0.2 Nm, and it ends up in the offset. Therefore: **lift the wheel,
 nudge the drum by hand and let it settle**, then zero; afterwards turn the drum a
 quarter revolution further and read again. If the value deviates by more than
-`RUN_ZERO_LIMIT_N` (0.02 N on F_roll), something is holding the rotor (W13). The same
+`RUN_ZERO_LIMIT_N` (0.25 N on F_roll; deliberately wider than the drift criterion, because the static friction of motor bearings and pillow blocks lets about 0.1 N of cogging torque stand at any angle, which cancels in Crr), something is holding the rotor (W13). The same
 reading after the spin-down, wheel lifted, checks the drift of cell, cable and preload
 over the run (W14) — hands-off, the guided run does it in the "post-run" step.
 

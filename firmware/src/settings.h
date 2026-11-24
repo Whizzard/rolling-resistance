@@ -57,6 +57,12 @@ bool    removePlateau(float kmh);        // false: nicht in der Liste
 // Auflast auf dem Laufrad, Vorgabe LOAD_DEFAULT_N, am Stand änderbar (Befehl l).
 float loadN();
 bool  setLoadN(float n);
+// Hebelwaage (config.h LOAD_*): Leergewicht an der Achse, Laufgewicht, Radarm a.
+// loadFromPosN rechnet die Auflast aus der Position b des Laufgewichts (Befehle Ae/Aw/Aa/Ap).
+float loadEmptyKg();  bool setLoadEmptyKg(float kg);
+float loadWeightKg(); bool setLoadWeightKg(float kg);
+float loadArmM();     bool setLoadArmM(float m);
+float loadFromPosN(float posM);   // (m_leer + m_gewicht * b / a) * g; NAN bei unsinniger Position
 
 // Verlustmodelle, beide im NVS (config.h, docs/09-measurement-theory.md Gl. 11/12):
 //   Leerlauf  M_leer(w)     = A0 + B0 w^2        [Nm], w Trommel in rad/s
@@ -83,6 +89,20 @@ float armAtCalM();
 // Letzter gemessener Laufradumfang [m] (wheel.h), ueberlebt den Stillstand und den
 // Neustart -- der Assistent braucht ihn, bevor sich etwas dreht. NAN = nie gemessen.
 float wheelCircM(); bool setWheelCircM(float m);
+
+// Kopfdaten des letzten Messlaufs (run.h Schritt 1), im NVS: Reifen, Laufrad, Notiz,
+// Druck, Raumtemperatur, Auflast, Position des Laufgewichts. Werden beim Eintippen
+// gespeichert und beim naechsten Anlegen vorbelegt -- nach Abbruch, Neustart oder
+// Flashen faengt niemand von vorn an (2026-11-24).
+struct RunMeta {
+  char  tire[40];
+  char  wheel[32];
+  char  note[64];
+  float bar, tempC, loadKg;
+  int   posMm;
+};
+const RunMeta& runMeta();
+void setRunMeta(const RunMeta& m);
 
 // Statische Tara der Wägezelle (Rohwert bei leerem Arm). Im NVS, damit sie einen
 // Neustart überlebt -- vorher war sie nach jedem Flashen weg, und 241 000 counts
