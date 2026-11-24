@@ -28,7 +28,7 @@ void clear() {
 }  // namespace
 
 // ---- Auslauf
-// INTEGRALMETHODE statt punktweiser Differenz (docs/12-methodology-review.md W8):
+// INTEGRALMETHODE statt punktweiser Differenz (docs/11-review.md W8):
 // aus J dw/dt = -(A1 + B1 w^2) folgt durch Integration ueber die Zeit
 //     w(t) = w0 - (A1/J) t - (B1/J) * Int_0^t w^2 dt .
 // Das ist LINEAR in den drei Unbekannten w0, a = A1/J, b = B1/J, mit den Regressoren

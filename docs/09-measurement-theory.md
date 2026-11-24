@@ -11,7 +11,7 @@ Numerical values apply to the stand as built (2026-11-24): drum U = 2.842 m
 (Ø 905 mm, r = 0.4523 m), J = 1.94 kg·m², cell arm 84 mm, 5 kg cell, calibration arm
 330 mm, designed for fast road tires. `config.h` and
 [03-parameters](03-parameters.md) are authoritative. The findings of the review of 2026-11-24
-([12-methodology-review](12-methodology-review.md)) are incorporated: inertia
+([11-review](11-review.md)) are incorporated: inertia
 correction per point (§1.7, §6), zero with free rotor (§5.3), reference point before and
 after the plateaus (§7.1, §8), extended budget (§3.2).
 
@@ -148,7 +148,7 @@ On the plateau the acceleration is not zero, only small: the control loop oscill
 **net change**: `J·(ω_Ende − ω_Anfang)/T`. At 0.2 km/h net over 10 revolutions
 that is 0.035 Nm at 15 km/h (5 % of the signal), 0.067 Nm at 28.8 km/h (10 %) and
 0.140 Nm at 60 km/h (20 %). **That is why each point is corrected, not merely gated**
-(since 2026-11-24, [12-methodology-review](12-methodology-review.md) K1): the firmware
+(since 2026-11-24, [11-review](11-review.md) K1): the firmware
 fits a regression line v(t) over the whole point, takes its slope as the
 net acceleration and subtracts `J_eff·dω/dt`, with `J_eff = J + J_Rad·(r/r_Rad)²` in the
 measurement run. What remains is `UNC_J_REL` (5 %) of that; a point counts as valid as long as the
@@ -338,7 +338,7 @@ Summed in quadrature, the bold rows give roughly **0.029 N = 14 % of the target*
 **0.063 N = 30 %**. Thus two tires differing by ΔCrr = 0.0005 are
 separable — but only with bifilar pendulum, index mark and both zero-point checks. The
 firmware computes the same sum per plateau as u(Crr) with k = 1 into the log
-([11-run-review](11-run-review.md) R9).
+([11-review](11-review.md) R9).
 
 ### 3.3 The Old Baseline Criterion Has Become Too Soft
 
@@ -553,7 +553,7 @@ wheel, tire or mechanics — then weigh again.
 Both are needed. The static tare alone leaves the aerodynamics in place, the
 idle-loss curve alone leaves the ADC offset in place.
 
-**The tare needs a free rotor** ([12-methodology-review](12-methodology-review.md)
+**The tare needs a free rotor** ([11-review](11-review.md)
 K2). The cogging torque does lie inside the cradle and averages out during the run, but at
 standstill `T_arm = T_last` holds: if the rotor stands at an arbitrary angle and static friction
 (tire on the drum) holds it there, the arm carries the cogging torque of that
@@ -610,7 +610,7 @@ Full factorial would be 11 × 4 × 3 = 132 points per tire — unrealistic. Prac
    reference points is the drift over the measurement run (tire temperature, bearings, air). The
    tire cools at 15 km/h and warms up to 60 km/h beyond the warm-up state;
    the curve Crr(v) therefore contains a temperature trend that only a second
-   pass in reverse order separates ([12-methodology-review](12-methodology-review.md)
+   pass in reverse order separates ([11-review](11-review.md)
    W1). About 10 min plus two baselines.
 2. **Pressure series:** only at 28.8 km/h, all pressure stages, 42.5 kg. At least
    10 revolutions per stage, **5 min settling time** between stages — with the
@@ -825,7 +825,7 @@ Once per wheel:
    do not differentiate pointwise. The firmware uses the **integral method** for this:
    `ω(t) = ω₀ − (A₁/J)·t − (B₁/J)·∫ω²dt` is linear in ω₀, A₁/J, B₁/J, the fit runs
    over all pulses without forming differences, residual and number of support points are shown in the
-   console (`wheel.cpp`, [12-methodology-review](12-methodology-review.md) W8).
+   console (`wheel.cpp`, [11-review](11-review.md) W8).
 5. The assistant stores A₁/B₁ itself; `w<A₁> <B₁>` only for adopting external values.
    Enter **J_Rad measured** (bifilar, §9.2) beforehand with `Y<kgm2>`, otherwise the
    firmware computes with 0.85·m·r² and ±10 %.

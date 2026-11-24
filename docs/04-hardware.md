@@ -2073,7 +2073,7 @@ Commands, identical over serial console and web UI ([10-firmware](10-firmware.md
 | `i` | **status**: controller, load cell, sensors, operator link |
 | `g` | zero the sensor counters (wiring test, see below) |
 | `m0` / `m1` | idle / measurement run: drives through the measurement speeds in sequence |
-| `R` / `Rk` / `Rs` / `Rn` / `Rx` / `Rm<k>=<v>` | Guided measurement run (`run.h`, [11-run-review](11-run-review.md) §3): start, main button, secondary button, again, abort, metadata (t tire, w wheel, b bar, c °C, l kg, p mm, n note, d Unix time). In the web UI behind *Measurement*. Report and data under `/runs/` |
+| `R` / `Rk` / `Rs` / `Rn` / `Rx` / `Rm<k>=<v>` | Guided measurement run (`run.h`, [11-review](11-review.md) §3): start, main button, secondary button, again, abort, metadata (t tire, w wheel, b bar, c °C, l kg, p mm, n note, d Unix time). In the web UI behind *Measurement*. Report and data under `/runs/` |
 | `h<kmh>` / `h-<kmh>` | add / remove measurement speed (list in NVS, sorted) |
 | `l<N>` | wheel load; without it no measurement run starts |
 | `n<A0> <B0>` / `w<A1> <B1>` | set idle-loss and wheel-loss model by hand; `m0` fits the idle-loss model itself, `u` the wheel-loss model |

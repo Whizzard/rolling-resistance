@@ -108,7 +108,7 @@ Firmware: main variant `esp32s3` (state machine, plateaus, report) — see **Sta
 today** at the end. About two hours, of which 30 min warm-up. (11)
 
 > **Since 2026-11-23 the firmware guides through B3 to B9:** *Measurement* in the web UI
-> opens the guided measurement run (`run.h`, [11-run-review](11-run-review.md) §3).
+> opens the guided measurement run (`run.h`, [11-review](11-review.md) §3).
 > Before starting it checks motor controller, cell, noise, calibration status, lever arm
 > and models, tares with the wheel lifted and checks the zero by turning the drum further,
 > checks the load-cell end stop (live bar, peak 100 to 140 % of full scale) and then
@@ -117,7 +117,7 @@ today** at the end. About two hours, of which 30 min warm-up. (11)
 > warm-up, reference point, plateaus with three points each, reference point and stop,
 > optionally zero check and post-run baseline, and stores report and data under
 > `/runs/`. Every point is corrected by `J·dω/dt`; pressure and tire temperature come
-> from the AirSpy ([12-methodology-review](12-methodology-review.md)). The steps below
+> from the AirSpy ([11-review](11-review.md)). The steps below
 > remain the reference for what the human does meanwhile. **Not yet run on the stand.**
 
 | # | Step | Duration |
@@ -306,7 +306,7 @@ today** at the end. About two hours, of which 30 min warm-up. (11)
     ([09-measurement-theory](09-measurement-theory.md) §10), but the order of magnitude
     must fit and the ranking of several tires must be right. Expectation from the
     curvature approximation: 3 to 4 % below the database
-    ([12-methodology-review](12-methodology-review.md) D5).
+    ([11-review](11-review.md) D5).
 20. At standstill the arm carries the motor's cogging torque if the tire's static friction
     holds the rotor at an arbitrary angle — up to 0.2 Nm in the offset. Left free, the
     rotor drops into a detent position, where it is zero.

@@ -28,7 +28,7 @@ constexpr float DRUM_RADIUS_M = DRUM_CIRCUMFERENCE_M / (2.0f * PI);
 // (docs/09-measurement-theory.md). Bestimmt die Hochlaufzeit, die Energie, die im Notfall
 // abzufuehren ist (bei 100 km/h 3,7 kJ) -- und seit 2026-11-24 die TRAEGHEITS-
 // KORREKTUR je Messpunkt: M_korr = M - J_eff * dw/dt (state.cpp finishPoint,
-// docs/12-methodology-review.md K1). Geht damit mit UNC_J_REL ins Ergebnis ein;
+// docs/11-review.md K1). Geht damit mit UNC_J_REL ins Ergebnis ein;
 // per Auslaufversuch mit bekannter Zusatzmasse nachmessen (docs/05 A5.3).
 constexpr float DRUM_INERTIA_KGM2 = 1.94f;
 // [gesch] Relative Unsicherheit von DRUM_INERTIA_KGM2, solange J nur gerechnet ist.
@@ -88,7 +88,7 @@ constexpr float TORQUE_ARM_M = 0.084f;
 // WICHTIG: In der Momentenkette kuerzt sich TORQUE_ARM_M heraus,
 //   M = counts * m*g*CALIB_ARM_M / (counts_kal - offset),
 // die Richtigkeit jedes Moments haengt also an DIESEM Mass, nicht am Zellenarm
-// (docs/12-methodology-review.md D2). Deshalb UNC_LCAL_REL statt eines L-Postens.
+// (docs/11-review.md D2). Deshalb UNC_LCAL_REL statt eines L-Postens.
 constexpr float CALIB_ARM_M = 0.330f;
 
 // [Festlegung] DIREKTANTRIEB: die Trommel sitzt auf dem Rotor des Nabenmotors,
@@ -107,7 +107,7 @@ constexpr float BELT_RATIO = 1.00f;
 // Ergebnis geht, wird index-getriggert über ganze Umdrehungen gemessen, dort kürzt
 // sich die Markenteilung exakt heraus. Sie bringen nur Latenz auf dem
 // trommelseitigen Pfad; die eigentliche Auflösung liefert der Motor-Hall.
-// WAS WOFUER (docs/12-methodology-review.md K4): Fuer die Messung zaehlen echte
+// WAS WOFUER (docs/11-review.md K4): Fuer die Messung zaehlen echte
 // Umdrehungen -- sie machen aus "10 gerechnete Umdrehungen aus der Reglerdrehzahl"
 // zehn echte. Die liefert JEDER Geber an der Trommel: der Marken-Hall (jede 8. Flanke
 // ist eine Umdrehung, speed.cpp) oder ein eigener Index-Hall. Mit nur EINEM Hall sind
@@ -427,7 +427,7 @@ constexpr float   SPINDOWN_MIN_KMH  = 5.0f;     // [gesch] darunter endet der Au
 constexpr float   BRAKE_MAX_KMH       = 45.0f;    // [gesch] 54 ok, 56 nicht; Rand nach unten. Anheben nur in 2-km/h-Schritten mit Blick auf vin
 constexpr uint32_t BRAKE_FAULT_HOLD_MS = 3000;    // [gesch] nach einem Reglerfehler so lange nicht wieder bremsen (500 ms davon verwirft der Regler selbst)
 
-// GEFUEHRTER MESSLAUF (run.h, docs/11-run-review.md §2 und §3).
+// GEFUEHRTER MESSLAUF (run.h, docs/11-review.md §2 und §3).
 constexpr uint8_t  RUN_POINTS_PER_PLATEAU = 3;    // [Festlegung] R4: Streuung je Plateau aus drei Punkten zu je AVG_REVS_PER_POINT
 constexpr float    RUN_CTRL_MASS_KG  = 1.0f;      // [gemessen] geeichtes Kontrollgewicht, haengt bei CALIB_ARM_M
 constexpr float    RUN_CTRL_OK_PCT   = 0.5f;      // [gesch] Kontrollgewicht: Abweichung darunter ok
@@ -442,7 +442,7 @@ constexpr float    RUN_STOP_MAX_PCT  = 140.0f;    // [Festlegung] darueber schue
 constexpr float    RUN_STOP_BAR_PCT  = 160.0f;    // [Festlegung] Skalenende des Balkens in der Oberflaeche
 constexpr float    RUN_DRIFT_LIMIT_N = 0.02f;     // [ber] docs/09-measurement-theory.md §8.8: Vor-/Nachlauf auf F_roll, darueber W08
 constexpr float    RUN_ANCHOR_WARN_N = 0.03f;     // [gesch] Ankerdrift auf F_roll (Referenzpunkt vor und nach den Plateaus), darueber W04
-// NULLPUNKT, zweimal geprueft (docs/12-methodology-review.md K2, W6):
+// NULLPUNKT, zweimal geprueft (docs/11-review.md K2, W6):
 //  - nach dem Nullen die Trommel von Hand eine Viertelumdrehung weiterdrehen und
 //    erneut lesen. Weicht der Rohwert ab, hielt etwas den Rotor gegen das Rastmoment
 //    fest (Rad auf der Trommel), und der Offset enthaelt das Rastmoment dieses Winkels.

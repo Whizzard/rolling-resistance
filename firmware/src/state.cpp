@@ -35,7 +35,7 @@ struct RevStats {
   double   sImot = 0, sVin = 0; uint16_t nTele = 0;
   // Ausgleichsgerade v(t) ueber den ganzen Punkt: ihre Steigung ist die NETTO-
   // Beschleunigung, die das Traegheitsmoment J*dw/dt im Mittelwert hinterlaesst
-  // (docs/12-methodology-review.md K1). Zeit relativ zum Punktbeginn, Sekunden.
+  // (docs/11-review.md K1). Zeit relativ zum Punktbeginn, Sekunden.
   uint32_t t0 = 0; double st = 0, stt = 0, svt = 0, svs = 0; uint32_t nt = 0;
   void reset() { *this = RevStats(); t0 = millis(); }
   void rev() {

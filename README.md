@@ -49,7 +49,7 @@ sensor, intermediate-magnet index) compile but have not been driven on the stand
 Open before the first result: wire the Hall sensor to the drum marks, measure the wheel's
 moment of inertia with a bifilar pendulum, check the load-cell linearity with three
 masses, weigh the wheel load. The list with status is
-[docs/12-methodology-review.md](docs/12-methodology-review.md) §0.
+[docs/11-review.md](docs/11-review.md) §0.
 
 ## Key data
 
@@ -78,8 +78,7 @@ masses, weigh the wheel load. The list with status is
 | [docs/08-stand.md](docs/08-stand.md) | Stand: dimension chain, drum bearings, lever balance, torque pickup, wheel inertia |
 | [docs/09-measurement-theory.md](docs/09-measurement-theory.md) | Formulas, error budget, sensors, calibration, measurement matrix, procedure |
 | [docs/10-firmware.md](docs/10-firmware.md) | Firmware requirements |
-| [docs/11-run-review.md](docs/11-run-review.md) | Review of the measurement run: checks, scatter, report; clickable prototype [11-run-prototype.html](docs/11-run-prototype.html) |
-| [docs/12-methodology-review.md](docs/12-methodology-review.md) | Peer-style review of setup, calculations, checks and error budget, with the status of every finding |
+| [docs/11-review.md](docs/11-review.md) | Consolidated review of setup, run and methodology: status of every finding, target sequence, report format, bench-day findings; clickable prototype [11-run-prototype.html](docs/11-run-prototype.html) |
 
 There is no 02: the earlier measurement concept was merged into 09. Firmware comments
 and the web UI are in German; the documentation is in English.

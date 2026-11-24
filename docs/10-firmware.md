@@ -249,7 +249,7 @@ Via the serial console, single-line, and included in the CSV header.
 | `w<A₁> <B₁>` | Wheel-loss model by hand | `w0.012 0.000071` | from the wheel spin-down |
 | `n<A₀> <B₀>` | Idle-loss model by hand | `n0.004 0.000209` | the idle run `m0` fits and stores it itself since 2026-11-23; from the baseline run |
 | `t` | static tare | | offset |
-| `R` | **Guided measurement run** | `R`, then `Rk`/`Rs`/`Rn`/`Rx`, `Rm<k>=<v>` | Fourteen steps ([11-run-review](11-run-review.md) §3): create run, visual check, system check, zeroing, control weight, idle-loss model (adopt or pre-run with wheel lifted), wheel model, wheel resting; then on its own warm-up (`WARMUP_MS` at `WARMUP_KMH`, live point every minute), plateaus with `RUN_POINTS_PER_PLATEAU` points, anchor point, stop; optional idle post-run; report `.md` and data `.csv` in LittleFS under `/runs/<id>`, retrievable via `/runs`. Warnings W01…W12 in the report. In the web UI behind *Measurement*. Since 2026-11-23 |
+| `R` | **Guided measurement run** | `R`, then `Rk`/`Rs`/`Rn`/`Rx`, `Rm<k>=<v>` | Fourteen steps ([11-review](11-review.md) §3): create run, visual check, system check, zeroing, control weight, idle-loss model (adopt or pre-run with wheel lifted), wheel model, wheel resting; then on its own warm-up (`WARMUP_MS` at `WARMUP_KMH`, live point every minute), plateaus with `RUN_POINTS_PER_PLATEAU` points, anchor point, stop; optional idle post-run; report `.md` and data `.csv` in LittleFS under `/runs/<id>`, retrievable via `/runs`. Warnings W01…W12 in the report. In the web UI behind *Measurement*. Since 2026-11-23 |
 
 | | P | Requirement |
 |---|---|---|

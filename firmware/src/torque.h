@@ -64,7 +64,7 @@ uint8_t  binCount();
 // --- Stichprobe im Stillstand ------------------------------------------------
 // Fuer Kontrollgewicht und Nullpruefungen (run.cpp): sampleBegin(), warten, dann
 // sampleMean()/sampleSigma() ueber ALLE seither gelesenen Werte -- nicht den
-// 40er-Anzeigering, der nur 0,5 s abdeckt (docs/12-methodology-review.md D5).
+// 40er-Anzeigering, der nur 0,5 s abdeckt (docs/11-review.md D5).
 // Unabhaengig vom Umdrehungsakkumulator, der nur im Zustand POINT gefuellt wird.
 void     sampleBegin();
 void     sampleStop();

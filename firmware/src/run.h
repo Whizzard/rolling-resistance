@@ -2,7 +2,7 @@
 //
 // GEFUEHRTER MESSLAUF ("Messung" auf der Messseite), seit 2026-11-23.
 //
-// Vierzehn Schritte, Begruendung in docs/11-run-review.md §3:
+// Vierzehn Schritte, Begruendung in docs/11-review.md §3:
 //
 //   A Vorbereitung (Haende)      1 Lauf anlegen  2 Sichtpruefung  3 Systempruefung
 //                                4 Nullen (Rad abgehoben, Rotor frei) + Nullpruefung
@@ -12,7 +12,7 @@
 //                                11 Referenzpunkt danach  12 Anhalten
 //   C Abschluss                  13 Nullpunkt + Nachlauf Leerlauf (optional)  14 Protokoll
 //
-// Seit 2026-11-24 (docs/12-methodology-review.md): jeder Punkt ist um J*dw/dt
+// Seit 2026-11-24 (docs/11-review.md): jeder Punkt ist um J*dw/dt
 // korrigiert, der Referenzpunkt (WARMUP_KMH) wird direkt nach dem Warmlauf und nach
 // den Plateaus gefahren (Ankerdrift ueber die ganze Messfahrt), Druck und
 // Reifentemperatur kommen je Punkt vom AirSpy mit, und die Unsicherheit je Plateau

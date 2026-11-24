@@ -12,7 +12,7 @@ Standard library only; `--plot` needs `matplotlib`.
 It reads the **run record** of the guided measurement run (firmware `run.cpp`, file
 `/runs/<id>.csv`, download it from http://tire.local/runs and store it unchanged under
 `data/`) and calculates **the same way the ESP does** (docs/09-measurement-theory.md
-§6, docs/12-methodology-review.md W9):
+§6, docs/11-review.md W9):
 
 1. Idle-loss model A₀/B₀ and wheel-loss model A₁/B₁ from the file header; the header also
    carries r, L, L_cal, wheel load, J_wheel with its origin, the Type B terms and the

@@ -12,7 +12,7 @@
 //              Umdrehungen. Seit 2026-11-24: ein einzelner Hall-Geber an der
 //              Trommel reicht, damit "10 Umdrehungen" zehn echte sind und die
 //              synchrone Mittelung die Drehordnungen wirklich loescht
-//              (docs/12-methodology-review.md K4). Winkel-Bins gibt es nicht.
+//              (docs/11-review.md K4). Winkel-Bins gibt es nicht.
 //   SRC_VESC   die Reglerdrehzahl, ERPM / MOTOR_POLE_PAIRS. Rückfall, solange gar
 //              kein Geber an der Trommel verdrahtet ist. Die Umdrehungen werden
 //              daraus INTEGRIERT, die Indexmarke ist gerechnet (bis zu eine
