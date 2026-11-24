@@ -1,69 +1,53 @@
-# Konventionen in diesem Projekt
+# Conventions in this project
 
-## Knowledgebase — erste Regel, vor allem anderen
+## Language
+Documentation (`README.md`, `docs/`, the READMEs in `analysis/`, `tools/`, `hardware/`,
+`web/`) is written in **English**. Identifiers in code are English. Comments inside the
+firmware and the web UI texts are German; they are not translated piecemeal, only
+whole files at a time.
 
-Die Dokumentation wird in der Knowledgebase gespiegelt (MCP-Connector
-„claude.ai Knowledgebase", `claudeai-proxy` auf https://machineum.com), als
-browsebarer Ast mit Texten, Verweisen und Zeichnungen.
+A knowledge-base mirror of the documentation existed until 2026-11-22 and was removed.
+The repository is the only source; there is nothing to synchronise.
 
-**Gespiegelt werden:** `README.md`, alles unter `docs/`, sowie die gerenderten
-Zeichnungen `hardware/schaltplan.pdf`, `.png` und `hardware/hall-gehaeuse.*`.
-**Nicht gespiegelt:** `firmware/`, `analysis/`, `data/`, die `.py`-Quellen der
-Zeichnungen. Code lebt nur im Repo.
+## Units
+**SI throughout internally**: N, Nm, W, m, m/s, rad/s, s, Pa.
+km/h, bar and rpm appear only in the display and in CSV columns that are explicitly
+named so (`v_kmh`, `p_tire_bar`). Conversion only at the output boundary.
 
-**Ablauf, verbindlich:**
+## Parameters
+Every physical constant lives in `firmware/src/config.h` and **only there**. Every
+value there has a row in `docs/03-parameters.md` with its origin (measured /
+calculated / datasheet / estimated) and, where applicable, the calibration rule. Both
+lists change together; `analysis/check_params.py` finds what was forgotten.
 
-1. **Zu Beginn jeder Sitzung**, bevor irgendetwas lokal geändert wird: den Stand der
-   Knowledgebase holen und mit dem Repo vergleichen. Dort geänderte Knoten zuerst ins
-   Repo übernehmen und committen.
-2. **Vor jedem Schreiben in die Knowledgebase**: prüfen, ob sich der Zielknoten seit
-   dem Holen verändert hat. Wenn ja, **nicht überschreiben** — beide Fassungen zeigen
-   und nachfragen.
-3. **Nach jedem Commit**, der gespiegelte Dateien berührt: die betroffenen Knoten
-   zurückschreiben.
+## No invented numbers
+Unknown values are written as `TBD` together with the method to determine them. A
+placeholder that looks like a measurement is worse than a gap. This applies above all
+to calibration factors: `LOADCELL_N_PER_COUNT` stays TBD until calibrated, and the
+firmware refuses to output Crr values as long as that is the case. Hardware dimensions,
+part numbers and prices come from a source or not at all.
 
-Zwischen Schritt 1 und 3 wird nicht erneut abgefragt — ein Abgleich je Datei wäre bei
-dutzenden Änderungen je Sitzung unbrauchbar. Schritt 2 fängt den Fall ab, dass
-zwischendurch doch jemand in der Knowledgebase gearbeitet hat.
+## Secrets
+The WLAN password lives in `firmware/src/secrets.h`, which is git-ignored; the template
+is `secrets.example.h`. Anything that contains it (the WLAN QR code `hardware/qr-wlan.*`)
+is git-ignored too. Server names and IP addresses of the hosting are fine in the repo;
+credentials, e-mail addresses and keys are not.
 
-**Bei Konflikt wird nicht automatisch zusammengeführt.** Das Repo ist nicht
-automatisch im Recht: wer zuletzt bewusst geschrieben hat, entscheidet — und das weiß
-nur der Mensch.
-
-> Der Grund für diese Regel steht in der Projektgeschichte: Dieselbe Information an
-> zwei Stellen war die Quelle fast aller Fehler, die wir finden mussten — veraltete
-> Trommelmaße, ein Motor, der nie verbaut wurde, eine Bremse, die es nicht gibt.
-> Eine Spiegelung ohne Abgleichregel wäre dieselbe Falle noch einmal.
-
-
-## Sprache
-Dokumentation und Kommentare auf Deutsch. Bezeichner im Code auf Englisch.
-
-## Einheiten
-**Intern durchgängig SI**: N, Nm, W, m, m/s, rad/s, s, Pa.
-km/h, bar und 1/min erscheinen ausschließlich in der Anzeige und in CSV-Spalten, die
-explizit so benannt sind (`v_kmh`, `p_tire_bar`). Umrechnung nur an der Ausgabegrenze.
-
-## Parameter
-Jede physikalische Konstante steht in `firmware/src/config.h` und **nur dort**.
-Jeder Wert dort hat eine Zeile in `docs/03-parameter.md` mit Herkunft
-(gemessen / berechnet / Datenblatt / geschätzt) und, falls zutreffend, der
-Kalibriervorschrift. Beide Listen werden gemeinsam geändert.
-
-## Keine erfundenen Zahlen
-Unbekannte Werte stehen als `TBD` zusammen mit der Methode, wie sie zu ermitteln sind.
-Ein Platzhalterwert, der wie eine Messung aussieht, ist schlimmer als eine Lücke.
-Das gilt besonders für Kalibrierfaktoren: `LOADCELL_N_PER_COUNT` bleibt TBD, bis
-kalibriert wurde, und die Firmware weigert sich, Crr-Werte auszugeben, solange das so ist.
-
-## Messdaten
-Versioniert werden die **gemittelten Messpunkte** als CSV unter `data/`, unverändert.
-Der rohe 80-SPS-Strom bleibt auf der SD-Karte und kommt **nicht** ins Repo (rund 30 MB
-je Sitzung). Abgeleitete Größen werden nie in eine vorhandene Datei zurückgeschrieben —
-Auswertung erzeugt immer neue Dateien.
+## Measurement data
+The **averaged measurement points** are versioned as CSV under `data/`, unchanged. The
+raw 80 SPS stream stays on the stand (about 30 MB per session) and does **not** go into
+the repo. Derived quantities are never written back into an existing file; evaluation
+always produces new files.
 
 ## Firmware
-- Kein `delay()` im Hauptpfad; die Zustandsmaschine ist nicht blockierend.
-- ISRs sind kurz (Zeitstempel in Ringpuffer, sonst nichts) und mit `IRAM_ATTR` versehen.
-- Jede Änderung an Sicherheitsgrenzen (`MAX_*`, Timeouts) wird in
-  `docs/07-sicherheit.md` nachgezogen.
+- No `delay()` in the main path; the state machine is non-blocking.
+- ISRs are short (timestamp into a ring buffer, nothing else) and marked `IRAM_ATTR`.
+- Every change to a safety limit (`MAX_*`, timeouts) is carried into
+  `docs/07-safety.md`.
+- Build with `cd firmware && pio run -e esp32s3` before claiming a change compiles.
+
+## Documentation
+- Every doc states its date ("As of YYYY-MM-DD") where the content is a snapshot.
+- Numbers use a decimal point; units with a space (28.8 km/h, 0.4523 m).
+- Cross-references use the file name as link text: `[09-measurement-theory](09-measurement-theory.md) §3.2`.
+  `analysis/check_links.py` checks every relative link.

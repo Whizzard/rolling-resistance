@@ -18,7 +18,7 @@
 //   2. Im Regler: bleibt laenger als timeout_msec kein Sollwert, stellt er selbst
 //      ab. Greift auch dann, wenn DIESE Firmware stehenbleibt.
 //   3. In Hardware: die Kurzschlussrelais am Not-Aus. Die einzige, die auch bei
-//      Ausfall von Regler oder Rechner wirkt (docs/07-sicherheit.md §3).
+//      Ausfall von Regler oder Rechner wirkt (docs/07-safety.md §3).
 //
 #include <Arduino.h>
 #include "config.h"
@@ -212,11 +212,12 @@ void printHelp() {
   Serial.println("#   j<s>    Live-Telemetrie, alle 200 ms, s Sekunden (Vorgabe 5)");
   Serial.println("#   n<A0> <B0>  Leerlaufmodell setzen (m0 fittet es selbst)");
   Serial.println("#   w<A1> <B1>  Radverlustmodell setzen   y<kg>  Laufradmasse");
+  Serial.println("#   Y<kgm2>  J_Rad GEMESSEN (Bifilarpendel), Y0 loescht -> Schaetzung 0,85 m r^2");
   Serial.println("#   u       Assistent Auslauf + Leerlauf (Trommel hoch, Rad abheben); uq quittiert");
   Serial.println("#   :<text> Terminalbefehl an den Regler (faults, hall_analyze 5, ...)");
   Serial.println("#   ><hex>  Rohpaket an den Regler, Antwort als Hex (z. B. >0e = mcconf)");
   Serial.print("# Grenze: "); Serial.print(V_MAX_KMH, 0);
-  Serial.println(" km/h (docs/07-sicherheit.md §5)");
+  Serial.println(" km/h (docs/07-safety.md §5)");
 }
 
 // Zustand auf die Konsole. Die Oberflaeche zeigt all das auch, aber beim
@@ -462,7 +463,7 @@ void calibrate(float kg) {
   snprintf(g_note, sizeof(g_note),
            "kalibriert: %.1f N auf %ld counts  ->  %.8f N/count", f, delta, nPerCount);
   Serial.print("# "); Serial.println(g_note);
-  Serial.println("# In config.h und docs/03-parameter.md eintragen:");
+  Serial.println("# In config.h und docs/03-parameters.md eintragen:");
   Serial.print("#   constexpr float LOADCELL_N_PER_COUNT = ");
   Serial.print(nPerCount, 8); Serial.println("f;");
 }
@@ -512,7 +513,7 @@ void handleCommand(const String& cmd) {
       break;
 
     // --- Laeufe. 'm' allein wird abgelehnt: toFloat("") ist 0 und waere
-    //     stillschweigend ein Leerlauf. Siehe docs/05-pruefablauf.md B4/B6.
+    //     stillschweigend ein Leerlauf. Siehe docs/05-test-procedure.md B4/B6.
     case 'm':
       if (cmd.length() < 2) { fail("m0 = Leerlauf, m1 = Messlauf"); break; }
       webui::setWebOperator(webui::inWebCommand());
@@ -616,6 +617,10 @@ void handleCommand(const String& cmd) {
       if (settings::setWheelMassKg(arg)) note("Laufradmasse uebernommen");
       else                                fail("Laufradmasse unplausibel");
       break;
+    case 'Y':
+      if (settings::setWheelJKgm2(arg)) note(arg == 0.0f ? "J_Rad gemessen geloescht, Schaetzung gilt" : "J_Rad gemessen uebernommen");
+      else                               fail("J_Rad unplausibel (0,01 bis 2 kg m^2)");
+      break;
     case 'u':
       if (cmd.length() > 1 && cmd[1] == 'q') { state::wizardAck(); break; }   // uq: Schritt 4 quittieren
       webui::setWebOperator(webui::inWebCommand());
@@ -705,6 +710,22 @@ void buildStateJson(char* buf, size_t len) {
   num(sMRad, sizeof(sMRad), settings::wheelMassKg(), 3);
   num(sJ, sizeof(sJ), wheel::jRadKgm2(), 4);
 
+  // Reifendruck und -temperatur (tirepressure.h): BLE vor Handeingabe, Alter in ms.
+  char sBar[16], sTTire[16], sPBatt[16], sPAge[16];
+  num(sBar, sizeof(sBar), tirepressure::bar(), 2);
+  num(sTTire, sizeof(sTTire), tirepressure::tempC(), 1);
+  num(sPBatt, sizeof(sPBatt), tirepressure::battery(), 0);
+  if (tirepressure::ageMs() == UINT32_MAX) snprintf(sPAge, sizeof(sPAge), "null");
+  else snprintf(sPAge, sizeof(sPAge), "%lu", static_cast<unsigned long>(tirepressure::ageMs()));
+  char sJMeas[16];
+  num(sJMeas, sizeof(sJMeas), settings::wheelJKgm2(), 4);
+  // Trommelmarken: woher die Umdrehung kommt (speed.h RevSource) und Zaehler der Auswertung.
+  char sMark[80];
+  snprintf(sMark, sizeof(sMark), "\"mSrc\":%u,\"mPpr\":%u,\"mRes\":%lu,\"mMiss\":%lu,\"mGl\":%lu",
+           static_cast<unsigned>(speed::revSource()), static_cast<unsigned>(speed::pulsesPerRev()),
+           static_cast<unsigned long>(speed::patternResyncs()), static_cast<unsigned long>(speed::missedPulses()),
+           static_cast<unsigned long>(speed::glitchPulses()));
+
   char sN[16], sPct[16], sKg[16], sM[16], sRoll[16];
   num(sN,   sizeof(sN),   fN,   2);
   num(sPct, sizeof(sPct), pct,  1);
@@ -722,12 +743,13 @@ void buildStateJson(char* buf, size_t len) {
     "\"tfet\":%.1f,\"tmot\":%s,\"tmotOffen\":%s,"
     "\"counts\":%ld,\"raw\":%ld,\"tare\":%ld,\"ripple\":%ld,\"n\":%s,\"pct\":%s,\"kg\":%s,"
     "\"nm\":%s,\"roll\":%s,\"pw\":%s,\"crr\":%s,\"korr\":%s,\"konst\":%s,"
-    "\"a0\":%s,\"b0\":%s,\"a1\":%s,\"b1\":%s,\"mRad\":%s,\"jRad\":%s,\"auslauf\":%s,\"auslaufN\":%lu,"
+    "\"a0\":%s,\"b0\":%s,\"a1\":%s,\"b1\":%s,\"mRad\":%s,\"jRad\":%s,\"jMeas\":%s,\"auslauf\":%s,\"auslaufN\":%lu,"
+    "\"bar\":%s,\"tTire\":%s,\"pSrc\":\"%s\",\"pName\":\"%s\",\"pBatt\":%s,\"pAge\":%s,\"pFresh\":%s,\"revSrc\":\"%s\","
     "\"wiz\":%u,\"wizKmh\":%.0f,\"tara\":%s,\"abstieg\":%s,\"uRadMem\":%s,"
     "\"err\":\"%s\","
     "\"kal\":%s,\"saturiert\":%s,\"zelle\":%s,"
     "\"dir\":%d,\"lernt\":%s,\"brk\":%s,\"brkDuty\":%.4f,\"brkAmps\":%.1f,"
-    "\"up\":%lu,\"geber\":[%s],"
+    "\"up\":%lu,\"geber\":[%s],%s,"
     "\"nTrommel\":%.1f,\"nRad\":%.1f,\"uRad\":%s,\"uRadN\":%lu,\"uRadMin\":%lu,"
     "\"plateaus\":[%s],\"phase\":\"%s\",\"run\":%u,\"plateau\":%u,"
     "\"sfault\":\"%s\",\"load\":%s,\"motorOffen\":%s,\"notaus\":%s,"
@@ -747,8 +769,10 @@ void buildStateJson(char* buf, size_t len) {
     ok ? v.tempFet : 0.0f, sTmot, tmotOffen ? "true" : "false",
     counts, mean, torque::tareOffset(), ripple, sN, sPct, sKg, sM, sRoll, sPW, sCrr,
     lv.korrigiert ? "true" : "false", g_steady ? "true" : "false",
-    sA0, sB0, sA1, sB1, sMRad, sJ, wheel::spindownActive() ? "true" : "false",
+    sA0, sB0, sA1, sB1, sMRad, sJ, sJMeas, wheel::spindownActive() ? "true" : "false",
     static_cast<unsigned long>(wheel::spindownRevs()),
+    sBar, sTTire, tirepressure::sourceName(), tirepressure::name(), sPBatt, sPAge,
+    tirepressure::fresh() ? "true" : "false", revsrc::sourceName(),
     static_cast<unsigned>(state::wizardStep()), WIZ_KMH, torque::tareBusy() ? "true" : "false",
     speedctl::braking() ? "true" : "false", sURadMem,
     currentError(),
@@ -759,7 +783,7 @@ void buildStateJson(char* buf, size_t len) {
     speedctl::learning() ? "true" : "false",
     speedctl::breakingAway() ? "true" : "false",
     speedctl::breakawayDuty(), speedctl::breakawayAmps(),
-    static_cast<unsigned long>(millis()), sGeber,
+    static_cast<unsigned long>(millis()), sGeber, sMark,
     nDrum * 60.0f, nWheel * 60.0f, sURad,
     static_cast<unsigned long>(wheel::revsUsed()),
     static_cast<unsigned long>(WHEEL_CIRC_WINDOW_REVS),

@@ -10,6 +10,9 @@ namespace {
 Source   g_src = SRC_NONE;
 uint32_t g_lastMarkCount = 0;
 uint32_t g_lastMarkMs = 0;
+uint32_t g_lastIdxCount = 0;
+uint32_t g_lastIdxMs = 0;
+bool     g_indexLive = false;   // echte Indexpulse kommen
 
 // Gerechnete Umdrehungen aus der Reglerdrehzahl. g_frac trägt den Bruchteil
 // zwischen zwei Durchläufen mit, sonst gingen bei jedem Aufruf die Reste verloren.
@@ -45,6 +48,9 @@ void begin() {
   g_src = SRC_NONE;
   g_lastMarkCount = speed::markCount();
   g_lastMarkMs = 0;
+  g_lastIdxCount = speed::revCount();
+  g_lastIdxMs = 0;
+  g_indexLive = false;
   g_frac = 0.0f;
   g_revs = 0;
   g_indexFlag = false;
@@ -56,6 +62,7 @@ void begin() {
 
 void service() {
   const uint32_t now = millis();
+  speed::service();   // Zeitstempel -> Umdrehungen, Markennummer, Muster
 
   // Quellenwahl. Marken gelten, solange sie zählen; dieselbe Grenze, mit der die
   // Zustandsmaschine Stillstand trotz Sollwert erkennt.
@@ -70,7 +77,14 @@ void service() {
     g_src = SRC_VESC;
   }
 
-  if (g_src != SRC_MARKS) {
+  // Echte Indexpulse? Dann sind die Umdrehungen echt, auch ohne die acht Marken.
+  const uint32_t ic = speed::revCount();
+  if (ic != g_lastIdxCount) { g_lastIdxCount = ic; g_lastIdxMs = now; g_indexLive = true; }
+  else if (g_indexLive && (now - g_lastIdxMs) > STALL_TIMEOUT_MS * 3) g_indexLive = false;
+  if (g_src == SRC_VESC && g_indexLive) g_src = SRC_VESC_INDEX;
+  if (g_src == SRC_VESC_INDEX && !g_indexLive) g_src = SRC_VESC;
+
+  if (g_src == SRC_VESC) {
     // Umdrehungen aus der Reglerdrehzahl integrieren.
     const uint32_t dt = now - g_lastIntegMs;
     if (dt > 0) {
@@ -86,6 +100,7 @@ void service() {
     }
   } else {
     g_lastIntegMs = now;
+    g_frac = 0.0f;
   }
 
   sampleDvdt(now, kmh());
@@ -96,12 +111,14 @@ Source source() { return g_src; }
 const char* sourceName() {
   switch (g_src) {
     case SRC_MARKS: return "marken";
+    case SRC_VESC_INDEX: return "regler+index";
     case SRC_VESC:  return "regler";
     default:        return "keine";
   }
 }
 
 bool angleReference() { return g_src == SRC_MARKS; }
+bool realRevolutions() { return g_src == SRC_MARKS || g_src == SRC_VESC_INDEX; }
 
 float revPerSec() {
   if (g_src == SRC_MARKS) return speed::revPerSec();
@@ -116,11 +133,11 @@ float kmh() {
 float omega() { return 2.0f * PI * revPerSec(); }
 
 uint32_t revCount() {
-  return (g_src == SRC_MARKS) ? speed::revCount() : g_revs;
+  return realRevolutions() ? speed::revCount() : g_revs;
 }
 
 bool consumeIndexFlag() {
-  if (g_src == SRC_MARKS) return speed::consumeIndexFlag();
+  if (realRevolutions()) return speed::consumeIndexFlag();
   const bool f = g_indexFlag;
   g_indexFlag = false;
   return f;

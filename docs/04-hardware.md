@@ -1,1097 +1,1120 @@
 # Hardware
 
-## 1 Blockbild
+## 1 Block diagram
 
 ```
                  ┌──────────────────────────────────────────┐
                  │        ESP32-S3-DevKitC-1 N16R8          │
                  │                                          │
-   Hall-Marken ──┤ GPIO4  (ISR)        I²C ──┬── LCD 4×20   │
-   Hall-Index  ──┤ GPIO5  (ISR)              │   (PCF8574)  │
-   Hall-Laufrad──┤ GPIO6  (ISR)              │   SDA8/SCL9  │
-   Motor-Hall  ──┤ GPIO7  (ISR)              └── (frei)     │
+   Hall marks  ──┤ GPIO4  (ISR)        I²C ──┬── LCD 4×20   │
+   Hall index  ──┤ GPIO5  (ISR)              │   (PCF8574)  │
+   Hall wheel  ──┤ GPIO6  (ISR)              │   SDA8/SCL9  │
+   Motor Hall  ──┤ GPIO7  (ISR)              └── (free)     │
    HX711 DOUT  ──┤ GPIO15                                   │
-   HX711 SCK   ──┤ GPIO16          UART1 ───── Motorregler  │
+   HX711 SCK   ──┤ GPIO16          UART1 ───── controller   │
                  │                 (TX18/RX21)              │
-   Not-Aus-     ─┤ GPIO2  (in)                              │
-   Rückmeldung   │                                          │
-                 │                 BLE ────── Drucksensor   │
+   E-stop       ─┤ GPIO2  (in)                              │
+   feedback      │                                          │
+                 │                 BLE ──── pressure sensor │
                  └──────────────────────────────────────────┘
 
-   Leistungspfad (galvanisch getrennt vom Logikteil):
+   Power path (galvanically isolated from the logic side):
 
-   Netzteil 36 V ──[Not-Aus]──[Sicherung]── Motorregler ── Nabenmotor
+   Power supply 36 V ──[E-stop]──[fuse]── motor controller ── hub motor
 ```
 
-## 2 Mechanischer Aufbau
+## 2 Mechanical layout
 
-Die Trommel sitzt auf einer **eigenen, mitdrehenden Welle**, nicht auf dem Motorrotor
-(Entscheidung A10). Der Motor ist über einen Flansch starr mit dem Wellenende verbunden;
-gehalten wird nur seine **Statorachse**, über den Hebelarm gegen die Wägezelle.
-Maßkette und Lagerrechnung in [08-staender](08-staender.md) §1 und §4.
+The drum sits on its **own, co-rotating shaft**, not on the motor rotor
+(decision A10). The motor is rigidly connected to the shaft end via a flange;
+only its **stator axle** is held, via the lever arm against the load cell.
+Dimension chain and bearing calculation in [08-stand](08-stand.md) §1 and §4.
 
 ```
-          Prüflaufrad (abhebbar)
-                 ↓ F_N = 417 N (42,5 kg)
-        ╔════════╧════════╗     Trommel U = 2,931 m, an beiden Stirnscheiben
-        ║     Trommel     ║     auf die Welle geklemmt
-  ──┬───╫──┬───────────┬──╫───┬──────  Welle mitdrehend, abgesetzt Ø15/Ø30
+          Test wheel (liftable)
+                 ↓ F_N = 417 N (42.5 kg)
+        ╔════════╧════════╗     Drum C = 2.842 m (measured), clamped to the shaft
+        ║      Drum       ║     at both end discs
+  ──┬───╫──┬───────────┬──╫───┬──────  Shaft co-rotating, stepped Ø15/Ø30
     │   ╚══╪═══════════╪══╝   │
-  6902     Klemmnaben        6902      Flansch auf dem Wellenende
+  6902     Clamp hubs        6902      Flange on the shaft end
                                         │
-                                   Nabenmotor, Rotor starr mitdrehend
+                                   Hub motor, rotor rigidly co-rotating
                                         │
-                              Statorachse, nur am Hebelarm gehalten
+                              Stator axle, held only at the lever arm
                                         │
-                              L = 0,080 m → Schaltzug → Wägezelle 5 kg
-                                        + Endanschläge bei r = 200 mm
+                              L = 0.084 m → shift cable → load cell 5 kg, calibration mark 0.330 m
+                                        + end stops at r = 200 mm
 ```
 
-Die Rotor-Stator-Reibung kürzt sich exakt heraus, solange die Statorachse **nur** über
-den Hebelarm gehalten wird — Herleitung in [08-staender](08-staender.md) §7.2. Deshalb
-ist das Zugglied ein Schaltzug und kein Stab: er überträgt kein Biegemoment.
+The rotor-stator friction cancels exactly as long as the stator axle is held **only**
+via the lever arm — derivation in [08-stand](08-stand.md) §7.2. That is why the tension
+member is a shift cable and not a rod: it transmits no bending moment. The two
+pillow-block bearings of the drum shaft, by contrast, lie **outside** the cradle: their
+friction is part of the idle-loss curve and is subtracted with it ([09-measurement-theory](09-measurement-theory.md)
+§1.6).
 
-**Keine Übersetzung.** Der Motor dreht mit etwa 480 1/min, die Trommel braucht für
-60 km/h 341 1/min; ein Riemen läge außerhalb des Momentenpfads und ginge mit η ≈ 0,97 als
-2–3 % Skalenfehler ein. `BELT_RATIO` bleibt in `config.h` für den Fall, dass doch einer
-nötig wird.
+**No gearing.** The motor turns at about 480 rpm; the drum needs 341 rpm for
+60 km/h; a belt would lie outside the torque path and enter with η ≈ 0.97 as a
+2–3 % scale error. `BELT_RATIO` stays in `config.h` in case one becomes
+necessary after all.
 
-Als Reibrolle gegen die Trommeloberfläche geht der Motor nicht: dafür bräuchte er
-1393 1/min, also das Dreifache seiner Nenndrehzahl.
+Using the motor as a friction roller against the drum surface is not an option: it would
+need 1393 rpm, three times its rated speed.
 
-## 3 Stückliste
+## 3 Parts list
 
-### Vorhanden
+### On hand
 
-| Teil | Daten |
+| Part | Data |
 |---|---|
-| Wägezelle | **5 kg**, Biegebalken |
-| Messverstärker | HX711-Breakout |
-| Display | HD44780 4×20 Zeichen |
-| Motortreiber | SimpleFOCShield v2 — nur für die Inbetriebnahme, für den Vollausbau zu schwach |
-| Libellen | Block-Libellen 15,1 × 15,1 × 40 mm, zum Ausrichten der Profile; Clip §7.8 |
+| Load cell | **5 kg**, bending beam |
+| Amplifier | HX711 breakout |
+| Display | HD44780 4×20 characters |
+| Motor driver | SimpleFOCShield v2 — only for commissioning, too weak for the full build |
+| Vials | block levels 15.1 × 15.1 × 40 mm, for aligning the profiles; clip §7.8 |
 
-### Zu beschaffen
+### To be procured
 
-| Teil | Anforderung | Status |
+| Part | Requirement | Status |
 |---|---|---|
-| Nabenmotor | **Hoverboard-Antriebsrad 6,5″, 36 V / 350 W** | **beschafft** |
-| Motorregler | **FSESC 4.20 / 50 A** (VESC-Klasse), Eckdaten und Anschlüsse in §10 | **beschafft** |
-| 3 × KFZ-Wechselrelais 12 V/40 A | Kurzschlussbremse, §9 | im Warenkorb |
-| 2N5551, 1N4007, Widerstände | Low-Side-Schalter der Relaiskette, §9 | Sortiment beschafft |
-| NTC für die Statorachse | nur falls die 6. Ader am Hall-Stecker kein Fühler ist (A5) | offen |
-| Gegenstecker Julet 9-polig | oder Stecker abschneiden und eigene Verbinder setzen | offen |
+| Hub motor | **Hoverboard drive wheel 6.5″, 36 V / 350 W** | **procured** |
+| Motor controller | **FSESC 4.20 / 50 A** (VESC class), key data and connections in §10 | **procured** |
+| 3 × automotive changeover relays 12 V/40 A | short-circuit brake, §9 | in cart |
+| 2N5551, 1N4007, resistors | low-side switch of the relay chain, §9 | assortment procured |
+| NTC for the stator axle | only if the 6th wire at the Hall connector is not a sensor (A5) | open |
+| Mating connector Julet 9-pin | or cut off the connector and fit own connectors | open |
 
-| Netzteil | 36–42 V, ≥ 10 A | offen |
-| XT60E-M Einbaustecker (Amass) | Zuleitung vom Netzteil am Rahmen; Halter §7.6 | Halter konstruiert 2026-11-22 |
-| ESP32-Board | **ESP32-S3-DevKitC-1 N16R8** | beschafft |
-| USB-Netzteil | 5 V / ≥ 1 A, für den Messbetrieb (nicht das Notebook) | offen |
-| Fünfwege-Tastschalter | Navigationstaster, 5 Kontakte + gemeinsame Masse (z. B. ALPS SKQU); **keine** analogen Joystick-Breakouts | offen |
-| HX711-Modul | **getrennte VCC/VDD** (fünfpolig, SparkFun-Bauform) — vierpolige Module scheiden aus, siehe §5.2 | offen |
-| Hall-Sensoren | 3 × TLE4905L (Marken, Index, Laufrad), unipolar | vorhanden |
-| Magnete | 8 + 1, Ø10 × 3 mm mit Ø3-Senkloch | vorhanden |
-| Netzteil | 36 V, ≥ 10 A (besser 15 A) — Reserve für die Stromgrenze beim Anfahren | offen |
-| Bremswiderstand + Chopper | **entfällt** — gebremst wird über Kurzschluss, §9 | – |
-| Stehlager für die Statorachse | 2 Stück, auf dem Wiegerahmen | offen |
-| Zahnriemen | **entfällt beim Direktantrieb** — nur nötig, falls A6 negativ ausfällt | – |
-| Not-Aus | zwangsöffnend, trennt den Leistungspfad | offen |
-| Zweiter HX711 | dieselbe Bauform, für die spätere Auflastmessung | später |
-| BLE-Drucksensor | Modell noch nicht festgelegt | später |
+| Power supply | 36–42 V, ≥ 10 A | open |
+| XT60E-M panel-mount connector (Amass) | supply lead from the power supply at the frame; holder §7.6 | holder designed 2026-11-22 |
+| ESP32 board | **ESP32-S3-DevKitC-1 N16R8** | procured |
+| USB power supply | 5 V / ≥ 1 A, for measurement operation (not the notebook) | open |
+| Five-way tactile switch | navigation button, 5 contacts + common ground (e.g. ALPS SKQU); **no** analog joystick breakouts | open |
+| HX711 module | **separate VCC/VDD** (five-pin, SparkFun form factor) — four-pin modules are ruled out, see §5.2 | open |
+| Hall sensors | 3 × TLE4905L (marks, index, wheel), unipolar | on hand |
+| Magnets | 8 + 1, Ø10 × 3 mm with Ø3 countersunk hole | on hand |
+| Power supply | 36 V, ≥ 10 A (better 15 A) — reserve for the current limit when starting | open |
+| Brake resistor + chopper | **dropped** — braking is done by short circuit, §9 | – |
+| Pillow-block bearings for the stator axle | 2 pieces, on the cradle frame | open |
+| Timing belt | **dropped with direct drive** — only needed if A6 turns out negative | – |
+| Emergency stop | positively opening, disconnects the power path | open |
+| Second HX711 | same form factor, for the later wheel-load measurement | later |
+| BLE pressure sensor | **SKS AirSpy** at the valve, protocol from `~/git/airspy` | on hand |
 
-## 4 Pinbelegung
+## 4 Pin assignment
 
-Board: **ESP32-S3-DevKitC-1**, Modul WROOM-1 **N16R8** (16 MB Flash, 8 MB Octal-PSRAM).
-Mit `firmware/src/config.h` und `firmware/platformio.ini` abgeglichen.
+Board: **ESP32-S3-DevKitC-1**, module WROOM-1 **N16R8** (16 MB flash, 8 MB octal PSRAM).
+Reconciled with `firmware/src/config.h` and `firmware/platformio.ini`.
 
-Maßgeblich ist `hardware/schaltplan.py` — dort ist auch die Peripherie verdrahtet, die
-die Firmware noch nicht anfasst.
+The authoritative source is `hardware/schaltplan.py` — it also wires the peripherals
+that the firmware does not yet touch.
 
-| GPIO | Konstante | Funktion | Richtung | Anmerkung |
+| GPIO | Constant | Function | Direction | Note |
 |---|---|---|---|---|
-| 2 | `PIN_ESTOP_FB` | Not-Aus-Rückmeldung | in, Pull-up | nur **Anzeige**; die Trennung erfolgt in Hardware. **Noch nicht verdrahtet** (`ESTOP_FB_WIRED` = false); bis dahin erkennt die Firmware den Not-Aus am fehlenden Motorstrom ([07-sicherheit](07-sicherheit.md) §4) |
-| 4 | `PIN_MARK` | Drehzahlmarken Trommel | in, Interrupt | **8** Marken/Umdrehung |
-| 5 | `PIN_INDEX` | Indexmarke Trommel | in, Interrupt | 1/Umdrehung, triggert die Mittelung |
-| 6 | `PIN_WHEEL` | Drehzahl des Prüflaufrads | in, Interrupt | **1** Magnet/Umdrehung (`WHEEL_MARKS_PER_REV`); liefert den wirksamen Laufradumfang (§14.1), später den Laufrad-Auslaufversuch |
-| 7 | `PIN_MOTOR_HALL` | Motor-Hall (eine Phase) | in, Interrupt | zugleich die hochauflösende Drehzahlquelle |
-| 8 | `PIN_I2C_SDA` | I²C SDA | bidir | S3-Vorgabebelegung; frei für den IR-Fühler |
-| 9 | `PIN_I2C_SCL` | I²C SCL | out | dito |
-| 10 | `PIN_SD_CS` | microSD, Chip Select | out | übrige SPI-Pins noch **TBD** |
-| ~~11~~ | ~~`PIN_BTN_UP`~~ | ~~Steuerkreuz hoch~~ | — | **frei seit 2026-11-22** |
-| ~~12~~ | ~~`PIN_BTN_DOWN`~~ | ~~Steuerkreuz runter~~ | — | frei |
-| ~~13~~ | ~~`PIN_BTN_IN`~~ | ~~Steuerkreuz rein~~ | — | frei |
-| ~~14~~ | ~~`PIN_BTN_OUT`~~ | ~~Steuerkreuz raus~~ | — | frei |
-| 15 | `PIN_HX711_DOUT` | HX711 #1 DOUT (Moment) | in | |
-| 16 | `PIN_HX711_SCK` | HX711 SCK | out | **gemeinsamer Takt beider HX711** |
-| 17 | `PIN_HX7112_DOUT` | HX711 #2 DOUT (Auflast) | in | zweite Zelle noch nicht bestückt |
-| 18 | `PIN_DRIVE_TX` | UART1 TX → Regler | out | |
-| 21 | `PIN_DRIVE_RX` | UART1 RX ← Regler | in | |
-| ~~39~~ | ~~`PIN_BTN_OK`~~ | ~~Steuerkreuz Mitte~~ | — | **frei seit 2026-11-22** |
-| 40 | `PIN_BRAKE_RELEASE` | MOSFET in der Spulenmasse der Bremsrelais | out | **high = Relais an = Bremse gelöst.** Pulldown am Gate: beim Reset gebremst |
-| 48 | `PIN_STATUS_LED` | Status-LED | out | auf DevKitC-1 **v1.0** ist das die RGB-LED, auf v1.1 ist sie an GPIO 38 |
+| 2 | `PIN_ESTOP_FB` | emergency-stop feedback | in, pull-up | **display** only; the disconnection happens in hardware. **Not yet wired** (`ESTOP_FB_WIRED` = false); until then the firmware detects the emergency stop from the missing motor current ([07-safety](07-safety.md) §4) |
+| 4 | `PIN_MARK` | speed marks drum | in, interrupt | **8** marks/revolution |
+| 5 | `PIN_INDEX` | index mark drum | in, interrupt | 1/revolution, triggers the averaging |
+| 6 | `PIN_WHEEL` | speed of the test wheel | in, interrupt | **1** magnet/revolution (`WHEEL_MARKS_PER_REV`); provides the effective wheel circumference (§14.1), later the wheel spin-down test |
+| 7 | `PIN_MOTOR_HALL` | motor Hall (one phase) | in, interrupt | also the high-resolution speed source |
+| 8 | `PIN_I2C_SDA` | I²C SDA | bidir | S3 default assignment; free for the IR sensor |
+| 9 | `PIN_I2C_SCL` | I²C SCL | out | ditto |
+| 10 | `PIN_SD_CS` | microSD, chip select | out | remaining SPI pins still **TBD** |
+| ~~11~~ | ~~`PIN_BTN_UP`~~ | ~~D-pad up~~ | — | **free since 2026-11-22** |
+| ~~12~~ | ~~`PIN_BTN_DOWN`~~ | ~~D-pad down~~ | — | free |
+| ~~13~~ | ~~`PIN_BTN_IN`~~ | ~~D-pad in~~ | — | free |
+| ~~14~~ | ~~`PIN_BTN_OUT`~~ | ~~D-pad out~~ | — | free |
+| 15 | `PIN_HX711_DOUT` | HX711 #1 DOUT (torque) | in | |
+| 16 | `PIN_HX711_SCK` | HX711 SCK | out | **shared clock of both HX711** |
+| 17 | `PIN_HX7112_DOUT` | HX711 #2 DOUT (wheel load) | in | second cell not yet fitted |
+| 18 | `PIN_DRIVE_TX` | UART1 TX → controller | out | |
+| 21 | `PIN_DRIVE_RX` | UART1 RX ← controller | in | |
+| ~~39~~ | ~~`PIN_BTN_OK`~~ | ~~D-pad center~~ | — | **free since 2026-11-22** |
+| 40 | `PIN_BRAKE_RELEASE` | MOSFET in the coil ground of the brake relays | out | **high = relays on = brake released.** Pull-down at the gate: braked on reset |
+| 48 | `PIN_STATUS_LED` | status LED | out | on DevKitC-1 **v1.0** this is the RGB LED, on v1.1 it is on GPIO 38 |
 
-### Welche GPIOs auf diesem Board gesperrt sind
+### Which GPIOs are blocked on this board
 
-Die frühere Belegung (25/26/27/32/33/34/35/22) stammte vom klassischen ESP32 und lag
-auf dem S3 fast vollständig auf Pins, die es entweder nicht gibt oder die belegt sind:
+The earlier assignment (25/26/27/32/33/34/35/22) came from the classic ESP32 and on
+the S3 fell almost entirely on pins that either do not exist or are occupied:
 
-| GPIO | warum gesperrt |
+| GPIO | why blocked |
 |---|---|
-| 22…25 | existieren auf dem ESP32-S3 nicht |
-| 26…32 | SPI-Flash |
-| 33…37 | Octal-PSRAM — das **R8** im Modulnamen |
+| 22…25 | do not exist on the ESP32-S3 |
+| 26…32 | SPI flash |
+| 33…37 | octal PSRAM — the **R8** in the module name |
 | 19, 20 | USB D−/D+ |
-| 0, 3, 45, 46 | Strapping-Pins |
-| 43, 44 | UART0, serielle Konsole |
-| 38 | RGB-LED des DevKits |
+| 0, 3, 45, 46 | strapping pins |
+| 43, 44 | UART0, serial console |
+| 38 | RGB LED of the DevKit |
 
-Frei bleiben danach **GPIO 1, 41, 42 und 47**. Die microSD braucht davon noch drei
-(SCK/MOSI/MISO, CS liegt auf GPIO 10) — danach ist GPIO 1 der einzige freie Pin. Wenn
-später noch etwas dazukommt, muss es über den I²C-Bus gehen, der ohnehin schon liegt.
+That leaves **GPIO 1, 41, 42 and 47** free. The microSD still needs three of them
+(SCK/MOSI/MISO, CS is on GPIO 10) — after that GPIO 1 is the only free pin. If
+anything else is added later, it has to go over the I²C bus, which is already there anyway.
 
-GPIO 1 ist frei geworden, weil der Motorfühler am Regler hängt und nicht am ESP32
-(§11.4). Falls doch einmal etwas analog gemessen werden soll: nur **ADC1** (GPIO 1…10)
-ist brauchbar, ADC2 ist bei eingeschaltetem WLAN vom Funk belegt. GPIO 1 ist ADC1_CH0
-und damit der richtige Pin dafür.
+GPIO 1 became free because the motor sensor is connected to the controller and not to the ESP32
+(§11.4). If something does need to be measured in analog after all: only **ADC1** (GPIO 1…10)
+is usable, ADC2 is occupied by the radio while WiFi is on. GPIO 1 is ADC1_CH0
+and therefore the right pin for it.
 
-Dass GPIO 39…42 die JTAG-Pins sind (MTCK/MTDO/MTDI/MTMS), kostet nur einen **externen**
-JTAG-Adapter. Das On-Chip-USB-Serial-JTAG des S3 läuft über die native USB-Buchse und
-bleibt nutzbar.
+That GPIO 39…42 are the JTAG pins (MTCK/MTDO/MTDI/MTMS) only costs an **external**
+JTAG adapter. The on-chip USB-Serial-JTAG of the S3 runs over the native USB socket and
+remains usable.
 
-Display: `LCD_I2C_ADDR` = 0x27 (**TBD**, übliche Alternative 0x3F), `LCD_COLS` = 20,
+Display: `LCD_I2C_ADDR` = 0x27 (**TBD**, usual alternative 0x3F), `LCD_COLS` = 20,
 `LCD_ROWS` = 4.
 
-## 5 Stromversorgung und Pegel
+## 5 Power supply and logic levels
 
-### 5.1 Speisung über USB
+### 5.1 Supply via USB
 
-Der Logikteil wird **über USB-C** gespeist, nicht über den 5V-Pin. Espressif nennt die
-drei Wege *mutually exclusive*
+The logic side is powered **via USB-C**, not via the 5V pin. Espressif calls the
+three paths *mutually exclusive*
 ([User Guide](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html)).
 
-> **Richtigstellung vom 2026-11-22.** Hier stand, eine extern eingespeiste 5 V und ein
-> gleichzeitig angestecktes Notebook wären „ein Kurzschluss zweier Quellen". **Das ist
-> falsch**, und zwar nachweislich: im
-> [Schaltplan des Boards](https://dl.espressif.com/dl/schematics/SCH_ESP32-S3-DevKitC-1_V1.1_20220413.pdf)
-> (V1.1, Blatt 2) liegt hinter **jeder** USB-Buchse eine Schottky-Diode nach `VCC_5V` —
-> **D1** an `J2` (COM) und **D7** an `J4` (nativ), beide 1N5819HW-7-F. Der 5V-Pin ist
-> `J1` Pin 21 und hängt **direkt an `VCC_5V`**, also hinter den Dioden.
+> **Correction of 2026-11-22.** This section used to say that an externally fed 5 V and a
+> simultaneously connected notebook would be "a short circuit of two sources". **That is
+> wrong**, and demonstrably so: in the
+> [board schematic](https://dl.espressif.com/dl/schematics/SCH_ESP32-S3-DevKitC-1_V1.1_20220413.pdf)
+> (V1.1, sheet 2) there is a Schottky diode to `VCC_5V` behind **each** USB socket —
+> **D1** at `J2` (COM) and **D7** at `J4` (native), both 1N5819HW-7-F. The 5V pin is
+> `J1` pin 21 and hangs **directly on `VCC_5V`**, i.e. behind the diodes.
 >
-> Daraus folgt dreierlei:
+> Three things follow:
 >
-> 1. **Rückspeisung ins Notebook ist unmöglich.** Die Dioden leiten nur von USB zum
->    Board. Der USB-Port des Rechners ist konstruktiv geschützt.
-> 2. **Zwei Quellen schließen sich nicht kurz, sie ver-odern sich.** Wer höher liegt,
->    speist. Ein USB-Port mit 5,0 V kommt hinter der Schottky mit ≈ 4,7 V an — ein
->    sauberes 5,0-V-Netzteil am Pin gewinnt also und sperrt die USB-Dioden.
-> 3. **Was man verliert, ist der Schutz.** Am 5V-Pin liegt keine Diode mehr davor:
->    Verpolung oder Überspannung gehen ungebremst in den LDO und auf alles, was an
->    `VCC_5V` hängt.
+> 1. **Back-feeding into the notebook is impossible.** The diodes conduct only from USB to the
+>    board. The computer's USB port is protected by design.
+> 2. **Two sources do not short each other, they are OR-ed.** Whichever is higher
+>    feeds. A USB port at 5.0 V arrives behind the Schottky at ≈ 4.7 V — a
+>    clean 5.0 V supply at the pin therefore wins and blocks the USB diodes.
+> 3. **What you lose is the protection.** There is no diode in front of the 5V pin any more:
+>    reverse polarity or overvoltage go unchecked into the LDO and onto everything hanging on
+>    `VCC_5V`.
 >
-> Deshalb bleibt es bei der Speisung über USB — nicht weil das andere knallt, sondern
-> weil der USB-Weg den Verpolungsfehler konstruktiv ausschließt.
+> That is why the supply stays on USB — not because the alternative blows up, but
+> because the USB path rules out the reverse-polarity fault by design.
 
-Das Board hat zwei USB-C-Buchsen, und **beide dürfen gleichzeitig speisen**
-(„either one or both"). Beide Kabel dürfen also dauerhaft stecken; zum Flashen muss
-nichts abgezogen werden.
+The board has two USB-C sockets, and **both may feed at the same time**
+("either one or both"). So both cables may stay plugged in permanently; nothing has to
+be unplugged for flashing.
 
-**Welches Kabel wohin — und zwar nicht beliebig:**
+**Which cable goes where — and not arbitrarily:**
 
-| Buchse | Kabel | warum |
+| Socket | Cable | why |
 |---|---|---|
-| `COM` (UART-Brücke) | **Notebook**, nur bei Bedarf | dort flasht esptool ohne Tastendruck, und **nur dort kommt die serielle Konsole heraus** |
-| `USB` (nativ) | **Netzteil**, dauerhaft | speist mit, wird sonst nicht gebraucht |
+| `COM` (UART bridge) | **notebook**, only when needed | esptool flashes there without a button press, and **only there does the serial console come out** |
+| `USB` (native) | **power supply**, permanent | feeds along, otherwise not needed |
 
-Andersherum funktioniert es nicht: an der nativen Buchse müsste der Download-Modus von
-Hand gestellt werden, und die Konsole bliebe stumm.
+The other way round does not work: at the native socket the download mode would have to be
+set by hand, and the console would stay silent.
 
-Die beiden Buchsen sind aber **nicht gleichwertig**, auch wenn sie es für die Speisung
-sind:
+The two sockets are however **not equivalent**, even though they are for the
+supply:
 
-| Buchse | Weg in den Chip | wofür |
+| Socket | Path into the chip | for what |
 |---|---|---|
-| `USB` | **natives USB** des S3 über GPIO 19/20, direkt am Chip | USB-Serial-JTAG, USB-CDC, Debuggen ohne externen Adapter |
-| `COM` | **USB-UART-Brücke** auf UART0 (GPIO 43/44) | Flashen und serielle Konsole, Reset über DTR/RTS |
+| `USB` | **native USB** of the S3 via GPIO 19/20, directly at the chip | USB-Serial-JTAG, USB-CDC, debugging without an external adapter |
+| `COM` | **USB-UART bridge** to UART0 (GPIO 43/44) | flashing and serial console, reset via DTR/RTS |
 
-Praktischer Unterschied beim Flashen: die Brücke an `COM` zieht über DTR und RTS die
-Leitungen EN und GPIO 0, kann den Chip also **selbst** in den Download-Modus
-zurücksetzen. Die native Buchse kann das nur, solange die laufende Firmware die dafür
-nötige Reset-Behandlung mitbringt — tut sie das nicht, bleibt esptool mit *„No serial
-data received"* stehen, und der Download-Modus muss von Hand gestellt werden:
-**BOOT halten, RESET antippen, BOOT loslassen.**
+Practical difference when flashing: the bridge at `COM` pulls the EN and GPIO 0
+lines via DTR and RTS, so it can reset the chip into download mode **by itself**.
+The native socket can only do this as long as the running firmware brings the
+necessary reset handling — if it does not, esptool stalls with *"No serial
+data received"*, and the download mode must be set by hand:
+**hold BOOT, tap RESET, release BOOT.**
 
-Zweiter Grund, das Notebook an `COM` zu stecken: **dort liegt die serielle Konsole.**
-Die PlatformIO-Boarddefinition setzt `ARDUINO_USB_MODE=1`, aber **nicht**
-`ARDUINO_USB_CDC_ON_BOOT`. Damit ist Arduinos `Serial` die UART0 auf GPIO 43/44, also
-die `COM`-Buchse — an der nativen Buchse käme nach dem Flashen nichts heraus. Wer die
-Konsole trotzdem dort haben will, setzt `-DARDUINO_USB_CDC_ON_BOOT=1` in
-`platformio.ini`; dann wandert sie mit, und die Reset-Behandlung kommt gleich mit dazu.
+Second reason to plug the notebook into `COM`: **the serial console is there.**
+The PlatformIO board definition sets `ARDUINO_USB_MODE=1`, but **not**
+`ARDUINO_USB_CDC_ON_BOOT`. So Arduino's `Serial` is UART0 on GPIO 43/44, i.e.
+the `COM` socket — nothing would come out at the native socket after flashing. Anyone who
+wants the console there anyway sets `-DARDUINO_USB_CDC_ON_BOOT=1` in
+`platformio.ini`; then it moves along, and the reset handling comes with it.
 
-> Nachgesehen am 2026-11-15: an der nativen Buchse meldet sich das Board als
-> `0x303A:0x4001` („Espressif Device", Seriennummer `123456`, Composite-Gerät). Die
-> Boarddefinition erwartet dort `0x303A:0x1001`, also das USB-Serial-JTAG des Chips.
-> Es liegt also eine Firmware auf dem Board, die die native Buchse selbst als USB-CDC
-> belegt — und esptool kommt darüber nicht in den Download-Modus.
+> Checked on 2026-11-15: at the native socket the board reports as
+> `0x303A:0x4001` ("Espressif Device", serial number `123456`, composite device). The
+> board definition expects `0x303A:0x1001` there, i.e. the chip's USB-Serial-JTAG.
+> So there is a firmware on the board that occupies the native socket itself as USB-CDC
+> — and esptool cannot get into download mode over it.
 >
-> An `COM` sitzt ein **WCH CH343** (`0x1A86:0x55D3`, „USB Single Serial"), unter macOS
-> ohne Zusatztreiber als `/dev/cu.usbmodem*`. Über diese Buchse geflasht am
-> 2026-11-15: durchgelaufen ohne jeden Tastendruck, „Hard resetting via RTS pin",
-> Konsole meldet sich mit 115200 Bd.
+> At `COM` sits a **WCH CH343** (`0x1A86:0x55D3`, "USB Single Serial"), under macOS
+> without an additional driver as `/dev/cu.usbmodem*`. Flashed over this socket on
+> 2026-11-15: ran through without any button press, "Hard resetting via RTS pin",
+> console reports at 115200 Bd.
 
-Bei USB-Speisung ist der **5V-Pin ein Ausgang** (`VCC_5V`, also VBUS minus
-Diodenspannung). Beide Schienen kommen damit aus derselben Quelle:
+With USB supply the **5V pin is an output** (`VCC_5V`, i.e. VBUS minus
+diode voltage). Both rails thus come from the same source:
 
-| Schiene | Herkunft | versorgt |
+| Rail | Origin | supplies |
 |---|---|---|
-| 5 V | 5V-Pin = VBUS | Hall-Geber samt ihren Pull-ups, HX711-**VCC**, LCD |
-| 3,3 V | 3V3-Pin, Onboard-LDO aus VBUS | HX711-**VDD** |
+| 5 V | 5V pin = VBUS | Hall sensors including their pull-ups, HX711 **VCC**, LCD |
+| 3.3 V | 3V3 pin, onboard LDO from VBUS | HX711 **VDD** |
 
-Weil der 3,3-V-Regler aus denselben 5 V läuft, gibt es **kein Sequencing-Problem**:
-die Schienen kommen und gehen gemeinsam. Nur bei getrennten Quellen müsste VDD vor
-VCC anliegen, sonst treiben die Eingangsschutzdioden des HX711 Strom in den
-Digitalteil.
+Because the 3.3 V regulator runs from the same 5 V, there is **no sequencing problem**:
+the rails come and go together. Only with separate sources would VDD have to be present before
+VCC, otherwise the HX711's input protection diodes drive current into the
+digital section.
 
-| Verbraucher | Strom |
+| Consumer | Current |
 |---|---|
-| ESP32-S3 mit WLAN | ≈ 100 mA, Spitze ≈ 350 mA |
-| LCD 2004 mit Beleuchtung | 25…40 mA |
+| ESP32-S3 with WiFi | ≈ 100 mA, peak ≈ 350 mA |
+| LCD 2004 with backlight | 25…40 mA |
 | 3 × TLE4905L | ≈ 21 mA |
-| HX711 | 1,4 mA |
+| HX711 | 1.4 mA |
 
-Rund 150 mA im Mittel. Ein 1-A-Netzteil genügt dreifach. Für den Messbetrieb ein
-eigenes Netzteil nehmen, nicht das Notebook — ein Ruhezustand mitten im Lauf
-kostet die Messung.
+Around 150 mA on average. A 1 A supply is sufficient three times over. For measurement
+operation use a dedicated power supply, not the notebook — a sleep state in the middle of a run
+costs the measurement.
 
-### 5.2 Pegel: der ESP32-S3 ist nicht 5-V-tolerant
+### 5.2 Logic levels: the ESP32-S3 is not 5 V tolerant
 
-| Baustein | Versorgung | Signal zum ESP32 |
+| Component | Supply | Signal to the ESP32 |
 |---|---|---|
-| TLE4905L | V_S = 5 V (Minimum 3,8 V) | Open Collector, **Pull-up 470 Ω nach 5 V und Z-Diode 3,3 V gegen Masse am ESP32** → ≈ 3,2 V, Kathode ans Signal. Löt- und Anschlussvorlage: `hardware/hallplan.pdf` |
-| HX711 | **VCC = 5 V** (analog), **VDD = 3,3 V** (digital) | DOUT auf 3,3 V |
-| ~~LCD / PCF8574~~ | — | **entfällt seit 2026-11-22**, bedient wird über WLAN |
+| TLE4905L | V_S = 5 V (minimum 3.8 V) | open collector, **pull-up 470 Ω to 5 V and Zener diode 3.3 V to ground at the ESP32** → ≈ 3.2 V, cathode to the signal. Soldering and connection template: `hardware/hallplan.pdf` |
+| HX711 | **VCC = 5 V** (analog), **VDD = 3.3 V** (digital) | DOUT at 3.3 V |
+| ~~LCD / PCF8574~~ | — | **dropped since 2026-11-22**, operation is via WiFi |
 
-**Festlegung: HX711-Modul mit getrennten VCC- und VDD-Pins** (SparkFun-Bauform,
-fünf Pins: VDD, VCC, DAT, CLK, GND). VCC speist die Brücke, VDD legt den Logikpegel
-fest. Am Chip sind das AVDD (Pin 3) und DVDD (Pin 16).
+**Spec: HX711 module with separate VCC and VDD pins** (SparkFun form factor,
+five pins: VDD, VCC, DAT, CLK, GND). VCC feeds the bridge, VDD sets the logic level.
+At the chip these are AVDD (pin 3) and DVDD (pin 16).
 
-Die billigen vierpoligen Module (VCC, GND, DT, SCK) scheiden damit aus — dort sind
-beide verbunden. Die Alternative wäre, den ganzen Baustein auf 3,3 V zu fahren. Das
-kostet **keine** Auflösung in Counts, weil die Brücke aus AVDD gespeist wird und AVDD
-zugleich die ADC-Referenz ist, die Messung also ratiometrisch läuft. Es kostet aber
-**SNR**: ein Drittel weniger Erregung bei gleichem Eingangsrauschen sind rund 3,6 dB.
-Bei 12 N Signal des besten Rennreifens auf einer 98-N-Zelle wird das nicht
-verschenkt.
+The cheap four-pin modules (VCC, GND, DT, SCK) are thus ruled out — there both
+are connected. The alternative would be to run the whole chip at 3.3 V. That
+costs **no** resolution in counts, because the bridge is fed from AVDD and AVDD
+is at the same time the ADC reference, so the measurement is ratiometric. But it does cost
+**SNR**: one third less excitation at the same input noise is about 3.6 dB.
+With 12 N of signal from the best racing tire on a 98 N cell, that is not to be
+given away.
 
-### 5.3 Wo der HX711 sitzt
+### 5.3 Where the HX711 sits
 
-**Am Zellenkabel, nicht am ESP32.** Das Zellensignal ist der empfindliche Teil der
-Kette, das digitale Signal der robuste — also wird die lange Strecke auf die
-digitale Seite gelegt.
+**At the cell cable, not at the ESP32.** The cell signal is the sensitive part of the
+chain, the digital signal the robust one — so the long run is placed on the
+digital side.
 
 | | |
 |---|---|
-| Endwert der 5-kg-Zelle bei 1 mV/V und 5 V Erregung | 5 mV |
-| Auslegungsfall samt Rampe (31,4 N) | 3,2 mV |
-| **ΔCrr = 0,0005 (1,22 N)** | **124 µV** |
+| Full scale of the 5 kg cell at 1 mV/V and 5 V excitation | 5 mV |
+| Design case including ramp (31.4 N) | 3.2 mV |
+| **ΔCrr = 0.0005 (1.22 N)** | **124 µV** |
 
-Auf einer Leitung, die 124 µV auflösen soll, ist jede eingekoppelte Störung direkt
-Messfehler — und der PGA verstärkt sie mit 128.
+On a line that is supposed to resolve 124 µV, every coupled-in disturbance is directly a
+measurement error — and the PGA amplifies it by 128.
 
-Der eigentliche Schaden ist nicht Rauschen, sondern **EMV-Gleichrichtung**: die
-PWM des Reglers koppelt mit einigen zehn kHz in die hochohmigen PGA-Eingänge und
-richtet sich dort zu einem **Gleichanteil** gleich, der mit dem Motorstrom wandert.
-Das sieht exakt wie Signal aus und fällt in der Leerlaufkennlinie nicht auf, weil
-es dort genauso auftritt.
+The real damage is not noise but **EMC rectification**: the
+controller's PWM couples at a few tens of kHz into the high-impedance PGA inputs and
+rectifies there into a **DC component** that moves with the motor current.
+That looks exactly like signal and does not show up in the idle-loss curve, because
+it occurs there just the same.
 
-Der oft genannte Grund — Leitungswiderstand bei der Vierleiterzelle — ist dagegen
-**kein** Argument: 2 m Litze sind rund 0,5 Ω in der Erregerschleife, bei 1 kΩ
-Brückenwiderstand und 10 K Temperaturhub ergibt das 0,002 % Spannenfehler.
+The often-cited reason — lead resistance with the four-wire cell — is by contrast
+**no** argument: 2 m of stranded wire are about 0.5 Ω in the excitation loop; with 1 kΩ
+bridge resistance and 10 K temperature swing that gives 0.002 % span error.
 
-Praktisch:
+In practice:
 
-- HX711 **innerhalb von etwa 10 cm** an der Zelle, in einem kleinen geschirmten
-  Gehäuse am Rahmen — nicht auf dem Wiegeteil, sonst zieht sein Kabel am Hebelarm.
-- **Nicht** in Motornähe oder in dessen Abluft, trotz der kurzen Strecke zur Zelle:
-  Offsetdrift.
-- Zellenkabel als **zwei verdrillte Paare** (E+/E−, S+/S−), Gesamtschirm, Schirm
-  einseitig an den Zellenkörper.
-- Am HX711-Eingang je 100 Ω in Reihe und 100 nF differenziell über INA+/INA−.
-- Die digitale Strecke verdrillt oder geschirmt, **getrennt vom Zellenkabel geführt**,
-  und 100 Ω in Reihe im SCK direkt am ESP32 — flankenbremsend, damit der Takt nicht
-  in die Analogseite zurückkoppelt.
+- HX711 **within about 10 cm** of the cell, in a small shielded
+  housing on the frame — not on the cradle part, otherwise its cable pulls on the lever arm.
+- **Not** near the motor or in its exhaust air, despite the short run to the cell:
+  offset drift.
+- Cell cable as **two twisted pairs** (E+/E−, S+/S−), overall shield, shield
+  connected at one end to the cell body.
+- At the HX711 input 100 Ω in series each and 100 nF differentially across INA+/INA−.
+- The digital run twisted or shielded, **routed separately from the cell cable**,
+  and 100 Ω in series in SCK directly at the ESP32 — edge-slowing, so that the clock does not
+  couple back into the analog side.
 
-### 5.4 Steckverbinder
+### 5.4 Connectors
 
-**Die Zellenleitung bekommt keinen Steckverbinder.** Sie ist nur 10 cm lang und geht
-direkt in die **Schraubklemme auf der HX711-Platine**. Eine Schraubklemme ist eine
-gasdichte Klemmverbindung ohne zusätzliche Metallübergänge — elektrisch das Beste,
-was es hier gibt, und zum Zellentausch reicht ein Schraubendreher.
+**The cell lead gets no connector.** It is only 10 cm long and goes
+directly into the **screw terminal on the HX711 board**. A screw terminal is a
+gas-tight clamped connection without additional metal junctions — electrically the best
+there is here, and a screwdriver is enough to swap the cell.
 
-Gesteckt wird die **digitale Seite**. Empfehlung: **JST-XH, 6-polig** — gekeyt,
-crimpbar, billig. Sechs statt fünf Pole, damit jedes Signal eine Masse neben sich
-hat:
+The **digital side** is plugged. Recommendation: **JST-XH, 6-pin** — keyed,
+crimpable, cheap. Six poles instead of five, so that every signal has a ground next to
+it:
 
 | Pin | 1 | 2 | 3 | 4 | 5 | 6 |
 |---|---|---|---|---|---|---|
-| | 5 V | GND | SCK | DOUT | GND | 3,3 V |
+| | 5 V | GND | SCK | DOUT | GND | 3.3 V |
 
-Zwei Dinge entscheiden hier, nicht die Signalqualität:
+Two things decide here, not signal quality:
 
-- **Verpolschutz.** 5 V und 3,3 V liegen auf demselben Stecker. Ein verdrehter oder
-  um einen Pin versetzter Stecker zerstört entweder den HX711 oder den ESP32. Die
-  Bauform muss formschlüssig kodiert sein — deshalb JST und nicht Stiftleiste. Die
-  Reihenfolge oben setzt 5 V und 3,3 V zusätzlich an die beiden Enden.
-- **Vibration.** Der Stecker sitzt am Prüfstand. Kabelbinder als Zugentlastung, oder
-  gleich eine rastende Bauform (Molex Micro-Fit 3.0).
+- **Reverse-polarity protection.** 5 V and 3.3 V are on the same connector. A twisted or
+  one-pin-offset connector destroys either the HX711 or the ESP32. The
+  form factor must be positively keyed — hence JST and not a pin header. The
+  order above additionally puts 5 V and 3.3 V at the two ends.
+- **Vibration.** The connector sits on the test stand. Cable ties as strain relief, or
+  a latching form factor right away (Molex Micro-Fit 3.0).
 
-Kabel dazu: **LiYCY 6×0,14 mm²** — geschirmt, sechsadrig, und 0,14 mm² ≈ 26 AWG
-liegt mitten im Crimpbereich der XH-Kontakte.
+Cable for it: **LiYCY 6×0.14 mm²** — shielded, six-core, and 0.14 mm² ≈ 26 AWG
+is right in the middle of the crimp range of the XH contacts.
 
-Der Schirm hat bei sechs Adern auf sechs Positionen **keinen eigenen Pin**. Er wird
-als kurzer Zopf herausgeführt und **nur am ESP32-Ende** auf Masse gelegt, am HX711
-offen gelassen: einseitig geerdet, also keine Masseschleife parallel zur
-GND-Ader. Reicht das gegen die Reglerstörungen nicht, kommt das zweite Ende dazu.
+With six cores on six positions the shield has **no pin of its own**. It is
+brought out as a short pigtail and connected to ground **only at the ESP32 end**, left
+open at the HX711: grounded at one end, so no ground loop parallel to the
+GND core. If that is not enough against the controller interference, the second end is added.
 
-Bei über 1 m Länge oder wenn das Kabel am Regler vorbeiläuft: **geschirmtes
-RJ45-Patchkabel** (S/FTP). Acht Adern als vier verdrillte Paare, jedes Signal mit
-eigener Rückleitung, Schirm auf das Gehäuse, rastend, als Fertigkabel in jeder
-Länge zu haben. Elektrisch deutlich besser als jedes Flachbandkabel.
+For lengths over 1 m or if the cable runs past the controller: **shielded
+RJ45 patch cable** (S/FTP). Eight cores as four twisted pairs, each signal with
+its own return, shield to the housing, latching, available as a ready-made cable in any
+length. Electrically far better than any ribbon cable.
 
-**Nicht** nötig ist Aufwand wegen der Signale selbst: 3,3-V-CMOS bei maximal 1 MHz
-über einen Meter ist unkritisch. Der HX711 hat allerdings **keine Prüfsumme** — ein
-gekipptes Bit liefert einen wild falschen Wert. Die Firmware sollte Ausreißer
-verwerfen, statt sich auf die Leitung zu verlassen.
+**Not** necessary is effort on account of the signals themselves: 3.3 V CMOS at a maximum of 1 MHz
+over one meter is uncritical. The HX711 however has **no checksum** — a
+flipped bit delivers a wildly wrong value. The firmware should discard outliers
+instead of relying on the line.
 
-Grund: jeder Steckverbinder bringt zwei Metallübergänge je Ader in den Signalpfad,
-und bei µV-Pegeln zählt die **Thermospannung**. Sie hebt sich nur auf, solange beide
-Kontakte eines Paares gleich aufgebaut und gleich warm sind.
+Reason: every connector introduces two metal junctions per core into the signal path,
+and at µV levels the **thermoelectric voltage** matters. It cancels only as long as both
+contacts of a pair are built the same and are equally warm.
 
-| Übergang | Thermospannung |
+| Junction | Thermoelectric voltage |
 |---|---|
-| Kupfer–Gold | ≈ 0,3 µV/K |
-| Kupfer–Lot | 1…3 µV/K |
-| Kupfer–Nickel (durchgeriebene Vergoldung) | ≈ 20 µV/K |
+| copper–gold | ≈ 0.3 µV/K |
+| copper–solder | 1…3 µV/K |
+| copper–nickel (worn-through gold plating) | ≈ 20 µV/K |
 
-Zum Vergleich: 1 % des Signals eines guten Rennreifens sind **16 µV**. Ein
-durchgeriebener Kontakt mit 2 K Gradient über das Paar liegt bei 40 µV — also
-2,5 % Fehler, und zwar ein systematischer.
+For comparison: 1 % of the signal of a good racing tire is **16 µV**. A
+worn-through contact with a 2 K gradient across the pair is at 40 µV — i.e.
+2.5 % error, and a systematic one at that.
 
-Falls doch einer in die Analogstrecke muss:
+If one does have to go into the analog run after all:
 
-- **S+ und S− auf benachbarte Pins**, E+ und E− ebenso — dann sind beide Kontakte
-  gleich warm und die Thermospannungen heben sich auf.
-- Kontakte **vergoldet**, nicht verzinnt.
-- Schirm auf das **Metallgehäuse** des Steckers, Metall-Haube verwenden.
-- Nicht in einen Temperaturgradienten setzen, also nicht in Motornähe.
-- **Niemals Stiftleisten oder Dupont-Kabel** im Analogpfad.
-- Analog- und Digitaladern **nicht durch denselben Stecker**; wenn es sich nicht
-  vermeiden lässt, Masseadern dazwischen legen.
+- **S+ and S− on adjacent pins**, E+ and E− likewise — then both contacts are
+  equally warm and the thermoelectric voltages cancel.
+- Contacts **gold-plated**, not tinned.
+- Shield to the **metal housing** of the connector, use a metal hood.
+- Do not place in a temperature gradient, i.e. not near the motor.
+- **Never pin headers or Dupont cables** in the analog path.
+- Analog and digital cores **not through the same connector**; if it cannot be
+  avoided, place ground cores between them.
 
-### 5.5 Messtechnisch
+### 5.5 Measurement aspects
 
-- **HX711 getrennt versorgen.** Nicht am Motorzweig. Ferrit und 100 µF direkt am
-  AVDD-Pin, Sternmasse.
-- **RATE-Pin prüfen.** `HX711_RATE_SPS` = 80 setzt RATE auf DVDD voraus. Viele
-  Module legen Pin 15 fest auf GND, das sind 10 SPS — bei 60 km/h nur **1,8 Abtastwerte
-  je Umdrehung** statt 14, womit die umdrehungssynchrone Mittelung
-  ([09-messtheorie](09-messtheorie.md) §3.8) zusammenbricht. Gegebenenfalls Leiterbahn
-  auftrennen und auf DVDD brücken.
-- **Motorzuleitungen über das Pendellager als weiche Schlaufe.** Beim Nabenmotor treten
-  sie axial durch die Statorachse aus, also auf der Pendelachse — der Vorteil geht
-  verloren, wenn das Kabel straff abgeht.
-- **Logik- und Leistungsmasse an genau einem Punkt verbinden.**
+- **Power the HX711 separately.** Not from the motor branch. Ferrite and 100 µF directly at the
+  AVDD pin, star ground.
+- **Check the RATE pin.** `HX711_RATE_SPS` = 80 presupposes RATE on DVDD. Many
+  modules tie pin 15 permanently to GND, which is 10 SPS — at 60 km/h only **1.8 samples
+  per revolution** instead of 14, with which the revolution-synchronous averaging
+  ([09-measurement-theory](09-measurement-theory.md) §3.8) collapses. If necessary cut the trace
+  and bridge to DVDD.
+- **Motor leads over the pivot bearing as a soft loop.** On the hub motor they
+  exit axially through the stator axle, i.e. on the pivot axis — the advantage is
+  lost if the cable leaves taut.
+- **Connect logic and power ground at exactly one point.**
 
-### 5.6 Das LCD auf 3,3-V-Pegel bringen
+### 5.6 Bringing the LCD to 3.3 V levels
 
-> **Gegenstandslos seit dem 2026-11-22**: Steuerkreuz und LCD entfallen, bedient wird
-> über WLAN am Telefon ([10-firmware](10-firmware.md) §3.1). Der Abschnitt bleibt
-> stehen, weil die Abwägung wieder gebraucht wird, sobald ein I²C-Gerät mit 5 V
-> dazukommt — der IR-Temperaturfühler ist ein Kandidat.
+> **Moot since 2026-11-22**: D-pad and LCD are dropped, operation is
+> via WiFi on the phone ([10-firmware](10-firmware.md) §3.1). The section stays
+> in place because the trade-off will be needed again as soon as an I²C device with 5 V
+> is added — the IR temperature sensor is a candidate.
 
-Backpack (PCF8574) und HD44780-Modul laufen auf **5 V**. SDA und SCL sind Open Drain:
-den High-Pegel macht nicht der Baustein, sondern der **Pull-up** — und auf dem
-Backpack sitzen 4,7 kΩ nach **5 V**. Genau die dürfen nicht an den S3.
+Backpack (PCF8574) and HD44780 module run on **5 V**. SDA and SCL are open drain:
+the high level is made not by the chip but by the **pull-up** — and on the
+backpack sit 4.7 kΩ to **5 V**. Exactly those must not go to the S3.
 
-| Weg | Eingriff | Bewertung |
+| Path | Intervention | Assessment |
 |---|---|---|
-| **a) Pegelwandler** | zwei MOSFETs (BSS138) oder ein Fertigmodul zwischen Bus und ESP32 | innerhalb der Spezifikation, nichts am Modul zu ändern; kostet ein Bauteil und zwei Steckstellen |
-| **b) Pull-ups umhängen** | die 4,7 kΩ auf dem Backpack auslöten, stattdessen 2,2…4,7 kΩ nach **3,3 V** am ESP32 | am wenigsten Aufwand, aber **außerhalb der Spezifikation** |
-| **c) LCD auf 3,3 V** | auf dem Backpack ist ein Spannungsregler **nicht bestückt**; dazu kämen einige Kondensatoren und Widerstände (Sichtprüfung der vorhandenen Platine) | sauberster Pegel, aber Bestückungsarbeit — und der Kontrast des HD44780 bei 3,3 V ist zu prüfen |
+| **a) Level shifter** | two MOSFETs (BSS138) or a ready-made module between bus and ESP32 | within specification, nothing to change on the module; costs one component and two plug points |
+| **b) Move the pull-ups** | unsolder the 4.7 kΩ on the backpack, instead 2.2…4.7 kΩ to **3.3 V** at the ESP32 | least effort, but **outside the specification** |
+| **c) LCD at 3.3 V** | on the backpack a voltage regulator is **not fitted**; some capacitors and resistors would be added (visual inspection of the existing board) | cleanest level, but assembly work — and the contrast of the HD44780 at 3.3 V has to be checked |
 
-Warum (b) „nicht ganz sauber" ist: der PCF8574 verlangt als High-Pegel
-**0,7 · V_DD**, bei 5 V Versorgung also **3,5 V**. Ein Bus, der nur auf 3,3 V
-hochgezogen wird, liegt darunter.
+Why (b) is "not quite clean": the PCF8574 requires as high level
+**0.7 · V_DD**, at 5 V supply therefore **3.5 V**. A bus that is pulled up only to 3.3 V
+lies below that.
 
-- **Kaputt geht dabei nichts.** Gefährlich wäre die umgekehrte Richtung — 5 V am
-  S3 —, und die ist nach dem Auslöten gerade weg.
-- Ob der Baustein die 3,3 V **zuverlässig** als High liest, sagt das Datenblatt
-  nicht zu. Das entscheidet sich am Exemplar und an der Temperatur. In der Praxis
-  läuft es oft; eine Zusicherung ist es nicht.
-- **Ein marginaler High-Pegel lässt sich nicht nachbessern.** Kleinere Pull-ups
-  machen nur die Flanken steiler, nicht den Pegel höher; 100 kHz statt 400 kHz
-  ebenso. Zickt der Bus, bleibt nur (a) oder (c).
+- **Nothing breaks in the process.** The dangerous direction would be the reverse — 5 V at the
+  S3 —, and that is exactly what is gone after unsoldering.
+- Whether the chip reads the 3.3 V **reliably** as high, the datasheet does not
+  guarantee. That is decided by the specimen and the temperature. In practice
+  it often works; it is not an assurance.
+- **A marginal high level cannot be improved afterwards.** Smaller pull-ups
+  only make the edges steeper, not the level higher; 100 kHz instead of 400 kHz
+  likewise. If the bus acts up, only (a) or (c) remain.
 
-**Reihenfolge bei (b): erst auslöten, dann anschließen.** Solange die 4,7 kΩ nach
-5 V am Bus hängen, liegen 5 V an GPIO 8 und 9.
+**Order for (b): unsolder first, then connect.** As long as the 4.7 kΩ to
+5 V hang on the bus, 5 V is present at GPIO 8 and 9.
 
-Entscheidung offen, siehe [06-offene-fragen](06-offene-fragen.md) B3.
+Decision open, see [06-open-questions](06-open-questions.md) B3.
 
-## 6 Leistungsbedarf und Netzteil
+## 6 Power requirement and power supply
 
-Bei 60 km/h (ω = 35,73 rad/s), Auflast 42,5 kg. Momente einschließlich Leerlauf und
-Laufradverlusten (rund 0,51 Nm, [08-staender](08-staender.md) §5.1):
+At 60 km/h (ω = 35.73 rad/s), wheel load 42.5 kg. Torques including idle losses and
+wheel losses (about 0.51 Nm, [08-stand](08-stand.md) §5.1):
 
-| Fall | Moment | P mech | Strom bei kt = 0,568 Nm/A |
+| Case | Torque | P mech | Current at kt = 0.568 Nm/A |
 |---|---|---|---|
-| bester Rennreifen (Crr 0,0025) | 1,00 Nm | 36 W | 1,8 A |
-| guter Rennreifen (0,0037) | 1,24 Nm | 44 W | 2,2 A |
-| Contact Urban (0,0055) | 1,59 Nm | 57 W | 2,8 A |
-| **Auslegung (Crr 0,007)** | **1,88 Nm** | **67 W** | **3,3 A** |
-| + Anfahren am Rampenende | 2,51 Nm | 90 W | 4,4 A |
-| *langsamster MTB (0,0127) — nicht vorgesehen* | *2,98 Nm* | *106 W* | *5,2 A* |
+| best racing tire (Crr 0.0025) | 1.00 Nm | 36 W | 1.8 A |
+| good racing tire (0.0037) | 1.24 Nm | 44 W | 2.2 A |
+| Contact Urban (0.0055) | 1.59 Nm | 57 W | 2.8 A |
+| **Design case (Crr 0.007)** | **1.88 Nm** | **67 W** | **3.3 A** |
+| + starting at the end of the ramp | 2.51 Nm | 90 W | 4.4 A |
+| *slowest MTB (0.0127) — not intended* | *2.98 Nm* | *106 W* | *5.2 A* |
 
-Elektrisch rund **90 W, in der Spitze 120 W**. Der Nennstrom des Motors liegt bei etwa
-9,7 A — im Auslegungsfall werden also 34 % davon gebraucht. Mit dem Wechsel von der
-MTB- auf die Rennreifenauslegung ist der Antrieb deutlich überdimensioniert.
+Electrically about **90 W, peak 120 W**. The motor's rated current is about
+9.7 A — in the design case therefore 34 % of it is used. With the change from the
+MTB to the racing-tire design the drive is clearly oversized.
 
-Netzteil **36 V / 10 A** genügt; 15 A geben Luft, damit die Strombegrenzung beim Anfahren
-vom Regler kommt und nicht vom Netzteil.
+Power supply **36 V / 10 A** suffices; 15 A give headroom so that the current limit when starting
+comes from the controller and not from the power supply.
 
-**Rückspeisung beachten:** Beim rekuperativen Bremsen fließt Energie zurück. Ein
-Labornetzteil kann sie nicht aufnehmen, die Zwischenkreisspannung steigt und der Regler
-schaltet mit Überspannung ab. Lösungen: Bremswiderstand mit Chopper (1,4 kJ über 10 s
-sind 140 W, ein 100-W-Widerstand reicht) oder eine Batterie als Puffer. Eine mechanische
-Bremse gibt es nicht ([07-sicherheit](07-sicherheit.md) §3).
+**Mind regeneration:** During regenerative braking energy flows back. A
+lab power supply cannot absorb it, the DC-link voltage rises and the controller
+shuts down with overvoltage. Solutions: brake resistor with chopper (1.4 kJ over 10 s
+is 140 W, a 100 W resistor suffices) or a battery as buffer. There is no mechanical
+brake ([07-safety](07-safety.md) §3).
 
-## 7 Gedruckte Teile
+## 7 Printed parts
 
-Zwei Gehäuse nach demselben Muster: §7.1–§7.3 das Gebergehäuse für die
-Hall-Sensoren, §7.4 das Gehäuse für die Wägeplatine. Gemeinsam sind die nach
-unten offene Kavität, die Platinenaufnahme aus Absatz plus Rastnasen und die
-Kabelnut, die den Mantel gegen die Montagefläche klemmt.
+Two housings following the same pattern: §7.1–§7.3 the sensor housing for the
+Hall sensors, §7.4 the housing for the load-cell board. Common to both are the
+cavity open at the bottom, the board seat made of ledge plus locating keys and the
+cable groove, which clamps the jacket against the mounting surface.
 
-Dazu §7.5, die Befestigungsspange für das ESP-Gehäuse — kein Gehäuse, sondern
-ein Halter.
+In addition §7.5, the mounting clamp for the ESP housing — not a housing but
+a holder.
 
-**Gebergehäuse für die Hall-Sensoren** — feststehende Seite der
-Drehzahlerfassung, am Rahmen. Gegenstück ist §8.
+**Sensor housing for the Hall sensors** — stationary side of the
+speed sensing, on the frame. Its counterpart is §8.
 
-3D-Druck, Außenmaß **37,2 × 20,0 × 12,0 mm**, 5,6 cm³.
+3D print, outer dimensions **37.2 × 20.0 × 12.0 mm**, 5.6 cm³.
 
-`hall-gehaeuse.FCStd` ist ein **PartDesign-Body mit Featurebaum** und einem
-Spreadsheet `Parameter`; alle Skizzen sind voll bestimmt und über Ausdrücke an die
-Tabelle gebunden. Maße ändert man **in der Tabelle**, nicht in den Skizzen.
-
-| | |
-|---|---|
-| Featurebaum | Grundkoerper · Kavitaet · Bauteilraum · **Auflagefasen · Kabelrampe** · Rastnasen · Federfeld · Schraubloch · Kabelnut (+rund) · Kabelmulde (+rund) · LED_Loch |
-| `hardware/hall_gehaeuse.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
-
-Wer im GUI arbeitet, pflegt die FCStd — das Skript überschreibt sie. Es ist der
-Erzeuger, nicht die Wahrheit.
-
-### 7.1 Maße
-
-| Merkmal | Maß |
-|---|---|
-| Platine | Lochraster 18 × 13 × 1,6 mm, 2,54er Raster, 7 × 5 Löcher |
-| Kavität | 20 × 14 × 10 mm, nach unten offen |
-| Lötraum unter der Platine | 2,0 mm |
-| Bauteilraum über der Platine | 6,4 mm |
-| Stirnwand vor dem Geber | 1,2 mm |
-| Seitenwände / Deckel | 3,0 / 2,0 mm |
-| M6-Durchgang | Ø 6,6, 4,5 mm aus der Mitte versetzt |
-| Kabelkanal | D-Nut 4,4 breit, 3,4 tief (Kabel Ø 4, dreiadrig) |
-| Kabelmulde vor der Platine | dieselbe Nut, 5,2 tief, x = 20…26 mm |
-| LED-Loch | Ø 3,2 im Deckel, 15 mm von der Stirnwand |
-
-Stirnwand 1,2 mm, weil sie in den Magnet-Luftspalt eingeht (§8.3). Nut 3,4 mm bei
-4 mm Kabel, damit das Blech den Mantel klemmt — das ist die Zugentlastung.
-
-Der Mantel passt **nicht** unter die Platine; dort sind nur 2,0 mm. Er endet in der
-Mulde, die mit 5,2 mm tiefer ist als das Kabel dick — dort wird nichts geklemmt und
-nichts gegen die Platinenkante gedrückt. Weiter laufen nur die drei Adern. Geklemmt
-wird erst im massiven Block dahinter.
-
-### 7.2 Platinenaufnahme
-
-| Merkmal | Maß |
-|---|---|
-| Absatz | 1,8 mm Vorsprung je Seite, **durchgehend 20 mm**; Auflage 1,3 mm |
-| Unterkante des Absatzes | z = 3,6 mm, innen mit **0,4 mm Fase** |
-| Kabelrampe am Kabelende | 4 mm lang, öffnet auf **1,5 mm** über der Platinenoberkante |
-| Rastnasen | 0,65 mm Vorsprung, 6 mm lang, **nur mittig**; Überdeckung 0,15 mm |
-| Form der Nase | symmetrischer Keil, Scheitel z = 2,0 mm |
-| Federfeld, von außen freigestellt | 12 mm lang, 0,8 mm Restwand |
-
-Zwei Anschläge mit getrennten Aufgaben:
-
-- Der **Absatz** sitzt tief in der Kavität und hindert die Platine daran, weiter
-  hineinzurutschen.
-- Die **Rastnasen** sitzen darunter und hindern sie daran, zur offenen Seite
-  herauszufallen.
-
-Die Nasen haben **keinen Hinterschnitt** — die Schräge ist oben wie unten gleich,
-gehalten wird durch Vorspannung. Die Platine geht ohne Werkzeug wieder heraus.
-
-Nasen nur mittig, weil die 3 mm starke Wand nur im freigestellten Feld überhaupt
-federt. Der Absatz dagegen durchgehend; er muss nicht federn, sondern tragen.
-
-> Der äußerste Lochrasterstreifen liegt auf der Leiste und muss frei von Lötstellen
-> bleiben: Bauteile innerhalb von ±5,2 mm um die Platinenmitte bestücken.
-
-#### Damit die Platine die Adern nicht einklemmt
-
-Die Kabelnut beginnt **3 mm innerhalb** der Kavität und läuft damit unter dem
-Absatz hindurch. Dort treffen Platinenoberkante und Absatz aufeinander, beide bei
-z = 3,6 mm, und zwar als 90-Grad-Kante. Eine Ader, die dort liegt, wird beim
-Einschieben der Platine abgeschert. Zwei Maßnahmen, beide am 2026-11-21:
-
-1. **Fase 0,4 mm** an der inneren Unterkante des Absatzes, umlaufend. Aus der
-   scharfen Kante wird ein Keil: eine verirrte Ader wird nach innen geschoben,
-   statt gequetscht zu werden.
-2. **Kabelrampe**: über die letzten 4 mm vor dem Kabelende steigt die Unterseite
-   des Absatzes um 1,5 mm an. Genau dort verlässt die Ader die Platine und taucht
-   in die Nut ab; der Spalt öffnet sich keilförmig, statt zuzugehen.
-
-Dasselbe gilt für das HX711-Gehäuse, §7.4 — dort ist es dieselbe Geometrie aus
-demselben Grund.
-
-### 7.3 Montage
-
-Offene Seite auf das Alublech, eine M6-Schraube. Daraus folgt:
-
-1. Das Blech schließt das Gehäuse und klemmt das Kabel in der Nut.
-2. Die Platine hat 2,0 mm Abstand zum Blech. Klebeband als Isolation ist damit
-   Rückfallebene, nicht Voraussetzung.
-3. Eine Schraube heißt verdrehbar — die Ausrichtung zur Trommelmarke wird beim
-   Anziehen mit eingestellt.
-
-### 7.4 Gehäuse für die Wägeplatine (HX711)
-
-Nimmt die SparkFun-Platine *HX711 Load Cell Amp* auf, die am Pendelrahmen neben
-der Wägezelle sitzt. Außenmaß **49,2 × 28,2 × 12,3 mm**, 9,3 cm³.
+`hall-gehaeuse.FCStd` is a **PartDesign body with feature tree** and a
+spreadsheet `Parameter`; all sketches are fully constrained and bound to the
+table via expressions. Dimensions are changed **in the table**, not in the sketches.
 
 | | |
 |---|---|
-| Featurebaum | Grundkoerper · Kavitaet · Bauteilraum · **Eckauflagen · Auflagefasen · Kabelrampe** · Rastnasen · Federfeld · Schraubloch · Kabelhals · Kabelnut · Kabelmulde (+rund) · Maulfasen |
-| `hardware/hx711_gehaeuse.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
+| Feature tree | Grundkoerper · Kavitaet · Bauteilraum · **Auflagefasen · Kabelrampe** · Rastnasen · Federfeld · Schraubloch · Kabelnut (+rund) · Kabelmulde (+rund) · LED_Loch |
+| `hardware/hall_gehaeuse.py` | builds the tree from scratch, exports `.step` and `.stl` |
 
-Aufbau, Spreadsheet und Vorbehalt wie oben: das Skript ist der Erzeuger, die FCStd
-die Wahrheit.
+Whoever works in the GUI maintains the FCStd — the script overwrites it. It is the
+generator, not the truth.
 
-#### Maße
+### 7.1 Dimensions
 
-| Merkmal | Maß |
+| Feature | Dimension |
 |---|---|
-| Platine | **30,6 × 23,0 mm** (nachgemessen; Nennmaß 30,48 × 22,86 = 1,2 × 0,9″), 1,6 mm dick, **mit Bauteilen 4,3 mm** |
-| Kavität | 31,2 × 23,4 × 10,3 mm, nach unten offen |
-| Spiel der Platine | **0,6 mm längs, 0,4 mm quer, 0,3 mm in der Dicke** — unten, *Passung* |
-| Lötraum unter der Platine | 2,0 mm |
-| Bauteilraum über der Platine | 6,7 mm — 2,7 mm Bauteile, **4,0 mm für die Adern** |
-| Stirnwand am Zellenende | 2,0 mm |
-| Seitenwände / Deckel | **2,4** / 2,0 mm — Begründung unten |
-| M6-Durchgang | Ø 6,6, **mittig**, 3,00 / 3,50 mm Steg zu den Kabelmulden |
-| Kabelkanal +y, Leitung zum Rechner | **Omega-Nut** Ø 3,9, Hals 3,2, 3,4 tief |
-| Kabelkanal −y, Litzen der Wägezelle | **Omega-Nut** Ø 2,9, Hals 2,4, 2,6 tief |
-| Kanalmitten | y = ±8,6 mm |
-| Restwand neben einem Kanal | 3,20 mm (+y) / 3,70 mm (−y) |
-| Kabelmulde am Übergang | Ø **4,6** / **3,6** (weiter als das Kabel), 5,2 / 4,2 tief, 5 mm lang |
-| Klemmstrecke dahinter | 11 mm |
+| Board | perfboard 18 × 13 × 1.6 mm, 2.54 pitch, 7 × 5 holes |
+| Cavity | 20 × 14 × 10 mm, open at the bottom |
+| Solder space under the board | 2.0 mm |
+| Component space above the board | 6.4 mm |
+| End wall in front of the sensor | 1.2 mm |
+| Side walls / lid | 3.0 / 2.0 mm |
+| M6 through-hole | Ø 6.6, offset 4.5 mm from center |
+| Cable channel | D-slot 4.4 wide, 3.4 deep (cable Ø 4, three-core) |
+| Cable recess in front of the board | same groove, 5.2 deep, x = 20…26 mm |
+| LED hole | Ø 3.2 in the lid, 15 mm from the end wall |
 
-#### Passung
+End wall 1.2 mm because it enters the magnet air gap (§8.3). Groove 3.4 mm for a
+4 mm cable so that the sheet clamps the jacket — that is the strain relief.
 
-Das Spiel steht als **eigene Größe** in der Tabelle (`fit_w`, `fit_l`), nicht als
-Aufschlag in der Formel. Vorher hieß es `cav_w = pcb_w + 1` — übernommen vom
-Gebergehäuse, wo die Platine 13 mm breit ist. Bei 23 mm sind 1,1 mm Spiel kein
-Spiel mehr, sondern Wackeln.
+The jacket does **not** fit under the board; there are only 2.0 mm there. It ends in the
+recess, which at 5.2 mm is deeper than the cable is thick — nothing is clamped there and
+nothing is pressed against the board edge. Only the three cores run on. Clamping
+happens only in the solid block behind it.
 
-| | vorher | jetzt |
+### 7.2 Board seat
+
+| Feature | Dimension |
+|---|---|
+| Ledge | 1.8 mm protrusion per side, **continuous 20 mm**; bearing surface 1.3 mm |
+| Lower edge of the ledge | z = 3.6 mm, inside with **0.4 mm chamfer** |
+| Cable ramp at the cable end | 4 mm long, opens to **1.5 mm** above the board's top edge |
+| Locating keys | 0.65 mm protrusion, 6 mm long, **center only**; overlap 0.15 mm |
+| Shape of the key | symmetrical wedge, apex z = 2.0 mm |
+| Spring field, relieved from outside | 12 mm long, 0.8 mm remaining wall |
+
+Two stops with separate tasks:
+
+- The **ledge** sits deep in the cavity and prevents the board from sliding
+  further in.
+- The **locating keys** sit below it and prevent it from falling out toward the open
+  side.
+
+The keys have **no undercut** — the slope is the same above and below;
+holding is by preload. The board comes out again without tools.
+
+Keys only in the center, because the 3 mm thick wall only springs at all in the relieved
+field. The ledge by contrast continuous; it does not have to spring but to carry.
+
+> The outermost perfboard strip rests on the ledge and must remain free of solder joints:
+> fit components within ±5.2 mm around the board center.
+
+#### So that the board does not pinch the cores
+
+The cable groove begins **3 mm inside** the cavity and thus runs under the
+ledge. There the board's top edge and the ledge meet, both at
+z = 3.6 mm, and as a 90-degree edge. A core lying there is sheared off when the
+board is pushed in. Two measures, both on 2026-11-21:
+
+1. **Chamfer 0.4 mm** on the inner lower edge of the ledge, all round. The
+   sharp edge becomes a wedge: a stray core is pushed inward
+   instead of being crushed.
+2. **Cable ramp**: over the last 4 mm before the cable end the underside
+   of the ledge rises by 1.5 mm. Exactly there the core leaves the board and dives
+   into the groove; the gap opens wedge-shaped instead of closing.
+
+The same applies to the HX711 housing, §7.4 — there it is the same geometry for
+the same reason.
+
+### 7.3 Mounting
+
+Open side onto the aluminium sheet, one M6 screw. From this follows:
+
+1. The sheet closes the housing and clamps the cable in the groove.
+2. The board has 2.0 mm clearance to the sheet. Adhesive tape as insulation is thus
+   a fallback, not a prerequisite.
+3. One screw means rotatable — the alignment to the drum mark is set
+   while tightening.
+
+### 7.4 Housing for the load-cell board (HX711)
+
+Takes the SparkFun board *HX711 Load Cell Amp*, which sits on the cradle frame next to
+the load cell. Outer dimensions **49.2 × 28.2 × 12.3 mm**, 9.3 cm³.
+
+| | |
+|---|---|
+| Feature tree | Grundkoerper · Kavitaet · Bauteilraum · **Eckauflagen · Auflagefasen · Kabelrampe** · Rastnasen · Federfeld · Schraubloch · Kabelhals · Kabelnut · Kabelmulde (+rund) · Maulfasen |
+| `hardware/hx711_gehaeuse.py` | builds the tree from scratch, exports `.step` and `.stl` |
+
+Structure, spreadsheet and caveat as above: the script is the generator, the FCStd
+the truth.
+
+#### Dimensions
+
+| Feature | Dimension |
+|---|---|
+| Board | **30.6 × 23.0 mm** (re-measured; nominal 30.48 × 22.86 = 1.2 × 0.9″), 1.6 mm thick, **4.3 mm with components** |
+| Cavity | 31.2 × 23.4 × 10.3 mm, open at the bottom |
+| Board clearance | **0.6 mm lengthwise, 0.4 mm crosswise, 0.3 mm in thickness** — below, *Fit* |
+| Solder space under the board | 2.0 mm |
+| Component space above the board | 6.7 mm — 2.7 mm components, **4.0 mm for the cores** |
+| End wall at the cell end | 2.0 mm |
+| Side walls / lid | **2.4** / 2.0 mm — reasoning below |
+| M6 through-hole | Ø 6.6, **centered**, 3.00 / 3.50 mm web to the cable recesses |
+| Cable channel +y, lead to the computer | **omega slot** Ø 3.9, neck 3.2, 3.4 deep |
+| Cable channel −y, strands of the load cell | **omega slot** Ø 2.9, neck 2.4, 2.6 deep |
+| Channel centers | y = ±8.6 mm |
+| Remaining wall next to a channel | 3.20 mm (+y) / 3.70 mm (−y) |
+| Cable recess at the transition | Ø **4.6** / **3.6** (wider than the cable), 5.2 / 4.2 deep, 5 mm long |
+| Clamping length behind it | 11 mm |
+
+#### Fit
+
+The clearance stands as a **separate quantity** in the table (`fit_w`, `fit_l`), not as
+an allowance in the formula. Previously it read `cav_w = pcb_w + 1` — taken over from the
+sensor housing, where the board is 13 mm wide. At 23 mm, 1.1 mm of clearance is no longer
+clearance but wobble.
+
+| | before | now |
 |---|---|---|
-| Spiel quer | 1,1 mm | **0,4 mm** (0,2 je Seite) |
-| Spiel längs | 2,0 mm | **0,6 mm** (0,3 je Ende) |
-| Auflage auf dem Absatz | 1,3 mm | **1,60 mm** je Längsseite — seit dem 2026-11-21 unsymmetrisch, siehe unten |
-| Bauteilzone um die Mitte | ±10,25 mm | −8,90 / **+10,90 mm**, in den Ecken ±8,90 |
+| Clearance crosswise | 1.1 mm | **0.4 mm** (0.2 per side) |
+| Clearance lengthwise | 2.0 mm | **0.6 mm** (0.3 per end) |
+| Bearing on the ledge | 1.3 mm | **1.60 mm** per long side — asymmetrical since 2026-11-21, see below |
+| Component zone around the center | ±10.25 mm | −8.90 / **+10.90 mm**, in the corners ±8.90 |
 
-0,2 mm je Seite ist eine Schiebepassung, die ein FDM-Druck auch trifft; weniger
-wäre Pressen. Die Platine geht von unten hinein, nicht längs — das Längsspiel
-fängt also nur Toleranz, nicht das Einführen.
+0.2 mm per side is a sliding fit that an FDM print also hits; less
+would be pressing. The board goes in from below, not lengthwise — so the lengthwise clearance
+only absorbs tolerance, not the insertion.
 
-> Der Preis: die Bauteilzone ist schmaler geworden. Die Lötpads liegen an den
-> Schmalseiten und sind davon nicht betroffen — die **Kondensatoren schon**, siehe
-> den nächsten Abschnitt.
+> The price: the component zone has become narrower. The solder pads lie on the
+> short sides and are not affected — the **capacitors are**, see
+> the next section.
 
-#### Der Absatz hat zwei Kondensatoren abgebrochen
+#### The ledge broke off two capacitors
 
-**Was passiert ist.** Beim ersten Zusammenbau sind die beiden großen Kondensatoren
-an einer Längsseite der Platine am Absatz hängengeblieben und abgebrochen.
-Außerdem ließ sich die Platine nicht einrasten: sie war für die Rastnasen zu dick.
+**What happened.** During the first assembly the two large capacitors
+on one long side of the board caught on the ledge and broke off.
+Also, the board could not be snapped in: it was too thick for the locating keys.
 
-**Warum.** Beides war im Modell angelegt, nicht im Druck:
+**Why.** Both were built into the model, not the print:
 
-1. Der Absatz lief mit 1,8 mm **umlaufend** und griff damit 1,8 mm weit über die
-   Platinenkante. Laut den Eagle-Daten von SparkFun
-   ([Repo](https://github.com/sparkfun/HX711-Load-Cell-Amplifier),
-   `hardware/SparkFun_HX711_Load_Cell.brd`, Umriss 30,48 × 22,86 mm) stehen an
-   **einer** Längskante zwei 10-µF-Kondensatoren in Bauform 1210 (C6, C7), Mitte
-   2,54 mm von der Kante, **Gehäuse bis 1,24 mm an die Kante**; dazwischen C3 und
-   C5 (0603) bis 2,04 mm. An der anderen Längskante ist ein Streifen von
-   **3,95 mm** frei — das nächste Bauteil ist R4 bzw. C1.
-2. Zwischen dem Scheitel der Rastnasen und der Unterkante des Absatzes lagen
-   **genau 1,6 mm**, also die Nenndicke der Platine ohne jede Luft. Eine reale
-   Platine mit ihrer Dickentoleranz passt da nicht hinein.
+1. The ledge ran **all round** at 1.8 mm and thus reached 1.8 mm over the
+   board edge. According to the SparkFun Eagle data
+   ([repo](https://github.com/sparkfun/HX711-Load-Cell-Amplifier),
+   `hardware/SparkFun_HX711_Load_Cell.brd`, outline 30.48 × 22.86 mm), on
+   **one** long edge there are two 10 µF capacitors in 1210 package (C6, C7), center
+   2.54 mm from the edge, **package up to 1.24 mm from the edge**; between them C3 and
+   C5 (0603) up to 2.04 mm. On the other long edge a strip of
+   **3.95 mm** is free — the nearest component is R4 or C1.
+2. Between the apex of the locating keys and the lower edge of the ledge there were
+   **exactly 1.6 mm**, i.e. the nominal thickness of the board without any air. A real
+   board with its thickness tolerance does not fit in there.
 
-**Was geändert wurde.**
+**What was changed.**
 
-| | vorher | jetzt |
+| | before | now |
 |---|---|---|
-| Absatz freie Längsseite (−y) | 1,8 mm | **2,8 mm** |
-| Absatz Kondensatorseite (+y) | 1,8 mm | **0,8 mm** zwischen den Ecken |
-| Absatz in den Ecken (+y) | 1,8 mm | **2,8 mm** auf je 5 mm Länge |
-| Scheitel der Rastnasen | z = 2,00 mm | **z = 1,70 mm** (`fit_t` = 0,3) |
+| Ledge free long side (−y) | 1.8 mm | **2.8 mm** |
+| Ledge capacitor side (+y) | 1.8 mm | **0.8 mm** between the corners |
+| Ledge in the corners (+y) | 1.8 mm | **2.8 mm** over 5 mm length each |
+| Apex of the locating keys | z = 2.00 mm | **z = 1.70 mm** (`fit_t` = 0.3) |
 
-Die Ecken gehen, weil entlang der Kondensatorkante das erste Kupfer erst bei
-x = 6,22 mm beginnt (Pad von C3) und das letzte bei 24,68 mm endet (Pad von C6).
-Vier breite Ecken halten die Platine besser als ein durchgehender 0,8-mm-Streifen.
+The corners work because along the capacitor edge the first copper only begins at
+x = 6.22 mm (pad of C3) and the last ends at 24.68 mm (pad of C6).
+Four wide corners hold the board better than a continuous 0.8 mm strip.
 
-> **Die Platine passt jetzt nur noch in einer Lage hinein**, und das ist Absicht:
-> verkehrt herum stoßen die Kondensatoren an die breiten Eckauflagen, bevor etwas
-> bricht. Die Kondensatorseite zeigt im Gehäuse nach **+y**.
+> **The board now only fits in one orientation**, and that is intentional:
+> the wrong way round the capacitors hit the wide corner seats before anything
+> breaks. The capacitor side faces **+y** in the housing.
 
-Nachgerechnet am Modell, ungünstigste Lage der Platine im Spiel: 0,44 mm Luft
-zwischen Absatz und 1210er-Gehäuse, 0,92 mm zwischen Eckauflage und dem Pad von
-C6, 1,22 mm zwischen Eckauflage und dem Pad von C3.
+Recalculated on the model, worst-case position of the board within its clearance: 0.44 mm of air
+between ledge and 1210 package, 0.92 mm between corner seat and the pad of
+C6, 1.22 mm between corner seat and the pad of C3.
 
-> **Nicht gemessen ist die Bauhöhe der Kondensatoren.** Eagle führt keine Höhen.
-> Der Bauteilraum über der Platine ist mit 6,7 mm so reichlich, dass das hier
-> nicht klemmt — für eine 1210-Bauform sind 1,7 bis 2,0 mm üblich.
+> **Not measured is the height of the capacitors.** Eagle carries no heights.
+> The component space above the board is, at 6.7 mm, so ample that this does not
+> bind here — for a 1210 package 1.7 to 2.0 mm is usual.
 
-#### Warum zwei Kanäle an einer Seite
+#### Why two channels on one side
 
-Die Lötpads der Platine liegen an den beiden **Schmalseiten** — links die fünf
-Anschlüsse der Wägezelle, rechts VDD/VCC/DAT/CLK/GND zum Rechner. Beide
-Leitungen sollen zu derselben Seite hinaus, also laufen die Adern von den Pads
-nach oben, über die Platine hinweg und gemeinsam zum Schraubblock. Daraus folgen
-zwei Maße, die nicht willkürlich sind:
+The solder pads of the board lie on the two **short sides** — on the left the five
+connections of the load cell, on the right VDD/VCC/DAT/CLK/GND to the computer. Both
+leads should exit on the same side, so the cores run from the pads
+upward, across the board and together to the screw block. From this follow
+two dimensions that are not arbitrary:
 
-1. Die 4,0 mm über den Bauteilen sind der Weg der Adern, nicht Reserve.
-2. Der tragende Absatz läuft an den **Längsseiten**. An den Schmalseiten würde er
-   auf den Lötstellen sitzen.
+1. The 4.0 mm above the components are the path of the cores, not reserve.
+2. The load-bearing ledge runs along the **long sides**. On the short sides it would
+   sit on the solder joints.
 
-Die Schraube steht mittig zwischen den Kanälen: eine Schraube klemmt beide
-Mäntel, und zwar in dem Bereich, in dem die Fläche am dichtesten anliegt.
+The screw stands centered between the channels: one screw clamps both
+jackets, and in the area where the surface lies closest.
 
-#### Die zwei Kanäle sind verschieden groß
+#### The two channels are different sizes
 
-Durch sie läuft nicht dasselbe. Am **+y**-Kanal liegt die fertig konfektionierte
-Leitung zum Rechner, 4,0 mm Mantel, nachgemessen. Am **−y**-Kanal kommen nur die
-**vier dünnen Litzen der Wägezelle** an, zusammengefasst mit Schrumpfschlauch.
-Ein Kanal für beides wäre für das Bündel zu weit, und dann klemmt nichts — die
-Zugentlastung lebt davon, dass die Nut 0,1 mm enger ist als das, was hineinkommt.
+Not the same thing runs through them. On the **+y** channel lies the ready-made
+lead to the computer, 4.0 mm jacket, re-measured. On the **−y** channel only the
+**four thin strands of the load cell** arrive, bundled with heat-shrink tubing.
+One channel for both would be too wide for the bundle, and then nothing clamps — the
+strain relief depends on the slot being 0.1 mm narrower than what goes into it.
 
-**3,0 mm für das Bündel sind geschätzt, nicht gemessen.** Die Rechnung dahinter:
-
-| | |
-|---|---|
-| 4 Adern AWG 28…30, isoliert | 0,7 … 1,0 mm je Ader |
-| Quadratbündel, umschreibender Kreis | (1 + √2) · d = **1,7 … 2,4 mm** |
-| dünnwandiger 2:1-Schrumpfschlauch, geschrumpft | + 0,4 … 0,5 mm je Seite |
-| **Summe** | **2,5 … 3,4 mm** |
-
-Vor dem Druck mit dem Messschieber nachmessen und `cab_cable_m` nachziehen; die
-drei abhängigen Maße (`cab_d_m`, `cab_mouth_m`, `cab_depth_m`) folgen der
-Tabelle. Ein Bündel ist nachgiebig: 0,2 mm zu eng drückt es nur zusammen, 0,5 mm
-zu weit heißt, dass es nicht mehr gehalten wird.
-
-**Die Klemmung ist am −y-Kanal sanfter**: die Nut liegt 0,4 mm unter dem Bündel,
-nicht 0,6 wie beim Mantel. Dünne Litzen in Schrumpfschlauch sind weich, und
-0,6 mm würden sie plattdrücken statt halten.
-
-#### Damit die Platine die Adern nicht einklemmt
-
-Beide Kanäle laufen auf den Absatz zu, und die **Eckauflage am Kanalende** liegt
-genau im Weg der Adern. Dort treffen Platinenoberkante und Absatz aufeinander,
-beide bei z = 3,6 mm, als 90-Grad-Kante — eine Ader dazwischen wird beim
-Einschieben der Platine abgeschert. Zwei Maßnahmen:
-
-1. **Fase 0,4 mm** an der inneren Unterkante des Absatzes, umlaufend. Aus der
-   scharfen Kante wird ein Keil: die Ader wird nach innen geschoben statt
-   gequetscht. 0,4 mm passen auch auf den schmalen 0,8-mm-Streifen der
-   Kondensatorseite und lassen dort 0,4 mm tragende Fläche.
-2. **Kabelrampe**: über die letzten 4 mm vor dem Kanalende steigt die Unterseite
-   des Absatzes um 1,5 mm an — am Modell nachgemessen öffnet der Spalt auf
-   1,43 mm. Genau dort tauchen die Adern in die Kanäle ab.
-
-Dasselbe gilt für das Hall-Gehäuse, §7.2.
-
-#### Warum 2,4 mm Seitenwand und 2,0 mm Deckel
-
-**2,4 mm sind bei einer 0,4er Düse genau sechs Bahnen.** Eine Wand aus einer ganzen
-Zahl von Bahnen braucht keine Füllnaht in der Mitte — das ist die Stelle, an der
-gedruckte Wände aufreissen. 3,0 mm wären 7,5 Bahnen.
-
-**Der Deckel bleibt bei 2,0 mm.** Er überspannt die Kavität freitragend, und eine
-freitragende Decke hängt dünner sichtbar durch. Gespart wird dort, wo Material nur
-trägt, nicht dort, wo es überbrückt.
-
-**Die Restwand am Federfeld bleibt 0,8 mm**, weil `relief_t` absolut angegeben ist und
-nicht als Anteil der Wand. Die Rastnasen federn also unverändert; nur die Freistellung
-ist mit 1,6 statt 2,2 mm flacher.
-
-#### Platinenaufnahme
-
-| Merkmal | Maß |
-|---|---|
-| Absatz, freie Längsseite (−y) | 2,8 mm Vorsprung, durchgehend |
-| Absatz, Kondensatorseite (+y) | **0,8 mm** zwischen den Ecken, **2,8 mm in den Ecken** auf je 5 mm Länge |
-| Unterkante des Absatzes | z = 3,6 mm, innen mit **0,4 mm Fase** |
-| Kabelrampe am Kanalende | 4 mm lang, öffnet auf **1,43 mm** über der Platinenoberkante |
-| Rastnasen | 0,65 mm Vorsprung, 6 mm lang, nur mittig; Scheitel bei **z = 1,70 mm** |
-| Platz zwischen Nasenscheitel und Absatz | **1,90 mm** = 1,6 Platine + 0,3 `fit_t` |
-| Federfeld, von außen freigestellt | 14 mm lang, 0,8 mm Restwand |
-
-Dieselbe Aufteilung wie in §7.2: der Absatz trägt, die Nasen halten gegen das
-Herausfallen, kein Hinterschnitt, gehalten durch Vorspannung.
-
-Die vier Befestigungslöcher der Platine bleiben ungenutzt — sie liegen in den
-Ecken und damit unter dem Absatz.
-
-#### Omega-Nut: Hals enger als der Kreis
-
-Das Kabel ist **Ø 4,0 mm** (gemessen). Die Nut ist deshalb kein U mehr: über
-einem **Hals von 3,2 mm** sitzt ein **Kreis von Ø 3,9**, der je Seite 0,35 mm
-über den Hals hinaussteht. Dieser Hinterschnitt ist die Kralle.
-
-| Stelle | Breite |
-|---|---|
-| Hals, an der offenen Seite | **3,20 mm** |
-| auf Höhe der Kreismitte (z = 1,45) | 3,88 mm |
-| Hinterschnitt je Seite | **0,35 mm** |
-| Nuttiefe gesamt | 3,40 mm |
-| Fase am Maul | 0,3 mm — unten, *Die Fase am Maul* |
-
-**Zwei Dinge halten das Kabel, und zwar nacheinander:**
-
-1. **Beim Zusammenbauen** die Kralle. Das Kabel wird durch den 0,8 mm engeren
-   Hals gedrückt und fällt dann nicht wieder heraus, während man die Platine
-   einlegt und das Gehäuse umdreht. Vorher ist genau das passiert.
-2. **Danach die Montagefläche.** Die Nut ist 3,4 tief, das Kabel 4,0 dick —
-   0,6 mm Klemmung, wie in §7.1. Das ist die Zugentlastung.
-
-> **Warum nicht einfach den Kreis anschneiden**, also seine Mitte so hoch legen,
-> dass die Öffnung selbst enger wird? Weil dann Maulweite und Nuttiefe aneinander
-> hängen: ein Maul von 3,2 bräuchte eine Nut von nur 2,9 mm Tiefe, und damit
-> würde das Kabel von der Fläche um 1,1 mm gequetscht statt um 0,6. Hals und Kreis
-> getrennt zu führen macht beide Maße unabhängig.
-
-In der **Mulde** am Übergang ist die Nut mit Ø 4,6 absichtlich 0,6 mm **weiter**
-als das Kabel — dort biegt es ab und darf nicht gequetscht werden.
-
-#### Die Fase am Maul
-
-Durch den engeren Hals muss das Kabel **gedrückt** werden, und ohne Fase fasst die
-scharfe Kante in den Mantel. Vier kleine Fasen von **0,3 mm**, zwei je Kanal,
-machen die Einfahrt weiter, ohne die runde Form anzutasten.
-
-| z | Breite |
-|---|---|
-| 0,01 — offene Seite, mit Fase | **3,76 mm** |
-| 0,35 — Fase zu Ende | 3,22 mm |
-| 1,45 — Kreismitte | 3,89 mm |
-
-**Die Kralle bleibt unverändert 0,35 mm je Seite.** Die Fase sitzt *unter* dem
-Hinterschnitt und nimmt ihm nichts weg — sie macht nur die Öffnung weiter, durch
-die das Kabel an derselben Kralle vorbei muss.
-
-> Dort liegt eine harte Grenze. Der Kreis tritt erst bei
-> z = `cab_depth` − R − √(R² − (Hals/2)²) = **0,335 mm** aus dem Hals heraus; bis
-> dahin darf die Fase reichen, nicht weiter. Bei 0,3 bleiben 0,035 mm. Das Skript
-> rechnet die Grenze selbst und **bricht ab**, wenn eine geänderte Nut sie
-> verletzt — eine Fase in den Hinterschnitt hinein würde die Kralle still und
-> leise abtragen.
-
-Wird es trotzdem noch zu eng, ist `cab_mouth` die Stelle: ein weiterer Hals
-lässt das Kabel leichter hinein **und** schafft mehr Raum für die Fase — kostet
-aber Kralle. Bei Hals 3,4 wären es 0,25 mm Hinterschnitt und 0,495 mm bis zum
-Einsatz.
-
-#### Montage
-
-Offene Seite auf die Montagefläche, eine M6-Schraube. Die Fläche schließt das
-Gehäuse und klemmt beide Kabel in ihren Nuten. Der Mantel passt nicht unter die
-Platine; er endet in der Mulde und weiter laufen nur die Adern.
-
-Eine M6-Scheibe (DIN 125, Ø 12) reicht bis 6,0 mm aus der Mitte und bleibt damit
-0,7 mm vor der Kabelmulde — knapp, aber frei. Größere Scheiben drücken darauf.
-
-### 7.5 Befestigungsspange für das ESP-Gehäuse
-
-Das **ESP-Gehäuse** nimmt den ESP32, gegebenenfalls das Display und die
-Verschaltung auf; primär den ESP. Es ist **kein Teil dieses Repos** — ein
-vorhandenes Gehäuse. Dokumentiert wird hier nur, was die Spange von ihm wissen
-muss:
-
-| Merkmal | Maß |
-|---|---|
-| Bohrungen je Kopfseite | **zwei, Ø 4,5** am Rand |
-| Abstand Mitte zu Mitte | **50,0 mm** (am Gehäuse gemessen, 2026-11-18) |
-| Lochmitte bis Außenkante | **6,2 mm** |
-| Kopfseiten | zwei |
-
-Zwei Spangen nötig, eine je Kopfseite. **Konstruiert wird nur eine**: sie ist
-symmetrisch zur M6-Achse und passt an beide Enden.
-
-Außenmaß **61,3 × 26,4 × 4,0 mm**, 4,8 cm³ (Fassung vom 2026-11-23).
+**3.0 mm for the bundle is estimated, not measured.** The calculation behind it:
 
 | | |
 |---|---|
-| Featurebaum | Platte · M4_Gewinde · M6_Durchgang · M6_Senkung · Verrundung |
-| `hardware/esp_spange.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
+| 4 cores AWG 28…30, insulated | 0.7 … 1.0 mm per core |
+| square bundle, circumscribing circle | (1 + √2) · d = **1.7 … 2.4 mm** |
+| thin-walled 2:1 heat-shrink tubing, shrunk | + 0.4 … 0.5 mm per side |
+| **Total** | **2.5 … 3.4 mm** |
 
-#### Drei Löcher im Dreieck
+Before printing, measure with the caliper and adjust `cab_cable_m`; the
+three dependent dimensions (`cab_d_m`, `cab_mouth_m`, `cab_depth_m`) follow the
+table. A bundle is compliant: 0.2 mm too tight only compresses it, 0.5 mm
+too wide means it is no longer held.
+
+**The clamping is gentler at the −y channel**: the slot lies 0.4 mm below the bundle,
+not 0.6 as with the jacket. Thin strands in heat-shrink tubing are soft, and
+0.6 mm would flatten them instead of holding them.
+
+#### So that the board does not pinch the cores
+
+Both channels run toward the ledge, and the **corner seat at the channel end** lies
+exactly in the path of the cores. There the board's top edge and the ledge meet,
+both at z = 3.6 mm, as a 90-degree edge — a core in between is sheared off when the
+board is pushed in. Two measures:
+
+1. **Chamfer 0.4 mm** on the inner lower edge of the ledge, all round. The
+   sharp edge becomes a wedge: the core is pushed inward instead of
+   crushed. 0.4 mm also fits on the narrow 0.8 mm strip of the
+   capacitor side and leaves 0.4 mm of bearing surface there.
+2. **Cable ramp**: over the last 4 mm before the channel end the underside
+   of the ledge rises by 1.5 mm — measured on the model, the gap opens to
+   1.43 mm. Exactly there the cores dive into the channels.
+
+The same applies to the Hall housing, §7.2.
+
+#### Why 2.4 mm side wall and 2.0 mm lid
+
+**2.4 mm with a 0.4 nozzle is exactly six passes.** A wall made of a whole
+number of passes needs no fill seam in the middle — that is the place where
+printed walls tear open. 3.0 mm would be 7.5 passes.
+
+**The lid stays at 2.0 mm.** It spans the cavity unsupported, and an
+unsupported ceiling sags visibly when thinner. Savings are made where material only
+carries, not where it bridges.
+
+**The remaining wall at the spring field stays 0.8 mm**, because `relief_t` is given as an absolute
+and not as a fraction of the wall. The locating keys therefore spring unchanged; only the relief
+is shallower at 1.6 instead of 2.2 mm.
+
+#### Board seat
+
+| Feature | Dimension |
+|---|---|
+| Ledge, free long side (−y) | 2.8 mm protrusion, continuous |
+| Ledge, capacitor side (+y) | **0.8 mm** between the corners, **2.8 mm in the corners** over 5 mm length each |
+| Lower edge of the ledge | z = 3.6 mm, inside with **0.4 mm chamfer** |
+| Cable ramp at the channel end | 4 mm long, opens to **1.43 mm** above the board's top edge |
+| Locating keys | 0.65 mm protrusion, 6 mm long, center only; apex at **z = 1.70 mm** |
+| Space between key apex and ledge | **1.90 mm** = 1.6 board + 0.3 `fit_t` |
+| Spring field, relieved from outside | 14 mm long, 0.8 mm remaining wall |
+
+The same division as in §7.2: the ledge carries, the keys hold against
+falling out, no undercut, held by preload.
+
+The four mounting holes of the board remain unused — they lie in the
+corners and thus under the ledge.
+
+#### Omega slot: neck narrower than the circle
+
+The cable is **Ø 4.0 mm** (measured). The slot is therefore no longer a U: above
+a **neck of 3.2 mm** sits a **circle of Ø 3.9**, which protrudes 0.35 mm per side
+beyond the neck. This undercut is the claw.
+
+| Location | Width |
+|---|---|
+| Neck, at the open side | **3.20 mm** |
+| at the height of the circle center (z = 1.45) | 3.88 mm |
+| Undercut per side | **0.35 mm** |
+| Total slot depth | 3.40 mm |
+| Chamfer at the mouth | 0.3 mm — below, *The chamfer at the mouth* |
+
+**Two things hold the cable, and in sequence:**
+
+1. **During assembly** the claw. The cable is pushed through the 0.8 mm narrower
+   neck and then does not fall out again while the board is
+   inserted and the housing is turned over. Previously exactly that happened.
+2. **Afterwards the mounting surface.** The slot is 3.4 deep, the cable 4.0 thick —
+   0.6 mm clamping, as in §7.1. That is the strain relief.
+
+> **Why not simply cut into the circle**, i.e. place its center so high
+> that the opening itself becomes narrower? Because then mouth width and slot depth
+> would be coupled: a mouth of 3.2 would need a slot only 2.9 mm deep, and so
+> the cable would be squeezed by the surface by 1.1 mm instead of 0.6. Guiding neck and circle
+> separately makes both dimensions independent.
+
+In the **recess** at the transition the slot at Ø 4.6 is deliberately 0.6 mm **wider**
+than the cable — there it bends away and must not be squeezed.
+
+#### The chamfer at the mouth
+
+The cable has to be **pushed** through the narrower neck, and without a chamfer the
+sharp edge bites into the jacket. Four small chamfers of **0.3 mm**, two per channel,
+make the entry wider without touching the round shape.
+
+| z | Width |
+|---|---|
+| 0.01 — open side, with chamfer | **3.76 mm** |
+| 0.35 — end of chamfer | 3.22 mm |
+| 1.45 — circle center | 3.89 mm |
+
+**The claw remains unchanged at 0.35 mm per side.** The chamfer sits *below* the
+undercut and takes nothing away from it — it only widens the opening through
+which the cable has to pass the same claw.
+
+> There lies a hard limit. The circle only emerges from the neck at
+> z = `cab_depth` − R − √(R² − (neck/2)²) = **0.335 mm**; the chamfer may reach
+> up to there, not further. At 0.3, 0.035 mm remain. The script
+> calculates the limit itself and **aborts** if a changed slot
+> violates it — a chamfer into the undercut would quietly
+> remove the claw.
+
+If it is still too tight, `cab_mouth` is the place: a wider neck
+lets the cable in more easily **and** creates more room for the chamfer — but
+costs claw. At neck 3.4 it would be 0.25 mm undercut and 0.495 mm to the
+onset.
+
+#### Mounting
+
+Open side onto the mounting surface, one M6 screw. The surface closes the
+housing and clamps both cables in their slots. The jacket does not fit under the
+board; it ends in the recess and only the cores run on.
+
+An M6 washer (DIN 125, Ø 12) reaches to 6.0 mm from the center and thus stays
+0.7 mm short of the cable recess — tight, but clear. Larger washers press on it.
+
+### 7.5 Mounting clamp for the ESP housing
+
+The **ESP housing** takes the ESP32, possibly the display and the
+wiring; primarily the ESP. It is **not part of this repo** — an
+existing housing. Documented here is only what the clamp needs to know
+about it:
+
+| Feature | Dimension |
+|---|---|
+| Holes per end face | **two, Ø 4.5** at the edge |
+| Center-to-center distance | **50.0 mm** (measured on the housing, 2026-11-18) |
+| Hole center to outer edge | **6.2 mm** |
+| End faces | two |
+
+Two clamps needed, one per end face. **Only one is designed**: it is
+symmetrical about the M6 axis and fits both ends.
+
+Outer dimensions **61.3 × 26.4 × 4.0 mm**, 4.8 cm³ (version of 2026-11-23).
+
+| | |
+|---|---|
+| Feature tree | Platte · M4_Gewinde · M6_Durchgang · M6_Senkung · Verrundung |
+| `hardware/esp_spange.py` | builds the tree from scratch, exports `.step` and `.stl` |
+
+#### Three holes in a triangle
 
 ```
-     o-----------------o     zwei M4-Gewinde direkt in der Platte,
-      \               /      50,0 mm auseinander
+     o-----------------o     two M4 threads directly in the plate,
+      \               /      50.0 mm apart
        \             /
-        \           /        Kontur läuft zur Mitte hin zusammen
+        \           /        contour converges toward the center
          \  +---+  /
-          \ |(O)| /          eine M6, mittig, 12,7 mm nach aussen
-           -+---+-            versetzt, Kopf in einer Flachsenkung
+          \ |(O)| /          one M6, centered, offset 12.7 mm
+           -+---+-            outward, head in a counterbore
 ```
 
-| Merkmal | Maß |
+| Feature | Dimension |
 |---|---|
-| Platte | **4,0 mm** dick wie die Not-Aus-Spange, Oberseite **glatt** |
-| M4-Gewinde | **M4×0,7 direkt in der Platte**, modelliert (FreeCAD-Bohrung wie in `not-aus-spange.FCStd`), auf den Bohrungen des Gehäuses; knapp sechs Gänge |
-| M6-Durchgang | **Ø 6,5**, Achse 12,7 mm von der M4-Linie |
-| M6-Flachsenkung | **Ø 11, 2,5 mm tief** von oben — unter dem Kopf bleiben **1,5 mm** Boden. Für Kugelkopf ISO 7380 (Ø 10,5, 3,3 hoch), der Kopf steht 0,8 mm über |
-| Verjüngung | 61,3 → 15,0 mm, Knick bei y = 6,2 (an der Gehäusekante) |
-| Verrundung | r = 3,0 an den **sechs senkrechten** Umrisskanten |
+| Plate | **4.0 mm** thick like the emergency-stop clamp, top side **smooth** |
+| M4 threads | **M4×0.7 directly in the plate**, modeled (FreeCAD hole as in `not-aus-spange.FCStd`), on the holes of the housing; just under six turns |
+| M6 through-hole | **Ø 6.5**, axis 12.7 mm from the M4 line |
+| M6 counterbore | **Ø 11, 2.5 mm deep** from above — **1.5 mm** of floor remains under the head. For button head ISO 7380 (Ø 10.5, 3.3 high), the head protrudes 0.8 mm |
+| Taper | 61.3 → 15.0 mm, kink at y = 6.2 (at the housing edge) |
+| Fillet | r = 3.0 on the **six vertical** outline edges |
 
-**Zwei Schrauben mit getrennten Aufgaben**, wie bei der Platinenaufnahme in §7.2:
+**Two screws with separate tasks**, as with the board seat in §7.2:
 
-- Die **beiden M4** kommen von oben durch die Gehäusebohrungen direkt in die
-  Gewinde der Platte. Sie halten das Gehäuse.
-- Die **M6** geht durch die Spitze auf die Schiene. Sie hält die Spange.
+- The **two M4** come from above through the housing holes directly into the
+  threads of the plate. They hold the housing.
+- The **M6** goes through the tip onto the rail. It holds the clamp.
 
-#### Wie weit die M6 aussen sitzt
+#### How far out the M6 sits
 
-Versatz und Spitze richten sich nach dem **versenkten Kopf**: die Senkung soll die
-Gehäusekante nicht anschneiden, und neben ihr muss an der Spitze Wand stehen.
+Offset and tip follow the **recessed head**: the counterbore should not
+cut into the housing edge, and next to it there must be wall at the tip.
 
 | | |
 |---|---|
-| M6-Achse hinter der Gehäusekante | **6,5 mm** |
-| Senkungsrand vor der Gehäusekante | 1,0 mm |
-| Wand neben der Senkung | 2,0 mm je Seite, Spitze 15,0 mm breit |
+| M6 axis behind the housing edge | **6.5 mm** |
+| Counterbore edge in front of the housing edge | 1.0 mm |
+| Wall next to the counterbore | 2.0 mm per side, tip 15.0 mm wide |
 
-Bis zum 2026-11-23 war die Spitze nach einer **Karosseriescheibe Ø 18** bemessen
-(M6-Achse 10 mm hinter der Kante, Spitze 21 mm). Die Schrauben sind kurz, ISO 7380
-mit Kugelkopf, und müssen tiefer — daher die Senkung, und mit ihr entfällt die
-Scheibe: eine Senkung in Scheibengröße ließe keine Wand. Die Spitze ist entsprechend
-schlanker geworden.
+Until 2026-11-23 the tip was dimensioned for a **body washer Ø 18**
+(M6 axis 10 mm behind the edge, tip 21 mm). The screws are short, ISO 7380
+with button head, and must go deeper — hence the counterbore, and with it the
+washer is dropped: a counterbore of washer size would leave no wall. The tip has accordingly
+become slimmer.
 
-#### Oberseite glatt, Ecken verrundet
+#### Top side smooth, corners rounded
 
-Keine erhöhten Auflagen — die Platte liegt vollflächig an der Kopfseite. Die
-ursprünglichen 6,0 mm Dicke waren allein den eingelassenen Muttern geschuldet; mit
-den Gewinden im Druck reichen 4,0 mm wie bei der Not-Aus-Spange.
+No raised pads — the plate lies flat against the end face over its full area. The
+original 6.0 mm thickness was owed solely to the embedded nuts; with
+the threads in the print, 4.0 mm suffice as with the emergency-stop clamp.
 
-Verrundet werden **nur die senkrechten** Umrisskanten, nicht die oben und unten:
-dort gewinnt der Druck nichts, die Düse muss nur an den senkrechten Ecken
-abbremsen.
+**Only the vertical** outline edges are rounded, not those at top and bottom:
+there the print gains nothing; the nozzle only has to slow down at the vertical
+corners.
 
-> Die Kanten werden im Skript über ihre **Lage** gesucht, nicht über ihren Index.
-> Ein Index verschiebt sich bei jeder Änderung am Baum, eine Koordinate nicht — und
-> die vielen Kanten des modellierten Gewindes bleiben so außen vor. Findet das
-> Skript nicht genau sechs Kanten, bricht es ab, statt irgendwelche zu verrunden.
+> The edges are found in the script by their **position**, not by their index.
+> An index shifts with every change to the tree, a coordinate does not — and
+> the many edges of the modeled thread thus stay out of it. If the
+> script does not find exactly six edges, it aborts instead of rounding arbitrary ones.
 
-> **Druckrichtung:** mit der **glatten Oberseite nach unten** aufs Bett. Der Boden
-> der M6-Senkung liegt dann oben und wird über 11 mm gebrückt — bei 1,5 mm Dicke
-> und dem Ø-6,5-Loch in der Mitte ist das ein schmaler Ring, der ohne Stütze hält.
-> Die Gewinde sind durchgehend und in beiden Lagen gleich.
+> **Print orientation:** with the **smooth top side down** on the bed. The floor
+> of the M6 counterbore then lies on top and is bridged over 11 mm — at 1.5 mm thickness
+> and the Ø 6.5 hole in the middle that is a narrow ring that holds without support.
+> The threads are through-going and the same in both orientations.
 
-### 7.6 Halter für den XT60-Einbaustecker
+### 7.6 Holder for the XT60 panel-mount connector
 
-Die Zuleitung vom Netzteil bekommt am Rahmen einen **Amass XT60E-M**, den
-Einbaustecker mit zwei Ohren. Der Halter ist ein L-Winkel: Grundplatte mit **einer
-zentralen M6** aufs Profil, daran die Stirnwand mit dem Ausschnitt für die Hülse.
-**Der Stecker liegt** — seine lange Achse parallel zur Auflage, die Steckrichtung
-parallel zum Profil. Das Kabel läuft damit am Rahmen entlang.
+The supply lead from the power supply gets an **Amass XT60E-M** on the frame, the
+panel-mount connector with two ears. The holder is an L-bracket: base plate with **one
+central M6** onto the profile, on it the end wall with the cutout for the sleeve.
+**The connector lies flat** — its long axis parallel to the bearing surface, the plug-in direction
+parallel to the profile. The cable thus runs along the frame.
 
-Außenmaß **40,0 × 34,0 × 19,1 mm**, 9,5 cm³.
+Outer dimensions **40.0 × 34.0 × 19.1 mm**, 9.5 cm³.
 
 | | |
 |---|---|
-| Featurebaum | Grundplatte · Stirnwand · Rippe_p/_m · Ausschnitt · Ohrloecher · M6_Durchgang · M6_Senkung · Fasen |
-| `hardware/xt60_halter.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
+| Feature tree | Grundplatte · Stirnwand · Rippe_p/_m · Ausschnitt · Ohrloecher · M6_Durchgang · M6_Senkung · Fasen |
+| `hardware/xt60_halter.py` | builds the tree from scratch, exports `.step` and `.stl` |
 
-Steckermaße aus der Maßzeichnung im Amass-Datenblatt, abgelesen 2026-11-22:
+Connector dimensions from the dimensional drawing in the Amass datasheet, read off 2026-11-22:
 
-| Merkmal | Maß |
+| Feature | Dimension |
 |---|---|
-| Hülse (Außenkontur) | 15,5 × 8,1 mm |
-| Länge über die Ohren | 27,0 mm |
-| **Lochabstand der Ohren** | **20,0 mm**, Ø 3,0 |
-| Flansch | 4,0 mm dick, Gesamttiefe 16,7 mm |
+| Sleeve (outer contour) | 15.5 × 8.1 mm |
+| Length over the ears | 27.0 mm |
+| **Hole spacing of the ears** | **20.0 mm**, Ø 3.0 |
+| Flange | 4.0 mm thick, total depth 16.7 mm |
 
-> **Vor dem Druck den Lochabstand am Stecker nachmessen.** Die Zeichnung im
-> Datenblatt ist eine kleine Rastergrafik, und Händler nennen für „XT60 Einbau" je
-> nach Variante 16, 19 oder 20 mm. Es ist das einzige Maß, bei dem ein Ablesefehler
-> den Halter unbrauchbar macht; `con_pitch` steht dafür in der Tabelle.
+> **Before printing, re-measure the hole spacing on the connector.** The drawing in the
+> datasheet is a small raster graphic, and dealers quote 16, 19 or 20 mm for "XT60 panel mount"
+> depending on the variant. It is the only dimension where a reading error
+> makes the holder unusable; `con_pitch` is in the table for that.
 
-Wie die Hülse durch die Wand kommt: Ausschnitt 16,0 × 8,6 mm (0,25 mm Luft je
-Seite), die Ohren liegen auf der **Rückseite** der 3 mm dicken Wand an, zwei **M3
-von vorn** durch die Wand in die Ohren, Muttern in den Sechskant-Taschen, die der
-Stecker auf der Lötseite in den Ohren hat. Die Hülse steht in jeder Lesart der
-Zeichnung mindestens 7 mm vor den Flansch, also rund 4 mm vor die Wand.
+How the sleeve comes through the wall: cutout 16.0 × 8.6 mm (0.25 mm of air per
+side), the ears rest against the **back** of the 3 mm thick wall, two **M3
+from the front** through the wall into the ears, nuts in the hexagonal pockets that the
+connector has in the ears on the solder side. The sleeve protrudes, in every reading of the
+drawing, at least 7 mm in front of the flange, i.e. about 4 mm in front of the wall.
 
-**Oben ganz offen.** Der Ausschnitt läuft in voller Hülsenbreite bis zur
-Oberkante, die Wand ist damit **zwei Pfosten**, die auf Höhe der Hülsenoberkante
-enden. Der Stecker wird mit angelöteten Leitungen von oben eingelegt, nichts wird
-gefädelt, und es gibt keine Brücke im Druck.
+**Fully open at the top.** The cutout runs at full sleeve width up to the
+top edge, so the wall is **two posts** that end at the height of the sleeve's top edge.
+The connector is inserted from above with the leads soldered on, nothing is
+threaded, and there is no bridge in the print.
 
-> **Der Steg neben dem Ohrloch ist 0,4 mm** — das ist die Geometrie des Steckers,
-> nicht des Halters: Lochabstand 20,0 bei 15,5 Hülse und Ø 3 heißt 2,25 mm vom
-> Lochrand zur Hülsenkontur, mit Spiel und M3-Durchgang bleiben 0,4 mm. Der Slicer
-> druckt den Hauch oder lässt ihn weg, beides ist egal: die Schraube wird vom Ohr
-> geführt, der Kopf liegt zu drei Vierteln auf dem Pfosten, und die Hülse sitzt
-> seitlich im Ausschnitt.
+> **The web next to the ear hole is 0.4 mm** — that is the geometry of the connector,
+> not of the holder: hole spacing 20.0 with a 15.5 sleeve and Ø 3 means 2.25 mm from the
+> hole edge to the sleeve contour; with clearance and M3 through-hole 0.4 mm remain. The slicer
+> prints the sliver or leaves it out, either is fine: the screw is guided by the ear,
+> the head rests three quarters on the post, and the sleeve sits
+> laterally in the cutout.
 
-#### Erst die M6, dann der Stecker
+#### First the M6, then the connector
 
-Der Stecker liegt über der Schraube, mit eingesetztem Stecker ist kein Schlüssel
-mehr anzusetzen. Deshalb ist der Zylinderkopf 3 mm versenkt (Senkung Ø 11), und der
-Ausschnitt sitzt so hoch, dass die Hülse 1,5 mm über dem Kopf frei bleibt: Mitte des
-Ausschnitts 14,8 mm über der Auflage. Zwei Dreiecksrippen außen, 3 mm dick, stützen
-die Wand gegen die Steckkraft; sie liegen mit 0,5 mm Luft neben den Ohren.
+The connector lies above the screw; with the connector inserted no wrench
+can be applied any more. That is why the cylinder head is recessed 3 mm (counterbore Ø 11), and the
+cutout sits so high that the sleeve stays 1.5 mm clear above the head: center of the
+cutout 14.8 mm above the bearing surface. Two triangular ribs outside, 3 mm thick, support
+the wall against the insertion force; they lie with 0.5 mm of air next to the ears.
 
-Keine Nase für die Profilnut — wie bei den anderen Haltern hält die Klemmung der
-M6. Wer eine will, misst die Nutbreite am Profil und trägt sie als `key_w`/`key_h`
-ein; dann kommt unten eine Leiste dazu.
+No key for the profile slot — as with the other holders, the clamping of the
+M6 holds. Whoever wants one measures the slot width on the profile and enters it as `key_w`/`key_h`;
+then a bar is added at the bottom.
 
-> **Druckrichtung:** mit der **Grundplatte aufs Bett**. Wand und Rippen stehen
-> dann senkrecht, Überhänge gibt es keine.
+> **Print orientation:** with the **base plate on the bed**. Wall and ribs then stand
+> vertical; there are no overhangs.
 
-### 7.7 Isolierplatten unter Wäge- und Gebergehäuse
+### 7.7 Insulating plates under load-cell and sensor housings
 
-Beide Gehäuse (§7 und §7.4) sind unten offen, die Platine liegt mit der Lötseite
-nach unten 2 mm über der Montagefläche — und die ist Aluminium. Unter jedes kommt
-eine **0,5 mm dünne Platte** in der Gehäusekontur, mit dem M6-Loch an derselben
-Stelle, und mit einem **1 mm breiten, 1 mm hohen Rand** außen herum, in dem das
-Gehäuse mit 0,1 mm Luft je Seite sitzt und beim Anziehen nicht wandern kann.
+Both housings (§7 and §7.4) are open at the bottom; the board lies with the solder side
+down 2 mm above the mounting surface — and that is aluminium. Under each goes
+a **0.5 mm thin plate** in the housing contour, with the M6 hole in the same
+place, and with a **1 mm wide, 1 mm high rim** around the outside, in which the
+housing sits with 0.1 mm of air per side and cannot wander when tightening.
 
-| | Wägegehäuse | Gebergehäuse |
+| | Load-cell housing | Sensor housing |
 |---|---|---|
-| Außenmaß | 51,4 × 30,4 × 1,5 mm | 38,3 × 22,2 × 1,5 mm |
-| M6 | x = 42,2, mittig | x = 30,2, 4,5 mm versetzt |
-| Rand | umlaufend | **drei Seiten**, vorn offen |
+| Outer dimensions | 51.4 × 30.4 × 1.5 mm | 38.3 × 22.2 × 1.5 mm |
+| M6 | x = 42.2, centered | x = 30.2, offset 4.5 mm |
+| Rim | all round | **three sides**, open at the front |
 
 | | |
 |---|---|
-| Featurebaum | Platte · Sitz · M6_Loch · Kanal_1 (· Kanal_2) |
-| `hardware/isolierplatte.py` | baut **beide** Platten, exportiert `.step` und `.stl` |
+| Feature tree | Platte · Sitz · M6_Loch · Kanal_1 (· Kanal_2) |
+| `hardware/isolierplatte.py` | builds **both** plates, exports `.step` and `.stl` |
 
-**Keine eigenen Maße.** Das Skript liest Kontur, Lochlage und Kanallage beim Bauen
-aus den Parameterlisten von `hx711_gehaeuse.py` und `hall_gehaeuse.py`. Ändert sich
-ein Gehäuse, läuft das Skript noch einmal, und die Platte folgt. Dieselbe Zahl an
-zwei Stellen war in diesem Projekt die Quelle fast aller Fehler.
+**No dimensions of its own.** The script reads contour, hole position and channel position when building
+from the parameter lists of `hx711_gehaeuse.py` and `hall_gehaeuse.py`. If a housing changes,
+the script runs again, and the plate follows. The same number in
+two places was the source of almost all errors in this project.
 
-**Unter den Kabelkanälen ist die Platte ausgeschnitten**, vom Ende der Kavität bis
-zum Rand und durch ihn hindurch. Die Gehäuse klemmen das Kabel zwischen Kabelnut und
-Montagefläche, mit Absicht wenige Zehntel enger als das Kabel; 0,5 mm darunter
-machten daraus das Doppelte und quetschten die dünnen Zellenlitzen. Das Kabel liegt
-dort direkt auf dem Aluminium — es ist isoliert, die Platine nicht. Die Kavität bleibt
-vollständig abgedeckt.
+**Under the cable channels the plate is cut out**, from the end of the cavity to
+the rim and through it. The housings clamp the cable between cable groove and
+mounting surface, deliberately a few tenths narrower than the cable; 0.5 mm underneath
+would make that double and squeeze the thin cell strands. The cable lies
+there directly on the aluminium — it is insulated, the board is not. The cavity remains
+completely covered.
 
-**Beim Gebergehäuse fehlt der Rand an der Geberseite.** Die Stirnwand dort ist 1,2 mm
-dick und steht mit dem Luftspalt vor den Magneten; ein Millimeter Rand davor ginge
-in den Luftspalt. Die Platte endet vorn bündig, das Gehäuse wird von hinten in die
-Wanne geschoben und sitzt an drei Seiten.
+**On the sensor housing the rim is missing on the sensor side.** The end wall there is 1.2 mm
+thick and stands with the air gap in front of the magnets; a millimeter of rim in front of it would go
+into the air gap. The plate ends flush at the front; the housing is pushed into the
+tray from behind and sits on three sides.
 
-> **Druck:** flach, Wanne nach oben. 0,5 mm Boden sind bei 0,2 mm Schichthöhe zwei
-> bis drei Lagen, der Rand kommt als Mauer obendrauf.
+> **Print:** flat, tray facing up. 0.5 mm of floor is two
+> to three layers at 0.2 mm layer height; the rim comes on top as a wall.
 
-### 7.8 Clip für die Libellen
+### 7.8 Clip for the vials
 
-Zum Ausrichten des Rahmens kommen **Block-Libellen 15,1 × 15,1 × 40 mm** (am Teil
-gemessen, 2026-11-23) auf die Profile. Je Libelle ein Clip: eine **1,5 mm dünne
-Grundplatte** mit **zwei M6 Linsenkopf** in der Profilnut, eine je Ende, die Libelle
-dazwischen. 1,5 mm unter dem Schraubenkopf sind Vorgabe; die ganze Platte ist so
-dick, damit die Libelle in derselben Ebene liegt wie die Schraubenauflage und die
-Unterseite eine einzige Fläche ist. Keine Senkung, der Kopf steht oben auf.
+For aligning the frame, **block levels 15.1 × 15.1 × 40 mm** (measured on the part,
+2026-11-23) go onto the profiles. One clip per vial: a **1.5 mm thin
+base plate** with **two M6 button head** in the profile slot, one per end, the vial
+in between. 1.5 mm under the screw head is a given; the whole plate is that
+thick so that the vial lies in the same plane as the screw seat and the
+underside is a single surface. No counterbore, the head stands on top.
 
-Außenmaß **70,3 × 17,8 × 17,9 mm**, 3,0 cm³, Lochabstand **55,8 mm**.
-
-| | |
-|---|---|
-| Featurebaum | Grundplatte · Leisten · Stirnwaende · Nasen · M6_Loecher |
-| `hardware/libellen_clip.py` | baut den Baum von Null auf, exportiert `.step` und `.stl` |
-
-**Die Libelle bleibt von drei Seiten sichtbar** — von oben und von beiden Längsseiten.
-Gehalten wird sie deshalb an den Stirnseiten:
+Outer dimensions **70.3 × 17.8 × 17.9 mm**, 3.0 cm³, hole spacing **55.8 mm**.
 
 | | |
 |---|---|
-| Stirnwände | 1,5 mm dick, 16,4 mm hoch über der Platte, federn |
-| Nasen | 0,6 mm über die Oberkante, 10 mm breit, mittig; Schräge rund 27° zur Senkrechten |
-| Längsleisten | 1,2 mm dick, **2,0 mm hoch**, volle Länge — richten quer aus und versteifen die Platte |
-| Spiel | 0,3 mm in Länge und Breite, 0,1 mm unter den Nasen |
+| Feature tree | Grundplatte · Leisten · Stirnwaende · Nasen · M6_Loecher |
+| `hardware/libellen_clip.py` | builds the tree from scratch, exports `.step` and `.stl` |
 
-Einsetzen von oben: die Libelle drückt über die Schrägen die Stirnwände auseinander,
-die Nasen schnappen über die Oberkante. Lösen: eine Stirnwand mit dem Daumen nach
-außen drücken, Libelle anheben. Die Wand biegt sich dabei 0,6 mm an der Oberkante
-aus, bei 1,5 mm Dicke und rund 14 mm freier Höhe über der Leiste unter 1 % Dehnung
-am Fuß. Der Schraubenkopf sitzt mit 1 mm Luft neben der Wand und unterhalb dessen,
-wo sie sich bewegt.
-
-> **Nicht festknallen.** Unter dem Kopf liegen 1,5 mm Kunststoff auf 52 mm² Ringfläche
-> — handfest reicht, die Klemmung hält, und zu viel Moment drückt den Kopf ins
-> Material und verzieht die Platte, auf der die Libelle liegt.
-
-> Der Kopfdurchmesser 10,5 mm ist der Normwert ISO 7380 für M6 und bestimmt nur die
-> Länge der Pads; andere Schrauben trägt man als `head_d` in die Tabelle ein.
-
-> **Druck:** flach, Grundplatte aufs Bett. Die Nasen stehen 0,6 mm frei über, eine
-> Düsenbreite, ohne Stütze.
-
-## 8 Markenaufnahme an der Trommel
-
-Mitdrehende Seite, Gegenstück zu §7. Kein Druckteil.
-
-**8 Magnete** auf dem Teilkreis der 8 Abstandsklötze der Trommel-Stirnfläche. Dort
-ist die 15-mm-Multiplexscheibe von hinten abgestützt, der Radius ist maximal, und
-die Teilung liegt durch den vorhandenen Aufbau fest.
-
-### 8.1 Teile
+**The vial remains visible from three sides** — from above and from both long sides.
+It is therefore held at the end faces:
 
 | | |
 |---|---|
-| Magnet | Scheibe Ø10 × 3 mm, Mittelloch Ø3,0 gesenkt, N42 |
-| Schraube | **DIN 7982 A2, 2,9 × 13 mm**, Senkkopf, Kreuzschlitz |
-| Vorbohrung | Ø2,0 mm, ca. 11 mm tief |
-| Einschraubtiefe | 10 mm in 15 mm Multiplex |
-| Fliehkraft je Magnet bei 60 km/h | 1,2 N |
+| End walls | 1.5 mm thick, 16.4 mm high above the plate, springy |
+| Snap hooks | 0.6 mm over the top edge, 10 mm wide, centered; slope about 27° to the vertical |
+| Longitudinal bars | 1.2 mm thick, **2.0 mm high**, full length — align crosswise and stiffen the plate |
+| Clearance | 0.3 mm in length and width, 0.1 mm under the snap hooks |
 
-Ø2,9 statt 3,0, weil durch ein echtes Ø3,0-Loch keine 3,0er Schraube geht. Kleiner
-als 2,9 gibt es in A2 mit Senkkopf und Kreuzschlitz kaum; falls die 2,9 klemmt,
-Messing 2,5 × 12 — ebenso unmagnetisch.
+Insertion from above: the vial pushes the end walls apart via the slopes,
+the snap hooks snap over the top edge. Release: push one end wall outward with the thumb,
+lift the vial. The wall thereby flexes 0.6 mm at the top edge,
+at 1.5 mm thickness and about 14 mm of free height above the bar under 1 % strain
+at the foot. The screw head sits with 1 mm of air next to the wall and below where
+it moves.
 
-### 8.2 Die Schraube muss nichtmagnetisch sein
+> **Do not overtighten.** Under the head there is 1.5 mm of plastic on 52 mm² of ring area
+> — hand-tight is enough, the clamping holds, and too much torque presses the head into the
+> material and warps the plate on which the vial lies.
 
-Keine Korrosions-, sondern eine Messfrage: die Schraube sitzt im Flussweg des axial
-magnetisierten Magneten. Stahl schließt Nord und Süd durch den Magneten kurz, das
-Feld wird ringförmig statt mittig, der Schaltpunkt wandert, im Grenzfall gibt es zwei
-Flanken pro Magnet. **A2 oder A4, niemals verzinkter Stahl.**
+> The head diameter 10.5 mm is the standard value ISO 7380 for M6 and determines only the
+> length of the pads; other screws are entered as `head_d` in the table.
 
-Der Kopf der 2,9er misst 5,5 mm und sitzt in einer Senkung für Ø3 eher etwas tiefer
-als eine 3,0er — erwünscht, weil der Stahl damit weiter vom Sensor weg ist.
+> **Print:** flat, base plate on the bed. The snap hooks protrude 0.6 mm freely, one
+> nozzle width, without support.
 
-### 8.3 Feldreserve
+### 7.9 Spacer disc with locating key
 
-`B(z) = Br/2 · [(z+t)/√(R²+(z+t)²) − z/√(R²+z²)]`, N42 mit Br ≈ 1,3 T, Loch per
-Superposition als Gegenscheibe R = 1,5 mm abgezogen. Abstand bis zum Chip:
-`z = Luftspalt + 1,2 mm Gehäusestirnwand + ≈ 0,5 mm Chiplage`.
+Disc **Ø 40 × 5 mm**, hole **Ø 8.5** (M8 through-hole), on one end face a
+**bar 8 mm wide, 3 mm high** across the face. The disc lies flat on the
+aluminium profile, the bar engages the slot and secures it against rotation, the M8 goes through the
+disc into the slot. Around the hole the bar is **cut away over 9 mm**, so that two
+bar pieces with straight inner edges remain; all eight vertical bar edges, inside
+at the cutout and outside at the circumference, are rounded with **r = 1 mm**. Outer dimensions
+40.0 × 40.0 × 8.0 mm, 6.7 cm³.
+
+| | |
+|---|---|
+| Feature tree | Scheibe · Nase · Rundung · Loch |
+| `hardware/distanzscheibe.py` | builds the tree from scratch, exports `.step` and `.stl` |
+| Bar as printed | 7.8 mm wide: nominal 8.0 minus 0.2 print allowance (`nose_fit`), parallel flanks |
+| Bar pieces | 2 × 15.1 mm long; outside they end exactly on the circumference, inside 4.5 mm from the axis |
+
+> **Print:** bar-free side on the bed, the bar stands on top. No overhangs. If
+> the bar sits too tight in the slot, increase `nose_fit`, do not file the bar down.
+
+## 8 Mark mounting on the drum
+
+Co-rotating side, counterpart to §7. Not a printed part.
+
+**8 magnets** on the pitch circle of the 8 spacer blocks of the drum end face. There
+the 15 mm plywood disc is supported from behind, the radius is maximal, and
+the pitch is fixed by the existing structure.
+
+### 8.1 Parts
+
+| | |
+|---|---|
+| Magnet | disc Ø10 × 3 mm, center hole Ø3.0 countersunk, N42 |
+| Screw | **DIN 7982 A2, 2.9 × 13 mm**, countersunk head, Phillips |
+| Pilot hole | Ø2.0 mm, approx. 11 mm deep |
+| Screw-in depth | 10 mm into 15 mm plywood |
+| Centrifugal force per magnet at 60 km/h | 1.2 N |
+
+Ø2.9 instead of 3.0, because a 3.0 screw does not go through a true Ø3.0 hole. Smaller
+than 2.9 hardly exists in A2 with countersunk head and Phillips; if the 2.9 binds,
+brass 2.5 × 12 — equally non-magnetic.
+
+### 8.2 The screw must be non-magnetic
+
+Not a corrosion but a measurement question: the screw sits in the flux path of the axially
+magnetized magnet. Steel shorts north and south through the magnet, the
+field becomes ring-shaped instead of central, the switching point wanders, in the limit there are two
+edges per magnet. **A2 or A4, never galvanized steel.**
+
+The head of the 2.9 measures 5.5 mm and sits somewhat deeper in a countersink for Ø3
+than a 3.0 would — desirable, because the steel is thus further from the sensor.
+
+### 8.3 Field margin
+
+`B(z) = Br/2 · [(z+t)/√(R²+(z+t)²) − z/√(R²+z²)]`, N42 with Br ≈ 1.3 T, hole subtracted by
+superposition as a counter-disc R = 1.5 mm. Distance to the chip:
+`z = air gap + 1.2 mm housing end wall + ≈ 0.5 mm chip position`.
 
 | z | B |
 |---|---|
@@ -1100,43 +1123,75 @@ Superposition als Gegenscheibe R = 1,5 mm abgezogen. Abstand bis zum Chip:
 | 6 mm | 58 mT |
 | 8 mm | 35 mT |
 
-B_OP des TLE4905L im ungünstigsten Fall 18 mT. Das Loch kostet 22 %, bei 8 mm bleibt
-Faktor 2. Luftspalt deshalb eher großzügig wählen: die Störung durch Loch und
-Schraubenkopf hat nur wenige Millimeter Längenskala.
+B_OP of the TLE4905L in the worst case 18 mT. The hole costs 22 %, at 8 mm a
+factor of 2 remains. Therefore choose the air gap rather generously: the disturbance from hole and
+screw head has a length scale of only a few millimeters.
 
-### 8.4 Polung
+### 8.4 Polarity
 
-TLE4905L ist unipolar. Alle acht Magnete mit derselben Seite nach außen; ein
-Zylindermagnet passt in beiden Richtungen ins Loch, die Mechanik verhindert den
-Dreher nicht. **Jeden Magneten vor dem Festziehen einzeln gegen den Sensor prüfen.**
+TLE4905L is unipolar. All eight magnets with the same side facing out; a
+cylinder magnet fits into the hole in both directions, the mechanics do not prevent the
+flip. **Check each magnet individually against the sensor before tightening.**
 
-### 8.5 Winkellage: messen statt bohren
+### 8.5 Angular position: measure instead of drilling
 
-Bohrgenauigkeit ist nicht nötig. Bei hoher Drehzahl ändert sich ω innerhalb einer
-Umdrehung um höchstens 0,15 % ([09-messtheorie](09-messtheorie.md) §1.7); die
-Abweichungen der acht Intervalle von je 1/8 sind damit direkt die Winkelfehler.
-Einmal im Auslauf aufnehmen, als Korrekturtabelle ablegen.
+Drilling accuracy is not needed. At high speed ω changes within one
+revolution by at most 0.15 % ([09-measurement-theory](09-measurement-theory.md) §1.7); the
+deviations of the eight intervals from 1/8 each are thus directly the angular errors.
+Record once during spin-down, store as a correction table.
 
-Nötig nur für Drehzahl **unterhalb** einer Umdrehung. Was ins Ergebnis geht, läuft
-index-getriggert über ganze Umdrehungen — dort kürzt sich der Winkelfehler exakt
-heraus.
+Needed only for speed **below** one revolution. What goes into the result runs
+index-triggered over whole revolutions — there the angular error cancels exactly.
 
-## 9 Bremse: Kurzschluss über drei Relais
+### 8.6 Revolution without a second Hall: counting or intermediate magnet
 
-Der Motor hat keine mechanische Bremse. Gebremst wird, indem die drei Phasen
-gegeneinander kurzgeschlossen werden; die Energie bleibt im Kupfer.
+The 8 magnets are mounted; initially **one** Hall is wired at the marks
+(`PIN_MARK`). Where the firmware then gets the whole revolution from (`speed.cpp`,
+`service()`) is shown by the sensor side under the counter table:
 
-**Gemessen am 2026-11-01:** 25 s aus über 400 1/min. Daraus `J·ω/t` = 1,94 · 41,9 / 25 =
-**3,25 Nm** mittleres Bremsmoment und 68 W mittlere Verlustleistung — thermisch
-belanglos. Gegenüber 3 bis 6 Minuten freiem Auslauf Faktor 8 bis 14.
+| | Revolution | Zero point | Self-correction |
+|---|---|---|---|
+| **only 8 marks** | every 8th edge | first mark seen, arbitrary | none: a swallowed edge shifts all subsequent boundaries by 45° until the drum stops |
+| **Intermediate magnet** (optional, prepared 2026-11-24) | pulse after two short intervals | fixed: the gap with the intermediate magnet | every revolution re-locks the count; swallowed and extra pulses are counted |
+| Index Hall at `PIN_INDEX` | index edge | fixed | like intermediate magnet, costs a second sensor |
 
-### 9.1 Schaltung
+**Intermediate magnet:** a ninth magnet, same type, same polarity, **exactly in the
+middle of one** 45° gap (22.5° from two neighbors). The Hall then sees seven
+intervals of 45° and two of 22.5°. The firmware detects "short, short" (interval
+below `MARK_SHORT_RATIO` = 0.7 of the running mean), confirms the pattern when it
+comes `MARK_PATTERN_CONFIRM` = 2 times at a spacing of exactly 9 pulses, and thereafter counts
+9 pulses per revolution with 8 regular marks; the intermediate pulse is not a mark and
+does not change the angle bin. Shortest pulse spacing at 60 km/h 10.6 ms, at 100 km/h
+6.4 ms; `MIN_PULSE_US` = 800 µs stays well below.
+
+Mechanics: the magnet with its A2 screw (about 10 g) sits asymmetrically; at 60 km/h that is
+5 N of centrifugal force once per revolution — exactly the order that shows up in the
+ripple. **Opposite (180°) fit an equally heavy, non-magnetic screw** (A2 or
+brass), then the imbalance is gone and the Hall sees nothing there. As with the
+eight: check polarity against the sensor before tightening (§8.4).
+
+What the detection reports: *re-locked* counts how often the pattern came at an unexpected
+position (before that an edge was lost or one was added), *swallowed* intervals that were too long,
+*spurious pulses* a "short, short" in the middle of the revolution. All three should stay at zero in
+measurement operation; `Zähler nullen` resets them. Without an intermediate magnet
+the firmware stays with counting every 8th edge; nothing has to be switched.
+
+## 9 Brake: short circuit via three relays
+
+The motor has no mechanical brake. Braking is done by shorting the three phases
+against each other; the energy stays in the copper.
+
+**Measured on 2026-11-01:** 25 s from over 400 rpm. From that `J·ω/t` = 1.94 · 41.9 / 25 =
+**3.25 Nm** mean braking torque and 68 W mean power loss — thermally
+irrelevant. Compared to 3 to 6 minutes of free spin-down, a factor of 8 to 14.
+
+### 9.1 Circuit
 
 ```
-   +36…42 V (Bus)
+   +36…42 V (bus)
         │
-   ┌────┴────┐   drei 12-V-Spulen in REIHE
-   │ K1 K2 K3│   zusammen 140 mA, 1N4007 antiparallel über die ganze Kette
+   ┌────┴────┐   three 12 V coils in SERIES
+   │ K1 K2 K3│   together 140 mA, 1N4007 antiparallel across the whole chain
    └────┬────┘
         │
         C
@@ -1146,103 +1201,103 @@ belanglos. Gegenüber 3 bis 6 Minuten freiem Auslauf Faktor 8 bis 14.
        GND ──────────────────────┘
 ```
 
-| Teil | Wert | Warum |
+| Part | Value | Why |
 |---|---|---|
-| Relais | 3 × KFZ-Wechselrelais 12 V, Kontakt an **87a** (Öffner) | stromlos geschlossen = gebremst |
-| Spulen | **in Reihe** am Bus | 3 × 12 V = 36 V, kein DC-DC-Wandler nötig |
-| Transistor | **2N5551**, 160 V / 600 mA | Bus plus Diodenabfall; 45-V-Typen sind bei 42 V zu knapp |
-| Basiswiderstand | 1 kΩ | 2,6 mA bei hFE ≈ 60 unter Last |
-| Basis–Emitter | 10 kΩ | GPIO ist beim Reset hochohmig — ohne ihn floatet die Basis |
-| Freilauf | 1N4007 über die Kette | eine genügt |
-| Phasenleitungen | ≥ 4 mm² | 60 A Spitze; die mitgelieferten Fassungskabel sind zu dünn |
+| Relays | 3 × automotive changeover relays 12 V, contact at **87a** (NC) | closed when de-energized = braked |
+| Coils | **in series** on the bus | 3 × 12 V = 36 V, no DC-DC converter needed |
+| Transistor | **2N5551**, 160 V / 600 mA | bus plus diode drop; 45 V types are too tight at 42 V |
+| Base resistor | 1 kΩ | 2.6 mA at hFE ≈ 60 under load |
+| Base–emitter | 10 kΩ | GPIO is high-impedance on reset — without it the base floats |
+| Freewheel | 1N4007 across the chain | one is enough |
+| Phase leads | ≥ 4 mm² | 60 A peak; the supplied socket cables are too thin |
 
-### 9.2 Warum in Reihe und nicht über einen Wandler
+### 9.2 Why in series and not via a converter
 
-Die Spulen hängen direkt am Bus. Bricht er zusammen, fallen die Relais **sofort** ab;
-ein DC-DC-Wandler hielte sie über seinen Ausgangselko noch einige Millisekunden. Der
-Strom ist in Reihe nur **einmal** 140 mA, nicht dreimal.
+The coils hang directly on the bus. If it collapses, the relays drop out **immediately**;
+a DC-DC converter would hold them for a few more milliseconds via its output electrolytic. The
+current in series is only **once** 140 mA, not three times.
 
-### 9.3 Grenzen
+### 9.3 Limits
 
-- Der Öffner 87a ist bei KFZ-Wechselrelais meist nur mit **20–30 A** spezifiziert, nicht
-  mit den beworbenen 40 A. Gegen 60 A Spitze als Tragstrom für Sekunden vertretbar,
-  dauerhaft nicht.
-- Beim Schließen in die drehende Maschine fließt sofort Strom (20 V Gegen-EMK). Mit
-  Kontaktprellen gibt das einen Einschaltlichtbogen — die Kontakte sind Verschleißteil.
-- Die drei Relais sind ein **Satz**: in Reihe teilen sie die Spannung nach ihrem
-  Widerstand. Ersatz nur mit demselben Modell.
-- Eine **Feststellbremse ersetzt das nicht.** Dafür bleibt der Blockierkeil
-  ([07-sicherheit](07-sicherheit.md) §3).
+- The NC contact 87a on automotive changeover relays is usually specified only for **20–30 A**, not
+  the advertised 40 A. Against 60 A peak as carrying current for seconds acceptable,
+  not permanently.
+- When closing into the spinning machine, current flows immediately (20 V back-EMF). With
+  contact bounce this gives a make arc — the contacts are a wear part.
+- The three relays are a **set**: in series they divide the voltage according to their
+  resistance. Replace only with the same model.
+- A **parking brake this does not replace.** For that the blocking wedge remains
+  ([07-safety](07-safety.md) §3).
 
-## 10 Motorregler FSESC 4.20
+## 10 Motor controller FSESC 4.20
 
-**Flipsky Mini FSESC 4.20 mit Kühlkörper.** VESC-Hardware V4.20, konfiguriert wird
-über USB mit dem VESC-/BLDC-Tool. Quelle dieses Abschnitts ist das dem Regler
-beiliegende Herstellerhandbuch (Specs und Wiring diagram).
+**Flipsky Mini FSESC 4.20 with heat sink.** VESC hardware V4.20, configured
+via USB with the VESC/BLDC tool. Source of this section is the manufacturer's manual
+supplied with the controller (specs and wiring diagram).
 
-### 10.1 Eckdaten
+### 10.1 Key data
 
-| Größe | Wert | Anmerkung |
+| Quantity | Value | Note |
 |---|---|---|
-| Hardware | V4.20 | VESC-Projekt, Open Source |
-| Strom | **50 A dauernd, 150 A Spitze** | Auslegungsfall des Prüfstands: 3,3 A (§6) |
-| Zellen | 3–13S LiPo | |
-| Spannung | **8–60 V** laut Hersteller, **6–57 V** laut Firmware | *siehe Anmerkung unten* |
-| BEC | 5 V / 1,5 A, interner Treiber | **wird nicht benutzt**, siehe §10.3 |
-| Timing | per Software | |
-| Abschaltspannung | programmierbar | relevant nur im Akkubetrieb |
-| Sollwerteingang | PWM (PPM/Servo) | wir fahren über UART, §10.3 |
-| Rückwärtslauf | ja | Drehrichtung per Software, nicht durch Phasentausch |
-| Programmierkarte | nein | Einstellung ausschließlich über USB |
-| Masse | 80 g | |
-| Außenmaß | 67 × 39 × 18,3 mm | mit Kühlkörper |
-| Lieferumfang | Regler + Kühlkörper, Micro-USB-Kabel, VESC-Sensorkabel, Handbuch | |
+| Hardware | V4.20 | VESC project, open source |
+| Current | **50 A continuous, 150 A peak** | design case of the test stand: 3.3 A (§6) |
+| Cells | 3–13S LiPo | |
+| Voltage | **8–60 V** per manufacturer, **6–57 V** per firmware | *see note below* |
+| BEC | 5 V / 1.5 A, internal driver | **not used**, see §10.3 |
+| Timing | by software | |
+| Cutoff voltage | programmable | relevant only in battery operation |
+| Setpoint input | PWM (PPM/servo) | we drive via UART, §10.3 |
+| Reverse | yes | direction of rotation by software, not by phase swap |
+| Programming card | no | setting exclusively via USB |
+| Mass | 80 g | |
+| Outer dimensions | 67 × 39 × 18.3 mm | with heat sink |
+| Scope of delivery | controller + heat sink, micro-USB cable, VESC sensor cable, manual | |
 
-> Zwei Zeilen der Vorlage — „Governor" und das reine Platinenmaß — sind im Druck
-> nicht lesbar und stehen deshalb nicht in der Tabelle.
+> Two lines of the original — "Governor" and the bare board dimension — are not legible
+> in print and therefore are not in the table.
 
-> **Die 60 V des Herstellers sind nicht die wirksame Grenze.** Die VESC-Firmware klemmt
-> für Hardware 410 auf **57 V** und lässt für `l_max_vin` gar nichts Höheres zu — in der
-> vorgefundenen Konfiguration stand dort genau 57,0, also der Anschlag. Maßgeblich ist
-> die Firmware, nicht das Datenblatt.
+> **The manufacturer's 60 V is not the effective limit.** The VESC firmware clamps
+> for hardware 410 to **57 V** and does not allow anything higher for `l_max_vin` at all — in the
+> configuration found there it was exactly 57.0, i.e. the stop. The
+> firmware is authoritative, not the datasheet.
 >
-> Für den Stand ohne Folgen: ein volles 13S-Paket hat 54,6 V und bleibt darunter. Bei
-> uns steht `l_max_vin` ohnehin auf **48 V**, bewusst über der Rückspeise-Abdrosselung
-> und weit unter der Hardwaregrenze ([07-sicherheit](07-sicherheit.md) §3.2c).
+> Without consequence for the stand: a full 13S pack has 54.6 V and stays below. In
+> our case `l_max_vin` is at **48 V** anyway, deliberately above the regeneration throttling
+> and far below the hardware limit ([07-safety](07-safety.md) §3.2c).
 
-Zwei Hinweise des Herstellers auf derselben Seite, beide am 2026-11-17 abgerufen
-([Produktseite](https://flipsky.net/products/mini-fsesc4-20-50a-base-on-vesc%C2%AE-4-12-with-aluminum-anodized-heat-sink)):
+Two notes from the manufacturer on the same page, both retrieved 2026-11-17
+([product page](https://flipsky.net/products/mini-fsesc4-20-50a-base-on-vesc%C2%AE-4-12-with-aluminum-anodized-heat-sink)):
 
-1. *„The current factory-installed firmware is version 7.0 (the latest version)."* —
-   siehe §10.5a.
-2. *„Please do not remove the shrink to protect the pcb electronics components from
-   impurites or metals which result in short circuit or esc burnt damage."* — der
-   **Schrumpfschlauch über der Platine bleibt drauf**. In einer Werkstatt mit Spänen,
-   Werkzeug und einem Relaisblock daneben ist das keine Floskel: die Platine liegt
-   sonst offen unter einem Aufbau, der Metallteile bewegt.
+1. *"The current factory-installed firmware is version 7.0 (the latest version)."* —
+   see §10.5a.
+2. *"Please do not remove the shrink to protect the pcb electronics components from
+   impurites or metals which result in short circuit or esc burnt damage."* — the
+   **heat-shrink over the board stays on**. In a workshop with chips,
+   tools and a relay block next to it, that is no platitude: otherwise the board lies
+   open under a structure that moves metal parts.
 
-### 10.2 Anschlussschema
+### 10.2 Connection diagram
 
 ```
                         ┌──────── BATTERY ────────┐
-                        │   +  rot      −  schwarz│   8…60 V  (hier 36 V)
+                        │   +  red      −  black  │   8…60 V  (here 36 V)
                         └────────────┬────────────┘
                                      │
    ┌────────┐                 ┌──────┴────────────────────┐              ┌────────┐
    │ 4 SWD  │────────────────▶│                           │◀─────────────│ 1 CAN  │
    └────────┘                 │   Mini FSESC 4.20         │              └────────┘
    ┌────────┐                 │   VESC-HW V4.20           │              ┌────────┐
-   │ 3 COMM │────────────────▶│   50 A / 150 A Spitze     │◀─────────────│ 2 SENSE│
+   │ 3 COMM │────────────────▶│   50 A / 150 A peak       │◀─────────────│ 2 SENSE│
    └────────┘                 │                           │              └────────┘
                               │        [ Micro-USB ]      │
                               └────┬────────┬────────┬────┘
-                                 C1│      B1│      A1│   3 Phasen, ≥ 4 mm²
-                                   └────────┼────────┘    (Bremsrelais dazwischen, §9)
+                                 C1│      B1│      A1│   3 phases, ≥ 4 mm²
+                                   └────────┼────────┘    (brake relays in between, §9)
                                             ▼
-                                       Nabenmotor
+                                        hub motor
 ```
 
-Belegung der vier Stiftleisten, in der Reihenfolge des Handbuchs:
+Assignment of the four pin headers, in the order of the manual:
 
 | | 1 CAN | 2 SENSE | 3 COMM | 4 SWD |
 |---|---|---|---|---|
@@ -1254,187 +1309,186 @@ Belegung der vier Stiftleisten, in der Reihenfolge des Handbuchs:
 | | | 5V | RX | 3.3V |
 | | | | ADC2 | |
 
-> Welches Ende der Leiste Pin 1 ist, geht aus der Zeichnung nicht hervor. Vor dem
-> ersten Anschließen 5 V und Masse am Stecker nachmessen.
+> Which end of the header is pin 1 is not evident from the drawing. Before
+> first connecting, re-measure 5 V and ground at the connector.
 
-Der Empfänger ist im Handbuch mit **GND / 5V / SIN** gezeichnet, also der
-PWM-Sollwerteingang. Für den Prüfstand ohne Belang — gesteuert wird über UART.
+The receiver is drawn in the manual with **GND / 5V / SIN**, i.e. the
+PWM setpoint input. Of no relevance for the test stand — control is via UART.
 
-### 10.3 Was davon benutzt wird
+### 10.3 What of it is used
 
-| Anschluss | Gegenstelle | Anmerkung |
+| Connection | Counterpart | Note |
 |---|---|---|
-| BATTERY + / − | Netzteil 36 V über Not-Aus und Sicherung | §1, §6 |
-| C1 / B1 / A1 | Motorphasen, dazwischen die Bremsrelais | §9. Drehrichtung per Software, nicht durch Phasentausch |
-| COMM `TX` | ESP32 `PIN_DRIVE_RX` = GPIO 21 | 3,3-V-Pegel, kein Wandler nötig |
+| BATTERY + / − | power supply 36 V via emergency stop and fuse | §1, §6 |
+| C1 / B1 / A1 | motor phases, brake relays in between | §9. Direction of rotation by software, not by phase swap |
+| COMM `TX` | ESP32 `PIN_DRIVE_RX` = GPIO 21 | 3.3 V level, no converter needed |
 | COMM `RX` | ESP32 `PIN_DRIVE_TX` = GPIO 18 | |
-| COMM `−` | gemeinsame Masse, Sternpunkt nach §5.5 | die einzige Verbindung zwischen Logik- und Leistungsmasse |
-| COMM `5V` | **nicht anschließen** | der Logikteil hängt am USB (§5.1); zwei speisende Quellen wären ein Kurzschluss |
-| SENSE | Hall-Kabel des Motors | Aderfarben und Zuordnung in §11; die weiße Ader erst nach A5 an `TMP` |
-| CAN, SWD | frei | CAN erst nötig, wenn ein zweiter Regler dazukommt; SWD nur zum Flashen des Bootloaders |
+| COMM `−` | common ground, star point per §5.5 | the only connection between logic and power ground |
+| COMM `5V` | **do not connect** | the logic side hangs on USB (§5.1); two feeding sources would be a short circuit |
+| SENSE | Hall cable of the motor | wire colors and assignment in §11; the white wire to `TMP` only after A5 |
+| CAN, SWD | free | CAN only needed when a second controller is added; SWD only for flashing the bootloader |
 
-Der ESP32 greift eine Hall-Phase zusätzlich an `PIN_MOTOR_HALL` = GPIO 7 ab (§4).
-**TBD:** Auf welchem Pegel die Hall-Leitungen am SENSE-Eingang liegen, ist nicht
-dokumentiert. Liegt dort ein Pull-up nach 5 V, darf die Leitung nicht direkt an den
-S3 (§5.2) — am angeschlossenen Regler messen, notfalls Teiler oder Pegelwandler
-setzen.
+The ESP32 additionally taps one Hall phase at `PIN_MOTOR_HALL` = GPIO 7 (§4).
+**TBD:** At what level the Hall lines sit at the SENSE input is not
+documented. If there is a pull-up to 5 V, the line must not go directly to the
+S3 (§5.2) — measure on the connected controller, if necessary fit a divider or level shifter.
 
-### 10.4 Grenzen
+### 10.4 Limits
 
-- **Rückspeisung.** Der Regler bremst elektrisch und schiebt die Energie in den Bus
-  zurück; ein Labornetzteil nimmt sie nicht auf (§6). Die Abschaltspannung ist
-  programmierbar, der Überspannungsfall bleibt trotzdem der Regler-Fehlerfall.
-- **Reihenfolge beim Bremsen.** Erst den Treiber sperren, dann die Relais abfallen
-  lassen — die Phasen dürfen nicht kurzgeschlossen werden, solange der Regler treibt
+- **Regeneration.** The controller brakes electrically and pushes the energy back into the bus;
+  a lab power supply does not absorb it (§6). The cutoff voltage is
+  programmable, the overvoltage case nevertheless remains the controller fault case.
+- **Sequence when braking.** First disable the driver, then let the relays drop out
+  — the phases must not be shorted while the controller is driving
   ([10-firmware](10-firmware.md) N2).
-- **Die mitgelieferten Phasen- und Batteriekabel sind zu dünn** für die 60 A Spitze
-  der Kurzschlussbremse (§9.1).
+- **The supplied phase and battery cables are too thin** for the 60 A peak
+  of the short-circuit brake (§9.1).
 
-### 10.4a USB versorgt die Logik NICHT
+### 10.4a USB does NOT power the logic
 
-Am 2026-11-17 nachgewiesen: mit abgeklemmtem Leistungseingang verschwindet dieser
-Regler **vollständig vom USB-Bus**. Die Logik hängt am Leistungseingang, USB liefert
-nur Daten.
+Demonstrated on 2026-11-17: with the power input disconnected this
+controller disappears **completely from the USB bus**. The logic hangs on the power input, USB delivers
+only data.
 
-Das ist ein Unterschied zum originalen VESC 4.12, der seine Logik aus den 5 V des USB
-mitversorgt. **Nicht verallgemeinern** — es gilt für dieses Flipsky-Exemplar.
+That is a difference from the original VESC 4.12, which also powers its logic from the 5 V of the USB.
+**Do not generalize** — it applies to this Flipsky specimen.
 
-Zwei Folgen:
+Two consequences:
 
-1. **Für die Diagnose:** nur insofern, als ohne Leistungseingang nichts geht. Der
-   **Not-Aus trennt den Leistungseingang aber nicht**, nur Regler↔Motor — beim
-   Bremsversuch am 2026-11-17 verschwand der Regler trotzdem vom USB-Bus, hat sich also
-   zurückgesetzt. Verdacht und Prüfvorschrift in [07-sicherheit](07-sicherheit.md) §4.
-2. **Fürs Flashen:** der Leistungseingang muss währenddessen anliegen. Ein kleines
-   Paket genügt (2S, 8,4 V wurden benutzt) — ohne Motor gibt es keine Last, also
-   keinen Spannungseinbruch. `l_min_vin` sperrt nur den Antrieb, nicht die Logik.
+1. **For diagnostics:** only insofar as nothing works without the power input. The
+   **emergency stop however does not disconnect the power input**, only controller↔motor — during the
+   braking test on 2026-11-17 the controller nevertheless disappeared from the USB bus, so it
+   reset. Suspicion and test procedure in [07-safety](07-safety.md) §4.
+2. **For flashing:** the power input must be present during it. A small
+   pack suffices (2S, 8.4 V were used) — without a motor there is no load, so
+   no voltage dip. `l_min_vin` only blocks the drive, not the logic.
 
-#### 10.4b Vier Spannungsgrenzen, und welche zuerst greift
+#### 10.4b Four voltage limits, and which one takes effect first
 
-Aus der eingespielten Konfiguration (`hardware/vesc-config-fw7.01/mcconf.xml`).
-**Der Regler meldet sich schon weit unterhalb der Spannung, bei der er fahren
-kann** — „der Regler antwortet“ heißt also nicht „der Regler kann fahren“:
+From the loaded configuration (`hardware/vesc-config-fw7.01/mcconf.xml`).
+**The controller already responds far below the voltage at which it can
+drive** — "the controller answers" therefore does not mean "the controller can drive":
 
-| Grenze | Wert | Wirkung |
+| Limit | Value | Effect |
 |---|---|---|
-| `l_min_vin` | **8,0 V** | darunter sperrt der Antrieb hart, Fehler Unterspannung |
-| `l_battery_cut_start` | **32,0 V** | darunter wird der Strom **zurückgenommen** |
-| `l_battery_cut_end` | **30,0 V** | darunter **null Strom** — der Antrieb tut nichts mehr |
-| `l_max_vin` | 48,0 V | Obergrenze; die Firmware selbst lässt 57 V zu (§10.1) |
-| `l_battery_regen_cut_start` / `_end` | 42,5 / 44,0 V | Rückspeisung wird abgeregelt (§3.3 in [07-sicherheit](07-sicherheit.md)) |
+| `l_min_vin` | **8.0 V** | below this the drive blocks hard, undervoltage fault |
+| `l_battery_cut_start` | **32.0 V** | below this the current is **reduced** |
+| `l_battery_cut_end` | **30.0 V** | below this **zero current** — the drive does nothing any more |
+| `l_max_vin` | 48.0 V | upper limit; the firmware itself allows 57 V (§10.1) |
+| `l_battery_regen_cut_start` / `_end` | 42.5 / 44.0 V | regeneration is throttled (§3.3 in [07-safety](07-safety.md)) |
 
-> **Am 2026-11-18 gemessen: 8,2 V am Bus.** Das ist 0,2 V über `l_min_vin` und
-> 21,8 V unter `l_battery_cut_end`. Der Regler antwortete sauber (FW 7.1, HW 410,
-> kein Fehler), hätte aber **keinen Ampere** geliefert, und jeder Lasteinbruch von
-> 0,2 V hätte ihn mit Unterspannung abwerfen lassen. Zum Fahren muss der Bus
-> oberhalb von 32 V stehen, nominal 36 V.
+> **Measured on 2026-11-18: 8.2 V on the bus.** That is 0.2 V above `l_min_vin` and
+> 21.8 V below `l_battery_cut_end`. The controller answered cleanly (FW 7.1, HW 410,
+> no fault), but would have delivered **not one ampere**, and every load dip of
+> 0.2 V would have made it drop out with undervoltage. To drive, the bus must be
+> above 32 V, nominally 36 V.
 
-### 10.5 Konfiguration, wie sie am 2026-11-17 eingestellt wurde
+### 10.5 Configuration as set on 2026-11-17
 
-Im Regler stand eine **fremde Konfiguration**: Übersetzung 2,77 statt der
-Werkseinstellung 3,0, `foc_openloop_rpm` 700 statt 1500, und R/L/Flussverkettung aus
-einer Erkennung an einem **anderen Motor**. Es war also einmal ein fremder Antrieb
-eingemessen worden.
+The controller contained a **foreign configuration**: gear ratio 2.77 instead of the
+factory setting 3.0, `foc_openloop_rpm` 700 instead of 1500, and R/L/flux linkage from
+a detection on a **different motor**. So a foreign drive had once been
+measured in.
 
-> *Frühere Fassungen nannten das pauschal „Skateboard-Konfiguration" und behaupteten,
-> kein Wert darin gehöre zu diesem Aufbau. Zu weit gegriffen:* `si_motor_poles` = 14,
-> `si_wheel_diameter` = 0,083 m und die Drehzahlregler-Gewinne sind
-> **Werkseinstellungen** der VESC-Firmware — nachgewiesen am frisch auf 7.01 geflashten
-> Regler. Aufstellung in [03-parameter](03-parameter.md) §4.1.
+> *Earlier versions called this wholesale a "skateboard configuration" and claimed
+> no value in it belonged to this setup. Overreaching:* `si_motor_poles` = 14,
+> `si_wheel_diameter` = 0.083 m and the speed-controller gains are
+> **factory settings** of the VESC firmware — demonstrated on the controller freshly flashed to 7.01.
+> Listing in [03-parameters](03-parameters.md) §4.1.
 
-Die vorgefundene Fassung ist byteweise gesichert unter `hardware/vesc-backup/`
-(Firmware 5.02, mcconf 458 B, appconf 419 B). **Zum Zurückspielen taugt sie nur auf
-5.02** — siehe §10.5a.
+The version found is saved byte for byte under `hardware/vesc-backup/`
+(firmware 5.02, mcconf 458 B, appconf 419 B). **For restoring it is only good on
+5.02** — see §10.5a.
 
-**Erkannt** (`foc_detect_apply_all 50`, Motor ohne Trommel):
+**Detected** (`foc_detect_apply_all 50`, motor without drum):
 
 | | |
 |---|---|
-| Strangwiderstand | 238,7 mΩ |
-| Induktivität | 403,8 µH *(Messung streut, siehe [03-parameter](03-parameter.md) §4.1)* |
-| Flussverkettung | 17,287 mWb |
-| Hall-Geber | **gefunden**, `foc_sensor_mode` = Hall |
-| `foc_hall_table` | 255, **68, 0, 34, 134, 102, 167**, 255 — exakte 60°-Teilung |
+| Phase resistance | 238.7 mΩ |
+| Inductance | 403.8 µH *(measurement scatters, see [03-parameters](03-parameters.md) §4.1)* |
+| Flux linkage | 17.287 mWb |
+| Hall sensors | **found**, `foc_sensor_mode` = Hall |
+| `foc_hall_table` | 255, **68, 0, 34, 134, 102, 167**, 255 — exact 60° division |
 
-**Von Hand gesetzt:**
+**Set by hand:**
 
-| Einstellung | vorher | jetzt | Grund |
+| Setting | before | now | Reason |
 |---|---|---|---|
-| `si_motor_poles` | 14 | **30** | gemessen, [06-offene-fragen](06-offene-fragen.md) |
-| `si_gear_ratio` | 2,769 | **1,0** | Direktantrieb |
-| `si_wheel_diameter` | 0,083 m | **0,9030 m** | Trommel, aus `DRUM_CIRCUMFERENCE_M` |
-| `timeout_msec` | 1000 | **300** | zweite Totmannebene; Firmware wiederholt alle 150 ms, Konsolenwerkzeug alle 100 ms |
-| `timeout_brake_current` | 0,0 A | **0,0 A** | *siehe Warnung unten* |
-| `l_current_max` | 63,8 A | **20 A** | Antriebsstrom; 0,389 Nm/A → 7,8 Nm |
-| `l_current_min` | −63,8 A | **−3 A** | Bremsstrom bleibt klein, weil Bremsen zurückspeist |
-| `l_in_current_max` | 99 A | **8 A** | schützt das Netzteil (10 A) **unabhängig** vom Motorstrom |
-| `l_in_current_min` | −60 A | **−1 A** | Rückspeisung eng; hilft allerdings nicht, [07-sicherheit](07-sicherheit.md) §3.1 |
-| `l_abs_current_max` | 130 A | **30 A** | Panikschwelle, muss über dem Stellwert liegen |
+| `si_motor_poles` | 14 | **30** | measured, [06-open-questions](06-open-questions.md) |
+| `si_gear_ratio` | 2.769 | **1.0** | direct drive |
+| `si_wheel_diameter` | 0.083 m | **0.9030 m** | drum, from `DRUM_CIRCUMFERENCE_M` |
+| `timeout_msec` | 1000 | **300** | second dead-man level; firmware repeats every 150 ms, console tool every 100 ms |
+| `timeout_brake_current` | 0.0 A | **0.0 A** | *see warning below* |
+| `l_current_max` | 63.8 A | **20 A** | drive current; 0.389 Nm/A → 7.8 Nm |
+| `l_current_min` | −63.8 A | **−3 A** | braking current stays small because braking regenerates |
+| `l_in_current_max` | 99 A | **8 A** | protects the power supply (10 A) **independently** of the motor current |
+| `l_in_current_min` | −60 A | **−1 A** | regeneration tight; does not help however, [07-safety](07-safety.md) §3.1 |
+| `l_abs_current_max` | 130 A | **30 A** | panic threshold, must lie above the setpoint |
 
-> **`timeout_brake_current` muss 0 bleiben.** Testweise auf 1,0 A gesetzt und wieder
-> zurückgenommen, aus zwei Gründen. Erstens **rastet der Zustand ein**: nach dem ersten
-> Timeout ruft der Regler die Bremse dauerhaft auf, die Endstufe läuft permanent weiter
-> (gemessen 120 mA bei 40 V = 4,8 W, FET-Temperatur stieg auf 32,9 °C) und ein Sollwert
-> löst es nicht, weil 300 ms später der nächste Timeout greift. Zweitens, und das wiegt
-> schwerer: **ein dauerhaft kurzgeschlossener Motor lässt sich nicht frei drehen.** Der
-> Auslaufversuch ist eine Kernmethode dieses Prüfstands, und auch die Polzahlmessung
-> wäre damit unmöglich geworden. Die Bremse gehört an die Relais (§9), nicht in den
-> Reglertimeout.
+> **`timeout_brake_current` must stay 0.** Set to 1.0 A as a test and taken back
+> again, for two reasons. First, **the state latches**: after the first
+> timeout the controller calls the brake permanently, the power stage keeps running permanently
+> (measured 120 mA at 40 V = 4.8 W, FET temperature rose to 32.9 °C) and a setpoint
+> does not release it, because 300 ms later the next timeout takes effect. Second, and this weighs
+> more heavily: **a permanently shorted motor cannot turn freely.** The
+> spin-down test is a core method of this test stand, and the pole-count measurement
+> would also have become impossible with it. The brake belongs on the relays (§9), not in the
+> controller timeout.
 
-**Motorstrom ist nicht Netzteilstrom.** Die beiden stehen im Verhältnis des
-Tastverhältnisses, weil die Leistung erhalten bleibt. Bei 3 A im Motor und
-Tastverhältnis 0,26 fließen 0,78 A aus dem Netzteil; bei 99 km/h und Tastverhältnis
-0,85 sind es aus 4,4 A im Motor 3,2 A am Netzteil (beides gemessen und am Netzteil
-gegengeprüft). Wer am Netzteil misst und daraus auf den Motorstrom schließt, unterschätzt
-ihn bei kleiner Drehzahl drastisch.
+**Motor current is not power-supply current.** The two stand in the ratio of the
+duty cycle, because power is conserved. At 3 A in the motor and
+duty cycle 0.26, 0.78 A flow from the power supply; at 99 km/h and duty cycle
+0.85, 4.4 A in the motor become 3.2 A at the power supply (both measured and cross-checked at the
+power supply). Whoever measures at the power supply and infers the motor current from it underestimates
+it drastically at low speed.
 
-### 10.5a Firmware 7.01 — und was sie kann, was 5.02 nicht konnte
+### 10.5a Firmware 7.01 — and what it can do that 5.02 could not
 
-Am **2026-11-17** von 5.02 auf **7.01** gezogen (VESC Tool 7.01, mitgeliefertes Abbild
-`40_o_47_o_48_o_410_o_411_o_412_o_DAS_RS.bin`, Hardware 410). Ablauf: erst der
-mitgelieferte **Bootloader**, dann die Firmware — der Bootloader ist das Rettungsnetz,
-ohne ihn bleibt nach einem fehlgeschlagenen Flash nur SWD.
+Upgraded on **2026-11-17** from 5.02 to **7.01** (VESC Tool 7.01, bundled image
+`40_o_47_o_48_o_410_o_411_o_412_o_DAS_RS.bin`, hardware 410). Procedure: first the
+bundled **bootloader**, then the firmware — the bootloader is the safety net;
+without it, after a failed flash only SWD remains.
 
-**Das Update stellt den Auslieferungszustand her, es verlässt ihn nicht.** Flipsky
-schreibt auf der Produktseite des Mini FSESC 4.20: *„The current factory-installed
+**The update restores the factory state, it does not leave it.** Flipsky
+writes on the product page of the Mini FSESC 4.20: *"The current factory-installed
 firmware is version 7.0 (the latest version). If you require a different version,
-please specify this in a note when placing your order."* Die Hardware ist für 7.x also
-vorgesehen — einschließlich der Strommessung, und das ist die Frage, die bei Nachbauten
-berechtigt ist.
+please specify this in a note when placing your order."* The hardware is thus intended for 7.x
+— including the current measurement, and that is the question that is legitimate with
+clones.
 
-Dass dieses Exemplar mit **5.02 und einer Erkennung an einem fremden Motor** ankam,
-heißt umgekehrt: es ist kein aktuelles Werksstück. Was sonst noch vom Werkszustand
-abweicht, ist unbekannt — der Vergleich in §10.5 zeigt nur, was *wir* geändert haben.
+That this specimen arrived with **5.02 and a detection on a foreign motor**
+means conversely: it is not a current factory unit. What else deviates from the factory state
+is unknown — the comparison in §10.5 shows only what *we* changed.
 
-> Das Abbild meldet `isTestFw: 1`, die Fassung heißt `7.01-1+f83a3ae1`. Es ist also
-> keine als stabil deklarierte Freigabe, sondern die zu diesem VESC Tool passende
-> Entwicklungsfassung — das Werkzeug wurde aus dem Quelltext gebaut. Flipsky nennt
-> **7.0**, also dieselbe Generation. Wer die ausgezeichnete Freigabe will, spielt das
-> Abbild der offiziellen VESC-Tool-Veröffentlichung auf; das Zurückschreiben der
-> Konfiguration ist dann unkritisch, weil die XML-Dateien Feldnamen adressieren.
+> The image reports `isTestFw: 1`, the version is called `7.01-1+f83a3ae1`. So it is
+> not a release declared stable, but the development version matching this VESC Tool
+> — the tool was built from source. Flipsky names
+> **7.0**, i.e. the same generation. Whoever wants the designated release flashes the
+> image of the official VESC Tool release; writing back the
+> configuration is then uncritical, because the XML files address field names.
 
-**Zwei Dinge, die den Ausschlag gaben:**
+**Two things that tipped the balance:**
 
-| Feld | 5.02 | 7.01 Werk | gesetzt |
+| Field | 5.02 | 7.01 factory | set |
 |---|---|---|---|
-| `foc_short_ls_on_zero_duty` | **existiert nicht** | 0 | **1** |
-| `l_battery_regen_cut_start` / `_end` | **existieren nicht** | 1000 / 1100 V | **42,5 / 44 V** |
+| `foc_short_ls_on_zero_duty` | **does not exist** | 0 | **1** |
+| `l_battery_regen_cut_start` / `_end` | **do not exist** | 1000 / 1100 V | **42.5 / 44 V** |
 
-Das Erste schaltet bei Tastverhältnis 0 die unteren Schalter dauerhaft ein — der
-**echte Brückenkurzschluss**, dissipativ, ohne Beteiligung des Busses. Genau das fehlte
-bei allen vier Bremsversuchen in [07-sicherheit](07-sicherheit.md) §3.1 und §3.2c. Das
-Zweite verwandelt den Überspannungsfall von einem Abwurf in eine **Abdrosselung**.
+The first switches the lower switches permanently on at duty cycle 0 — the
+**true bridge short circuit**, dissipative, without involvement of the bus. Exactly that was missing
+in all four braking tests in [07-safety](07-safety.md) §3.1 and §3.2c. The
+second turns the overvoltage case from a drop-out into a **throttling**.
 
-**Beides ist noch nicht erprobt** — der Bremsversuch braucht den Motor. [TBD]
+**Neither is tested yet** — the braking test needs the motor. [TBD]
 
-### Konfiguration überlebt den Firmwarewechsel nicht — das XML schon
+### Configuration does not survive the firmware change — the XML does
 
-Die Signatur der Konfigurationsstruktur wechselte von 2211848314 auf 471314414, die
-`mcconf` von 458 auf 493 Byte. Die gesicherten **Binärdateien sind damit wertlos** für
-ein Zurückspielen.
+The signature of the configuration structure changed from 2211848314 to 471314414, the
+`mcconf` from 458 to 493 bytes. The saved **binary files are thus worthless** for
+restoring.
 
-Der Ausweg: VESC Tool liest und schreibt die Konfiguration als **XML über Feldnamen**,
-ohne Oberfläche und ohne Byte-Versätze:
+The way out: VESC Tool reads and writes the configuration as **XML via field names**,
+without a GUI and without byte offsets:
 
 ```sh
 "VESC Tool" --offscreen --getMcConf  mcconf.xml
@@ -1443,359 +1497,358 @@ ohne Oberfläche und ohne Byte-Versätze:
 "VESC Tool" --offscreen --setAppConf appconf.xml
 ```
 
-So wurden alle am 2026-11-17 gemessenen Werte **ohne Motor** zurückgeschrieben — auch
-Hall-Tabelle, R, L und Flussverkettung, die sonst eine neue Erkennung gebraucht hätten.
-Der Beobachtergewinn ist dabei nicht geraten, sondern abgeleitet: `g = 1e3/λ²`, an zwei
-unabhängigen Datenpunkten der alten Firmware geprüft. **31 Felder gegengelesen, alle
-bestätigt.** Ablage in `hardware/vesc-config-fw7.01/`.
+This is how all values measured on 2026-11-17 were written back **without a motor** — including
+Hall table, R, L and flux linkage, which would otherwise have needed a new detection.
+The observer gain is not guessed in the process but derived: `g = 1e3/λ²`, checked at two
+independent data points of the old firmware. **31 fields read back, all
+confirmed.** Stored in `hardware/vesc-config-fw7.01/`.
 
-> Ab jetzt ist das **XML** die maßgebliche Sicherung, nicht die Binärdatei.
+> From now on the **XML** is the authoritative backup, not the binary file.
 
-### 10.6 Der Relaisblock muss die Phasenfolge erhalten
+### 10.6 The relay block must preserve the phase sequence
 
-Beim ersten Einfügen des Not-Aus-Relaisblocks (§9) **waren zwei Phasen vertauscht**.
-Das Bild: 10 A Motorstrom, 68 W Eingangsleistung, Drehzahl pendelt um ±5 1/min, **kein
-Fehlercode** — der Regler bestromt die falsche Wicklung, es entsteht ein Drehfeld ohne
-Nettomoment. Es brummt und wird warm.
+When the emergency-stop relay block (§9) was first inserted, **two phases were swapped**.
+The picture: 10 A motor current, 68 W input power, speed oscillating by ±5 rpm, **no
+fault code** — the controller energizes the wrong winding, a rotating field without
+net torque results. It hums and gets warm.
 
-Prüfungen, von harmlos nach aufwendig:
+Checks, from harmless to elaborate:
 
-1. **Ohne Messgerät:** Relais abgefallen, Trommel von Hand drehen. Sie muss *deutlich
-   schwerer* gehen als frei — sonst schließen die Öffner die Spulen nicht.
-2. **Messgerät, Relais abgefallen:** zwischen je zwei **Motor**klemmen ≈ 0,2 Ω
-   (Spulen kurz); von jeder **Regler**klemme gegen alles **unendlich**. Durchgang hier
-   heißt: der Kurzschlussknoten liegt auch an der Reglerseite, und der Regler treibt in
-   einen Kurzschluss.
-3. **Messgerät, Relais angezogen:** genau eine Zuordnung eins zu eins, und zwar
-   dieselbe wie bei direkter Verdrahtung.
-4. **Über den Regler:** `measure_res_ind` muss den direkten Wert reproduzieren —
-   251,9 mΩ gegen 237,2 mΩ direkt zeigte die 14,7 mΩ Kontaktwiderstand und belegte,
-   dass alle drei Phasen leiten. Ein *Tausch* fällt dabei **nicht** auf, dafür braucht
-   es `foc_sensors_detect_apply`: ändert sich die Richtung der Winkelfolge in
-   `foc_hall_table`, sind zwei Phasen getauscht.
+1. **Without a meter:** relays dropped out, turn the drum by hand. It must turn *noticeably
+   harder* than free — otherwise the NC contacts are not shorting the coils.
+2. **Meter, relays dropped out:** between every two **motor** terminals ≈ 0.2 Ω
+   (coils shorted); from every **controller** terminal against everything **infinite**. Continuity here
+   means: the short-circuit node is also on the controller side, and the controller drives into
+   a short circuit.
+3. **Meter, relays energized:** exactly one one-to-one assignment, and
+   the same as with direct wiring.
+4. **Via the controller:** `measure_res_ind` must reproduce the direct value —
+   251.9 mΩ against 237.2 mΩ direct showed the 14.7 mΩ of contact resistance and proved
+   that all three phases conduct. A *swap* does **not** show up in this; for that
+   `foc_sensors_detect_apply` is needed: if the direction of the angle sequence in
+   `foc_hall_table` changes, two phases are swapped.
 
-> **Eine neu erkannte Tabelle heilt den Tausch, ist aber die schlechtere Lösung.** Mit
-> montierter Trommel ruckelt die Erkennung über die Rastmomente, weil sie im offenen
-> Betrieb langsam dreht: die 60°-Teilung streute danach von 40° bis 74°. Winkelfehler
-> machen Momentenwelligkeit, und die landet als Rauschen auf der Wägezelle — dort, wo
-> ΔCrr = 0,0005 aufgelöst werden soll. Richtig ist: Adern tauschen, dann die
-> Referenztabelle zurückschreiben oder **ohne** Trommel neu erkennen.
+> **A newly detected table heals the swap, but is the worse solution.** With
+> the drum mounted, the detection judders over the cogging torques because it turns slowly in
+> open-loop operation: the 60° division afterwards scattered from 40° to 74°. Angle errors
+> make torque ripple, and that ends up as noise on the load cell — where
+> ΔCrr = 0.0005 is supposed to be resolved. The right way is: swap wires, then write back the
+> reference table or re-detect **without** the drum.
 
-## 11 Motoranschluss: Phasen und Hall-Stecker
+## 11 Motor connection: phases and Hall connector
 
-Aufgenommen am geöffneten Motor (Fotos vom 2026-11-14). **Nichts davon ist
-durchgemessen** — die Zuordnung unten ist aus den Aderfarben und dem Verlauf der
-Leitungen erschlossen. Vor dem ersten Anschließen gilt §11.3; eine vertauschte
-Hall-Versorgung zerstört die Sensoren.
+Recorded on the opened motor (photos of 2026-11-14). **None of it has been
+measured through** — the assignment below is inferred from the wire colors and the routing of the
+leads. Before first connecting, §11.3 applies; a swapped
+Hall supply destroys the sensors.
 
-### 11.1 Was am Motor herauskommt
+### 11.1 What comes out of the motor
 
-- **Drei dicke Adern mit Flachsteckern: gelb, grün, blau** — die Phasen.
-- **Ein weißer JST-Stecker mit sechs dünnen Adern:** weiß, schwarz, grün, blau,
-  gelb, rot (Reihenfolge am Stecker, so wie fotografiert).
-- Im Stator sitzt eine Platine mit drei Hall-ICs auf dem Teilkreis. Zu ihr führen
-  die farbigen Adern und rot/schwarz; die **weiße Ader geht nicht auf die
-  Hall-Platine, sondern in einem Glasseidenschlauch ins Wickelpaket** — genau dort,
-  wo ein Temperaturfühler sitzen würde.
+- **Three thick wires with blade connectors: yellow, green, blue** — the phases.
+- **One white JST connector with six thin wires:** white, black, green, blue,
+  yellow, red (order at the connector, as photographed).
+- In the stator sits a board with three Hall ICs on the pitch circle. The
+  colored wires and red/black lead to it; the **white wire does not go to the
+  Hall board but in a fiberglass sleeve into the winding pack** — exactly where
+  a temperature sensor would sit.
 
-### 11.2 Erschlossene Belegung
+### 11.2 Inferred assignment
 
 ```
-   JST 6-polig am Motor            FSESC, Leiste 2 SENSE
+   JST 6-pin at the motor           FSESC, header 2 SENSE
    ┌─────────────────────┐
-   │ 1  weiß    TMP ?    │ ─────▶ TMP   (erst nach A5 anschließen)
-   │ 2  schwarz GND      │ ─────▶ −
-   │ 3  grün    Hall     │ ─────▶ H3 ┐
-   │ 4  blau    Hall     │ ─────▶ H2 ├ Zuordnung beliebig, das VESC-Tool
-   │ 5  gelb    Hall     │ ─────▶ H1 ┘ erkennt die Hall-Tabelle selbst
-   │ 6  rot     +5 V     │ ─────▶ 5V
+   │ 1  white   TMP ?    │ ─────▶ TMP   (connect only after A5)
+   │ 2  black   GND      │ ─────▶ −
+   │ 3  green   Hall     │ ─────▶ H3 ┐
+   │ 4  blue    Hall     │ ─────▶ H2 ├ assignment arbitrary, the VESC tool
+   │ 5  yellow  Hall     │ ─────▶ H1 ┘ detects the Hall table itself
+   │ 6  red     +5 V     │ ─────▶ 5V
    └─────────────────────┘
 
-   Phasen (Flachstecker):  gelb · grün · blau  →  A1 · B1 · C1 des Reglers,
-   Reihenfolge beliebig — die Drehrichtung wird in der Software gesetzt (§10.1).
+   Phases (blade connectors):  yellow · green · blue  →  A1 · B1 · C1 of the controller,
+   order arbitrary — the direction of rotation is set in software (§10.1).
 ```
 
-Woher die Zuordnung kommt:
+Where the assignment comes from:
 
-| Ader | Deutung | Begründung |
+| Wire | Interpretation | Reasoning |
 |---|---|---|
-| gelb, grün, blau | die drei Hall-Signale | dieselben drei Farben wie die Phasen; beim Hoverboard-Rad üblich |
-| rot, schwarz | Versorgung der Hall-Platine, 5 V und GND | an der Platine, nicht an den Wicklungen |
-| weiß | Temperaturfühler | die einzige übrige Ader, und sie führt in die Wicklung, nicht auf die Hall-Platine |
+| yellow, green, blue | the three Hall signals | the same three colors as the phases; usual on the hoverboard wheel |
+| red, black | supply of the Hall board, 5 V and GND | at the board, not at the windings |
+| white | temperature sensor | the only remaining wire, and it leads into the winding, not to the Hall board |
 
-> Die gleichfarbige Hall-Ader gehört **nicht** zwangsläufig zur gleichfarbigen Phase.
-> Welches Ende des Steckers Pin 1 ist, liegt ebenfalls nicht fest — maßgeblich ist
-> die Farbe, nicht die Position.
+> The same-colored Hall wire does **not** necessarily belong to the same-colored phase.
+> Which end of the connector is pin 1 is likewise not fixed — the color is authoritative,
+> not the position.
 
-> **„Beliebig" gilt nur bis zur Erkennung — danach ist die Reihenfolge festgelegt.**
-> Am 2026-11-23 bestromte der Motor nach dem Neuverdrahten, drehte aber nicht: ERPM
-> blieb exakt 0, der Strom stieg auf der Rampe bis 6,4 A. Die Hall-Tabelle im Regler
-> war unverändert, aber Hall- oder Phasenleitungen lagen anders als am 17.11. Behoben
-> über den Durchgriff der Firmware: `:foc_sensors_detect_apply 10`, neue Tabelle in
-> `hardware/vesc-config-fw7.01/README.md`. **Wer am Motorstecker oder an den Phasen
-> umsteckt, erkennt danach die Hall-Tabelle neu.** Ohne VESC-Tool geht das mit
-> `tools/konsole.py ":foc_sensors_detect_apply 10"`; vorher `":hall_analyze 10"`
-> zeigt, ob die Sensoren sechs Zustände liefern. **Und danach die Drehrichtung
-> prüfen:** mit der neuen Tabelle lief die Trommel bei unverändertem
-> `VESC_DIRECTION_SIGN` rückwärts; das Vorzeichen steht seither auf +1 (`e1`).
+> **"Arbitrary" applies only until detection — after that the order is fixed.**
+> On 2026-11-23 the motor energized after rewiring but did not turn: ERPM
+> stayed exactly 0, the current rose on the ramp up to 6.4 A. The Hall table in the controller
+> was unchanged, but Hall or phase leads were placed differently than on 11-17. Fixed
+> via the firmware passthrough: `:foc_sensors_detect_apply 10`, new table in
+> `hardware/vesc-config-fw7.01/README.md`. **Whoever re-plugs the motor connector or the
+> phases re-detects the Hall table afterwards.** Without the VESC tool this is done with
+> `tools/konsole.py ":foc_sensors_detect_apply 10"`; beforehand `":hall_analyze 10"`
+> shows whether the sensors deliver six states. **And afterwards check the direction of
+> rotation:** with the new table the drum ran backwards with unchanged
+> `VESC_DIRECTION_SIGN`; the sign has been at +1 since (`e1`).
 
-### 11.3 Prüfvorschrift vor dem Anschließen
+### 11.3 Test procedure before connecting
 
-Ohne Versorgung, mit dem Multimeter:
+Without supply, with the multimeter:
+1. Measure **white against black** — that settles A5:
 
-1. **weiß gegen schwarz** messen — das klärt A5:
-
-   | Messwert | Deutung |
+   | Reading | Interpretation |
    |---|---|
-   | ≈ 10 kΩ, **fällt** beim Anwärmen | NTC 10 k, vermutlich B 3950 |
-   | ≈ 100 Ω / 1 kΩ, **steigt** beim Anwärmen | PT100 / PT1000 oder KTY |
-   | ≈ 0 Ω, öffnet beim Anwärmen | Thermoschalter, kein Fühler |
-   | offen | weiß gegen rot und gegen die Hall-Adern nachmessen, bevor „kein Fühler" gilt |
+   | ≈ 10 kΩ, **falls** on warming | NTC 10 k, presumably B 3950 |
+   | ≈ 100 Ω / 1 kΩ, **rises** on warming | PT100 / PT1000 or KTY |
+   | ≈ 0 Ω, opens on warming | thermal switch, not a sensor |
+   | open | re-measure white against red and against the Hall wires before "no sensor" is accepted |
 
-   Anwärmen mit dem Fön auf Handwärme genügt; entscheidend ist das **Vorzeichen**
-   der Änderung.
-2. **rot gegen schwarz:** niederohmig darf es nicht sein. Erwartet wird der
-   Eingangswiderstand der Hall-Platine, nicht ein Kurzschluss.
-3. Erst dann **5 V an rot/schwarz** legen, strombegrenzt. Jede der drei Hall-Adern
-   gegen schwarz messen und das Rad von Hand langsam drehen: der Pegel muss
-   umschalten. Flanken je Umdrehung zählen — das ist `MOTOR_PULSES_PER_REV`
-   ([03-parameter](03-parameter.md) §3).
-4. **Den High-Pegel notieren.** Liegt er bei 5 V, darf die Ader nicht direkt an
-   `PIN_MOTOR_HALL` = GPIO 7; der ESP32-S3 ist nicht 5-V-tolerant (§5.2). Dasselbe
-   gilt für den Abgriff am SENSE-Eingang des Reglers (§10.3).
+   Warming with a hair dryer to hand-warm is enough; what matters is the **sign**
+   of the change.
+2. **red against black:** it must not be low-impedance. Expected is the
+   input resistance of the Hall board, not a short circuit.
+3. Only then apply **5 V to red/black**, current-limited. Measure each of the three Hall wires
+   against black and slowly turn the wheel by hand: the level must
+   toggle. Count edges per revolution — that is `MOTOR_PULSES_PER_REV`
+   ([03-parameters](03-parameters.md) §3).
+4. **Note the high level.** If it is at 5 V, the wire must not go directly to
+   `PIN_MOTOR_HALL` = GPIO 7; the ESP32-S3 is not 5 V tolerant (§5.2). The same
+   applies to the tap at the SENSE input of the controller (§10.3).
 
-### 11.4 Wohin die weiße Ader geht
+### 11.4 Where the white wire goes
 
-**Entschieden: an `TMP` des Reglers.** Es gibt nur eine Auswertestelle, denn ein
-resistiver Fühler verträgt keine zwei Pull-ups — bei beiden wären beide Messungen
-falsch.
+**Decided: to `TMP` of the controller.** There is only one evaluation point, because a
+resistive sensor does not tolerate two pull-ups — with both, both measurements would be
+wrong.
 
-| | **Fühler an `TMP` des Reglers** | Fühler am ESP32 (ADC1) |
+| | **Sensor at `TMP` of the controller** | Sensor at the ESP32 (ADC1) |
 |---|---|---|
-| Auswertung | der Regler begrenzt selbst, der ESP32 liest den Wert über UART ([10-firmware](10-firmware.md) D25) | ESP32 über ADC1, Kennlinie in der Firmware |
-| Voraussetzung | Fühlertyp muss zu den Kennlinien des VESC-Tools passen | freie Kennlinie, aber eigene Beschaltung und Abgleich |
-| | **gewählt** | – |
+| Evaluation | the controller limits itself, the ESP32 reads the value via UART ([10-firmware](10-firmware.md) D25) | ESP32 via ADC1, characteristic in the firmware |
+| Prerequisite | sensor type must match the characteristics of the VESC tool | free characteristic, but own circuitry and calibration |
+| | **chosen** | – |
 
-Der Grund ist nicht Bequemlichkeit, sondern wo die Abschaltung sitzt: Übertemperatur
-muss den **Treiber** sperren, und der Treiber ist der Regler. Hängt der Fühler am
-ESP32, läuft die Schutzfunktion über UART und damit über eine Strecke, die ausfallen
-kann. Am Regler begrenzt er auch dann, wenn die Firmware steht.
+The reason is not convenience but where the shutdown sits: overtemperature
+must block the **driver**, and the driver is the controller. If the sensor hangs on the
+ESP32, the protective function runs over UART and thus over a link that can
+fail. At the controller it limits even when the firmware has stalled.
 
-Preis dafür: der Fühlertyp muss zu einer Kennlinie des VESC-Tools passen. Das ist der
-Rest von A5 — **welcher** Fühler es ist, ist weiter offen und wird nach §11.3
-ausgemessen. `PIN_MOTOR_PTC` ist aus `config.h` entfallen, GPIO 1 ist frei.
+Price for it: the sensor type must match a characteristic of the VESC tool. That is the
+remainder of A5 — **which** sensor it is remains open and will be measured per §11.3.
+`PIN_MOTOR_PTC` has been removed from `config.h`, GPIO 1 is free.
 
-### 11.5 Umsortieren statt löten
+### 11.5 Re-sorting instead of soldering
 
-Der einfachste Weg, **wenn beide Stecker dasselbe System sind**: die Kontakte aus den
-Kammern ziehen und in der richtigen Reihenfolge wieder einsetzen. Kein Löten, keine
-zusätzliche Steckstelle, jederzeit rückgängig zu machen.
+The simplest way, **if both connectors are the same system**: pull the contacts out of the
+cavities and reinsert them in the right order. No soldering, no
+additional plug point, reversible at any time.
 
-Zwei Dinge müssen vorher feststehen:
+Two things must be established beforehand:
 
-1. **Raster und Kontakttyp beider Stecker.** Messschieber an den weißen Motorstecker
-   und an das beiliegende VESC-Sensorkabel. Gleiches System → umstecken. Verschiedene
-   Systeme → die Kontakte passen nicht ins andere Gehäuse, dann wird das Sensorkabel
-   angespleißt und beim Spleißen umsortiert. **TBD**, beides noch nicht gemessen.
-2. **Welches Ende der Leiste `SENSE` Pin 1 ist** (§10.2). Am angeschlossenen Regler
-   5 V und Masse nachmessen — sonst wird sauber spiegelverkehrt sortiert.
+1. **Pitch and contact type of both connectors.** Caliper on the white motor connector
+   and on the supplied VESC sensor cable. Same system → re-plug. Different
+   systems → the contacts do not fit into the other housing, then the sensor cable
+   is spliced on and re-sorted during splicing. **TBD**, neither measured yet.
+2. **Which end of the `SENSE` header is pin 1** (§10.2). Re-measure 5 V and ground on the connected controller
+   — otherwise the sorting comes out neatly mirrored.
 
-Zielreihenfolge ist die des Reglers: `−` · `H3` · `H2` · `H1` · `TMP` · `5V`.
+Target order is that of the controller: `−` · `H3` · `H2` · `H1` · `TMP` · `5V`.
 
-| Kammer | heute | künftig |
+| Cavity | today | future |
 |---|---|---|
-| 1 | weiß | **schwarz** — GND |
-| 2 | schwarz | grün — Hall |
-| 3 | grün | blau — Hall |
-| 4 | blau | gelb — Hall |
-| 5 | gelb | **weiß** — TMP |
-| 6 | rot | **rot** — 5 V |
+| 1 | white | **black** — GND |
+| 2 | black | green — Hall |
+| 3 | green | blue — Hall |
+| 4 | blue | yellow — Hall |
+| 5 | yellow | **white** — TMP |
+| 6 | red | **red** — 5 V |
 
-> Die drei Hall-Adern dürfen untereinander beliebig liegen, das VESC-Tool erkennt die
-> Hall-Tabelle selbst (§11.2). Stimmen müssen nur **schwarz, weiß und rot**. Praktisch
-> ist es eine Rotation: alles außer rot rückt eine Kammer vor, weiß wandert ans Ende.
+> The three Hall wires may be in any order among themselves; the VESC tool detects the
+> Hall table itself (§11.2). Only **black, white and red** must be right. In practice
+> it is a rotation: everything except red moves forward one cavity, white moves to the end.
 
-Beim Ziehen:
+When pulling:
 
-- **Der gelbe Verguss an der Kabeleinführung muss zuerst weg.** Solange er hält, kommt
-  kein Kontakt aus der Kammer. Mit der Klingenspitze aufbrechen oder mit Isopropanol
-  anlösen — nicht am Kabel ziehen.
-- Rastzunge mit einer feinen Nadel oder einem Entriegelungswerkzeug niederdrücken, dann
-  die Ader **nach hinten** herausziehen.
-- Eine abgebrochene Rastzunge heißt: der Kontakt hält nicht mehr von allein. Zunge
-  wieder aufstellen oder den Kontakt im Gehäuse sichern.
-- Vorher fotografieren. Hinterher **jede Ader einzeln auf Durchgang prüfen**, bevor
-  Spannung daraufkommt.
+- **The yellow potting at the cable entry must go first.** As long as it holds,
+  no contact comes out of the cavity. Break it open with the blade tip or soften it with isopropanol
+  — do not pull on the cable.
+- Press down the latching tongue with a fine needle or an extraction tool, then
+  pull the wire out **toward the rear**.
+- A broken latching tongue means: the contact no longer holds by itself. Bend the tongue
+  back up or secure the contact in the housing.
+- Photograph beforehand. Afterwards **check each wire individually for continuity** before
+  voltage is applied.
 
-## 12 MVP-Verdrahtung
+## 12 MVP wiring
 
-Erster Aufbau zum Inbetriebnehmen: Board, Wägezelle mit HX711, LCD, Steuerkreuz und die
-UART-Strecke zum Regler. **Der Motor dreht dabei nicht.** Not-Aus, Sicherung und die
-drei Bremsrelais (§9) sind nicht verbaut; ohne sie gibt es nur freien Auslauf von 3 bis
-6 Minuten ([07-sicherheit](07-sicherheit.md) §3). Der Regler wird verkabelt und die
-UART-Verbindung geprüft, nicht mehr.
+First build for commissioning: board, load cell with HX711, LCD, D-pad and the
+UART link to the controller. **The motor does not turn in this.** Emergency stop, fuse and the
+three brake relays (§9) are not installed; without them there is only free spin-down of 3 to
+6 minutes ([07-safety](07-safety.md) §3). The controller is wired and the
+UART connection checked, nothing more.
 
-Drehzahl kommt im MVP **über UART vom Regler** (ERPM). Die Hall-Geber an GPIO 4/5/6/7
-braucht es dafür noch nicht.
+Speed in the MVP comes **via UART from the controller** (ERPM). The Hall sensors at GPIO 4/5/6/7
+are not yet needed for this.
 
-### 12.1 Blockbild
+### 12.1 Block diagram
 
 ```
-       USB-C Netzteil 5 V/1 A ──► [USB ]  ┐  beide Buchsen dürfen
-       Notebook (Flashen)     ──► [COM ]  ┘  gleichzeitig speisen (§5.1)
-                                     │
-         ┌───────────────────────────┴──────────────────────────────┐
+       USB-C power supply 5 V/1 A ──► [USB ]  ┐  both sockets may
+       Notebook (flashing)        ──► [COM ]  ┘  feed at the same time (§5.1)
+                                         │
+         ┌───────────────────────────────┴──────────────────────────┐
          │            ESP32-S3-DevKitC-1  N16R8                     │
-         │     5V-Pin = VBUS (Ausgang)   ·   3V3-Pin = LDO          │
+         │     5V pin = VBUS (output)   ·   3V3 pin = LDO           │
          │                                                          │
  HX711 ──┤ GPIO15  DOUT ◄───────────────────────  DAT               │
          │ GPIO16  SCK  ──100 Ω─────────────────►  CLK              │
          │ 3V3 ─────────────────────────────────►  VCC + VDD        │
          │ GND ─────────────────────────────────►  GND              │
-         │                        Schraubklemme ──► Wägezelle 5 kg  │
+         │                        screw terminal ──► load cell 5 kg │
          │                                                          │
- LCD   ──┤ GPIO8  SDA ──┬── 3,3 kΩ ──┐                              │
-         │ GPIO9  SCL ──┼── 3,3 kΩ ──┤                              │
-         │ 3V3 ─────────┴────────────┴──► Backpack VCC  (§12.3)     │
-         │ GND ─────────────────────────► Backpack GND              │
+ LCD   ──┤ GPIO8  SDA ──┬── 3.3 kΩ ──┐                              │
+         │ GPIO9  SCL ──┼── 3.3 kΩ ──┤                              │
+         │ 3V3 ─────────┴────────────┴──► backpack VCC  (§12.3)     │
+         │ GND ─────────────────────────► backpack GND              │
          │                                                          │
- Kreuz ──┤ GPIO11 hoch   GPIO12 runter   GPIO13 rein                │
-         │ GPIO14 raus   GPIO39 OK    alle gegen GND, interner PU   │
+ D-pad ──┤ GPIO11 up     GPIO12 down     GPIO13 in                  │
+         │ GPIO14 out    GPIO39 OK    all against GND, internal PU  │
          │                                                          │
  FSESC ──┤ GPIO18  TX ──────────────────►  COMM  RX                 │
          │ GPIO21  RX ◄─────────────────── COMM  TX                 │
-         │ GND ──────────────────────────  COMM  −   ← Sternpunkt    │
-         │                                 COMM  5V  ← NICHT        │
+         │ GND ──────────────────────────  COMM  −   ← star point   │
+         │                                 COMM  5V  ← NOT          │
          └──────────────────────────────────────────────────────────┘
 ```
 
-### 12.2 Strippenliste
+### 12.2 Wiring list
 
-| | von → nach | Kabel | Länge | Steckverbinder |
+| | from → to | Cable | Length | Connector |
 |---|---|---|---|---|
-| 1 | Wägezelle → HX711 | die 4 Adern der Zelle (E+/E−/S+/S−) | **10 cm** | **keiner** — direkt in die Schraubklemme, §5.4 |
-| 2 | HX711 → ESP32 | **LiYCY 6×0,14 mm²**, geschirmt | nach Aufbau | **JST-XH 6-polig**, Belegung nach §5.4 |
-| 3 | ESP32 → LCD | 4-adrig, beliebig | 30 cm | unkritisch, digital |
-| 4 | ESP32 → Steuerkreuz | 6-adrig (5 Signale + gemeinsame Masse) | 50 cm | beliebig |
-| 5 | ESP32 → FSESC `COMM` | 3-adrig, verdrillt, **getrennt von den Phasen** | kurz halten | Stiftleiste am Regler |
-| 6 | Netzteil → ESP32 | USB-C | – | eine der beiden Buchsen |
+| 1 | load cell → HX711 | the 4 wires of the cell (E+/E−/S+/S−) | **10 cm** | **none** — directly into the screw terminal, §5.4 |
+| 2 | HX711 → ESP32 | **LiYCY 6×0.14 mm²**, shielded | per build | **JST-XH 6-pin**, assignment per §5.4 |
+| 3 | ESP32 → LCD | 4-core, any | 30 cm | uncritical, digital |
+| 4 | ESP32 → D-pad | 6-core (5 signals + common ground) | 50 cm | any |
+| 5 | ESP32 → FSESC `COMM` | 3-core, twisted, **separate from the phases** | keep short | pin header on the controller |
+| 6 | power supply → ESP32 | USB-C | – | one of the two sockets |
 
-Zu #2: die Steckerbelegung **jetzt schon** nach §5.4 festlegen, auch wenn Pin 1 (5 V)
-im MVP leer bleibt — dann passt das fünfpolige Modul später unverändert. Schirm als
-kurzen Zopf nur am ESP32-Ende auf GND. Die 100 Ω je Zelleneingang und 100 nF
-differenziell über INA+/INA− gleich mit einlöten; sie kosten nichts und man muss nicht
-nochmal ran, wenn der Regler anfängt zu stören.
+On #2: fix the connector assignment **now already** per §5.4, even if pin 1 (5 V)
+stays empty in the MVP — then the five-pin module fits unchanged later. Shield as a
+short pigtail to GND only at the ESP32 end. Solder in the 100 Ω per cell input and 100 nF
+differentially across INA+/INA− right away; they cost nothing and one does not have to
+go back in when the controller starts to interfere.
 
-Am Steuerkreuz **keine Kondensatoren und keine externen Widerstände** — Entprellung in
-Software, kein RC im Signalpfad ([10-firmware](10-firmware.md) B3), der interne Pull-up
-genügt.
+At the D-pad **no capacitors and no external resistors** — debouncing in
+software, no RC in the signal path ([10-firmware](10-firmware.md) B3), the internal pull-up
+suffices.
 
-### 12.3 Drei Festlegungen für den MVP
+### 12.3 Three specs for the MVP
 
-**HX711 komplett auf 3,3 V**, also VCC und VDD gemeinsam an 3V3. Das ist eine bewusste
-Abweichung von §5.2 und gilt nur für die Inbetriebnahme. Gründe: das vorhandene
-Breakout ist womöglich das vierpolige, bei dem beide Pins verbunden sind — dann ist 3,3 V
-der einzige Weg, der GPIO 15 nicht mit 5 V belegt. Es kostet **3,6 dB SNR**, aber
-**keine Counts und keinen Kalibrierfaktor**: die Brücke hängt an AVDD, und AVDD ist
-zugleich die ADC-Referenz, die Messung läuft also ratiometrisch (§5.2). Die heute
-ermittelte Kalibrierung gilt deshalb auch nach dem Wechsel auf ein fünfpoliges Modul.
-Für den Messlauf wird gewechselt — bei 12 N Signal des besten Rennreifens werden die
-3,6 dB nicht verschenkt.
+**HX711 entirely at 3.3 V**, i.e. VCC and VDD together on 3V3. That is a deliberate
+deviation from §5.2 and applies only to commissioning. Reasons: the existing
+breakout may be the four-pin one, where both pins are connected — then 3.3 V is
+the only way that does not put 5 V on GPIO 15. It costs **3.6 dB SNR**, but
+**no counts and no calibration factor**: the bridge hangs on AVDD, and AVDD is
+at the same time the ADC reference, so the measurement runs ratiometrically (§5.2). The calibration
+determined today therefore also holds after the change to a five-pin module.
+For the measurement run the switch is made — with 12 N of signal from the best racing tire, the
+3.6 dB are not given away.
 
-**LCD-Pegel**, Reihenfolge zum Ausprobieren (die Bewertung der drei Wege steht in §5.6,
-offene Frage B3):
+**LCD level**, order to try (the assessment of the three paths is in §5.6,
+open question B3):
 
-1. **Backpack-VCC auf 3,3 V statt 5 V.** Zwei Minuten, kein Bauteil, umkehrbar — und
-   **innerhalb der Spezifikation**, denn die 4k7 auf dem Backpack ziehen dann nach
-   3,3 V und der PCF8574 verlangt nur noch 0,7 · 3,3 = 2,31 V als High. Offen ist, ob
-   der Kontrast des HD44780 bei 3,3 V reicht und wie dunkel die Beleuchtung wird; ihr
-   Vorwiderstand ist für 5 V ausgelegt. Das entscheidet das Exemplar.
-2. Reicht das nicht: **die 4k7 auslöten**, 2 × 3,3 kΩ nach 3,3 V am ESP32, LCD bleibt
-   an 5 V. **Erst auslöten, dann anschließen** — solange die 4k7 nach 5 V am Bus
-   hängen, liegen 5 V an GPIO 8 und 9.
-3. **Pegelwandler** (BSS138), wenn einer da ist: spezifikationstreu und guter Kontrast,
-   kostet zwei Steckstellen.
+1. **Backpack VCC to 3.3 V instead of 5 V.** Two minutes, no component, reversible — and
+   **within the specification**, because the 4k7 on the backpack then pull to
+   3.3 V and the PCF8574 only requires 0.7 · 3.3 = 2.31 V as high. Open is whether
+   the contrast of the HD44780 suffices at 3.3 V and how dim the backlight becomes; its
+   series resistor is designed for 5 V. The specimen decides that.
+2. If that is not enough: **unsolder the 4k7**, 2 × 3.3 kΩ to 3.3 V at the ESP32, LCD stays
+   on 5 V. **Unsolder first, then connect** — as long as the 4k7 to 5 V hang on the bus,
+   5 V is present at GPIO 8 and 9.
+3. **Level shifter** (BSS138), if one is available: specification-compliant and good contrast,
+   costs two plug points.
 
-Vorher am stromlosen Backpack SDA gegen VCC durchmessen — ob die Pull-ups überhaupt
-bestückt sind. Und die I²C-Adresse scannen, `LCD_I2C_ADDR` ist TBD (0x27 oder 0x3F).
+Beforehand measure SDA against VCC on the unpowered backpack — whether the pull-ups are
+fitted at all. And scan the I²C address, `LCD_I2C_ADDR` is TBD (0x27 or 0x3F).
 
-**Fünf Taster, nicht vier.** Vier sind das Pflichtminimum
-([10-firmware](10-firmware.md) B1), der fünfte ist dort „soll". Mit vier müsste
-„bestätigen" auf eine Tastenkombination oder einen langen Druck, und B5 verlangt
-ausdrücklich, dass die Schrittweite *nicht* über eine versteckte Kombination geht. Beim
-Fünfwege-Tastschalter ist der fünfte Kontakt ohnehin im Bauteil; er kostet eine Ader und
-GPIO 39. Die Pinzahl geht trotzdem genau auf (§4).
+**Five buttons, not four.** Four are the mandatory minimum
+([10-firmware](10-firmware.md) B1), the fifth is "should" there. With four,
+"confirm" would have to go onto a key combination or a long press, and B5 explicitly demands
+that the step size does *not* go via a hidden combination. With the
+five-way tactile switch the fifth contact is in the component anyway; it costs one wire and
+GPIO 39. The pin count still works out exactly (§4).
 
-### 12.4 Vor dem ersten Einschalten
+### 12.4 Before first power-on
 
-1. Regler an seine Micro-USB-Buchse, dann **5 V und Masse an der Leiste `COMM`
-   nachmessen.** Aus der Handbuchzeichnung geht nicht hervor, welches Ende Pin 1 ist
-   (§10.2) — sonst wird sauber spiegelverkehrt verdrahtet.
-2. `COMM 5V` bleibt frei. Zwei speisende Quellen wären ein Kurzschluss (§10.3).
-3. `COMM −` ist die **einzige** Verbindung zwischen Logik- und Leistungsmasse (§5.5).
-   Auf der Werkbank gibt es über das Notebook einen zweiten Massepfad, wenn ESP32 und
-   Regler am selben Rechner hängen — zum Testen harmlos, für den Messlauf kommt das
-   Notebook ab.
-4. Steckverbinder #2 **Ader für Ader auf Durchgang prüfen**, bevor Spannung
-   draufkommt. 5 V und 3,3 V liegen auf demselben Stecker; ein um einen Pin versetzter
-   Stecker zerstört entweder den HX711 oder den ESP32 (§5.4).
+1. Controller to its micro-USB socket, then **re-measure 5 V and ground at the `COMM`
+   header.** The manual drawing does not show which end is pin 1
+   (§10.2) — otherwise the wiring comes out neatly mirrored.
+2. `COMM 5V` stays free. Two feeding sources would be a short circuit (§10.3).
+3. `COMM −` is the **only** connection between logic and power ground (§5.5).
+   On the workbench there is a second ground path via the notebook if ESP32 and
+   controller hang on the same computer — harmless for testing; for the measurement run the
+   notebook comes off.
+4. Check connector #2 **wire by wire for continuity** before voltage is
+   applied. 5 V and 3.3 V are on the same connector; a connector offset by one pin
+   destroys either the HX711 or the ESP32 (§5.4).
 
-## 13 Bedienfeld über WLAN
+## 13 Web UI over WiFi
 
-Der Prüfstand spannt einen **eigenen Accesspoint** auf und liefert die Oberfläche selbst
-aus — kein Internet, kein Router, keine App. Bedient wird am Telefon oder am iPad; das
-LCD (§5.6) ist damit **optional** und zeigt nur dasselbe noch einmal.
+The test stand spans its **own access point** and serves the UI
+itself — no internet, no router, no app. Operation is on the phone or the iPad; the
+LCD (§5.6) is thus **optional** and only shows the same thing again.
 
-Die Seite ist dieselbe Datei, die auch als Entwurf im Browser läuft:
-`firmware/web/index.html`. `firmware/web/embed.py` backt sie gzip-komprimiert nach
-`src/webui_html.h` (34 KB → 11 KB) und läuft als `pre:`-Skript bei jedem Build, kann
-also nicht veralten. Kein LittleFS, kein zweiter Flashvorgang.
+The page is the same file that also runs as a draft in the browser:
+`firmware/web/index.html`. `firmware/web/embed.py` bakes it gzip-compressed into
+`src/webui_html.h` (34 KB → 11 KB) and runs as a `pre:` script on every build, so it
+cannot go stale. No LittleFS, no second flash operation.
 
-### 13.1 Konstanten
+### 13.1 Constants
 
-| Konstante | Wert | Anmerkung |
+| Constant | Value | Note |
 |---|---|---|
 | `WEBUI_SSID` | `Pruefstand` | |
-| `WEBUI_PASSWORD` | `***REMOVED***` | **WPA2**, nicht offen — sonst kann jeder in Reichweite den Motor fahren. **Genau 8 Zeichen, das Minimum**; darunter bleibt der AP offen, ohne dass es auffällt. Bewusst trivial: es schützt gegen Zufall, nicht gegen Absicht, und eingetippt wird es nie — es steckt im QR-Code. Wird es geändert, **muss `hardware/qr-wlan.*` neu erzeugt werden**, siehe §13.4. |
-| `WEBUI_AP_IP` | **4.3.2.1** | **nicht** 192.168.x.x, Begründung §13.3 |
+| `WEBUI_PASSWORD` | `<see firmware/src/secrets.h>` | **WPA2**, not open — otherwise anyone in range can drive the motor. **Exactly 8 characters, the minimum**; below that the AP stays open without it being noticed. Deliberately trivial: it protects against accident, not against intent, and it is never typed — it is in the QR code. The literal lives in `firmware/src/secrets.h` (git-ignored, template `secrets.example.h`). If it is changed, **`hardware/qr-wlan.*` must be regenerated**, see §13.4. |
+| `WEBUI_AP_IP` | **4.3.2.1** | **not** 192.168.x.x, reasoning §13.3 |
 | `WEBUI_CHANNEL` | 6 | |
-| `WEBUI_MAX_CLIENTS` | 4 | der Vorgabewert von `softAP()` ist ebenfalls 4 |
-| `WEBUI_PORT` | 80 | 443 bleibt **zu**: die HTTPS-Prüfungen von iOS und Android lassen sich ohnehin nicht beantworten, und eine abgewiesene Verbindung ist schneller als ein Zeitablauf |
-| `WEBUI_HOSTNAME` | `tire` | mDNS → `tire.local`. **Kurz, weil es getippt wird** — auf einem Telefon ist jedes Zeichen eines zu viel. Bequemlichkeit, kein Verlasspfad: Android kann im Browser kein mDNS (§13.5). |
-| `LINK_TIMEOUT_MS` | 2000 ms | **Sicherheitsgrenze**, siehe [07-sicherheit](07-sicherheit.md) §4 |
+| `WEBUI_MAX_CLIENTS` | 4 | the default of `softAP()` is also 4 |
+| `WEBUI_PORT` | 80 | 443 stays **closed**: the HTTPS checks of iOS and Android cannot be answered anyway, and a refused connection is faster than a timeout |
+| `WEBUI_HOSTNAME` | `tire` | mDNS → `tire.local`. **Short, because it is typed** — on a phone every character is one too many. Convenience, not a reliable path: Android cannot do mDNS in the browser (§13.5). |
+| `LINK_TIMEOUT_MS` | 2000 ms | **safety limit**, see [07-safety](07-safety.md) §4 |
 
-### 13.2 Kein Captive Portal — und warum
+### 13.2 No captive portal — and why
 
-Ein Captive Portal wurde gebaut, erprobt und wieder **entfernt**. Die Messungen vom
-2026-11-15 und die Belegstellen dazu:
+A captive portal was built, tried and **removed** again. The measurements of
+2026-11-15 and the supporting evidence:
 
-- Das Portalfenster von iOS (Captive Network Assistant) **ist kein Browser**: kein
-  Adressfeld, keine Reiter, es gehört der Einstellungen-App. Eine Seite darin kann
-  **nicht** nach Safari übergeben — dafür gibt es keine Schnittstelle. Das Schema
-  `x-safari-http://` wurde am Gerät probiert und greift nicht; in Safaris Plist ist
-  ohnehin nur `x-safari-https` registriert, undokumentiert und versionsabhängig.
-- **iOS trennt das Netz**, sobald das Fenster zugeht, weil ein Netz ohne Internet als
-  entbehrlich gilt. Gemessen: Verbindung hielt 15 s, mit Karenzphase 40 s, dann weg.
-  Für einen 30-Minuten-Warmlauf, dessen Totmannschaltung an genau dieser Verbindung
-  hängt, ist das untauglich.
-- Im Portalfenster **läuft** `fetch`, löst aber keine erneute Prüfung aus — eine
-  Anmeldung per Javascript lässt den Benutzer vor einem *Abbrechen*-Knopf sitzen, und
-  Abbrechen trennt.
+- The portal window of iOS (Captive Network Assistant) **is not a browser**: no
+  address field, no tabs, it belongs to the Settings app. A page in it can
+  **not** hand over to Safari — there is no interface for that. The scheme
+  `x-safari-http://` was tried on the device and does not work; in Safari's plist
+  only `x-safari-https` is registered anyway, undocumented and version-dependent.
+- **iOS disconnects the network** as soon as the window closes, because a network without internet is
+  considered dispensable. Measured: connection held 15 s, with grace period 40 s, then gone.
+  For a 30-minute warm-up whose dead-man switch depends on exactly this connection,
+  that is unusable.
+- In the portal window `fetch` **works**, but does not trigger a re-check — a
+  login via JavaScript leaves the user sitting in front of a *Cancel* button, and
+  Cancel disconnects.
 
-**Stattdessen:** Der Stand beantwortet die Verbindungsprüfung so, wie das Betriebssystem
-sie erwartet (Apples Erfolgsseite byte-genau mit abschließendem `\n`, Androids nacktes
-`204`, Microsofts 22 Zeichen). Dann gilt das Netz als in Ordnung, **nichts springt auf,
-und nichts trennt sich**. Aufgerufen wird die Oberfläche über den QR-Code (§13.4) oder
-jede beliebige Adresse im Browser — der DNS beantwortet alles mit der eigenen.
+**Instead:** The stand answers the connectivity check the way the operating system
+expects it (Apple's success page byte-exact with trailing `\n`, Android's bare
+`204`, Microsoft's 22 characters). Then the network counts as fine, **nothing pops up,
+and nothing disconnects**. The UI is opened via the QR code (§13.4) or
+any arbitrary address in the browser — the DNS answers everything with its own.
 
-> Der Preis steht in RFC 8952 §1: Solange das Telefon verbunden ist, hält es die
-> Verbindung für brauchbar und schaltet nicht auf Mobilfunk um. Nachrichten und Mail
-> stehen also still. Nach der Messung WLAN aus.
+> The price is stated in RFC 8952 §1: As long as the phone is connected, it considers the
+> connection usable and does not switch to mobile data. Messages and mail
+> therefore stand still. After the measurement, WiFi off.
 
-### 13.3 Warum 4.3.2.1 und nicht 192.168.4.1
+### 13.3 Why 4.3.2.1 and not 192.168.4.1
 
-Androids `NetworkMonitor` verwirft die Verbindungsprüfung, sobald der DNS einen Prüf-Host
-auf eine **private** Adresse auflöst, und sendet die HTTP-Anfrage **gar nicht erst ab**:
+Android's `NetworkMonitor` discards the connectivity check as soon as the DNS resolves a probe host
+to a **private** address, and does **not even send** the HTTP request:
 
 ```java
 if (mPrivateIpNoInternetEnabled && probeType == PROBE_HTTP
@@ -1804,356 +1857,358 @@ if (mPrivateIpNoInternetEnabled && probeType == PROBE_HTTP
 }
 ```
 
-`hasPrivateIpAddress()` deckt 10/8, 172.16/12, **192.168/16** und 169.254/16 ab. Das
-Ergebnis auf Android wäre „Verbunden, kein Internet" — ohne jede Möglichkeit, das zu
-heilen. Deshalb setzt auch das arduino-esp32-Beispiel `8.8.4.4` und WLED `4.3.2.1`.
+`hasPrivateIpAddress()` covers 10/8, 172.16/12, **192.168/16** and 169.254/16. The
+result on Android would be "Connected, no internet" — without any possibility to
+heal it. That is why the arduino-esp32 example also uses `8.8.4.4` and WLED `4.3.2.1`.
 
-Der Adressraum gehört jemand anderem. Unschön, aber ohne Internet am Stand folgenlos.
+The address space belongs to someone else. Unpleasant, but without consequence with no internet at the stand.
 
-### 13.4 QR-Codes
+### 13.4 QR codes
 
-Zwei Aufkleber, erzeugt mit `qrencode`, als PNG zum Drucken und SVG zum Skalieren:
+Two stickers, generated with `qrencode`, as PNG for printing and SVG for scaling:
 
 ```sh
-qrencode -o hardware/qr-wlan.png -s 10 -m 2 'WIFI:T:WPA;S:Pruefstand;P:***REMOVED***;;'
-qrencode -t SVG -o hardware/qr-wlan.svg -s 10 -m 2 'WIFI:T:WPA;S:Pruefstand;P:***REMOVED***;;'
+qrencode -o hardware/qr-wlan.png -s 10 -m 2 'WIFI:T:WPA;S:Pruefstand;P:<password>;;'
+qrencode -t SVG -o hardware/qr-wlan.svg -s 10 -m 2 'WIFI:T:WPA;S:Pruefstand;P:<password>;;'
 ```
 
-| Datei | Nutzlast | tut |
+| File | Payload | does |
 |---|---|---|
-| `hardware/qr-wlan.png` | `WIFI:T:WPA;S:Pruefstand;P:***REMOVED***;;` | Kamera bietet „Mit WLAN verbinden" an |
-| `hardware/qr-ui.png` | `http://4.3.2.1/` | öffnet die Bedienung im **echten Browser**. Bewusst die **IP**, nicht `tire.local`: Android kann im Browser kein mDNS, und ein QR-Code, der auf der Hälfte der Geräte ins Leere führt, ist schlimmer als eine Zahl. |
+| `hardware/qr-wlan.png` | `WIFI:T:WPA;S:Pruefstand;P:<password>;;` | camera offers "Join WiFi network" |
+| `hardware/qr-ui.png` | `http://4.3.2.1/` | opens the UI in the **real browser**. Deliberately the **IP**, not `tire.local`: Android cannot do mDNS in the browser, and a QR code that leads nowhere on half the devices is worse than a number. |
 
-Beim ersten Mal zweimal scannen. Danach verbindet sich das Telefon von allein, und
-**„Zum Home-Bildschirm"** macht aus der Bedienung ein Symbol, das sie im Vollbild ohne
-Browserleisten startet (`apple-mobile-web-app-capable` ist gesetzt).
+`hardware/qr-wlan.*` is **not committed**, because it contains the password; it is
+generated locally from `firmware/src/secrets.h` with the commands above.
 
-Ab etwa 3 cm Kantenlänge aus Armlänge lesbar, in Werkstattlicht eher 4–5 cm. Die weiße
-Ruhezone außen muss bleiben, sonst findet die Kamera die Positionsmarken nicht.
+Scan twice the first time. After that the phone connects by itself, and
+**"Add to Home Screen"** turns the UI into an icon that starts it full-screen without
+browser bars (`apple-mobile-web-app-capable` is set).
 
-> **Das Kennwort steckt im Bild.** Wer `WEBUI_PASSWORD` ändert und den QR-Code stehen
-> lässt, hat einen Aufkleber, der ins Leere führt — und merkt es erst am Stand. Beide
-> Zeilen gehören zusammen ausgeführt. Danach **einmal mit dem Telefon scannen**: die
-> Kamera muss das WLAN anbieten. Maschinell gegengelesen wurde der Inhalt am
-> 2026-11-18 nicht, hier ist kein Decoder installiert.
+Readable at arm's length from about 3 cm edge length, in workshop light rather 4–5 cm. The white
+quiet zone outside must remain, otherwise the camera does not find the position markers.
 
-### 13.5 Wie der Stand erreichbar ist
+> **The password is in the image.** Whoever changes `WEBUI_PASSWORD` and leaves the QR code
+> in place has a sticker that leads nowhere — and only notices at the stand. Both
+> lines belong together. Afterwards **scan once with the phone**: the
+> camera must offer the WiFi. The content was not machine-verified on
+> 2026-11-18; no decoder is installed here.
 
-Drei Wege, und sie nutzen **verschiedene** Mechanismen — das ist der Grund, warum
-einer immer geht:
+### 13.5 How the stand is reachable
 
-| Eingabe | wer löst auf | funktioniert |
+Three paths, and they use **different** mechanisms — that is the reason why
+one always works:
+
+| Input | who resolves | works |
 |---|---|---|
-| `http://4.3.2.1/` | niemand, direkt | **immer**, auf jedem Gerät |
-| `http://tire.local/` | **mDNS/Bonjour** im Gerät | Apple, Windows 10+. **Android im Browser nicht.** |
-| irgendein anderer Name | der **DNS-Server des Stands**, der alles auf 4.3.2.1 beantwortet | überall, wo der Browser die Eingabe als Adresse und nicht als Suche behandelt |
+| `http://4.3.2.1/` | nobody, direct | **always**, on every device |
+| `http://tire.local/` | **mDNS/Bonjour** in the device | Apple, Windows 10+. **Not Android in the browser.** |
+| any other name | the **DNS server of the stand**, which answers everything with 4.3.2.1 | everywhere the browser treats the input as an address and not as a search |
 
-> **`.local` geht nie über den DNS-Server.** Apple und Windows behandeln diese Endung
-> gesondert und fragen ausschließlich per mDNS. Der Wildcard-DNS des Stands kann dort
-> also nicht aushelfen — beide Mechanismen laufen nebeneinander und decken zusammen
-> mehr ab als jeder für sich.
+> **`.local` never goes via the DNS server.** Apple and Windows treat this suffix
+> specially and ask exclusively via mDNS. The wildcard DNS of the stand therefore
+> cannot help out there — both mechanisms run side by side and together cover
+> more than either alone.
 
-**Eine getippte fremde IP-Adresse geht nicht und kann nicht gehen.** Sie fragt keinen
-DNS: das Gerät schickt das Paket an den Router — also an den Stand —, aber die
-Zieladresse darin ist eine fremde, und der Netzwerkstapel verwirft es. Dagegen hülfe
-nur, Pakete für fremde Zieladressen anzunehmen; das bietet der Arduino-Stapel nicht,
-und es wäre das Gegenteil von einfach. Gebraucht wird es auch nicht, solange Namen
-funktionieren.
+**A typed foreign IP address does not work and cannot work.** It asks no
+DNS: the device sends the packet to the router — i.e. to the stand —, but the
+destination address in it is a foreign one, and the network stack discards it. The only remedy
+would be to accept packets for foreign destination addresses; the Arduino stack does not offer that,
+and it would be the opposite of simple. It is not needed either, as long as names
+work.
 
-**Jeder unbekannte Pfad** zeigt die Oberfläche (`onNotFound`). Was immer jemand hinter
-der Adresse eintippt, er will hierher.
+**Every unknown path** shows the UI (`onNotFound`). Whatever someone types behind
+the address, they want to come here.
 
-**Ein fremder Name wird auf `tire.local` umgeleitet** (302), damit danach ein merkbarer
-Name in der Adresszeile steht. **Zwei Fälle werden dabei nie umgeleitet:**
+**A foreign name is redirected to `tire.local`** (302), so that afterwards a memorable
+name stands in the address bar. **Two cases are never redirected:**
 
-1. **Die IP.** Sie hängt von nichts ab — kein DNS, kein mDNS. Sie auf einen Namen
-   umzubiegen hieße, ausgerechnet den Notnagel von einer Namensauflösung abhängig zu
-   machen. `http://4.3.2.1/` liefert immer direkt die Oberfläche.
-2. **Die Hostnamen der Verbindungsprüfungen** (`captive.apple.com` und Verwandte). Eine
-   Umleitung dort ist genau das Signal „Captive Portal" — und dann fängt iOS wieder an,
-   das Netz nach kurzer Zeit wegzuwerfen (§13.2). Die Prüfpfade haben zwar eigene
-   Behandler, aber ein *unbekannter* Pfad auf einem Prüf-Host liefe sonst hier hinein.
+1. **The IP.** It depends on nothing — no DNS, no mDNS. Bending it to a name
+   would mean making the emergency fallback of all things dependent on name resolution.
+   `http://4.3.2.1/` always delivers the UI directly.
+2. **The hostnames of the connectivity checks** (`captive.apple.com` and relatives). A
+   redirect there is exactly the signal "captive portal" — and then iOS starts again
+   to throw away the network after a short time (§13.2). The probe paths do have their own
+   handlers, but an *unknown* path on a probe host would otherwise run into this.
 
-### 13.6 Warum „auf alle IP-Adressen reagieren" nicht geht
+### 13.6 Why "respond to all IP addresses" does not work
 
-Die naheliegende Idee ist, den Webserver auf jeder Adresse lauschen zu lassen und von
-dort umzuleiten. **Der Webserver tut das bereits** — er bindet an `0.0.0.0:80`, also an
-alle Adressen des Geräts. Das ist nicht die Einschränkung.
+The obvious idea is to let the web server listen on every address and redirect from
+there. **The web server already does that** — it binds to `0.0.0.0:80`, i.e. to
+all addresses of the device. That is not the limitation.
 
-Die Einschränkung liegt zwei Schichten tiefer:
+The limitation lies two layers deeper:
 
-1. Jemand tippt `1.2.3.4`. Das Gerät sieht: nicht im eigenen Netz → an den Router.
-2. Router ist der Prüfstand. Der Rahmen kommt an **seine MAC-Adresse**, trägt aber
-   **Zieladresse 1.2.3.4** im Paket.
-3. lwIP prüft: „Ist das eine meiner Adressen?" Nein → **verworfen, auf der IP-Schicht**.
-4. TCP sieht das Paket nie. Kein Lauscher kann es annehmen.
+1. Someone types `1.2.3.4`. The device sees: not in its own network → to the router.
+2. The router is the test stand. The frame arrives at **its MAC address**, but carries
+   **destination address 1.2.3.4** in the packet.
+3. lwIP checks: "Is this one of my addresses?" No → **discarded, at the IP layer**.
+4. TCP never sees the packet. No listener can accept it.
 
-Am 2026-11-18 im ausgelieferten Netzwerkstapel nachgesehen, was es dagegen gäbe:
+Looked up on 2026-11-18 in the shipped network stack what there would be against it:
 
-| Mechanismus | Befund |
+| Mechanism | Finding |
 |---|---|
-| `LWIP_HOOK_IP4_INPUT` — klinkt sich **vor** der Zieladressprüfung ein | existiert nur als leere Vorlage in `opt.h`. **Übersetzungszeitschalter von lwIP selbst**, und der Arduino-Kern liefert `liblwip.a` mit 4,3 MB **vorkompiliert**. |
-| IP-Weiterleitung | `CONFIG_LWIP_IP_FORWARD is not set` — und ohne Uplink gäbe es ohnehin kein Ziel. |
-| NAPT (`ip_napt_enable`) | Kopfdateien vorhanden, aber hinter `#if IP_NAPT` in derselben vorkompilierten Bibliothek. Hülfe auch nicht: übersetzt wird nur, wohin es keinen Weg gibt. |
-| Proxy-ARP (bei Netzmaske 0.0.0.0) | in lwIP nur für PPP vorhanden, nicht für Ethernet/WLAN. |
+| `LWIP_HOOK_IP4_INPUT` — hooks in **before** the destination address check | exists only as an empty template in `opt.h`. **Compile-time switch of lwIP itself**, and the Arduino core ships `liblwip.a` with 4.3 MB **precompiled**. |
+| IP forwarding | `CONFIG_LWIP_IP_FORWARD is not set` — and without an uplink there would be no destination anyway. |
+| NAPT (`ip_napt_enable`) | header files present, but behind `#if IP_NAPT` in the same precompiled library. Would not help either: only what has a route gets translated. |
+| Proxy ARP (with netmask 0.0.0.0) | present in lwIP only for PPP, not for Ethernet/WiFi. |
 
-**Also nein, nicht ohne eigene SDK** — und gebraucht wird es auch nicht: der
-Wildcard-DNS deckt jeden *Namen* ab, und Namen sind das, was getippt wird.
+**So no, not without a custom SDK** — and it is not needed either: the
+wildcard DNS covers every *name*, and names are what gets typed.
 
-> **Getestet am 2026-11-18, iPhone:** `1.2.3.4` bleibt hängen, bis der Browser aufgibt —
-> genau das vorhergesagte Verhalten. Das Paket geht hin und wird verworfen.
+> **Tested on 2026-11-18, iPhone:** `1.2.3.4` hangs until the browser gives up —
+> exactly the predicted behavior. The packet goes out and is discarded.
+### 13.7 Limits
 
-### 13.7 Grenzen
+- `WebServer` from the Arduino core can, according to its own source comment, serve **only one
+  client at a time**. During a salvo of probes it swallows requests; the UI
+  tolerates that because it only counts dropouts as a break after `LINK_TIMEOUT_MS`.
+  Only when live values are to run over WebSocket does ESPAsyncWebServer pay off.
+- **The access point is openly accessible**, even with WPA2 — whoever reads the password from the
+  sticker can drive. For a stand with a motor that is a deliberate
+  trade-off, not negligence: the emergency stop is hardware, the brake closed when de-energized.
 
-- `WebServer` aus dem Arduino-Core kann laut eigenem Quelltextkommentar **nur einen
-  Client gleichzeitig**. Bei einer Prüfungssalve verschluckt er Anfragen; die Oberfläche
-  toleriert das, weil sie Aussetzer erst nach `LINK_TIMEOUT_MS` als Abriss wertet.
-  Erst wenn Livewerte über WebSocket laufen sollen, lohnt ESPAsyncWebServer.
-- **Der Accesspoint ist offen zugänglich**, auch mit WPA2 — wer das Kennwort vom
-  Aufkleber liest, kann fahren. Für einen Stand mit Motor ist das eine bewusste
-  Abwägung, keine Nachlässigkeit: der Not-Aus ist Hardware, die Bremse stromlos zu.
+## 14 Test-run variant
 
-## 14 Testlauf-Variante
+Standalone firmware for the **first test runs**: motor controller **and load cell**,
+nothing else. No Hall sensors on the drum, no LCD, no state machine, no
+measurement operation with plateaus and report. Three wires to the controller — `COMM` TX, RX and
+ground (§12.2) —, and it delivers speed, bus voltage, currents, both temperatures and
+the fault code by itself.
 
-Eigenständige Firmware für die **ersten Testläufe**: Motorregler **und Wägezelle**,
-sonst nichts. Keine Hall-Geber an der Trommel, kein LCD, keine Zustandsmaschine, kein
-Messbetrieb mit Plateaus und Protokoll. Drei Drähte zum Regler — `COMM` TX, RX und
-Masse (§12.2) —, und er liefert Drehzahl, Busspannung, Ströme, beide Temperaturen und
-den Fehlercode von selbst.
+> It was first called the **controller variant** and only drove the drive. On 2026-11-18 the
+> load cell was added, along with a Setup page for drum circumference, lever arms and calibration.
+> With that it is the tool for the first runs, no longer only for commissioning
+> the drive train.
 
-> Sie hieß zuerst **Reglervariante** und fuhr nur den Antrieb. Am 2026-11-18 kam die
-> Wägezelle dazu, samt Einrichtungsseite für Trommelumfang, Hebelarme und Kalibrierung.
-> Damit ist sie das Werkzeug für die ersten Läufe, nicht mehr nur für die Inbetriebnahme
-> des Antriebsstrangs.
+**The speed comes from the controller speed**, not from the drum marks: the
+Hall sensors on the drum are not yet wired. With the pole-pair count measured on 2026-11-17,
+`ERPM / 15` is the drum speed — a calculation, not an estimate. As soon as
+the marks are in place, the comparison of both sources is the plausibility check that
+`SLIP_TOLERANCE` provides for.
 
-**Die Geschwindigkeit kommt aus der Reglerdrehzahl**, nicht von den Trommelmarken: die
-Hall-Geber an der Trommel sind noch nicht verdrahtet. Mit der am 2026-11-17 gemessenen
-Polpaarzahl ist `ERPM / 15` die Trommeldrehzahl — eine Rechnung, keine Schätzung. Sobald
-die Marken liegen, ist der Vergleich beider Quellen die Plausibilitätsprüfung, die
-`SLIP_TOLERANCE` vorsieht.
+Purpose: commission the drive train and get to know it **before** a single
+measured value is due. The measurement chain is still TBD in essential points — cell
+uncalibrated, lever arm not measured —, whereas the controller is completely there.
 
-Zweck: den Antriebsstrang in Betrieb nehmen und kennenlernen, **bevor** ein einziger
-Messwert ansteht. Die Messkette ist in wesentlichen Punkten noch TBD — Zelle
-unkalibriert, Hebelarm nicht ausgemessen —, der Regler dagegen ist vollständig da.
+> **This variant has served its purpose.** With it and the tools under `tools/`,
+> pole count, R, L, flux linkage, Hall table, idle-loss curve,
+> idle losses of the drum and four braking distances were measured on 2026-11-17. The sections below are
+> therefore partly superseded and updated.
 
-> **Diese Variante hat ihren Zweck erfüllt.** Mit ihr und den Werkzeugen unter `tools/`
-> wurden am 2026-11-17 Polzahl, R, L, Flussverkettung, Hall-Tabelle, Leerlaufkennlinie,
-> Leerlaufverluste der Trommel und vier Bremswege vermessen. Die Abschnitte unten sind
-> deshalb teils überholt und nachgezogen.
+That is no detour: [10-firmware](10-firmware.md) §2 (T1…T8) and §5.5 (D23…D28)
+already demand exactly these functions.
 
-Das ist kein Umweg: [10-firmware](10-firmware.md) §2 (T1…T8) und §5.5 (D23…D28)
-fordern genau diese Funktionen bereits.
+    pio run -e esp32s3-vesc -t upload      # controller variant
+    pio run -e esp32s3 -t upload           # back to the main firmware
 
-    pio run -e esp32s3-vesc -t upload      # Reglervariante
-    pio run -e esp32s3 -t upload           # zurück zur Hauptfirmware
+### 14.1 What it can do
 
-### 14.1 Was sie kann
+**Two pages.** *Measurement* shows speed, load cell (kg, force, torque,
+rolling force), currents, power, bus voltage and both temperatures; below it a grid
+with all steps from `V_MIN_KMH` to 100 km/h in increments of `SPEED_STEP_KMH`, plus
+±5 for fine adjustment. *Setup* holds drum circumference, both lever arms and the
+calibration of the cell.
 
-**Zwei Seiten.** *Messung* zeigt Geschwindigkeit, Wägezelle (kg, Kraft, Moment,
-Rollkraft), Ströme, Leistung, Busspannung und beide Temperaturen; darunter ein Raster
-mit allen Stufen von `V_MIN_KMH` bis 100 km/h in Schritten von `SPEED_STEP_KMH`, dazu
-±5 zum Nachfassen. *Einrichtung* trägt Trommelumfang, beide Hebelarme und die
-Kalibrierung der Zelle.
+> **Steps above `V_MAX_KMH` are shown locked in the UI** and the firmware rejects
+> them. The buttons are still there so that it is visible what is missing: the release per
+> [07-safety](07-safety.md) §5.
 
-> **Stufen über `V_MAX_KMH` zeigt die Oberfläche gesperrt an** und die Firmware lehnt
-> sie ab. Die Knöpfe sind trotzdem da, damit sichtbar ist, was fehlt: die Freigabe nach
-> [07-sicherheit](07-sicherheit.md) §5.
+**STOP brakes** with `VESC_BRAKE_CURRENT_STOP` = 20 A — the spec reads
+*fastest possible stop*. If the controller drops out in the process because a power supply instead of a
+battery hangs on the bus, the drum coasts down and the UI says so. **The fault case
+is thus at the same time the fallback path.** Next to it stands *Coast*, which always works.
 
-**STOP bremst** mit `VESC_BRAKE_CURRENT_STOP` = 20 A — die Festlegung lautet
-*schnellstmöglicher Stopp*. Wirft der Regler dabei ab, weil ein Netzteil statt eines
-Akkus am Bus hängt, läuft die Trommel aus und die Oberfläche sagt es. **Der Fehlerfall
-ist damit zugleich der Rückfallweg.** Daneben steht *Auslaufen*, das immer geht.
-
-Befehle, identisch über serielle Konsole und Weboberfläche ([10-firmware](10-firmware.md) G5):
+Commands, identical over serial console and web UI ([10-firmware](10-firmware.md) G5):
 
 | | |
 |---|---|
-| `v<kmh>` | Zielgeschwindigkeit an der Trommeloberfläche |
-| `s` | STOP, bremst mit 20 A |
-| `c` | auslaufen lassen |
-| `t` | Wägezelle nullen (nur im Stillstand) |
-| `k<kg>` | kalibrieren mit bekanntem Gewicht am Kalibrierarm |
-| `d<m>` `a<m>` `b<m>` | Trommelumfang · Zellenarm · Kalibrierarm |
-| `z` | Einstellungen auf die Vorgaben aus `config.h` zurücksetzen |
-| `i` | **Zustand**: Regler, Wägezelle, Geber, Bedienverbindung |
-| `g` | Geberzähler nullen (Verdrahtungstest, siehe unten) |
-| `m0` / `m1` | Leerlauf / Messlauf: fährt die Messgeschwindigkeiten der Reihe nach ab |
-| `R` / `Rk` / `Rs` / `Rn` / `Rx` / `Rm<k>=<v>` | Geführter Messlauf (`run.h`, [11-messablauf-review](11-messablauf-review.md) §3): starten, Hauptknopf, Nebenknopf, Nochmal, abbrechen, Metadaten (t Reifen, w Laufrad, b bar, c °C, l kg, p mm, n Notiz, d Unixzeit). Im Bedienfeld hinter *Messung*. Protokoll und Daten unter `/runs/` |
-| `h<kmh>` / `h-<kmh>` | Messgeschwindigkeit aufnehmen / entfernen (Liste im NVS, sortiert) |
-| `l<N>` | Auflast, ohne sie startet kein Messlauf |
-| `n<A0> <B0>` / `w<A1> <B1>` | Leerlauf- und Radverlustmodell von Hand setzen; `m0` fittet das Leerlaufmodell selbst, `u` das Radverlustmodell |
-| `u` / `y<kg>` | Assistent Auslauf + Leerlauf (Trommel hoch, Rad abheben, beides zugleich) / Laufradmasse für J_Rad |
-| `j<s>` | Live-Telemetrie auf die Konsole, alle 200 ms für s Sekunden — zum Mitschreiben mit `tools/konsole.py` |
-| `:<text>` | **Durchgriff** zum Terminal des Reglers, wie im VESC-Tool: `:faults`, `:hall_analyze 5`. Antworten als `# VESC> …` |
-| `><hex>` | Rohpaket an den Regler, Antwort als `# V <hex>`. `>0e` holt die Motorkonfiguration, `>11` die App-Konfiguration |
-| `?` | Hilfe |
+| `v<kmh>` | target speed at the drum surface |
+| `s` | STOP, brakes with 20 A |
+| `c` | let coast |
+| `t` | tare the load cell (only at standstill) |
+| `k<kg>` | calibrate with known weight on the calibration arm |
+| `d<m>` `a<m>` `b<m>` | drum circumference · lever arm · calibration arm |
+| `z` | reset settings to the defaults from `config.h` |
+| `i` | **status**: controller, load cell, sensors, operator link |
+| `g` | zero the sensor counters (wiring test, see below) |
+| `m0` / `m1` | idle / measurement run: drives through the measurement speeds in sequence |
+| `R` / `Rk` / `Rs` / `Rn` / `Rx` / `Rm<k>=<v>` | Guided measurement run (`run.h`, [11-run-review](11-run-review.md) §3): start, main button, secondary button, again, abort, metadata (t tire, w wheel, b bar, c °C, l kg, p mm, n note, d Unix time). In the web UI behind *Measurement*. Report and data under `/runs/` |
+| `h<kmh>` / `h-<kmh>` | add / remove measurement speed (list in NVS, sorted) |
+| `l<N>` | wheel load; without it no measurement run starts |
+| `n<A0> <B0>` / `w<A1> <B1>` | set idle-loss and wheel-loss model by hand; `m0` fits the idle-loss model itself, `u` the wheel-loss model |
+| `u` / `y<kg>` | assistant spin-down + idle (drum up, lift wheel, both at once) / wheel mass for J_Rad |
+| `j<s>` | live telemetry to the console, every 200 ms for s seconds — for logging with `tools/konsole.py` |
+| `:<text>` | **passthrough** to the controller's terminal, as in the VESC tool: `:faults`, `:hall_analyze 5`. Answers as `# VESC> …` |
+| `><hex>` | raw packet to the controller, answer as `# V <hex>`. `>0e` fetches the motor configuration, `>11` the app configuration |
+| `?` | help |
 
-`i` ist der Befehl fürs Anschließen. Die Oberfläche zeigt dasselbe, aber am Stand
-steht man mit dem Schraubendreher davor — und wenn eine der beiden Verbindungen
-fehlt, ist der Browser genau das, was man gerade nicht hat. Fehlt etwas, nennt `i`
-die GPIOs und die Verdächtigen dazu.
+`i` is the command for connecting. The UI shows the same, but at the stand
+one stands in front of it with the screwdriver — and if one of the two connections
+is missing, the browser is exactly what one does not have at that moment. If something is missing, `i`
+names the GPIOs and the suspects along with them.
 
-**Verdrahtungstest der Hall-Geber.** Unter *Einrichtung → Hall-Geber* (und in der
-Zeile `Geber` von `i`) steht je Kanal — Trommelmarken, Index, Laufrad, Motor-Hall —
-der Impulszähler seit dem letzten Nullen, die Zeit seit dem letzten Impuls und der
-Pegel am Pin. Trommel und Laufrad von Hand drehen: jeder Zähler muss mitlaufen.
-Der Pegel allein beweist nichts, weil der Pull-up einen nicht verdrahteten Geber
-genauso high zieht wie einen ohne Magnet davor; `low` heißt Magnet vor dem Geber,
-die LED im Gehäuse leuchtet dann. Die Prüfzähler sind von den Messzählern getrennt,
-`g` nullt sie jederzeit.
+**Wiring test of the Hall sensors.** Under *Setup → Hall sensors* (and in the
+`Geber` line of `i`) there is per channel — drum marks, index, wheel, motor Hall —
+the pulse counter since the last zeroing, the time since the last pulse and the
+level at the pin. Turn drum and wheel by hand: every counter must run along.
+The level alone proves nothing, because the pull-up pulls an unwired sensor
+high just like one without a magnet in front of it; `low` means magnet in front of the sensor,
+and the LED in the housing then lights up. The test counters are separate from the measurement counters;
+`g` zeroes them at any time.
 
-**Laufradumfang aus dem Drehzahlverhältnis, integriert.** Die Messseite zeigt unter
-*Laufrad* die Trommel- und die Laufraddrehzahl in 1/min und den **wirksamen
-Abrollumfang** des Laufrads in mm. Am Latsch sind die Umfangsgeschwindigkeiten
-gleich, also
+**Wheel circumference from the speed ratio, integrated.** The Measurement page shows under
+*Wheel* the drum and the wheel speed in rpm and the **effective
+rolling circumference** of the wheel in mm. At the contact patch the circumferential speeds are
+equal, so
 
 ```
-U_Rad = U_Trommel · Trommelumdrehungen / Radumdrehungen     (dasselbe Zeitfenster)
+U_Rad = U_Trommel · drum revolutions / wheel revolutions     (same time window)
 ```
 
-Die Radumdrehungen sind exakt — das Fenster beginnt und endet auf einem Impuls des
-Laufradgebers —, die Trommelumdrehungen werden über die Zeit aufintegriert
-(`revsrc::revPerSec`). Das Fenster **gleitet** über die letzten
-`WHEEL_CIRC_WINDOW_REVS` = 10 Radumdrehungen und wird bei jedem Impuls neu gerechnet:
-fortlaufend, aber geglättet. Bis es voll ist, steht der Zähler darunter; steht das
-Rad länger als `WHEEL_CIRC_GAP_MS`, verfällt es. So flattert der Wert nicht mit
-jedem Impuls, wie es der Momentanwert vom 2026-11-22 tat. Gemessen bei 15 km/h:
-1527 bis 1531 mm, von Fenster zu Fenster.
-Der Umfang liegt wegen der Einfederung unter dem Maßband-Wert und ist genau die
-Größe, die in die Auswertung gehört. `i` gibt dieselbe Zeile auf der Konsole aus.
+The wheel revolutions are exact — the window begins and ends on a pulse of the
+wheel sensor —, the drum revolutions are integrated over time
+(`revsrc::revPerSec`). The window **slides** over the last
+`WHEEL_CIRC_WINDOW_REVS` = 10 wheel revolutions and is recalculated at every pulse:
+continuous, but smoothed. Until it is full, the counter is shown below; if the
+wheel stands still longer than `WHEEL_CIRC_GAP_MS`, it expires. So the value does not flutter with
+every pulse, as the instantaneous value of 2026-11-22 did. Measured at 15 km/h:
+1527 to 1531 mm, from window to window.
+The circumference lies below the tape-measure value because of the tire deflection and is exactly the
+quantity that belongs in the evaluation. `i` prints the same line on the console.
 
-> **Die Konsole liegt bei dieser Variante auf der nativen USB-Buchse**, nicht auf
-> UART0: `ARDUINO_USB_CDC_ON_BOOT=1` in `platformio.ini`. Am 2026-11-18 war nur
-> ein Port da, esptool redete darüber mit dem Chip, aber `Serial` ging an die
-> Buchse `COM`, an der kein Kabel steckte — also kam nichts. Mit dem Flag meldet
-> sich die Konsole auf demselben Port. §5.1 beschreibt den umgekehrten Fall vom
-> 2026-11-15, als `COM` funktionierte.
+> **The console in this variant is on the native USB socket**, not on
+> UART0: `ARDUINO_USB_CDC_ON_BOOT=1` in `platformio.ini`. On 2026-11-18 only
+> one port was there, esptool talked to the chip over it, but `Serial` went to the
+> `COM` socket, where no cable was plugged in — so nothing came. With the flag the
+> console reports on the same port. §5.1 describes the reverse case of
+> 2026-11-15, when `COM` worked.
 
-> **Erster Anschlusstest, 2026-11-18**, in zwei Schritten:
+> **First connection test, 2026-11-18**, in two steps:
 >
-> 1. Wägezelle **antwortet** (−6871 counts, Spitze-Spitze 369, unkalibriert).
->    Regler **nicht** — und zwar noch nie seit dem Start, also kein verlorenes
->    Paket, sondern keine Verbindung. Ursache war zu geringe Akkuspannung: unter
->    `l_min_vin` läuft nicht einmal seine Logik.
-> 2. Mit mehr Spannung antwortet er sofort (FW 7.1, HW 410, kein Fehler) — bei
->    8,2 V aber immer noch ohne jede Fähigkeit zu fahren, siehe §10.4b. Genau
->    dafür unterscheidet `i` beides nicht: er zeigt die Spannung, und die
->    Beurteilung bleibt beim Menschen.
+> 1. Load cell **answers** (−6871 counts, peak-to-peak 369, uncalibrated).
+>    Controller **not** — and never since start, so not a lost
+>    packet but no connection. Cause was too low a battery voltage: below
+>    `l_min_vin` not even its logic runs.
+> 2. With more voltage it answers immediately (FW 7.1, HW 410, no fault) — at
+>    8.2 V however still without any ability to drive, see §10.4b. Exactly
+>    for that `i` does not distinguish the two: it shows the voltage, and the
+>    judgement stays with the human.
 
-### 14.1a Kalibrierung der Wägezelle
+### 14.1a Calibration of the load cell
 
-Zwei Schritte, beide über die Einrichtungsseite oder die Konsole:
+Two steps, both via the Setup page or the console:
 
-1. **Nullabgleich** bei unbelastetem Arm. Mittelt `TARE_SAMPLES` Rohwerte, rund 2,5 s.
-2. **Bekanntes Gewicht** an den Kalibrierarm hängen und das Gewicht eingeben.
+1. **Tare** with the arm unloaded. Averages `TARE_SAMPLES` raw values, about 2.5 s.
+2. Hang a **known weight** on the calibration arm and enter the weight.
 
-Gerechnet wird
+The calculation is
 
 ```
-F_Zelle   = m · g · L_kal / L_Zelle
-N_pro_cnt = F_Zelle / (Rohwert − Nullwert)
+F_Zelle    = m · g · L_cal / L_cell
+N_per_cnt = F_Zelle / (raw − zero)
 ```
 
-Das Gewicht hängt am **längeren** Arm, die Zelle sitzt am kürzeren — deshalb erzeugt ein
-handliches Gewicht die doppelte Kraft an der Zelle (§Parameter `CALIB_ARM_M`).
+The weight hangs on the **longer** arm, the cell sits on the shorter — that is why a
+handy weight produces twice the force at the cell (§Parameters `CALIB_ARM_M`).
 
-> **Solange nicht kalibriert ist, gibt es keine Kräfte, nur Rohwerte.** Die Oberfläche
-> zeigt dann Gedankenstriche und „nicht kalibriert". Das ist Absicht: eine Zahl, die
-> aussieht wie eine Messung, ist schlimmer als eine Lücke.
+> **As long as it is not calibrated, there are no forces, only raw values.** The UI
+> then shows dashes and "not calibrated". That is intentional: a number that
+> looks like a measurement is worse than a gap.
 
-### 14.1b Wo die am Aufbau ermittelten Werte liegen
+### 14.1b Where the values determined on the setup live
 
-Trommelumfang, beide Hebelarme und der Kalibrierfaktor werden **am Aufbau** gemessen,
-nicht am Schreibtisch. Ein Kalibrierlauf, der zum Übersetzen und Flashen zwingt, wird
-nicht gemacht — und ein nicht gemachter Kalibrierlauf ist genau die Quelle erfundener
-Zahlen, gegen die die Projektregel geschrieben ist.
+Drum circumference, both lever arms and the calibration factor are measured **on the setup**,
+not at the desk. A calibration run that forces compiling and flashing is
+not done — and a calibration run not done is exactly the source of invented
+numbers that the project rule is written against.
 
-Deshalb liegen diese vier Werte im **NVS** des ESP32 (`firmware/src/settings.*`).
+That is why these four values live in the **NVS** of the ESP32 (`firmware/src/settings.*`).
 
-> **Die Regel bleibt trotzdem gewahrt.** `config.h` liefert die Vorgaben, und die
-> Oberfläche zeigt nach jeder Kalibrierung die fertige Zeile zum Eintragen in `config.h`
-> und [03-parameter](03-parameter.md) §2 an. Der NVS ist der Arbeitsspeicher, **das Repo
-> bleibt die Quelle der Wahrheit**. Wer das Board tauscht, verliert den NVS — und merkt
-> es sofort, weil die Firmware dann wieder „nicht kalibriert" meldet.
+> **The rule is nevertheless upheld.** `config.h` supplies the defaults, and the
+> UI shows after every calibration the finished line for entry into `config.h`
+> and [03-parameters](03-parameters.md) §2. The NVS is the working memory, **the repo
+> remains the source of truth**. Whoever swaps the board loses the NVS — and notices
+> it immediately, because the firmware then reports "not calibrated" again.
 
-Unplausible Werte werden abgewiesen statt übernommen: ein vertippter Trommelumfang von
-28,37 m soll nicht stillschweigend gelten.
+Implausible values are rejected instead of accepted: a mistyped drum circumference of
+28.37 m is not to apply silently.
 
-### 14.2 ERPM, und warum die Umrechnung jetzt zulässig ist
+### 14.2 ERPM, and why the conversion is now permissible
 
-Der Regler rechnet in **elektrischen** Umdrehungen; mechanisch ist das
-`ERPM / Polpaarzahl`.
+The controller calculates in **electrical** revolutions; mechanically that is
+`ERPM / pole pairs`.
 
-Ursprünglich wurde hier **nur** ERPM angezeigt, weil die Polpaarzahl nicht gemessen war
-und jede Umrechnung eine erfundene Zahl gewesen wäre. Das `si_motor_poles` des Reglers
-taugte dafür nicht: es ist, was jemand eingetippt hat — und stand auf dem
-**Werkswert 14**, während es in Wirklichkeit 30 Pole sind.
+Originally **only** ERPM was shown here, because the pole-pair count was not measured
+and every conversion would have been an invented number. The controller's `si_motor_poles`
+was no good for that: it is what someone typed in — and stood at the
+**factory value 14**, while in reality there are 30 poles.
 
-**Seit dem 2026-11-17 ist die Polpaarzahl gemessen: 15** (900 Tachoschritte auf 10
-markierte Handumdrehungen, [03-parameter](03-parameter.md) §3). Die Umrechnung ist damit
-eine Rechnung und keine Schätzung mehr, und `VESC_ERPM_MAX` ist **abgeleitet** statt
-geraten:
+**Since 2026-11-17 the pole-pair count is measured: 15** (900 tachometer steps over 10
+marked hand revolutions, [03-parameters](03-parameters.md) §3). The conversion is thus
+a calculation and no longer an estimate, and `VESC_ERPM_MAX` is **derived** instead of
+guessed:
 
 ```
 VESC_ERPM_MAX = MAX_DRUM_RPM · MOTOR_POLE_PAIRS = 353 · 15 = 5295
 ```
 
-Vorher stand dort 2400, aus der Annahme, 7 Polpaare seien der kleinste plausible Wert.
-Die Annahme war konservativ gemeint und lag um Faktor 2 daneben — die Trommel hätte
-damit nur 160 1/min erreicht.
+Previously it stood at 2400, from the assumption that 7 pole pairs were the smallest plausible value.
+The assumption was meant to be conservative and was off by a factor of 2 — the drum would
+only have reached 160 rpm with it.
 
-### 14.3 Motortemperatur — Fühler bestätigt, Abfrage noch nicht nachgezogen
+### 14.3 Motor temperature — sensor confirmed, query not yet updated
 
-Ursprünglich wurde das Feld **gar nicht abgefragt**, weil der Regler ohne Fühler am
-`TMP`-Eingang eine Phantasiezahl **ohne Fehlermeldung** liefert, typisch einen großen
-negativen Wert. Ein Strich ist ehrlicher als eine Zahl, die aussieht wie eine Messung.
+Originally the field was **not queried at all**, because the controller without a sensor on the
+`TMP` input delivers a fantasy number **without an error message**, typically a large
+negative value. A dash is more honest than a number that looks like a measurement.
 
-**A5 ist seit dem 2026-11-17 beantwortet:** es ist ein 10-k-NTC im Stator, dreifach
-belegt ([06-offene-fragen](06-offene-fragen.md) A5), und `m_motor_temp_sens_type` steht
-richtig. Der Wert ist damit echt — eben jene Phantasiezahl von −75,5 °C bei offener
-Klemme war der *Beweis* dafür.
+**A5 has been answered since 2026-11-17:** it is a 10 k NTC in the stator, triply
+confirmed ([06-open-questions](06-open-questions.md) A5), and `m_motor_temp_sens_type` is set
+correctly. The value is thus real — that very fantasy number of −75.5 °C with an open
+terminal was the *proof* of it.
 
-Die Variante fragt das Feld trotzdem noch nicht ab (Bit 1 fehlt in der Maske von
-`vesc/vesc.cpp`). Das ist jetzt ein **Nachtrag**, keine Festlegung mehr. [TBD]
+The variant nevertheless still does not query the field (bit 1 missing in the mask of
+`vesc/vesc.cpp`). That is now a **follow-up**, no longer a spec. [TBD]
 
-### 14.4 Zwei Totmannschaltungen
+### 14.4 Two dead-man switches
 
-| | greift wenn | Wirkung |
+| | takes effect when | Effect |
 |---|---|---|
-| **in dieser Firmware** | der Bedienrechner länger als `LINK_TIMEOUT_MS` schweigt | Antrieb wird freigegeben, Trommel läuft aus |
-| **im Regler** | länger als `timeout_msec` kein Sollwert ankommt | der Regler stellt selbst ab |
+| **in this firmware** | the operator computer is silent longer than `LINK_TIMEOUT_MS` | drive is released, drum coasts down |
+| **in the controller** | no setpoint arrives for longer than `timeout_msec` | the controller shuts off itself |
 
-Die zweite greift auch dann, wenn **diese Firmware** stehenbleibt — deshalb wird der
-Sollwert nur wiederholt, solange gefahren wird, und sonst gar nichts gesendet.
+The second also takes effect if **this firmware** stalls — that is why the
+setpoint is only repeated while driving, and otherwise nothing at all is sent.
 
-> **`COMM_GET_VALUES` setzt den Timeout des Reglers NICHT zurück.** Nur Sollwerte und
-> `COMM_ALIVE` tun das. Wer meint, mit Messwertabfragen den Antrieb am Leben zu
-> halten, irrt sich — und merkt es erst, wenn der Motor mitten im Lauf abstellt.
+> **`COMM_GET_VALUES` does NOT reset the controller's timeout.** Only setpoints and
+> `COMM_ALIVE` do. Whoever thinks they can keep the drive alive with value queries
+> is mistaken — and only notices when the motor shuts off in the middle of the run.
 
-### 14.5 Einmalige Einrichtung im VESC-Tool über USB
+### 14.5 One-time setup in the VESC tool via USB
 
-Ohne diese Schritte antwortet der Regler gar nicht oder falsch:
+Without these steps the controller does not answer at all or answers wrongly:
 
-1. `app_to_use` = **UART** (oder PPM+UART / ADC+UART). Ein konfigurierter externer
-   IMU verhindert den Start der Schnittstelle ebenfalls — gemeinsame Pins.
-2. Baudrate **115200**.
-3. Motortyp **FOC**, Sensormodus **Hall**. Sensorlos gibt es unterhalb
-   `foc_openloop_rpm` keine Momentenkontrolle.
-4. `si_motor_poles` = **30** (gemessen, §10.5).
-5. `timeout_msec` auf **300**.
-6. Motor- und Hall-Erkennung einmal laufen lassen — oder die gesicherten Werte als XML
-   zurückschreiben, das geht **ohne Motor** (§10.5a).
+1. `app_to_use` = **UART** (or PPM+UART / ADC+UART). A configured external
+   IMU also prevents the interface from starting — shared pins.
+2. Baud rate **115200**.
+3. Motor type **FOC**, sensor mode **Hall**. Sensorless there is no torque control
+   below `foc_openloop_rpm`.
+4. `si_motor_poles` = **30** (measured, §10.5).
+5. `timeout_msec` to **300**.
+6. Run motor and Hall detection once — or write the saved values back as XML,
+   which works **without a motor** (§10.5a).
 
-> **Punkt 5 stand hier falsch.** Es hieß: „`timeout_brake_current` ausdrücklich über
-> null — die Vorgabe 0,0 A heißt *auslaufen lassen*, nicht bremsen." Das klingt
-> vorsichtig und ist für diesen Prüfstand **schädlich**. Testweise auf 1,0 A gesetzt und
-> am 2026-11-17 wieder zurückgenommen: der Zustand **rastet ein**, die Endstufe läuft
-> dauerhaft weiter (4,8 W, FET auf 32,9 °C), und ein dauerhaft kurzgeschlossener Motor
-> **lässt sich nicht frei drehen** — der Auslaufversuch ist aber eine Kernmethode dieses
-> Stands. Begründung in §10.5. Der Wert bleibt **0**; gebremst wird über die Relais oder
-> über `VESC_BRAKE_CURRENT_STOP`.
+> **Item 5 was wrong here.** It read: "`timeout_brake_current` explicitly above
+> zero — the default 0.0 A means *let coast*, not brake." That sounds
+> cautious and is **harmful** for this test stand. Set to 1.0 A as a test and
+> taken back on 2026-11-17: the state **latches**, the power stage keeps running
+> permanently (4.8 W, FET at 32.9 °C), and a permanently shorted motor
+> **cannot turn freely** — but the spin-down test is a core method of this
+> stand. Reasoning in §10.5. The value stays **0**; braking is via the relays or
+> via `VESC_BRAKE_CURRENT_STOP`.
 
-Die Firmwareversion meldet die Variante beim Start selbst (`COMM_FW_VERSION`). Sie
-entscheidet, ob `foc_short_ls_on_zero_duty` und `l_battery_regen_cut_start/end`
-überhaupt existieren — beide erst ab **6.05**. Der Regler läuft seit dem 2026-11-17 auf
-**7.01**, beide sind vorhanden und gesetzt (§10.5a).
+The firmware version is reported by the variant itself at start (`COMM_FW_VERSION`). It
+decides whether `foc_short_ls_on_zero_duty` and `l_battery_regen_cut_start/end`
+exist at all — both only from **6.05**. The controller has been running on
+**7.01** since 2026-11-17; both are present and set (§10.5a).

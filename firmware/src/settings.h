@@ -9,7 +9,7 @@
 //
 // DIE PROJEKTREGEL BLEIBT TROTZDEM GEWAHRT: config.h liefert die Vorgaben, und die
 // Oberfläche zeigt nach jeder Kalibrierung die fertige Zeile zum Eintragen in
-// config.h und docs/03-parameter.md an. Der NVS ist der Arbeitsspeicher, das Repo
+// config.h und docs/03-parameters.md an. Der NVS ist der Arbeitsspeicher, das Repo
 // bleibt die Quelle der Wahrheit. Wer das Board tauscht, verliert den NVS — und
 // merkt es, weil die Firmware dann wieder "nicht kalibriert" meldet.
 //
@@ -58,7 +58,7 @@ bool    removePlateau(float kmh);        // false: nicht in der Liste
 float loadN();
 bool  setLoadN(float n);
 
-// Verlustmodelle, beide im NVS (config.h, docs/09-messtheorie.md Gl. 11/12):
+// Verlustmodelle, beide im NVS (config.h, docs/09-measurement-theory.md Gl. 11/12):
 //   Leerlauf  M_leer(w)     = A0 + B0 w^2        [Nm], w Trommel in rad/s
 //   Laufrad   M_Rad(w_Rad)  = A1 + B1 w_Rad^2    [Nm am Rad]
 // NAN = nicht ermittelt. Dann wird nicht korrigiert, und Crr heisst "roh".
@@ -71,6 +71,15 @@ bool  haveBaseline();  bool haveWheelModel();
 uint32_t baselineAgeMs(); uint32_t wheelModelAgeMs(); uint32_t tareAgeMs();
 // Laufradmasse mit Reifen [kg]; daraus J_Rad = WHEEL_J_FACTOR m r_Rad^2. NAN = unbekannt.
 float wheelMassKg(); bool setWheelMassKg(float kg);
+// GEMESSENES J_Rad [kg m^2] aus dem Bifilarpendel (docs/09-measurement-theory.md §9.2).
+// Gesetzt hat es Vorrang vor der Schaetzung ueber WHEEL_J_FACTOR, und die
+// Unsicherheit des Radmodells faellt von UNC_RAD_EST_REL auf UNC_RAD_REL. NAN = nicht
+// gemessen; setWheelJKgm2(0) loescht.
+float wheelJKgm2(); bool setWheelJKgm2(float j);
+// Zellenarm ZUM ZEITPUNKT DER KALIBRIERUNG [m]. Im Moment kuerzt sich der Arm heraus
+// (M = counts * m g L_kal / counts_kal), aber nur, solange derselbe Wert gilt wie bei
+// der Kalibrierung. Weicht torqueArmM() davon ab, warnt der Messlauf (W15). NAN = unbekannt.
+float armAtCalM();
 // Letzter gemessener Laufradumfang [m] (wheel.h), ueberlebt den Stillstand und den
 // Neustart -- der Assistent braucht ihn, bevor sich etwas dreht. NAN = nie gemessen.
 float wheelCircM(); bool setWheelCircM(float m);

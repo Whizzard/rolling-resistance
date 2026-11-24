@@ -21,6 +21,8 @@ constexpr char K_A0[] = "a0"; constexpr char K_B0[] = "b0";
 constexpr char K_A1[] = "a1"; constexpr char K_B1[] = "b1";
 constexpr char K_MRAD[] = "m_rad";
 constexpr char K_URAD[] = "u_rad";
+constexpr char K_JRAD[] = "j_rad";       // gemessenes J_Rad, Bifilarpendel
+constexpr char K_ARMCAL[] = "arm_at_cal"; // Zellenarm bei der Kalibrierung
 
 float g_drum  = DRUM_CIRCUMFERENCE_M;
 float g_arm   = TORQUE_ARM_M;
@@ -32,6 +34,8 @@ long    g_tare  = 0;
 float   g_load  = LOAD_DEFAULT_N;
 float   g_a0 = NAN, g_b0 = NAN, g_a1 = NAN, g_b1 = NAN, g_mRad = WHEEL_MASS_DEFAULT_KG;
 float   g_uRad = NAN;
+float   g_jRad = NAN;
+float   g_armCal = NAN;
 float   g_plat[PLATEAU_MAX];
 uint8_t g_platN = 0;
 
@@ -104,6 +108,8 @@ void begin() {
     if (g_nvs.isKey(K_B1)) g_b1 = g_nvs.getFloat(K_B1, NAN);
     if (g_nvs.isKey(K_MRAD)) g_mRad = g_nvs.getFloat(K_MRAD, NAN);
     if (g_nvs.isKey(K_URAD)) g_uRad = g_nvs.getFloat(K_URAD, NAN);
+    if (g_nvs.isKey(K_JRAD)) g_jRad = g_nvs.getFloat(K_JRAD, NAN);
+    if (g_nvs.isKey(K_ARMCAL)) g_armCal = g_nvs.getFloat(K_ARMCAL, NAN);
     const size_t bytes = g_nvs.isKey(K_PLAT) ? g_nvs.getBytesLength(K_PLAT) : 0;
     if (bytes > 0 && bytes % sizeof(float) == 0 && bytes <= sizeof(g_plat)) {
       g_nvs.getBytes(K_PLAT, g_plat, bytes);
@@ -175,6 +181,15 @@ bool  setWheelMassKg(float kg) {
   g_mRad = kg;
   return store1(K_MRAD, kg);
 }
+
+float wheelJKgm2() { return g_jRad; }
+bool  setWheelJKgm2(float j) {
+  if (j == 0.0f) { g_jRad = NAN; if (!g_nvs.begin(NS, false)) return false; g_nvs.remove(K_JRAD); g_nvs.end(); return true; }
+  if (!(j > 0.01f && j < 2.0f)) return false;
+  g_jRad = j;
+  return store1(K_JRAD, j);
+}
+float armAtCalM() { return g_armCal; }
 
 float wheelCircM() { return g_uRad; }
 bool  setWheelCircM(float m) {
@@ -263,6 +278,8 @@ bool setCalibArmM(float m) {
 bool setLoadcellNPerCount(float x) {
   if (!okNpc(x)) return false;
   g_npc = x;
+  g_armCal = g_arm;   // der Faktor gilt fuer DIESEN Zellenarm
+  store(K_ARMCAL, g_arm);
   return store(K_NPC, x);
 }
 
@@ -290,6 +307,8 @@ void reset() {
   g_a0 = g_b0 = g_a1 = g_b1 = NAN;
   g_mRad = WHEEL_MASS_DEFAULT_KG;
   g_uRad = NAN;
+  g_jRad = NAN;
+  g_armCal = NAN;
   defaultPlateaus();
 }
 

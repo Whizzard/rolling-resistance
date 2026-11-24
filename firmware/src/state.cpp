@@ -33,7 +33,11 @@ struct RevStats {
   double   s = 0, ss = 0, sv = 0, svv = 0; uint8_t n = 0;
   float    dvdtMax = 0; bool fault = false;
   double   sImot = 0, sVin = 0; uint16_t nTele = 0;
-  void reset() { *this = RevStats(); }
+  // Ausgleichsgerade v(t) ueber den ganzen Punkt: ihre Steigung ist die NETTO-
+  // Beschleunigung, die das Traegheitsmoment J*dw/dt im Mittelwert hinterlaesst
+  // (docs/12-methodology-review.md K1). Zeit relativ zum Punktbeginn, Sekunden.
+  uint32_t t0 = 0; double st = 0, stt = 0, svt = 0, svs = 0; uint32_t nt = 0;
+  void reset() { *this = RevStats(); t0 = millis(); }
   void rev() {
     const uint32_t cnt = torque::sampleCount();
     const double sum = torque::sumRaw();
@@ -49,6 +53,15 @@ struct RevStats {
     if (!isnan(a) && fabsf(a) > dvdtMax) dvdtMax = fabsf(a);
     if (vesc::values().fault != 0) fault = true;
     sImot += vesc::values().currentMotor; sVin += vesc::values().vIn; nTele++;
+    const double t = (millis() - t0) / 1000.0, v = revsrc::kmh();
+    st += t; stt += t * t; svt += v * t; svs += v; nt++;
+  }
+  // Steigung der Ausgleichsgeraden, km/h/s. NAN unter 0,5 s Daten.
+  float dvdtNet() const {
+    if (nt < 10) return NAN;
+    const double den = nt * stt - st * st;
+    if (den < 0.02 * nt * nt) return NAN;   // Zeitspanne unter ~0,5 s (Varianz T^2/12)
+    return static_cast<float>((nt * svt - st * svs) / den);
   }
   static float sd(double s, double ss, uint8_t n) {
     if (n < 2) return NAN;
@@ -58,6 +71,7 @@ struct RevStats {
 };
 RevStats g_rs;
 uint32_t g_settleStartMs = 0;
+uint32_t g_settleSteadyMs = 0;   // seit wann |v - Soll| < SETTLE_TOL_KMH
 uint32_t g_faultSinceMs = 0;
 uint32_t g_faultStillMs = 0;   // seit wann die Trommel im FAULT steht
 float g_loadN = NAN;
@@ -93,7 +107,7 @@ void storeBaselineFit(const char* why) {
     Serial.print(", "); Serial.print(static_cast<int>(g_fit.n));
     Serial.print(" Punkte): A0="); Serial.print(a0, 4);
     Serial.print(" Nm  B0="); Serial.print(b0, 7); Serial.println(" Nm/(rad/s)^2");
-    Serial.println("# In config.h und docs/03-parameter.md eintragen.");
+    Serial.println("# In config.h und docs/03-parameters.md eintragen.");
   } else {
     logger::note("Leerlaufmodell nicht gespeichert: zu wenige Punkte oder unplausibel");
   }
@@ -117,7 +131,7 @@ void enterFault(const char* reason) {
   logger::note(reason);
 }
 
-// Abschaltkriterien. Siehe docs/07-sicherheit.md §4.
+// Abschaltkriterien. Siehe docs/07-safety.md §4.
 void checkFaults() {
   const char* reason = nullptr;
 
@@ -182,11 +196,32 @@ void startRun(RunMode mode) {
   startSequence(mode, kmh, n, 1, true, nullptr, nullptr);
 }
 
+// Wirksames Traegheitsmoment an der Trommelwelle: Trommel, und im Messlauf das
+// aufliegende Laufrad, mit dem Quadrat des Radienverhaeltnisses umgerechnet.
+float effectiveInertia() {
+  float j = DRUM_INERTIA_KGM2;
+  if (g_run == RUN_MEASURE) {
+    const float jr = wheel::jRadKgm2(), uRad = settings::wheelCircM();
+    if (!isnan(jr) && !isnan(uRad) && uRad > 0.1f) {
+      const float q = settings::drumRadiusM() / (uRad / (2.0f * PI));
+      j += jr * q * q;
+    }
+  }
+  return j;
+}
+
 void finishPoint() {
   const float v = revsrc::kmh();
   const float raw = torque::averageRaw();
   const float fN = torque::averageN();
-  const float mNm = isnan(fN) ? NAN : fN * settings::torqueArmM();
+  const float mRawNm = isnan(fN) ? NAN : fN * settings::torqueArmM();
+  // Traegheitskorrektur (docs/09-measurement-theory.md Gl. 14, docs/12 K1): die Netto-
+  // Beschleunigung ueber den Punkt erzeugt J*dw/dt im Mittelwert. Abziehen, und den
+  // Punkt nur verwerfen, wenn der Rest (UNC_J_REL davon) ueber 1 % laege.
+  const float dvdtNet = g_rs.dvdtNet();
+  const float mInert = isnan(dvdtNet) ? 0.0f
+      : effectiveInertia() * (dvdtNet / 3.6f / settings::drumRadiusM());
+  const float mNm = isnan(mRawNm) ? NAN : mRawNm - mInert;
   const float pW = isnan(mNm) ? NAN : mNm * revsrc::omega();
   const float fRoll = isnan(mNm) ? NAN : mNm / settings::drumRadiusM();
 
@@ -213,16 +248,21 @@ void finishPoint() {
     ps.v   = g_rs.n ? static_cast<float>(g_rs.sv / g_rs.n) : v;
     ps.vSd = RevStats::sd(g_rs.sv, g_rs.svv, g_rs.n);
     ps.raw = raw;
-    ps.mNm = mNm;
-    ps.sdNm = (isnan(sdRaw) || !settings::calibrated()) ? NAN
-            : sdRaw * settings::loadcellNPerCount() * settings::torqueArmM();
+    ps.mNm = mNm; ps.mRawNm = mRawNm; ps.mInertNm = mInert; ps.dvdtNet = dvdtNet;
+    const float nmPerCount = settings::calibrated() ? settings::loadcellNPerCount() * settings::torqueArmM() : NAN;
+    ps.sdNm = isnan(sdRaw) ? NAN : sdRaw * nmPerCount;
+    ps.rippleNm = torque::rippleRaw() * nmPerCount;
+    ps.realRevs = revsrc::realRevolutions();
+    // Ohne echten Index liegt das Fenster um bis zu eine Umdrehung schief; von einer
+    // Stoerung erster Ordnung mit Amplitude a bleibt dann bis zu a/N stehen.
+    ps.uSyncNm = (ps.realRevs || isnan(ps.rippleNm) || g_revs == 0) ? 0.0f : ps.rippleNm / 2.0f / g_revs;
     ps.dvdtMax = g_rs.dvdtMax;
     ps.imot = g_rs.nTele ? static_cast<float>(g_rs.sImot / g_rs.nTele) : NAN;
     ps.vin  = g_rs.nTele ? static_cast<float>(g_rs.sVin / g_rs.nTele) : NAN;
     ps.tfet = vesc::values().tempFet;
     ps.tmot = vesc::values().tempMotor;
     ps.revs = g_revs; ps.plateau = g_plateau; ps.k = g_k;
-    ps.ok = !g_rs.fault && g_rs.dvdtMax < STEADY_DVDT_KMH_S
+    ps.ok = !g_rs.fault && !isnan(dvdtNet) && fabsf(dvdtNet) < POINT_DVDT_NET_MAX_KMH_S
             && fabsf(ps.v - g_seq[g_plateau]) < STEADY_TOL_KMH;
     ps.tMs = millis();
     g_onPoint(ps);
@@ -244,7 +284,7 @@ void finishPoint() {
     g_run = RUN_NONE;
     if (g_coastAtEnd) {
       logger::note("Lauf beendet — Trommel laeuft aus");
-      speedctl::coast();   // frei auslaufen, nicht bremsen (docs/05-pruefablauf.md §B8)
+      speedctl::coast();   // frei auslaufen, nicht bremsen (docs/05-test-procedure.md §B8)
       g_phase = COAST;
     } else {
       g_phase = HOLD;      // bleibt auf der letzten Geschwindigkeit, run.cpp entscheidet
@@ -302,22 +342,32 @@ void service() {
     case SPINUP:
       if (fabsf(revsrc::kmh() - speedctl::rampKmh()) < SPEED_TOLERANCE_KMH) {
         g_settleStartMs = millis();
+        g_settleSteadyMs = 0;
         g_phase = SETTLE;
       }
       break;
 
-    case SETTLE:
+    case SETTLE: {
       // Nach dem Plateauwechsel einschwingen lassen: Restbeschleunigung der
-      // Schwungmasse und Schwingungen des Wiegeteils klingen hier ab.
-      if (millis() - g_settleStartMs >= SETTLE_MS) {
+      // Schwungmasse und Schwingungen des Wiegeteils klingen hier ab. Fertig ist es
+      // nicht nach der Uhr, sondern wenn der Istwert SETTLE_STEADY_MS lang innerhalb
+      // SETTLE_TOL_KMH am Soll lag (mindestens SETTLE_MS, hoechstens SETTLE_MAX_MS).
+      const uint32_t now = millis();
+      const float dev = fabsf(revsrc::kmh() - speedctl::rampKmh());
+      if (dev < SETTLE_TOL_KMH) { if (g_settleSteadyMs == 0) g_settleSteadyMs = now; }
+      else g_settleSteadyMs = 0;
+      const bool steady = g_settleSteadyMs && now - g_settleSteadyMs >= SETTLE_STEADY_MS;
+      if ((now - g_settleStartMs >= SETTLE_MS && steady) || now - g_settleStartMs >= SETTLE_MAX_MS) {
+        if (!steady) logger::note("Einschwingen: Soll nicht erreicht, Punkt wird ueber dv/dt beurteilt");
         torque::resetAccumulator();
         g_rs.reset();
         g_revs = 0;
         g_phase = POINT;
-      } else if (fabsf(revsrc::kmh() - speedctl::rampKmh()) > SPEED_TOLERANCE_KMH * 2) {
+      } else if (dev > SPEED_TOLERANCE_KMH * 2) {
         g_phase = SPINUP;   // wieder ausgeschert
       }
       break;
+    }
 
     case POINT:
       g_rs.tick();
@@ -419,8 +469,9 @@ bool startSequence(RunMode mode, const float* kmh, uint8_t n, uint8_t pointsPer,
                                     : "Messlauf");
   // Woher die Drehzahl kommt, steht EINMAL je Lauf im Protokoll — nicht je Punkt.
   if (!revsrc::angleReference()) {
-    logger::note("Drehzahlquelle: Regler (ERPM/Polpaare). Keine Winkelreferenz, "
-                 "die Winkel-Bins bleiben leer.");
+    logger::note(revsrc::realRevolutions()
+                 ? "Drehzahlquelle: Regler, Umdrehungen von der Indexmarke. Keine Winkel-Bins."
+                 : "Drehzahlquelle: Regler (ERPM/Polpaare). Umdrehungen GERECHNET, keine Winkelreferenz.");
   }
   gotoPlateau(0);
   return g_phase == SPINUP;

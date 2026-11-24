@@ -160,7 +160,8 @@ void handleState() {
   // Einstellungen, dazu seit 2026-11-22 der Verdrahtungstest der Geber und das
   // Laufrad (zusammen gut 150 Byte). Zu klein, und snprintf schneidet still ab —
   // die Seite bekaeme kaputtes JSON.
-  char buf[2048];
+  // Seit 2026-11-24 dazu: Reifendruck, Reifentemperatur, Sensorname, Drehzahlquelle.
+  char buf[3072];
   buf[0] = '\0';
   if (g_state) g_state(buf, sizeof(buf));
   if (buf[0] == '\0') snprintf(buf, sizeof(buf), "{}");
@@ -169,11 +170,12 @@ void handleState() {
   g_server.send(200, "application/json; charset=utf-8", buf);
 }
 
-// Gefuehrter Messlauf: eigener Puffer, bis zu 48 Messpunkte mit Streuung.
+// Gefuehrter Messlauf: eigener Puffer, bis zu 48 Messpunkte plus Referenzpunkte,
+// je Punkt mit Streuung, Traegheitskorrektur und dv/dt.
 void handleRun() {
   touch();
   g_other++;
-  static char buf[8192];
+  static char buf[12288];
   buf[0] = '\0';
   if (g_runJson) g_runJson(buf, sizeof(buf));
   if (buf[0] == '\0') snprintf(buf, sizeof(buf), "{}");

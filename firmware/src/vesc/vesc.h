@@ -71,13 +71,13 @@ bool braking();              // SET_CURRENT_BRAKE liegt an (Befehl s)
 //
 // Dieser Weg wird gefahren, weil der Drehzahlregler des VESC fuer diesen Motor
 // unbrauchbar eingestellt ist und s_pid_min_erpm = 900 die unterste Pruefstufe
-// sperrt (docs/06-offene-fragen.md A15). Ueber das Tastverhaeltnis ist der Stand
+// sperrt (docs/06-open-questions.md A15). Ueber das Tastverhaeltnis ist der Stand
 // am 2026-11-17 bis 99,2 km/h gefahren worden, streng linear zur Leerlaufkennlinie.
 void setDuty(float duty);
 float targetDuty();
 
 // Bremsen mit vorgegebenem Strom. Der EINSTIEG speist fuer Millisekunden zurueck;
-// am Netzteil ab ~56 km/h Ueberspannung (docs/07-sicherheit.md §3.2d). Deshalb nur
+// am Netzteil ab ~56 km/h Ueberspannung (docs/07-safety.md §3.2d). Deshalb nur
 // unter BRAKE_MAX_KMH rufen. Ein Tastverhaeltnis-0-Befehl waere in FOC kein
 // Kurzschluss, sondern eine PI-Rampe mit Rueckspeisung -- darum gibt es ihn hier nicht.
 void setBrakeCurrent(float amps);

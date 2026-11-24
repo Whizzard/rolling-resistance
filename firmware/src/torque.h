@@ -1,6 +1,6 @@
 #pragma once
 //
-// Momentenmessung über die Pendelmaschine: HX711 + 10-kg-Wägezelle am Hebelarm.
+// Momentenmessung über die Pendelmaschine: HX711 + 5-kg-Wägezelle am Hebelarm.
 //
 // Kernformel (ohne Geschwindigkeit!):
 //     F_roll = F · L / r
@@ -57,7 +57,19 @@ uint32_t sampleCount();
 double   sumRaw();                   // Summe der Rohwerte seit reset (fuer Teilmittel je Umdrehung)
 float    averageRaw();               // Mittelwert der Rohwerte seit reset
 float    averageN();                 // dito in Newton (NAN ohne Kalibrierung)
+long     rippleRaw();                // Spitze-Spitze der Rohwerte seit reset (Welligkeit im Punkt)
 float    binAverageRaw(uint8_t bin); // Winkel-Bin, für die Unrundheits-Diagnose
 uint8_t  binCount();
+
+// --- Stichprobe im Stillstand ------------------------------------------------
+// Fuer Kontrollgewicht und Nullpruefungen (run.cpp): sampleBegin(), warten, dann
+// sampleMean()/sampleSigma() ueber ALLE seither gelesenen Werte -- nicht den
+// 40er-Anzeigering, der nur 0,5 s abdeckt (docs/12-methodology-review.md D5).
+// Unabhaengig vom Umdrehungsakkumulator, der nur im Zustand POINT gefuellt wird.
+void     sampleBegin();
+void     sampleStop();
+uint32_t sampleN();
+float    sampleMean();               // Rohwert, NAN ohne Werte
+float    sampleSigma();              // Rohwert je Einzelwert, NAN unter 2 Werten
 
 }  // namespace torque

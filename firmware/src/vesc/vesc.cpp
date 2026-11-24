@@ -293,7 +293,7 @@ void release() {
   // Strom null heißt für den Regler: Brücke sperren, Maschine läuft frei aus.
   // NICHT Tastverhältnis null — das wäre im BLDC-Betrieb Kurzschlussbremsung, und
   // im FOC-Betrieb ein geregelter Arbeitspunkt, der zurueckspeist
-  // (docs/07-sicherheit.md §3.1).
+  // (docs/07-safety.md §3.1).
   sendInt32(COMM_SET_CURRENT, 0);
 }
 

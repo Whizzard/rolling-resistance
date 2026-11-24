@@ -5,7 +5,7 @@
 // WARUM NICHT DER DREHZAHLREGLER DES VESC: der ist für diesen Motor unbrauchbar
 // eingestellt (Sollwert 2400 ERPM → 780 ERPM erreicht), und `s_pid_min_erpm` = 900
 // sperrt die unterste Prüfstufe, weil 10 km/h nur 881 ERPM entsprechen.
-// docs/06-offene-fragen.md A15.
+// docs/06-open-questions.md A15.
 //
 // STATTDESSEN: Vorsteuerung aus der am 2026-11-17 gemessenen Leerlaufkennlinie
 // (MOTOR_NO_LOAD_RPM_PER_V je Busvolt, über zehn Stützstellen streng linear), darüber
@@ -32,7 +32,7 @@ void service();
 
 // Zielgeschwindigkeit an der Trommeloberfläche. 0 gibt den Antrieb frei
 // (Trommel läuft aus). Wird auf V_MAX_KMH begrenzt — die Oberfläche zeigt Stufen
-// darüber als gesperrt an, siehe docs/07-sicherheit.md §5.
+// darüber als gesperrt an, siehe docs/07-safety.md §5.
 //
 // Liefert false, wenn der Wunsch abgelehnt wurde: über V_MAX_KMH, oder die Trommel
 // dreht noch spürbar in die Gegenrichtung (dann erst Stillstand abwarten).
@@ -48,7 +48,7 @@ bool  braking();       // Abstieg laeuft gerade ueber Bremsstrom
 // Schnellstmöglicher Stopp: Bremsen mit VESC_BRAKE_CURRENT_STOP.
 // ACHTUNG: speist bei hoher Drehzahl zurück. Mit Akku am Bus geprüft; am Netzteil
 // wirft der Regler ab und die Trommel läuft aus — der Fehlerfall ist zugleich der
-// Rückfallweg (docs/07-sicherheit.md §3.2c).
+// Rückfallweg (docs/07-safety.md §3.2c).
 void stop();
 
 // Antrieb freigeben, Trommel läuft aus. Immer möglich, auch ohne Akku.
@@ -88,7 +88,7 @@ void learn();
 bool learning();
 
 // Losbrechmessung: Tastverhaeltnis langsam anheben, bis sich die Trommel regt,
-// dann sofort freigeben. Liefert die Zahl, die in docs/03-parameter.md fehlt --
+// dann sofort freigeben. Liefert die Zahl, die in docs/03-parameters.md fehlt --
 // und beantwortet, ob die Klemme beim Anfahren ueberhaupt Reserve braucht.
 void breakaway();
 bool breakingAway();

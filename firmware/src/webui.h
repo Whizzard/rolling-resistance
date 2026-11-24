@@ -14,7 +14,7 @@
 //
 // TOTMANNSCHALTUNG: Solange ein Lauf fährt, muss der Bedienrechner sich melden.
 // Bleibt er länger als LINK_TIMEOUT_MS aus, ist das ein Abschaltkriterium wie
-// jedes andere (docs/07-sicherheit.md §4) — state.cpp fragt linkAlive() ab.
+// jedes andere (docs/07-safety.md §4) — state.cpp fragt linkAlive() ab.
 //
 // EIGENE TASK, seit 2026-11-23: Der Webserver der Arduino-Bibliothek BLOCKIERT, wenn
 // ein Browser eine Verbindung oeffnet, aber keine Anfrage schickt — iOS tut das

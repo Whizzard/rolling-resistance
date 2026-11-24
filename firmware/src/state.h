@@ -14,7 +14,7 @@
 //
 // Gemessen wird ausschließlich im Zustand POINT, auf einem Geschwindigkeits-
 // Plateau und über eine ganze Zahl von Trommelumdrehungen. Begründung:
-// docs/09-messtheorie.md §1.7 und §3.5.
+// docs/09-measurement-theory.md §1.7 und §3.5.
 //
 #include <Arduino.h>
 
@@ -35,12 +35,18 @@ struct PointStats {
   float    v;        // km/h, Mittel der Umdrehungen
   float    vSd;      // km/h, Streuung der Umdrehungsmittel
   float    raw;      // Counts, Mittel
-  float    mNm;      // Nm, NAN ohne Kalibrierung
+  float    mNm;      // Nm, um das Traegheitsmoment KORRIGIERT: mRawNm - mInertNm. NAN ohne Kalibrierung
+  float    mRawNm;   // Nm, wie gemessen
+  float    mInertNm; // Nm, J_eff * dw/dt netto ueber den Punkt (docs/12 K1)
+  float    dvdtNet;  // km/h/s, Steigung der Ausgleichsgeraden v(t) ueber den Punkt
   float    sdNm;     // Nm, Streuung der Umdrehungsmittel (Typ A)
-  float    dvdtMax;  // km/h/s, groesste Beschleunigung waehrend des Punkts
+  float    rippleNm; // Nm, Spitze-Spitze der Einzelwerte im Punkt (Welligkeit)
+  float    uSyncNm;  // Nm, Restfehler der Mittelung ohne echten Index: ripple/2/revs, sonst 0
+  float    dvdtMax;  // km/h/s, groesste Beschleunigung waehrend des Punkts (Diagnose)
   float    imot, vin, tfet, tmot;
   uint8_t  revs, plateau, k;   // k: Punkt innerhalb des Plateaus, ab 0
-  bool     ok;       // konstant gefahren, kein Reglerfehler
+  bool     ok;       // |dvdtNet| < POINT_DVDT_NET_MAX_KMH_S, am Soll, kein Reglerfehler
+  bool     realRevs; // Umdrehungen von einem echten Geber
   uint32_t tMs;
 };
 typedef void (*PointFn)(const PointStats&);

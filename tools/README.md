@@ -1,73 +1,72 @@
-# Werkzeuge für den Rechner
+# Host-side tools
 
-Nicht Teil der Firmware. Laufen am Mac oder Laptop und sprechen über USB mit dem
-Motorregler — dasselbe Paketprotokoll wie über UART, deshalb ist der Rahmen hier
-derselbe wie in `firmware/src/vesc/packet.cpp`.
+Not part of the firmware. They run on the Mac or laptop and talk to the motor controller
+over USB with the same packet protocol as over UART, so the framing here is the same as
+in `firmware/src/vesc/packet.cpp`.
 
-Brauchen **pyserial**. PlatformIOs Umgebung hat es bereits:
+They need **pyserial**. PlatformIO's environment already has it:
 
 ```sh
 ~/.platformio/penv/bin/python tools/vesc_console.py /dev/cu.usbmodem3041
 ```
 
-## `konsole.py` — Konsole des Prüfstands über USB
+## `konsole.py` — test-stand console over USB
 
-Spricht mit dem **ESP32**, nicht mit dem Regler: dasselbe Befehlsvokabular wie
-Oberfläche und serielle Konsole, mit Zeitstempeln mitgeschrieben. Fürs Fehlersuchen
-und Steuern vom Rechner aus, ohne Browser.
+Talks to the **ESP32**, not to the controller: the same command vocabulary as the web
+UI and the serial console, logged with timestamps. For debugging and driving from the
+computer without a browser.
 
 ```sh
-~/.platformio/penv/bin/python tools/konsole.py i                  # Zustand
-~/.platformio/penv/bin/python tools/konsole.py j8 v15 sleep:6 c   # Telemetrie, anfahren, freigeben
-~/.platformio/penv/bin/python tools/konsole.py ":faults"          # Terminal des Reglers, durchgereicht
-~/.platformio/penv/bin/python tools/konsole.py --watch 30         # nur mitlesen
+~/.platformio/penv/bin/python tools/konsole.py i                  # state
+~/.platformio/penv/bin/python tools/konsole.py j8 v15 sleep:6 c   # telemetry, start, release
+~/.platformio/penv/bin/python tools/konsole.py ":faults"          # controller terminal, passed through
+~/.platformio/penv/bin/python tools/konsole.py --watch 30         # read only
 ```
 
-Argumente sind Befehle der Reihe nach, `sleep:<s>` wartet dazwischen, `--log` schreibt
-den Mitschnitt zusätzlich in eine Datei. `j<s>` ist die Live-Telemetrie der Firmware
-(eine Zeile alle 200 ms), `:<text>` reicht einen Textbefehl an das Terminal des
-Reglers durch, `><hex>` ein Rohpaket. Befehlstabelle in
-[04-hardware](../docs/04-hardware.md) §14.1.
+Arguments are commands in order, `sleep:<s>` waits in between, `--log` writes the
+capture to a file as well. `j<s>` is the firmware's live telemetry (one line every
+200 ms), `:<text>` passes a text command to the controller's terminal, `><hex>` a raw
+packet. Command table in [04-hardware](../docs/04-hardware.md) §14.1.
 
-Am 2026-11-23 damit gefunden: der Motor bestromte, drehte aber nicht — ERPM blieb 0,
-während der Strom bis 6,4 A stieg. `:hall_analyze 10` und `:foc_openloop 10 300`
-zeigten Sensoren und Leistungsteil in Ordnung, der Fehler lag in der Hall-Tabelle.
+Found with it on 2026-11-23: the motor drew current but did not turn, ERPM stayed 0
+while the current rose to 6.4 A. `:hall_analyze 10` and `:foc_openloop 10 300` showed
+sensors and power stage in order; the fault was in the Hall table.
 
-## `vesc_console.py` — Regler von Hand fahren
+## `vesc_console.py` — drive the controller by hand
 
-Für den ersten Probelauf, bevor die Firmware dazwischensteht.
+For the first trial run, before the firmware sits in between.
 
-| Taste | |
+| Key | |
 |---|---|
-| ↑ / ↓ | Sollwert ± 100 ERPM |
+| ↑ / ↓ | setpoint ± 100 ERPM |
 | → / ← | ± 1000 ERPM |
-| Leertaste | **STOP** — Antrieb stromlos, Trommel läuft aus |
-| `0` | Sollwert auf null |
-| `q` | Beenden, stoppt vorher |
+| space | **STOP**: drive de-energised, drum coasts |
+| `0` | setpoint to zero |
+| `q` | quit, stops first |
 
-Angezeigt werden Drehzahl, Sollwert, Busspannung, Motor- und Eingangsstrom,
-Aussteuerung, FET-Temperatur und der Fehlercode im Klartext.
+Displayed: speed, setpoint, bus voltage, motor and input current, duty, FET temperature
+and the fault code in plain text.
 
-**Was es sicher macht:**
+**What makes it safe:**
 
-- Der Sollwert wird **nur gesendet, solange das Skript lebt**. Stürzt es ab oder wird
-  das Fenster geschlossen, kommt nichts mehr, und der Regler stellt nach seinem
-  eigenen `timeout_msec` ab — die zweite, unabhängige Ebene.
-- **Totmann**: 30 s ohne Tastendruck, und der Sollwert geht von selbst auf null.
-  Der Rest der Zeit läuft als Rückwärtszähler mit.
-- Beim Beenden — auch bei Strg-C oder einem Fehler — wird freigegeben.
-- Gekappt auf **± 2400 ERPM**, derselbe Wert wie `VESC_ERPM_MAX` in `config.h`.
-- Starten verweigert, solange der Regler einen Fehler meldet.
+- The setpoint is **only sent while the script is alive**. If it crashes or the window
+  is closed, nothing more arrives and the controller shuts down after its own
+  `timeout_msec`, the second, independent layer.
+- **Dead-man**: 30 s without a key press and the setpoint goes to zero by itself. The
+  remaining time runs as a countdown.
+- On exit, also on Ctrl-C or an error, the drive is released.
+- Capped at **± 2400 ERPM**, the same value as `VESC_ERPM_MAX` in `config.h`.
+- Refuses to start while the controller reports a fault.
 
-**Was es nicht ist:** ein Not-Aus. Der trennt in Hardware.
+**What it is not:** an emergency stop. That one disconnects in hardware.
 
-> Steht `timeout_brake_current` des Reglers auf 0 — die Werksvorgabe —, heißt
-> „abstellen" **auslaufen**, nicht bremsen. Die Trommel braucht dann 3 bis 6 Minuten.
+> With the controller's `timeout_brake_current` at 0, the factory default, "shut down"
+> means **coast**, not brake. The drum then needs 3 to 6 minutes.
 
-`--poles <n>` rechnet zusätzlich auf mechanische 1/min um. Ohne Angabe wird **nicht**
-umgerechnet: eine geratene Polzahl ergäbe eine erfundene Drehzahl.
+`--poles <n>` additionally converts to mechanical rpm. Without it there is **no**
+conversion: a guessed pole count would give an invented speed.
 
-## `vesc_backup.py` — Konfiguration sichern
+## `vesc_backup.py` — save the configuration
 
-Liest `mcconf` und `appconf` roh aus und legt sie samt Klartext in
-`hardware/vesc-backup/` ab. Nur lesend. Die Sicherung vom 2026-11-17 liegt dort.
+Reads `mcconf` and `appconf` raw and stores them with a plain-text dump in
+`hardware/vesc-backup/`. Read only. The backup from 2026-11-17 lies there.

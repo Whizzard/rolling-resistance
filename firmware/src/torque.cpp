@@ -25,6 +25,12 @@ uint32_t g_tareStartMs = 0;
 // Akkumulator für die umdrehungssynchrone Mittelung
 double g_sum = 0.0;
 uint32_t g_count = 0;
+long g_accMin = 0, g_accMax = 0;
+
+// Stichprobe im Stillstand (sampleBegin/sampleStop)
+bool     g_smpOn = false;
+double   g_smpSum = 0.0, g_smpSumSq = 0.0;
+uint32_t g_smpN = 0;
 double g_binSum[MARKS_PER_REV] = {0.0};
 uint32_t g_binCount[MARKS_PER_REV] = {0};
 
@@ -77,6 +83,12 @@ bool update() {
   g_ring[g_ri] = g_raw;
   g_ri = (g_ri + 1) % DISPLAY_AVG_N;
   if (g_rn < DISPLAY_AVG_N) g_rn++;
+
+  if (g_smpOn) {
+    g_smpSum += static_cast<double>(g_raw);
+    g_smpSumSq += static_cast<double>(g_raw) * static_cast<double>(g_raw);
+    g_smpN++;
+  }
 
   // Laufende Tara mitnehmen. Abbruch nach TARE_TIMEOUT_MS, damit ein stummer
   // HX711 den Zustand nicht auf Dauer besetzt.
@@ -159,6 +171,8 @@ float    tareSigma() { return g_tareSigma; }
 long tareOffset() { return g_offset; }
 
 void accumulate(uint8_t markIndex) {
+  if (g_count == 0) { g_accMin = g_accMax = g_raw; }
+  else { if (g_raw < g_accMin) g_accMin = g_raw; if (g_raw > g_accMax) g_accMax = g_raw; }
   g_sum += static_cast<double>(g_raw);
   g_count++;
   if (markIndex < MARKS_PER_REV) {
@@ -170,6 +184,7 @@ void accumulate(uint8_t markIndex) {
 void resetAccumulator() {
   g_sum = 0.0;
   g_count = 0;
+  g_accMin = g_accMax = 0;
   for (uint8_t i = 0; i < MARKS_PER_REV; i++) {
     g_binSum[i] = 0.0;
     g_binCount[i] = 0;
@@ -187,6 +202,19 @@ float averageRaw() {
 float averageN() {
   if (!isCalibrated() || g_count == 0) return NAN;
   return (averageRaw() - static_cast<float>(g_offset)) * settings::loadcellNPerCount();
+}
+
+long rippleRaw() { return g_count ? g_accMax - g_accMin : 0; }
+
+void sampleBegin() { g_smpOn = true; g_smpSum = g_smpSumSq = 0.0; g_smpN = 0; }
+void sampleStop()  { g_smpOn = false; }
+uint32_t sampleN() { return g_smpN; }
+float sampleMean() { return g_smpN ? static_cast<float>(g_smpSum / g_smpN) : NAN; }
+float sampleSigma() {
+  if (g_smpN < 2) return NAN;
+  const double mean = g_smpSum / g_smpN;
+  const double var = (g_smpSumSq - g_smpN * mean * mean) / (g_smpN - 1);
+  return var > 0.0 ? static_cast<float>(sqrt(var)) : 0.0f;
 }
 
 float binAverageRaw(uint8_t bin) {

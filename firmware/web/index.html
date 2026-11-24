@@ -312,6 +312,16 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         <div class="lab" id="crrLab">Crr</div>
         <div class="val"><span id="crr">—</span></div>
       </div></div>
+      <div class="tile half"><div>
+        <div class="lab">Druck</div>
+        <div class="val"><span id="bar">—</span><small>bar</small></div>
+        <div class="sub" id="barSub">—</div>
+      </div></div>
+      <div class="tile half"><div>
+        <div class="lab">Reifen</div>
+        <div class="val"><span id="tTire">—</span><small>°C</small></div>
+        <div class="sub" id="tTireSub">—</div>
+      </div></div>
     </div>
 
     <h2>Zelle</h2>
@@ -493,7 +503,19 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         <button type="button" id="bMRad">OK</button>
         <button type="button" class="plain" id="xMRad">Abbruch</button>
       </div>
-      <div class="hint">J <b id="jRad">—</b> kg·m² · A1 <b id="a1">—</b> · B1 <b id="b1">—</b></div>
+      <div class="hint">J <b id="jRad">—</b> kg·m² <span id="jSrc"></span> · A1 <b id="a1">—</b> · B1 <b id="b1">—</b></div>
+    </div>
+    <div class="field">
+      <label>J_Rad gemessen (Bifilarpendel)</label>
+      <div class="view"><span id="vJRad">—</span><small>kg·m²</small>
+        <button type="button" id="eJRad">Ändern</button></div>
+      <div class="editor" id="edJRad" hidden>
+        <input type="text" id="fJRad" inputmode="decimal">
+        <button type="button" id="bJRad">OK</button>
+        <button type="button" class="plain" id="xJRad">Abbruch</button>
+      </div>
+      <div class="hint">Leer oder 0: Schätzung 0,85·m·r² mit ±10 %, Unsicherheit des
+        Radmodells dann ±3,5 % statt ±0,5 %. Verfahren: 09-messtheorie §9.2.</div>
       <button type="button" class="plain" id="bAuslauf"
               style="float:none;width:100%;margin:8px 0 0 0">Assistent Auslauf + Leerlauf</button>
     </div>
@@ -505,6 +527,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         Magnet vor dem Geber, die LED im Gehäuse leuchtet dann. Ein Geber ohne
         Impulse ist nicht verdrahtet oder sieht keinen Magneten.</div>
       <table class="geber" id="geber"></table>
+      <div class="hint" id="markHint">—</div>
       <button type="button" class="plain" id="bGeber"
               style="float:none;width:100%;margin:8px 0 0 0">Zähler nullen</button>
     </div>
@@ -699,6 +722,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   editor("Drum", "d", 1000);
   editor("Arm",  "a", 1000);
   editor("MRad", "y", 1000);
+  editor("JRad", "Y", 1);
   editor("Load", "l", 1);
   function view(key, v, d) { if (!editing[key]) $("v" + key).innerHTML = de(v, d); }
 
@@ -792,9 +816,9 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   var runOpen = false, runBusy = false, runStep = -1, runSub = -1, runShown = null;
   var RUN_STEPS = [
     ["A", "Lauf anlegen"], ["A", "Sichtpr\u00fcfung, Not-Aus"], ["A", "Systempr\u00fcfung"],
-    ["A", "Nullen"], ["A", "Kontrollgewicht"], ["A", "Leerlaufmodell"], ["A", "Radmodell"],
-    ["A", "Rad aufgelegt, Auflast"], ["B", "Warmlauf"], ["B", "Plateaus"],
-    ["B", "Ankerpunkt"], ["B", "Anhalten"], ["C", "Nachlauf Leerlauf"], ["C", "Protokoll"]
+    ["A", "Nullen, Rad abgehoben"], ["A", "Kontrollgewicht"], ["A", "Leerlaufmodell"], ["A", "Radmodell"],
+    ["A", "Rad aufgelegt, Auflast"], ["B", "Warmlauf"], ["B", "Referenz + Plateaus"],
+    ["B", "Referenz danach"], ["B", "Anhalten"], ["C", "Nullpunkt, Nachlauf"], ["C", "Protokoll"]
   ];
   function fm(v, d) { return (v === null || v === undefined) ? "\u2014" : de(v, d); }
   function tbl(head, rows) {
@@ -815,10 +839,12 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   function runForm() {
     var pos = $("vLoad").innerHTML;   /* Auflast aus der Einrichtung, N -> kg */
     var kg = parseFloat(pos.replace(",", ".")) / 9.80665;
+    /* Druck vom AirSpy vorbelegen, wenn er frisch ist; sonst Hand. */
+    var bar = (lastJ && lastJ.pSrc === "ble" && lastJ.pFresh && lastJ.bar !== null) ? de(lastJ.bar, 2) : "";
     return '<div class="cols">'
       + '<div class="field"><label>Reifen</label><input id="rTire" value=""></div>'
       + '<div class="field"><label>Laufrad</label><input id="rWheel" value=""></div>'
-      + '<div class="field"><label>Druck bar</label><input id="rBar" inputmode="decimal" value=""></div>'
+      + '<div class="field"><label>Druck bar' + (bar ? ' (AirSpy)' : '') + '</label><input id="rBar" inputmode="decimal" value="' + bar + '"></div>'
       + '<div class="field"><label>Raum \u00b0C</label><input id="rTemp" inputmode="decimal" value=""></div>'
       + '<div class="field"><label>Auflast kg</label><input id="rLoad" inputmode="decimal" value="' + (isNaN(kg) ? "" : de(kg, 1)) + '"></div>'
       + '<div class="field"><label>Laufgewicht mm</label><input id="rPos" inputmode="numeric" value=""></div>'
@@ -865,13 +891,18 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         }
         body = rows.length ? tbl(["Pr\u00fcfung", "", "Wert"], rows) : '<div class="bar"><div style="width:' + Math.min(100, r.subMs / 50) + '%"></div></div>';
       }
-      if (s === 4) body = (r.tareSigma === null) ? '<div class="txt">\u2026</div>' : '<div class="txt">\u03c3 ' + fm(r.tareSigma, 1) + ' Counts</div>';
+      if (s === 4) {
+        body = (r.tareSigma === null) ? '<div class="txt">\u2026</div>' : '<div class="txt">\u03c3 ' + fm(r.tareSigma, 1) + ' Counts</div>';
+        if (r.sub >= 4) body += '<div class="tiles"><div class="tile half"><div><div class="lab">Nullpr\u00fcfung</div><div class="val">' + (r.tareChk === null ? "\u2014" : ((r.tareChk >= 0 ? "+" : "") + de(r.tareChk, 3))) + '<small>N</small></div><div class="sub">auf F_roll, Grenze ' + de(r.zeroLim, 2) + ' N</div></div></div></div>';
+      }
+      if (s === 13 && r.sub === 0) body = '<div class="cols"><div class="field"><label>Raum \u00b0C jetzt</label><input id="rTempEnd" inputmode="decimal" value=""></div></div>';
+      if (s === 13 && r.sub >= 1 && r.zeroEnd !== null) body = '<div class="tiles"><div class="tile half"><div><div class="lab">Nullpunkt nach Lauf</div><div class="val">' + ((r.zeroEnd >= 0 ? "+" : "") + de(r.zeroEnd, 3)) + '<small>N</small></div><div class="sub">auf F_roll, Grenze ' + de(r.zeroLim, 2) + ' N</div></div></div></div>';
       if (s === 5 && r.sub >= 1) body = '<div class="tiles"><div class="tile half"><div><div class="lab">Ist</div><div class="val">' + fm(r.ctrlNm, 3) + '<small>Nm</small></div><div class="sub">Soll ' + fm(r.ctrlSoll, 3) + ' Nm</div></div></div>'
         + '<div class="tile half"><div><div class="lab">Abweichung</div><div class="val">' + (r.ctrlDev === null ? "\u2014" : ((r.ctrlDev >= 0 ? "+" : "") + de(r.ctrlDev, 2))) + '<small>%</small></div></div></div></div>';
-      if ((s === 6 || s === 13) && (r.sub >= 2 || s === 13)) {
+      if ((s === 6 && r.sub >= 2) || (s === 13 && r.sub >= 2)) {
         var pts = (s === 6) ? (r.pre || []) : (r.post || []), rr = [];
-        for (i = 0; i < pts.length; i++) rr.push(s === 6 ? [fm(pts[i][0], 1), fm(pts[i][2], 4), fm(pts[i][3], 4)] : [fm(pts[i][0], 1), fm(pts[i][1], 4), fm(pts[i][2], 3) + " N"]);
-        if (rr.length) body = tbl(s === 6 ? ["km/h", "M Nm", "\u03c3"] : ["km/h", "M Nm", "\u0394 F_roll"], rr);
+        for (i = 0; i < pts.length; i++) rr.push(s === 6 ? [fm(pts[i][0], 1), fm(pts[i][2], 4), fm(pts[i][3], 4), fm(pts[i][5], 3)] : [fm(pts[i][0], 1), fm(pts[i][1], 4), fm(pts[i][2], 3) + " N"]);
+        if (rr.length) body += tbl(s === 6 ? ["km/h", "M Nm", "\u03c3", "J\u00b7d\u03c9/dt"] : ["km/h", "M Nm", "\u0394 F_roll"], rr);
         if (s === 6 && r.a0 !== null && r.sub >= 3) body += '<div class="txt">A\u2080 ' + fm(r.a0, 4) + ' \u00b7 B\u2080 ' + (r.b0 === null ? "\u2014" : r.b0.toExponential(2).replace(".", ",")) + '</div>';
       }
       if (s === 9) {
@@ -881,17 +912,25 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
           + (last ? ' \u00b7 P ' + fm(last[1], 1) + ' W \u00b7 Crr ' + fm(last[2], 5) : '') + '</div>';
       }
       if (s === 10 || s === 11 || s === 12 || s === 14 || s === 99) {
+        var prow = function (q) { return [fm(q[0], 1), q[1], fm(q[2], 4), fm(q[7], 4), fm(q[3], 4), fm(q[4], 5), fm(q[5], 5), { t: q[6] ? "ja" : "nein", c: q[6] ? "ok" : "miss" }]; };
+        var hd = ["km/h", "#", "M Nm", "J\u00b7d\u03c9/dt", "\u03c3", "Crr roh", "Crr korr.", "g\u00fcltig"];
+        var ap = r.anchorPre || [], rap = [];
+        for (i = 0; i < ap.length; i++) rap.push(prow(ap[i]));
+        if (rap.length && s < 14) body = "<h2>Referenz vor</h2>" + tbl(hd, rap);
         var p = r.pts || [], rows2 = [];
-        for (i = 0; i < p.length; i++) rows2.push([fm(p[i][0], 1), p[i][1], fm(p[i][2], 4), fm(p[i][3], 4), fm(p[i][4], 5), fm(p[i][5], 5), { t: p[i][6] ? "ja" : "nein", c: p[i][6] ? "ok" : "miss" }]);
-        if (rows2.length && s < 14) body = tbl(["km/h", "#", "M Nm", "\u03c3", "Crr roh", "Crr korr.", "g\u00fcltig"], rows2);
+        for (i = 0; i < p.length; i++) rows2.push(prow(p[i]));
+        if (rows2.length && s < 14) body += "<h2>Plateaus</h2>" + tbl(hd, rows2);
         if (s === 11 || s === 12) { var a = r.anchor || [], ra = [];
-          for (i = 0; i < a.length; i++) ra.push([fm(a[i][0], 1), a[i][1], fm(a[i][2], 4), fm(a[i][5], 5)]);
-          if (ra.length) body += "<h2>Anker</h2>" + tbl(["km/h", "#", "M Nm", "Crr korr."], ra); }
+          for (i = 0; i < a.length; i++) ra.push(prow(a[i]));
+          if (ra.length) body += "<h2>Referenz nach</h2>" + tbl(hd, ra);
+          if (r.anchorDN !== null && r.anchorDN !== undefined) body += '<div class="txt">Drift ' + (r.anchorDN >= 0 ? "+" : "") + de(r.anchorDN, 3) + ' N auf F_roll</div>'; }
       }
       if (s === 14 || s === 99) {
         var st = r.stat || [], rs = [];
-        for (i = 0; i < st.length; i++) rs.push([fm(st[i][0], 1), st[i][1] + "/" + st[i][2], fm(st[i][3], 4), fm(st[i][4], 4), fm(st[i][5], 5), fm(st[i][6], 5), "\u00b1 " + fm(st[i][7], 5)]);
-        if (rs.length) body += tbl(["km/h", "n", "M Nm", "\u03c3", "Crr roh", "Crr korr.", "u"], rs);
+        for (i = 0; i < st.length; i++) rs.push([fm(st[i][0], 1), st[i][1] + "/" + st[i][2], fm(st[i][3], 4), fm(st[i][4], 4), fm(st[i][5], 5), fm(st[i][6], 5), "\u00b1 " + fm(st[i][7], 5), st[i][8]]);
+        if (rs.length) body += tbl(["km/h", "n", "M Nm", "\u03c3", "Crr roh", "Crr korr.", "u (k=1)", "\u03bd"], rs);
+        if (r.anchorDN !== null && r.anchorDN !== undefined) body += '<div class="txt">Ankerdrift ' + (r.anchorDN >= 0 ? "+" : "") + de(r.anchorDN, 3) + ' N auf F_roll</div>';
+        if (r.zeroEnd !== null && r.zeroEnd !== undefined) body += '<div class="txt">Nullpunkt nach Lauf ' + (r.zeroEnd >= 0 ? "+" : "") + de(r.zeroEnd, 3) + ' N auf F_roll</div>';
         var wn = r.warn || [];
         if (wn.length) { body += "<h2>Warnungen</h2><ul>"; for (i = 0; i < wn.length; i++) body += "<li>" + wn[i] + "</li>"; body += "</ul>"; }
         else body += '<div class="txt">keine Warnungen</div>';
@@ -899,7 +938,8 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         if (r.csv) body += '<a class="dl" href="' + r.csv + '">Daten .csv</a>';
         body += '<div class="sub"><a href="/runs">alle Messl\u00e4ufe</a></div>';
       }
-      if (runShown !== key || s >= 3) { $("runBody").innerHTML = body; runShown = key; }
+      /* Eingabefelder (Schritt 13, Raumtemperatur) nicht bei jedem Abruf neu aufbauen. */
+      if (runShown !== key || (s >= 3 && !(s === 13 && r.sub === 0))) { $("runBody").innerHTML = body; runShown = key; }
     }
     /* Knoepfe */
     $("runOk").innerHTML = r.ok || ""; $("runOk").hidden = !r.ok;
@@ -934,12 +974,17 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     x.send();
   }
   function runClose() { runOpen = false; runShown = null; $("run").hidden = true; }
+  function sendTempEnd() {
+    var f = document.getElementById("rTempEnd");
+    if (f && f.value) send("Rme=" + f.value.replace(",", "."));
+  }
   $("runOk").onclick = function () {
     if (runStep === 1) { runSubmitMeta(); return; }
     if (runStep === 14 || runStep === 99) { send("Rk"); runClose(); return; }
+    if (runStep === 13 && runSub === 0) sendTempEnd();
     send("Rk"); setTimeout(pollRun, 300);
   };
-  $("runAlt").onclick  = function () { send("Rs"); setTimeout(pollRun, 300); };
+  $("runAlt").onclick  = function () { if (runStep === 13 && runSub === 0) sendTempEnd(); send("Rs"); setTimeout(pollRun, 300); };
   $("runRedo").onclick = function () { send("Rn"); setTimeout(pollRun, 300); };
   $("runCancel").onclick = function () { send("Rx"); setTimeout(pollRun, 300); };
   setInterval(pollRun, 500);
@@ -1009,6 +1054,11 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
     if (typeof j.up === "number") lastUp = j.up;
     paintGeber(j.geber);
+    /* Woher die Umdrehung kommt: 0 jede 8. Flanke, 1 Zwischenmagnet, 2 Index-Hall. */
+    $("markHint").innerHTML = (j.mSrc === 2) ? "Umdrehung vom <b>Index-Hall</b>"
+      : (j.mSrc === 1) ? ("<b>Zwischenmagnet erkannt</b>: " + j.mPpr + " Impulse je Umdrehung, fester Nullpunkt \u00b7 "
+                          + j.mRes + " neu eingerastet \u00b7 " + j.mMiss + " verschluckt \u00b7 " + j.mGl + " St\u00f6rimpulse")
+      : ("Umdrehung = jede " + j.mPpr + ". Flanke, Nullpunkt = erste Marke; kein Zwischenmagnet erkannt \u00b7 " + j.mMiss + " verschluckt");
 
     /* Laufrad: wirksamer Abrolldurchmesser aus dem Drehzahlverhältnis.
        null, solange nicht beides dreht. */
@@ -1053,7 +1103,17 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("a1").innerHTML = (j.a1 === null) ? "\u2014" : j.a1;
     $("b1").innerHTML = (j.b1 === null) ? "\u2014" : j.b1;
     $("jRad").innerHTML = (j.jRad === null) ? "\u2014" : j.jRad;
+    $("jSrc").innerHTML = (j.jRad === null) ? "" : (j.jMeas === null ? "(gesch\u00e4tzt)" : "(gemessen)");
     if (j.mRad !== null && j.mRad !== undefined) view("MRad", j.mRad * 1000, 0);
+    if (!editing.JRad) $("vJRad").innerHTML = (j.jMeas === null || j.jMeas === undefined) ? "\u2014" : de(j.jMeas, 4);
+
+    /* Reifendruck und -temperatur: AirSpy ueber BLE, sonst Handeingabe. */
+    show("bar", j.bar, 2);
+    show("tTire", j.tTire, 1);
+    $("barSub").innerHTML = j.pSrc === "ble"
+      ? ((j.pName || "AirSpy") + (j.pFresh ? "" : " \u00b7 alt") + (j.pBatt !== null ? " \u00b7 " + de(j.pBatt, 0) + " %" : ""))
+      : (j.pSrc === "manual" ? "Handeingabe" : "kein Sensor \u2014 Rad drehen");
+    $("tTireSub").innerHTML = (j.pSrc === "ble" && j.pAge !== null) ? ("vor " + de(j.pAge / 1000, 0) + " s") : "\u2014";
     lastJ = j;
     paintWiz(j);
     if (j.rs > 0 && !runOpen) { runOpen = true; $("run").hidden = false; pollRun(); }
@@ -1065,7 +1125,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       ? ("Kalibrierfaktor <b>" + j.npc.toFixed(8) + "</b> N/count."
          + " In <code>config.h</code> eintragen:<br><code>constexpr float "
          + "LOADCELL_N_PER_COUNT = " + j.npc.toFixed(8) + "f;</code>"
-         + "<br>Dazu die Zeile in <code>docs/03-parameter.md</code> §2.")
+         + "<br>Dazu die Zeile in <code>docs/03-parameters.md</code> §2.")
       : "Wägezelle nicht kalibriert.";
 
     /* Fehler: die Firmware liefert EINEN Text oder nichts (currentError). */

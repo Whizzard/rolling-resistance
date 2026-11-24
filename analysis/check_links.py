@@ -8,7 +8,7 @@ Geprüft wird zweierlei:
    Verweis ins Nichts, und keine Spiegelung repariert das — sie schreibt nur noch
    einmal um. Am 2026-11-17 waren sieben solche Verweise entstanden.
 2. **Das Label ist aus dem Dateinamen abgeleitet**, also `[04-hardware]` oder
-   `[docs/04-hardware.md]` oder `[05-prüfablauf]` — aber nicht `[Sicherheit]`.
+   `[docs/04-hardware.md]` oder `[05-test-procedure]` — aber nicht `[Sicherheit]`.
    Beim Spiegeln wird BEIDES umgeschrieben, Label und Ziel. Ein Verweis mit
    Knowledgebase-Label und Repo-Ziel zeigt deshalb auf die richtige Datei und
    fällt bei Prüfung 1 nicht auf — am 2026-11-18 ist mir genau das passiert. Er
@@ -16,8 +16,8 @@ Geprüft wird zweierlei:
 
    Verglichen wird nach Kleinschreibung, ohne `.md` und mit aufgelösten Umlauten.
    Damit sind die beiden vorhandenen Schreibweisen zulässig: README führt den
-   ganzen Pfad als Label, und `09-messtheorie` schreibt `05-prüfablauf` mit
-   Umlaut, während die Datei `05-pruefablauf.md` heißt.
+   ganzen Pfad als Label, und `09-messtheorie` schreibt `05-test-procedure` mit
+   Umlaut, während die Datei `05-test-procedure.md` heißt.
 
 Hintergrund: die Dokumentation wird in die Knowledgebase gespiegelt, und dabei werden
 die Verweise auf deren Knotennamen umgeschrieben (`04-hardware.md` → `23_hardware.md`).

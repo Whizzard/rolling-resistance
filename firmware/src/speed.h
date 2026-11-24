@@ -12,6 +12,9 @@
 namespace speed {
 
 void begin();
+// Zyklisch aus der Hauptschleife (revsrc::service): wertet die Zeitstempel der
+// Trommelmarken aus -- Umdrehungen, Markennummer, Muster des Zwischenmagneten.
+void service();
 
 // Trommel
 float revPerSec();        // 0, solange kein vollständiges Fenster vorliegt
@@ -43,6 +46,20 @@ bool stalled();
 // Nummer der zuletzt gesehenen Marke innerhalb der Umdrehung (0..MARKS_PER_REV-1),
 // für die winkelaufgelöste Auswertung.
 uint8_t markIndexInRev();
+
+// WOHER DIE UMDREHUNG KOMMT (docs/04-hardware.md §8.6):
+//   REV_COUNT       nur die 8 Marken: jede 8. Flanke, Marke 0 ist die erste gesehene
+//   REV_PATTERN     Zwischenmagnet in einer 45°-Luecke erkannt (zwei kurze Intervalle):
+//                   fester Nullpunkt, Zaehlung rastet jede Umdrehung neu ein
+//   REV_INDEX_HALL  eigener Index-Hall an PIN_INDEX
+// Das Muster wird automatisch erkannt (MARK_PATTERN_INDEX); ohne Zwischenmagnet
+// bleibt es bei REV_COUNT.
+enum RevSource : uint8_t { REV_COUNT = 0, REV_PATTERN, REV_INDEX_HALL };
+RevSource revSource();
+uint8_t   pulsesPerRev();     // 8, oder 9 mit erkanntem Zwischenmagneten
+uint32_t  patternResyncs();   // Muster kam an unerwarteter Stelle: Zaehlung neu gesetzt
+uint32_t  missedPulses();     // zu lange Intervalle (verschluckte Flanke) oder Muster ausgeblieben
+uint32_t  glitchPulses();     // doppelt-kurz mitten in der Umdrehung: Stoerimpuls
 
 // Verdrahtungstest (docs/10-firmware.md D4/D5): lebt jeder Kanal? Je Geber ein
 // eigener Impulszähler, der die Messzähler nicht berührt und darum jederzeit

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Querprüfung: jede physikalische Konstante aus config.h ist dokumentiert.
 
-Hintergrund: config.h und docs/03-parameter.md sollen 1:1 übereinstimmen
+Hintergrund: config.h und docs/03-parameters.md sollen 1:1 übereinstimmen
 (siehe CLAUDE.md). Dieses Skript findet Konstanten, die beim Dokumentieren
 vergessen wurden.
 
@@ -19,7 +19,7 @@ EXEMPT = {
     "PLATEAU_COUNT",            # aus PLATEAUS_KMH abgeleitet
 }
 
-DOCS = ["docs/03-parameter.md", "docs/04-hardware.md"]
+DOCS = ["docs/03-parameters.md", "docs/04-hardware.md"]
 
 
 def main():

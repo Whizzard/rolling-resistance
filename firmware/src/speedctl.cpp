@@ -30,7 +30,7 @@ bool     g_stopping = false;    // STOP laeuft: bremsen bis zum Stillstand, dann
 // Bus, und das Netzteil nimmt nichts auf (Fehler 1 bei 56...59 km/h, 2026-11-23).
 // Darunter 20 A Bremsstrom; der liegt ueber dem Kurzschlussstrom, also endet der
 // Regler im Kurzschluss und nichts geht in den Bus. Tastverhaeltnis 0 schliesst in
-// FOC NICHT direkt kurz (PI-Rampe mit Rueckspeisung), docs/07-sicherheit.md §3.2d.
+// FOC NICHT direkt kurz (PI-Rampe mit Rueckspeisung), docs/07-safety.md §3.2d.
 // Nach einem Reglerfehler BRAKE_FAULT_HOLD_MS lang nicht nachsetzen: das war das
 // tack-tack-tack -- jeder Wiederanlauf bei fast derselben Drehzahl fiel erneut.
 void applyBrake(float istKmh) {
@@ -109,11 +109,11 @@ bool setTargetKmh(float kmh) {
   if (kmh <= 0.0f) { coast(); return true; }
 
   if (kmh > V_MAX_KMH) {
-    g_refusal = "ueber V_MAX_KMH — Freigabe nach docs/07-sicherheit.md §5 fehlt";
+    g_refusal = "ueber V_MAX_KMH — Freigabe nach docs/07-safety.md §5 fehlt";
     return false;
   }
 
-  // Richtungswechsel im Lauf ist ein Bremsbefehl (docs/07-sicherheit.md §3.3).
+  // Richtungswechsel im Lauf ist ein Bremsbefehl (docs/07-safety.md §3.3).
   if (kmhSigned() < -1.0f) {
     g_refusal = "Trommel dreht rueckwaerts — erst Stillstand abwarten";
     return false;

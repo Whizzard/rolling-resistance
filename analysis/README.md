@@ -1,39 +1,61 @@
-# Auswertung
+# Evaluation
 
 ```sh
-python3 crr.py ../data/messung.csv          # Tabelle
-python3 crr.py ../data/messung.csv --plot   # zusätzlich Diagramm
+python3 crr.py ../data/2026-11-24-1530.csv          # table
+python3 crr.py ../data/2026-11-24-1530.csv --plot   # plus a chart with u(Crr)
 ```
 
-Nur Standardbibliothek; `--plot` braucht `matplotlib`.
+Standard library only; `--plot` needs `matplotlib`.
 
-## Was das Skript tut
+## What the script does
 
-1. Liest Geometrie (U, r, L) und Kalibrierfaktor aus dem Dateikopf.
-2. Trennt BASELINE- und MEASURE-Punkte an der Spalte `note`.
-3. Zerlegt die Baseline in Läufe (neuer Lauf, sobald die Geschwindigkeit wieder fällt).
-4. Vergleicht Vor- und Nachlauf. **Abbruch bei mehr als 0,10 N Abweichung** — dann hat
-   sich während der Messreihe etwas verändert, meist die Lagertemperatur, und das
-   Ergebnis wäre nicht interpretierbar. Mit `--force` überstimmbar.
-5. Interpoliert die Leerlaufkennlinie über v (innerhalb eines Laufs) und über die Zeit
-   (zwischen den Läufen), subtrahiert punktweise, teilt durch die Auflast.
+It reads the **run record** of the guided measurement run (firmware `run.cpp`, file
+`/runs/<id>.csv`, download it from http://tire.local/runs and store it unchanged under
+`data/`) and calculates **the same way the ESP does** (docs/09-measurement-theory.md
+§6, docs/12-methodology-review.md W9):
 
-## Abbruchgründe
+1. Idle-loss model A₀/B₀ and wheel-loss model A₁/B₁ from the file header; the header also
+   carries r, L, L_cal, wheel load, J_wheel with its origin, the Type B terms and the
+   speed source.
+2. Per plateau: mean of the valid points (the firmware has already corrected every point
+   by `J·dω/dt`), subtract the loss models, divide by the wheel load.
+3. u(Crr) with k = 1: Type A from the scatter of the points **pooled** over all plateaus
+   (ν degrees of freedom), Type B from the header, baseline from the pre/post drift or
+   the criterion, residual of the averaging without a real index, residual of the inertia
+   correction.
+4. Drifts as warnings, not as abort: reference point after minus before, baseline
+   pre/post against 0.02 N on F_roll. The zero checks are in the ESP's report (`.md`).
 
-| Meldung | Bedeutung |
+Against a synthetic run record with Crr = 0.00370 the script returns 0.00370 on every
+plateau; firmware and script implement the same formula.
+
+The **old serial CSV** (`t_ms,…,note=baseline|measure`) is still read: there the baseline
+is fitted per baseline run and interpolated in time, that format has no wheel model, and
+`--force` overrides the drift abort.
+
+## Messages
+
+| Message | Meaning |
 |---|---|
-| `N_per_count=0` | Wägezelle war unkalibriert, es liegen nur Rohwerte vor |
-| keine BASELINE-Punkte | Leerlaufkennlinie fehlt — ohne sie keine Absolutwerte |
-| Baseline-Drift zu groß | Messreihe verwerfen |
+| `kein Leerlaufmodell im Kopf` | no baseline run driven or adopted; Crr contains the drum losses |
+| `kein Radmodell im Kopf` | W09, Crr contains the wheel's own losses |
+| `kein Nachlauf (W05)` | drift unchecked, the budget assumes the criterion |
+| `REIHE VERWERFEN (W08)` | baseline drift above 0.02 N |
+| `N_per_count=0` | old format, load cell was uncalibrated |
 
-Das Skript schreibt nie in die Rohdatei zurück.
+The script never writes back into the raw file.
 
 ## check_params.py
 
 ```sh
-python3 check_params.py        # aus dem Projektwurzelverzeichnis: analysis/check_params.py
+python3 check_params.py        # from the project root: analysis/check_params.py
 ```
 
-Prüft, dass jede Konstante aus `firmware/src/config.h` in `docs/03-parameter.md` oder
-`docs/04-hardware.md` dokumentiert ist. Beide sollen 1:1 übereinstimmen (siehe CLAUDE.md);
-das Skript findet, was beim Dokumentieren vergessen wurde.
+Checks that every constant from `firmware/src/config.h` is documented in
+`docs/03-parameters.md` or `docs/04-hardware.md`. Both are meant to match 1:1 (see
+CLAUDE.md); the script finds what was forgotten while documenting.
+
+## check_links.py
+
+Checks every relative Markdown link in `README.md` and `docs/` for an existing target
+and reports link texts that do not use the file name.

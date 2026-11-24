@@ -21,3 +21,8 @@ __pycache__/
 # FreeCAD-Sicherungskopien
 *.FCBak
 firmware/web/serve
+
+# Zugangsdaten und alles, was sie enthaelt (QR-Code des WLANs)
+firmware/src/secrets.h
+hardware/qr-wlan.png
+hardware/qr-wlan.svg

@@ -1,272 +1,272 @@
-# Firmware-Anforderungen
+# Firmware Requirements
 
-Was die Firmware können muss. Das *Wie* steht hier nicht.
+What the firmware must do. The *how* is not covered here.
 
-Priorität: **M** = muss für den ersten Messlauf · **S** = soll · **K** = kann später.
-Stand 2026-11-01, erste Fassung nach Ansage.
+Priority: **M** = must for the first measurement run · **S** = should · **K** = can, later.
+As of 2026-11-01, first version as dictated.
 
-## 1 Grundsätze
+## 1 Principles
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| G1 | M | Kein `delay()` im Hauptpfad, Zustandsmaschine nicht blockierend. |
-| G2 | M | ISRs kurz: Zeitstempel in Ringpuffer, sonst nichts, `IRAM_ATTR`. |
-| G3 | M | Solange `LOADCELL_N_PER_COUNT` = 0 ist, werden **keine** Kräfte und kein Crr ausgegeben, nur Rohwerte. |
-| G4 | M | Alle physikalischen Konstanten aus `config.h`, keine Literale im Code. |
-| G5 | S | Jede Betriebsart ist über die serielle Konsole erreichbar, auch ohne Bedienteil. |
+| G1 | M | No `delay()` in the main loop path; the state machine is non-blocking. |
+| G2 | M | ISRs are short: timestamp into ring buffer, nothing else, `IRAM_ATTR`. |
+| G3 | M | As long as `LOADCELL_N_PER_COUNT` = 0, **no** forces and no Crr are output, only raw values. |
+| G4 | M | All physical constants come from `config.h`, no literals in the code. |
+| G5 | S | Every operating mode is reachable via the serial console, even without a control panel. |
 
-## 2 Testmodus
+## 2 Test Mode
 
-Zweck: Motor und Mechanik in Betrieb nehmen, bevor gemessen wird.
+Purpose: commission motor and mechanics before measuring.
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| T1 | M | Motor ein- und ausschalten. |
-| T2 | M | Sollgeschwindigkeit über **Hoch/Runter** verstellen. |
-| T3 | M | Schrittweite **1 km/h und 5 km/h**, umschaltbar. |
-| T4 | M | Sollwertbereich **0 bis 80 km/h**, begrenzt durch `MAX_DRUM_RPM`. Oberhalb der Freigabe nach [07-sicherheit](07-sicherheit.md) §5 verweigert die Firmware den Sollwert. |
-| T5 | M | Anzeige von **Soll- und Istgeschwindigkeit** gleichzeitig. |
-| T6 | M | Anzeige von **Umfangsgeschwindigkeit in km/h und Drehzahl in 1/min**. |
-| T7 | S | Anzeige des Rohwerts der Wägezelle, damit der Momentenpfad geprüft werden kann. |
-| T8 | S | Sollwert wird beim Verlassen des Testmodus auf 0 gesetzt. |
+| T1 | M | Switch the motor on and off. |
+| T2 | M | Adjust the target speed via **Up/Down**. |
+| T3 | M | Step size **1 km/h and 5 km/h**, switchable. |
+| T4 | M | Setpoint range **0 to 80 km/h**, limited by `MAX_DRUM_RPM`. Above the release per [07-safety](07-safety.md) §5 the firmware refuses the setpoint. |
+| T5 | M | Display **setpoint and actual speed** simultaneously. |
+| T6 | M | Display **circumferential speed in km/h and rotational speed in rpm**. |
+| T7 | S | Display the raw value of the load cell so the torque path can be checked. |
+| T8 | S | Setpoint is set to 0 when leaving test mode. |
 
-## 3 Bedienung
+## 3 Operation
 
-**Steuerkreuz mit fünf Tastern plus separatem Not-Aus.**
+**Five-way switch with five buttons plus separate emergency stop.**
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| B1 | M | Taster **Hoch / Runter / Rein / Raus**, jeweils gegen Masse, interner Pull-up. |
-| B2 | M | Fünfter Taster **Mitte = Bestätigen**. Entschieden und verdrahtet, `PIN_BTN_OK` = GPIO 39 ([04-hardware](04-hardware.md) §12.3). |
-| B3 | M | Entprellung in Software, kein RC im Signalpfad. |
-| B4 | M | Dauerdruck auf Hoch/Runter wiederholt mit Autorepeat. |
-| B5 | M | **Schrittweite 1 oder 5 km/h** über Rein/Raus oder einen Modusschalter — nicht über eine versteckte Tastenkombination. |
-| B6 | M | Der **Not-Aus ist kein Taster am Steuerkreuz**, sondern der zwangsöffnende Pilzschalter im Leistungspfad ([07-sicherheit](07-sicherheit.md) §3). Die Firmware sieht ihn nur über `PIN_ESTOP_FB`. |
-| B7 | S | Dieselbe Navigation über die serielle Konsole, damit ohne Bedienteil gearbeitet werden kann. |
+| B1 | M | Buttons **Up / Down / In / Out**, each to ground, internal pull-up. |
+| B2 | M | Fifth button **Center = Confirm**. Decided and wired, `PIN_BTN_OK` = GPIO 39 ([04-hardware](04-hardware.md) §12.3). |
+| B3 | M | Debounce in software, no RC in the signal path. |
+| B4 | M | Holding Up/Down repeats with autorepeat. |
+| B5 | M | **Step size 1 or 5 km/h** via In/Out or a mode switch, not via a hidden key combination. |
+| B6 | M | The **emergency stop is not a button on the five-way switch** but the positively opening mushroom switch in the power path ([07-safety](07-safety.md) §3). The firmware sees it only via `PIN_ESTOP_FB`. |
+| B7 | S | The same navigation via the serial console, so work is possible without a control panel. |
 
-Bauform: **Fünfwege-Tastschalter** (Navigationstaster, z. B. ALPS SKQU) — ein Bauteil,
-fünf Kontakte, gemeinsame Masse. Alternativ fünf einzelne Taster. **Keine** analogen
-Joystick-Breakouts: die geben eine Spannung, keine fünf Kontakte.
+Form factor: **five-way tactile switch** (navigation switch, e.g. ALPS SKQU), one component,
+five contacts, common ground. Alternatively five individual buttons. **No** analog
+joystick breakouts: they output a voltage, not five contacts.
 
-## 4 Not-Stop
+## 4 Emergency Stop
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| N1 | M | Auslösbar jederzeit und aus jeder Betriebsart. |
-| N2 | M | **Reihenfolge: erst Treiber sperren, dann Relais abfallen lassen.** Die Phasen dürfen nicht kurzgeschlossen werden, solange der Regler noch treibt. |
-| N3 | M | Relais abgefallen = Phasen kurzgeschlossen = gebremst. Gemessen 2026-11-01: rund **25 s** aus über 400 1/min. |
-| N4 | M | Zustand hält, bis die Trommel steht, und löst sich dann von selbst (seit 2026-11-23; vorher rastend mit Quittierung). |
-| N5 | M | Derselbe Zustand wird von den Abschaltkriterien in [07-sicherheit](07-sicherheit.md) §4 erreicht. |
-| N6 | M | Beim Reset und beim Booten sind die Relais abgefallen, der Stand ist also gebremst. |
+| N1 | M | Can be triggered at any time and from any operating mode. |
+| N2 | M | **Sequence: first disable the driver, then drop the relays.** The phases must not be shorted while the motor controller is still driving. |
+| N3 | M | Relays dropped = phases shorted = braked. Measured 2026-11-01: about **25 s** from over 400 rpm. |
+| N4 | M | The state holds until the drum stands still and then clears itself (since 2026-11-23; previously latching with acknowledgement). |
+| N5 | M | The same state is reached by the shutdown criteria in [07-safety](07-safety.md) §4. |
+| N6 | M | On reset and on boot the relays are dropped, so the stand is braked. |
 
-## 3.1 Bedienfeld über WLAN
+## 3.1 Web UI over Wi-Fi
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| W1 | M | Der Stand liefert die Oberfläche **selbst** aus, über den eigenen Accesspoint. Kein Internet, kein Router, keine App ([04-hardware](04-hardware.md) §13). |
-| W2 | M | **Dasselbe Befehlsvokabular wie die serielle Konsole.** `/api/cmd?c=…` reicht die Zeichenkette an denselben Parser weiter — es gibt nur eine Liste von Befehlen (G5). |
-| W3 | M | **Totmannschaltung**: ohne Herzschlag des Bedienrechners bricht ein laufender Lauf ab ([07-sicherheit](07-sicherheit.md) §4). |
-| W4 | S | Dieselbe Datei läuft als Entwurf im Browser (simuliert) und auf dem Gerät (live). Antwortet `/api/state`, führt der Prüfstand; sonst simuliert die Seite sich selbst. |
-| W5 | S | Anzeigewerte höchstens **5× je Sekunde** auffrischen. Der HX711 liefert 80 SPS; angezeigt wird der gleitende Mittelwert über 40 Werte. Ein mit 80 Hz zappelnder Zahlenwert ist weder lesbar noch aussagekräftig. |
-| W6 | K | Ausgelegt für ein **iPad im Querformat** im Kioskmodus, aber bis auf Handybreite benutzbar. |
+| W1 | M | The stand serves the web UI **itself**, via its own access point. No internet, no router, no app ([04-hardware](04-hardware.md) §13). |
+| W2 | M | **The same command vocabulary as the serial console.** `/api/cmd?c=…` passes the string on to the same parser; there is only one list of commands (G5). |
+| W3 | M | **Dead-man switch**: without a heartbeat from the operator's computer, a running run aborts ([07-safety](07-safety.md) §4). |
+| W4 | S | The same file runs as a draft in the browser (simulated) and on the device (live). If `/api/state` answers, the test stand leads; otherwise the page simulates itself. |
+| W5 | S | Refresh display values at most **5 times per second**. The HX711 delivers 80 SPS; the display shows the moving average over 40 values. A number jittering at 80 Hz is neither readable nor meaningful. |
+| W6 | K | Designed for an **iPad in landscape** in kiosk mode, but usable down to phone width. |
 
-**Webserver in eigener Task, seit 2026-11-23.** Die Arduino-Bibliothek blockiert bis
-zu 5 s, wenn ein Browser eine Verbindung öffnet, aber nichts schickt — iOS tut das
-vorsorglich. In der Hauptschleife stand die Regelung dadurch 2,8 s, der Totmann des
-Reglers (300 ms) schlug zu, und zwei Starts brachen ab. DNS, Webserver und
-JSON-Aufbau laufen deshalb in einer eigenen Task auf Kern 0; Befehle aus dem Browser
-gehen über eine Warteschlange an die Hauptschleife. Gestellt wird aus der
-Netzwerk-Task nichts. Die längste Schleifenrunde zeigt `i` an.
+**Web server in its own task, since 2026-11-23.** The Arduino library blocks for up
+to 5 s when a browser opens a connection but sends nothing, which iOS does as a
+precaution. In the main loop, control stalled for 2.8 s as a result, the motor
+controller's dead-man (300 ms) tripped, and two starts aborted. DNS, web server and
+JSON building therefore run in their own task on core 0; commands from the browser
+go through a queue to the main loop. Nothing is actuated from the network task. The
+longest loop iteration is shown by `i`.
 
-**Das LCD ist damit optional.** `display::present()` ist false, wenn unter
-`LCD_I2C_ADDR` niemand antwortet; dann läuft alles über Konsole und Bedienfeld. Das LCD
-zeigt dasselbe noch einmal, es ersetzt nichts und wird von nichts vorausgesetzt.
+**The LCD is thus optional.** `display::present()` is false if nobody answers at
+`LCD_I2C_ADDR`; then everything runs via console and web UI. The LCD shows the same
+once more; it replaces nothing and nothing depends on it.
 
-## 4.1 Status-LED
+## 4.1 Status LED
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| L1 | M | Die RGB-LED des DevKits zeigt **ausschließlich** den Zustand der Bedienverbindung. Kein Startanimation: die Verbindungsanzeige steht schon wenige Millisekunden nach dem Start und sagt mehr aus. |
-| L2 | M | **Grün stetig** = ein Bedienrechner meldet sich, **rot blinkend** = es wird gewartet. Geschrieben wird nur bei Zustandswechsel — `neopixelWrite()` belegt die RMT und dauert rund 30 µs. |
-| L3 | M | Die Animation ist **nicht blockierend** (G1): `statusled::service()` läuft aus `loop()`, es gibt kein `delay()`. |
+| L1 | M | The DevKit's RGB LED shows **exclusively** the state of the operator connection. No startup animation: the connection indicator is up a few milliseconds after start and says more. |
+| L2 | M | **Steady green** = an operator's computer is reporting in, **blinking red** = waiting. Written only on a state change; `neopixelWrite()` occupies the RMT and takes about 30 µs. |
+| L3 | M | The animation is **non-blocking** (G1): `statusled::service()` runs from `loop()`, there is no `delay()`. |
 
-Konstanten in [03-parameter](03-parameter.md) §8; die Pin-Frage v1.0/v1.1 steht dort
-als TBD.
+Constants in [03-parameters](03-parameters.md) §8; the pin question v1.0/v1.1 is listed
+there as TBD.
 
-## 5 Diagnoseseiten
+## 5 Diagnostic Pages
 
-Eine Seite je Sensor, einzeln anwählbar. Zweck: beim Aufbau prüfen, **ob** ein Geber
-schaltet, und **wie gut**.
+One page per sensor, individually selectable. Purpose: during assembly, check
+**whether** a sensor switches, and **how well**.
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| D1 | M | Jede Seite funktioniert **im Stillstand bei Drehen von Hand** — Einzelimpulse werden sichtbar, nicht nur ein Mittelwert. |
-| D2 | M | Jede Seite zeigt einen **Impulszähler**, einzeln rücksetzbar. |
-| D3 | M | Anzeige ist **4 × 20 Zeichen**. Passt eine Seite nicht, wird sie geblättert, nicht gekürzt. |
+| D1 | M | Every page works **at standstill while turning by hand**; individual pulses become visible, not just an average. |
+| D2 | M | Every page shows a **pulse counter**, individually resettable. |
+| D3 | M | Display is **4 × 20 characters**. If a page does not fit, it is paged, not shortened. |
 
-### 5.1 Übersicht Rohwerte
+### 5.1 Raw Values Overview
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| D4 | M | **Eine Seite mit allen Gebern gleichzeitig**, jeder als Rohwert: Trommelmarken, Index, Motor-Hall, Laufrad, Lichtschranke, Wägezelle. |
-| D5 | M | Digitale Geber als **Pegel und Zähler**, die Wägezelle als **Rohwert in Counts** — ungefiltert, unkalibriert. |
-| D6 | M | Aktualisierung mindestens 5× je Sekunde, damit Handdrehen sichtbar wird. |
+| D4 | M | **One page with all sensors at once**, each as a raw value: drum marks, index, motor Hall, wheel, optical sensor, load cell. |
+| D5 | M | Digital sensors as **level and counter**, the load cell as **raw value in counts**, unfiltered, uncalibrated. |
+| D6 | M | Update at least 5 times per second so that turning by hand becomes visible. |
 
-Zweck ist der Verdrahtungstest: ein Blick, ob überhaupt jeder Kanal lebt.
+The purpose is the wiring test: one glance to see whether every channel is alive at all.
 
-**Stand 2026-11-22:** die digitalen Geber (D4, D5 ohne Lichtschranke) gibt es im
-Bedienfeld unter *Einrichtung → Hall-Geber* als Zähler, Zeit seit dem letzten Impuls
-und Pegel, 5× je Sekunde (D6), Zähler gemeinsam nullbar mit `g`
-([04-hardware](04-hardware.md) §14.1). Die Wägezelle steht daneben als Rohwert unter
-*Wägezelle kalibrieren*.
+**As of 2026-11-22:** the digital sensors (D4, D5 without optical sensor) are available in
+the web UI under *Setup → Hall sensors* as counter, time since the last pulse and
+level, 5 times per second (D6), counters jointly zeroable with `g`
+([04-hardware](04-hardware.md) §14.1). The load cell stands next to it as a raw value under
+*Calibrate load cell*.
 
-### 5.2 Trommelmarken: Drehzahl und Gleichverteilung
+### 5.2 Drum Marks: Rotational Speed and Even Spacing
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| D7 | M | Drehzahl in **1/min mit einer Nachkommastelle** und Umfangsgeschwindigkeit in km/h, zum Abgleich mit einem Handdrehzahlmesser. |
-| D8 | M | **Pulszahl je Umdrehung** gegen den Sollwert 8. Jede Abweichung heißt: eine Marke schaltet nicht oder prellt. |
-| D9 | M | **Winkelabweichung je Marke** gegen die ideale 45°-Teilung, in Grad **und** in mm am Umfang. |
-| D10 | M | **Kennzahl**: größter Betrag und Standardabweichung über alle acht Marken. |
-| D11 | S | **Impulsbreite je Marke** in Grad. Eine deutlich schmalere Marke heißt zu großer Luftspalt oder schwacher Magnet — das ist das Maß für die Schaltreserve. Setzt Auswertung **beider Flanken** voraus. |
-| D12 | M | Mittelung über ≥ 50 Umdrehungen bei konstanter Drehzahl; gilt nur auf einem Plateau, nicht während der Rampe. |
+| D7 | M | Rotational speed in **rpm with one decimal place** and circumferential speed in km/h, for comparison with a handheld tachometer. |
+| D8 | M | **Pulse count per revolution** against the target of 8. Any deviation means: a mark is not switching or is bouncing. |
+| D9 | M | **Angular deviation per mark** against the ideal 45° pitch, in degrees **and** in mm on the circumference. |
+| D10 | M | **Figure of merit**: largest magnitude and standard deviation over all eight marks. |
+| D11 | S | **Pulse width per mark** in degrees. A noticeably narrower mark means too large an air gap or a weak magnet; this is the measure of switching margin. Requires evaluation of **both edges**. |
+| D12 | M | Averaging over ≥ 50 revolutions at steady rotational speed; valid only on a plateau, not during the ramp. |
 
 ```
 φ_i = 360° · (Σ_{k≤i} t_k) / T_U  −  i · 45°
 ```
 
-Zulässig, weil sich ω innerhalb einer Umdrehung um höchstens 0,15 % ändert
-([09-messtheorie](09-messtheorie.md) §1.7). Dieselben φ_i sind die Korrekturtabelle aus
-[04-hardware](04-hardware.md) §8.5 — gemessen statt gebohrt.
+Admissible because ω changes by at most 0.15 % within one revolution
+([09-measurement-theory](09-measurement-theory.md) §1.7). The same φ_i form the correction table from
+[04-hardware](04-hardware.md) §8.5, measured instead of drilled.
 
-### 5.3 Weitere Geberseiten
+### 5.3 Further Sensor Pages
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| D13 | M | **Index**: Zähler, Umdrehungen, Prüfung auf genau 1 Impuls je Umdrehung. |
-| D14 | M | **Motor-Hall**: Zähler und **Impulse je Trommelumdrehung** — damit wird `MOTOR_PULSES_PER_REV` bestimmt, bisher TBD. |
-| D15 | S | **Laufrad**: Zähler, Drehzahl, Impulse je Umdrehung. *Zähler und Drehzahl seit 2026-11-22 vorhanden, dazu seit 2026-11-23 der wirksame Laufradumfang aus dem Drehzahlverhältnis, über ein Fenster stetiger Fahrt integriert ([04-hardware](04-hardware.md) §14.1).* |
-| D16 | S | **Lichtschranke**: Zustand und Flankenzähler. |
+| D13 | M | **Index**: counter, revolutions, check for exactly 1 pulse per revolution. |
+| D14 | M | **Motor Hall**: counter and **pulses per drum revolution**; this determines `MOTOR_PULSES_PER_REV`, so far TBD. |
+| D15 | S | **Wheel**: counter, rotational speed, pulses per revolution. *Counter and rotational speed available since 2026-11-22, plus since 2026-11-23 the effective wheel circumference from the speed ratio, integrated over a window of steady running ([04-hardware](04-hardware.md) §14.1).* |
+| D16 | S | **Light barrier**: state and edge counter. |
 
-### 5.4 Wägezelle
+### 5.4 Load Cell
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| D17 | M | **Rohwert** in Counts, ungefiltert. |
-| D18 | M | **Mittelwert, Streuung und Spitze-Spitze** über die letzten N Werte. |
-| D19 | M | **Glättung N zur Laufzeit verstellbar**, Wirkung auf die Streuung sofort sichtbar. So wird `AVG_REVS_PER_POINT` belegt statt geschätzt. |
-| D20 | M | **Tatsächliche Abtastrate** in SPS — damit fällt auf, wenn der RATE-Pin auf 10 statt 80 SPS steht ([04-hardware](04-hardware.md) §5.5). |
-| D21 | S | **Drift seit der letzten Tara**, in Counts und in Minuten. |
-| D22 | S | Nach Kalibrierung zusätzlich in **N und Nm**. |
+| D17 | M | **Raw value** in counts, unfiltered. |
+| D18 | M | **Mean, scatter and peak-to-peak** over the last N values. |
+| D19 | M | **Smoothing N adjustable at runtime**, effect on the scatter immediately visible. This is how `AVG_REVS_PER_POINT` gets substantiated instead of estimated. |
+| D20 | M | **Actual sample rate** in SPS, so it becomes apparent when the RATE pin is set to 10 instead of 80 SPS ([04-hardware](04-hardware.md) §5.5). |
+| D21 | S | **Drift since the last tare**, in counts and in minutes. |
+| D22 | S | After calibration additionally in **N and Nm**. |
 
 ### 5.5 Motor
 
-Werte vom Regler über UART. Macht aus dem Regler ein zweites Messgerät.
+Values from the motor controller via UART. Turns the motor controller into a second measuring instrument.
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| D23 | M | **Drehzahl** vom Regler, umgerechnet auf mechanische 1/min — Gegenprobe zu den Trommelmarken. |
-| D24 | M | **Motorstrom und Eingangsstrom**, **Busspannung**, **Aussteuerung**. |
-| D25 | M | **Reglertemperatur** und, sobald A5 geklärt ist, **Motortemperatur**. |
-| D26 | M | **Fehlercode des Reglers** im Klartext. |
-| D27 | S | Verbrauchte Ah und Wh seit Lauf-Beginn. |
-| D28 | S | **Moment aus dem Strom** rechnen (`M = kt · I`) und neben das Moment aus der Wägezelle stellen. |
+| D23 | M | **Rotational speed** from the motor controller, converted to mechanical rpm; cross-check against the drum marks. |
+| D24 | M | **Motor current and input current**, **bus voltage**, **duty cycle**. |
+| D25 | M | **Controller temperature** and, once A5 is settled, **motor temperature**. |
+| D26 | M | **Motor controller error code** in plain text. |
+| D27 | S | Consumed Ah and Wh since start of the run. |
+| D28 | S | Compute **torque from current** (`M = kt · I`) and place it next to the torque from the load cell. |
 
-> D28 ist die wertvollste Zeile dieser Seite: zwei voneinander unabhängige
-> Momentenmessungen. Sie ersetzt die Wägezelle nicht — kt ist nur auf 10 bis 20 %
-> bekannt und temperaturabhängig —, aber eine Abweichung um Faktor 2 fällt sofort auf.
-> Setzt kt aus A13 und die Polzahl aus A4 voraus.
+> D28 is the most valuable line on this page: two mutually independent torque
+> measurements. It does not replace the load cell, since kt is only known to 10 to 20 %
+> and is temperature-dependent, but a deviation by a factor of 2 shows up immediately.
+> Requires kt from A13 and the pole count from A4.
 
-## 6 Kalibriermodus Wägezelle
+## 6 Load Cell Calibration Mode
 
-Prüfgewicht an den Hebelarm hängen, daraus `LOADCELL_N_PER_COUNT`.
+Hang a test weight on the lever arm, derive `LOADCELL_N_PER_COUNT` from it.
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| W1 | M | Nullpunkt aufnehmen (Arm unbelastet), Mittelwert über ≥ 200 Werte. |
-| W2 | M | Masse des Prüfgewichts eingeben. Die **Hebelarme** stehen als eigene Felder auf derselben Seite (Zellenarm 80 mm, Kalibrierarm 160 mm) und werden am Aufbau ausgemessen, nicht je Wägung eingetippt. |
-| W3 | M | Mit Gewicht messen, Mittelwert über ≥ 200 Werte, Faktor berechnen und anzeigen. |
-| W4 | M | Faktor wird **angezeigt, nicht automatisch übernommen** — er gehört von Hand in `config.h` und [03-parameter](03-parameter.md). |
-| W5 | S | **Mehrere Massen** nacheinander, Linearität über den Bereich prüfen und die Abweichung anzeigen. |
-| W6 | S | Dieselbe Masse an beiden Radien als Gegenprobe der Hebelarmmaße. |
-| W7 | K | Kriechen: Last 5 min anstehen lassen, Abweichung protokollieren. |
+| W1 | M | Record the zero point (arm unloaded), mean over ≥ 200 values. |
+| W2 | M | Enter the mass of the test weight. The **lever arms** are separate fields on the same page (cell arm 80 mm, calibration arm 160 mm), measured on the assembly, not typed in per weighing. |
+| W3 | M | Measure with weight, mean over ≥ 200 values, compute and display the factor. |
+| W4 | M | The factor is **displayed, not adopted automatically**; it goes by hand into `config.h` and [03-parameters](03-parameters.md). |
+| W5 | S | **Several masses** in sequence, check linearity over the range and display the deviation. |
+| W6 | S | The same mass at both radii as a cross-check of the lever arm dimensions. |
+| W7 | K | Creep: leave the load on for 5 min, log the deviation. |
 
-Umrechnung: eine Masse *m* am Radius *b* erzeugt an der Zelle (Arm L = 80 mm)
-`F = m · g · b / L`. Am 160-mm-Loch also die **doppelte** Kraft — Endwert der 5-kg-Zelle
-bei 2,4 kg, [09-messtheorie](09-messtheorie.md) §5.1.
+Conversion: a mass *m* at radius *b* produces at the cell (arm L = 80 mm)
+`F = m · g · b / L`. At the 160 mm hole therefore **twice** the force; full scale of the 5 kg cell
+at 2.4 kg, [09-measurement-theory](09-measurement-theory.md) §5.1.
 
-## 7 Messseite
+## 7 Measurement Page
 
-Die Seite, auf der während eines Laufs alles steht, was zählt.
+The page on which everything that matters is shown during a run.
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| L1 | M | **Drehzahl** in 1/min und **Umfangsgeschwindigkeit** in km/h, jeweils **Soll und Ist**. |
-| L2 | M | **Leistung in W**. Solange die Zelle nicht kalibriert ist, die **elektrische** Leistung vom Regler, ausdrücklich so beschriftet. |
-| L3 | M | **Motorstrom** und **Motortemperatur**. |
-| L4 | M | **Drehzahlzustand**: konstant / beschleunigt / bremst. |
-| L5 | M | **dv/dt numerisch** in km/h/s, nicht nur als Symbol. |
-| L6 | M | Crr, sobald `LOADCELL_N_PER_COUNT` gesetzt ist. |
-| L7 | S | Restliche Haltezeit auf dem Plateau. |
-| L8 | S | Reifendruck und Auflast, wie vor dem Lauf eingegeben. |
-| L12 | M | **Abrollradius `r_Rad` aus dem Drehzahlverhältnis** `r_Trommel · n_Trommel / n_Rad` berechnen und anzeigen, statt ihn eingeben zu lassen. Mittelung über ≥ 30 s auf einem Plateau. |
-| L13 | S | Das Verhältnis als **Schlupfüberwachung**: Abweichung vom eingeschwungenen Wert um mehr als 1 % meldet rutschenden Reifen. |
+| L1 | M | **Rotational speed** in rpm and **circumferential speed** in km/h, each as **setpoint and actual value**. |
+| L2 | M | **Power in W**. As long as the cell is not calibrated, the **electrical** power from the motor controller, explicitly labelled as such. |
+| L3 | M | **Motor current** and **motor temperature**. |
+| L4 | M | **Speed state**: steady / accelerating / braking. |
+| L5 | M | **dv/dt numerically** in km/h/s, not just as a symbol. |
+| L6 | M | Crr, as soon as `LOADCELL_N_PER_COUNT` is set. |
+| L7 | S | Remaining hold time on the plateau. |
+| L8 | S | Tire pressure and wheel load, as entered before the run. |
+| L12 | M | Compute and display the **rolling radius `r_Rad` from the speed ratio** `r_Trommel · n_Trommel / n_Rad` instead of having it entered. Averaging over ≥ 30 s on a plateau. |
+| L13 | S | The ratio as **slip monitoring**: a deviation from the settled value by more than 1 % reports a slipping tire. |
 
-### 7.1 Wann die Drehzahl „konstant" ist
+### 7.1 When the Speed Is "Steady"
 
-Nicht Augenmaß, sondern Grenzwert. Ein Rest an Beschleunigung erzeugt über
-`M = J · dω/dt` ein Scheinmoment, das direkt ins Ergebnis geht:
+Not by eye, but by threshold. A residual acceleration produces, via
+`M = J · dω/dt`, an apparent torque that goes directly into the result:
 
 ```
-1 % vom Signal eines guten Rennreifens  = 0,012 Nm
-α = 0,012 / 1,94 kg·m²                  = 0,0062 rad/s²
-dv/dt                                    = 0,010 km/h/s
+1 % of the signal of a good racing tire  = 0.012 Nm
+α = 0.012 / 1.94 kg·m²                   = 0.0062 rad/s²
+dv/dt                                    = 0.010 km/h/s
 ```
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| L9 | M | **konstant** gilt bei `\|dv/dt\| < 0,010 km/h/s`. Das entspricht 1 % Fehler. |
-| L10 | M | Messpunkte, die außerhalb dieses Fensters aufgenommen wurden, werden **als ungültig markiert** — in der Anzeige und in der CSV-Zeile. |
-| L11 | S | Schärferes Fenster `< 0,002 km/h/s` für 0,2 % wählbar. |
+| L9 | M | The apparent torque is **subtracted per point**: `M = M_roh − J_eff·dω/dt` with the net acceleration as the slope of the regression line v(t) over the point (since 2026-11-24, `state.cpp`). Residual: `UNC_J_REL` = 5 % of it. |
+| L10 | M | Measurement points whose net acceleration exceeds `POINT_DVDT_NET_MAX_KMH_S` = 0.2 km/h/s (residual > 1 %) are **marked invalid**, in the display, in the report (W03) and in the CSV row. Peak |dv/dt| and M_inert are listed per point alongside. |
+| ~~L11~~ | — | The tighter window has been dropped: the correction replaces it. |
 
-Zur Einordnung: über ein Mittelungsfenster von 10 Umdrehungen bei 60 km/h (1,7 s) sind
-0,010 km/h/s gerade **0,017 km/h Drift**, also 0,03 % der Geschwindigkeit. Das Plateau
-muss schärfer stehen, als man vermutet — deshalb gehört der Wert auf die Seite und nicht
-in die Auswertung hinterher.
+For perspective: over an averaging window of 10 revolutions at 60 km/h (1.7 s),
+0.010 km/h/s is just **0.017 km/h of drift**, i.e. 0.03 % of the speed. The plateau
+has to stand more precisely than one would assume, which is why the value belongs on the page and not
+in the analysis afterwards.
 
-## 8 Eingaben vor dem Lauf
+## 8 Inputs Before the Run
 
-Über die serielle Konsole, einzeilig, und mit in die CSV-Kopfzeile.
+Via the serial console, single-line, and included in the CSV header.
 
-| Befehl | Größe | Beispiel | wofür |
+| Command | Quantity | Example | Purpose |
 |---|---|---|---|
-| `l<N>` | Auflast | `l416.9` | Crr; auch unter *Einrichtung → Messung* |
-| `h<kmh>` / `h-<kmh>` | Messgeschwindigkeit dazu / weg | `h28.8` | Liste im NVS, immer sortiert; Messseite zeigt genau diese Punkte, *Messung*/*Leerlauf* fahren sie der Reihe nach ab |
-| `p<bar>` | Reifendruck | `p4.0` | nur Protokoll |
-| `r<m>` | Reifenradius | `r0.339` | **nur als Rückfall** — normalerweise aus dem Drehzahlverhältnis gemessen, L12 |
-| `u` | **Assistent Auslauf + Leerlauf** | `u` | Trommel fährt mit aufgelegtem Rad auf `WIZ_KMH` = 40 km/h; dann Rad abheben — dreht es langsamer, als es über die Trommel müsste (`WIZ_SLIP_RATIO`), ist es abgehoben, und es beginnen zugleich der Laufrad-Auslauf (A₁, B₁ aus den Impulsen, J_Rad aus Masse und Umfang) und der Leerlauflauf der Trommel über alle Plateaus (A₀, B₀ aus der Zelle). Beides wird gespeichert. `uq` quittiert den letzten Schritt. Im Bedienfeld als Assistent unter *Einrichtung → Verlustmodelle*. Seit 2026-11-23 |
-| `y<kg>` | Laufradmasse mit Reifen | `y2.4` | J_Rad = `WHEEL_J_FACTOR` · m · r_Rad² |
-| `w<A₁> <B₁>` | Radverlustmodell von Hand | `w0.012 0.000071` | aus dem Laufrad-Auslauf |
-| `n<A₀> <B₀>` | Leerlaufmodell von Hand | `n0.004 0.000209` | der Leerlauflauf `m0` fittet und speichert es seit 2026-11-23 selbst; aus dem Baseline-Lauf |
-| `t` | statische Tara | | Offset |
-| `R` | **Geführter Messlauf** | `R`, dann `Rk`/`Rs`/`Rn`/`Rx`, `Rm<k>=<v>` | Vierzehn Schritte ([11-messablauf-review](11-messablauf-review.md) §3): Lauf anlegen, Sichtprüfung, Systemprüfung, Nullen, Kontrollgewicht, Leerlaufmodell (übernehmen oder Vorlauf mit abgehobenem Rad), Radmodell, Rad aufgelegt; dann allein Warmlauf (`WARMUP_MS` bei `WARMUP_KMH`, Live-Punkt je Minute), Plateaus mit `RUN_POINTS_PER_PLATEAU` Punkten, Ankerpunkt, Anhalten; optional Nachlauf Leerlauf; Protokoll `.md` und Daten `.csv` im LittleFS unter `/runs/<Kennung>`, abrufbar über `/runs`. Warnungen W01…W12 im Protokoll. Im Bedienfeld hinter *Messung*. Seit 2026-11-23 |
+| `l<N>` | Wheel load | `l416.9` | Crr; also under *Setup → Measurement* |
+| `h<kmh>` / `h-<kmh>` | Add / remove measurement speed | `h28.8` | List in NVS, always sorted; the Measurement page shows exactly these points, *Measurement*/*Idle* run through them in order |
+| `p<bar>` | Tire pressure | `p4.0` | report only |
+| `r<m>` | Tire radius | `r0.339` | **fallback only**; normally measured from the speed ratio, L12 |
+| `u` | **Spin-down + idle wizard** | `u` | The drum runs with the wheel resting on it to `WIZ_KMH` = 40 km/h; then lift the wheel off. If it turns slower than it would have to via the drum (`WIZ_SLIP_RATIO`), it is lifted off, and at the same time the wheel spin-down (A₁, B₁ from the pulses, J_Rad from mass and circumference) and the drum idle run over all plateaus (A₀, B₀ from the cell) begin. Both are stored. `uq` acknowledges the last step. In the web UI as a wizard under *Setup → Loss models*. Since 2026-11-23 |
+| `y<kg>` | Wheel mass including tire | `y2.4` | J_Rad = `WHEEL_J_FACTOR` · m · r_Rad² |
+| `w<A₁> <B₁>` | Wheel-loss model by hand | `w0.012 0.000071` | from the wheel spin-down |
+| `n<A₀> <B₀>` | Idle-loss model by hand | `n0.004 0.000209` | the idle run `m0` fits and stores it itself since 2026-11-23; from the baseline run |
+| `t` | static tare | | offset |
+| `R` | **Guided measurement run** | `R`, then `Rk`/`Rs`/`Rn`/`Rx`, `Rm<k>=<v>` | Fourteen steps ([11-run-review](11-run-review.md) §3): create run, visual check, system check, zeroing, control weight, idle-loss model (adopt or pre-run with wheel lifted), wheel model, wheel resting; then on its own warm-up (`WARMUP_MS` at `WARMUP_KMH`, live point every minute), plateaus with `RUN_POINTS_PER_PLATEAU` points, anchor point, stop; optional idle post-run; report `.md` and data `.csv` in LittleFS under `/runs/<id>`, retrievable via `/runs`. Warnings W01…W12 in the report. In the web UI behind *Measurement*. Since 2026-11-23 |
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| E1 | M | Jede Eingabe steht in der CSV, damit ein falsch gesetzter Wert später auffällt. |
-| E2 | S | `A₀/B₀` fittet die Firmware nach dem Baseline-Lauf selbst und bietet sie an. |
-| E3 | M | Fehlt eine Eingabe, bleibt die abhängige Größe `--`, sie wird nicht geschätzt. |
+| E1 | M | Every input is in the CSV so that a wrongly set value shows up later. |
+| E2 | S | The firmware fits `A₀/B₀` itself after the baseline run and offers them. |
+| E3 | M | If an input is missing, the dependent quantity stays `--`; it is not estimated. |
 
-## 9 Anzeige
+## 9 Display
 
-| | P | Anforderung |
+| | P | Requirement |
 |---|---|---|
-| Z1 | M | **4 × 20 Zeichen**, HD44780 über PCF8574. |
-| Z2 | M | Fehlt `LOADCELL_N_PER_COUNT` oder `A₁/B₁`, steht statt Crr und Watt **`--`**. Kein Wert ist besser als ein falscher. |
-| Z3 | M | Eine Zeile zeigt immer die **Eingaben** (Auflast, Druck), damit ein Fehler vor dem Lauf auffällt. |
-| Z4 | M | Betriebsart und Fortschritt sind immer sichtbar. |
+| Z1 | M | **4 × 20 characters**, HD44780 via PCF8574. |
+| Z2 | M | If `LOADCELL_N_PER_COUNT` or `A₁/B₁` is missing, **`--`** is shown instead of Crr and watts. No value is better than a wrong one. |
+| Z3 | M | One line always shows the **inputs** (wheel load, pressure) so that an error shows up before the run. |
+| Z4 | M | Operating mode and progress are always visible. |
 
-Entwurf der Messseite:
+Draft of the Measurement page:
 
 ```
 v 28.8 km/h  n 196
@@ -275,16 +275,16 @@ N 417 N      p 4.0 bar
 MEASURE  rev 7/10  ok
 ```
 
-## 10 Offen
+## 10 Open
 
-| | Frage |
+| | Question |
 |---|---|
-| ? | **Masse des Prüfgewichts.** Vermutet 500 g — das ergibt am 80-mm-Loch nur **10 % vom Zellenendwert**, gemessen wird aber bei 13 bis 64 %. Siehe Hinweis unten. |
-| ? | **Pinbelegung** steht in [04-hardware](04-hardware.md) §4 und geht in `config.h`, sobald die Firmware-Arbeit wieder aufgenommen wird. |
-| ? | **Überbrückungsschalter für die Bremsrelais.** N6 hält den Stand im stromlosen Zustand gebremst — zum Drehen von Hand (D1, Wuchten, Markenmontage) muss sich das abschalten lassen. |
+| ? | **Mass of the test weight.** Presumed 500 g, which at the 80 mm hole gives only **10 % of the cell's full scale**, while measurement takes place at 13 to 64 %. See note below. |
+| ? | **Pin assignment** is in [04-hardware](04-hardware.md) §4 and goes into `config.h` as soon as firmware work resumes. |
+| ? | **Bypass switch for the brake relays.** N6 keeps the stand braked when unpowered; for turning by hand (D1, balancing, mark mounting) this must be switchable off. |
 
-> **Zum Prüfgewicht.** 500 g am 80-mm-Loch sind 9,81 N an der Zelle, also 10 % vom
-> Endwert; der Messbetrieb liegt bei 12 bis 63 N. Eine Kalibrierung bei 10 % auf 64 %
-> zu extrapolieren verlässt sich ganz auf die Linearität. Besser: mehrere Massen bis
-> etwa **4 kg** am 80-mm-Loch (= 90 % FS), mindestens aber drei Punkte über den
-> genutzten Bereich.
+> **On the test weight.** 500 g at the 80 mm hole is 9.81 N at the cell, i.e. 10 % of
+> full scale; measurement operation lies at 12 to 63 N. Extrapolating a calibration at 10 % to 64 %
+> relies entirely on linearity. Better: several masses up to
+> about **4 kg** at the 80 mm hole (= 90 % FS), but at least three points over the
+> range used.

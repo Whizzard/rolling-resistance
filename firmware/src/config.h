@@ -1,12 +1,12 @@
 #pragma once
 //
 // Alle physikalischen Konstanten des Prüfstands — und nur hier.
-// Spiegelt docs/03-parameter.md. Änderungen immer in beiden Dateien.
+// Spiegelt docs/03-parameters.md. Änderungen immer in beiden Dateien.
 //
 // Herkunft jedes Werts steht im Kommentar:
 //   [gem]   gemessen        [ber]  berechnet
 //   [DB]    Datenblatt      [gesch] geschätzt
-//   [TBD]   noch zu ermitteln — Methode steht in docs/03-parameter.md
+//   [TBD]   noch zu ermitteln — Methode steht in docs/03-parameters.md
 //
 
 #include <Arduino.h>
@@ -24,20 +24,32 @@ constexpr float DRUM_CIRCUMFERENCE_M = 2.842f;
 // [ber] U / 2π
 constexpr float DRUM_RADIUS_M = DRUM_CIRCUMFERENCE_M / (2.0f * PI);
 
-// [ber] Traegheitsmoment der Trommel aus der Geometrie (docs/09-messtheorie.md).
-// Bestimmt die Hochlaufzeit und die Energie, die im Notfall abzufuehren ist:
-// bei 100 km/h sind es 3,7 kJ.
+// [ber] Traegheitsmoment der Trommel aus der Geometrie der Ø-905-Trommel
+// (docs/09-measurement-theory.md). Bestimmt die Hochlaufzeit, die Energie, die im Notfall
+// abzufuehren ist (bei 100 km/h 3,7 kJ) -- und seit 2026-11-24 die TRAEGHEITS-
+// KORREKTUR je Messpunkt: M_korr = M - J_eff * dw/dt (state.cpp finishPoint,
+// docs/12-methodology-review.md K1). Geht damit mit UNC_J_REL ins Ergebnis ein;
+// per Auslaufversuch mit bekannter Zusatzmasse nachmessen (docs/05 A5.3).
 constexpr float DRUM_INERTIA_KGM2 = 1.94f;
+// [gesch] Relative Unsicherheit von DRUM_INERTIA_KGM2, solange J nur gerechnet ist.
+// Bestimmt, wie viel Restbeschleunigung ein Punkt vertraegt: nach der Korrektur
+// bleibt UNC_J_REL * J * dw/dt als Fehler stehen.
+constexpr float UNC_J_REL = 0.05f;
 
 // [gem] Leerlaufverlustmoment der Trommel, am 2026-11-17 aus dem FREIEN AUSLAUF
 // bestimmt: 97 -> 29 km/h in 140 s, acht Stuetzstellen, M = I * dw/dt. Anpassung
 //     M_verlust = DRUM_LOSS_CONST_NM + DRUM_LOSS_OMEGA2_NM * w^2     (w in rad/s)
 //
-// Der konstante Anteil ist Lager- und Motorreibung. Er KUERZT SICH in der Pendel-
-// messung heraus, weil Trommellager und Motorreibung beide innerhalb der Wiege
-// liegen. Uebrig bleibt der w^2-Anteil: der Luftwiderstand der Trommel.
+// Der konstante Anteil ist Lager- und Motorreibung. Davon kuerzt sich in der
+// Pendelmessung nur der MOTORANTEIL heraus (Motorlager und Rastmoment liegen
+// zwischen Stator und Rotor). Die TROMMELLAGER -- zwei Stehlager fuer die 15-mm-
+// Welle am Staender, der Motor ist nur angeflanscht -- liegen AUSSERHALB und
+// werden mitgemessen; sie stecken im A0 der Leerlaufkennlinie und werden mit ihr
+// abgezogen. Ihr lastabhaengiger Zuwachs unter Auflast bleibt als Restfehler
+// (UNC_BEARING_REL, docs/06-open-questions.md A11). Der w^2-Anteil ist der
+// Luftwiderstand der Trommel.
 //
-// Bei 60 km/h sind das 0,43 Nm. docs/09-messtheorie.md nennt dafuer 0,27 Nm — der
+// Bei 60 km/h sind das 0,43 Nm. docs/09-measurement-theory.md nennt dafuer 0,27 Nm — der
 // gemessene Wert ist 1,6-fach groesser. Gegen ein Nutzsignal von 1,32 Nm (Crr 0,007
 // bei 417 N Auflast) sind das 33 % statt 20 %, bei 100 km/h sogar 91 %. Abziehbar
 // ist er, weil er sich je Stufe leerlaufend mitmessen laesst — aber er muss
@@ -53,7 +65,7 @@ constexpr float DRUM_LOSS_OMEGA2_NM = 3.178e-4f;
 //   samt Rampe              2,51 Nm → 31,4 N = 64 %
 //   ΔCrr = 0,0005                            →  1,22 N
 // Das sind exakt dieselben Ausnutzungen wie in der früheren 10-kg-Rechnung bei 0,040 m:
-// halbe Zelle, doppelter Arm. Die Begründung in docs/08-staender.md §5.2 trägt also
+// halbe Zelle, doppelter Arm. Die Begründung in docs/08-stand.md §5.2 trägt also
 // unverändert, nur liegt die Überlastgrenze woanders.
 // Verbaut sind laut Ansage vom 2026-11-16 etwa 80 mm. Der Arm geht LINEAR in jedes
 // Moment ein — vor der ersten Messung die Bohrung auf ±0,1 mm ausmessen und den Wert
@@ -69,10 +81,14 @@ constexpr float TORQUE_ARM_M = 0.084f;
 //
 // Beide Arme sind zur Laufzeit ueberschreibbar (settings.h) — sie werden AM AUFBAU
 // ausgemessen, und ein Kalibrierlauf, der zum Uebersetzen zwingt, wird nicht gemacht.
-// [Festlegung 2026-11-23] 330 mm: mit dem geeichten 1-kg-Gewicht 38,5 N an der
-// Zelle, 79 % der 5-kg-Zelle -- deckt den Messbereich (48...64 %) nach oben ab und
-// laesst Reserve. Bohrung noch nicht gesetzt; nach dem Bohren den Abstand Achse bis
-// Lochmitte messen und den gemessenen Wert eintragen.
+// [gem 2026-11-23] 330 mm, Achse bis Marke am Arm ausgemessen; dort haengt das
+// geeichte 1-kg-Gewicht: 38,5 N an der Zelle, 79 % der 5-kg-Zelle -- deckt den
+// Messbereich (48...64 %) nach oben ab und laesst Reserve. Die Marke kann noch auf
+// einen runderen Wert wandern; dann hier UND im NVS nachziehen.
+// WICHTIG: In der Momentenkette kuerzt sich TORQUE_ARM_M heraus,
+//   M = counts * m*g*CALIB_ARM_M / (counts_kal - offset),
+// die Richtigkeit jedes Moments haengt also an DIESEM Mass, nicht am Zellenarm
+// (docs/12-methodology-review.md D2). Deshalb UNC_LCAL_REL statt eines L-Postens.
 constexpr float CALIB_ARM_M = 0.330f;
 
 // [Festlegung] DIREKTANTRIEB: die Trommel sitzt auf dem Rotor des Nabenmotors,
@@ -80,7 +96,7 @@ constexpr float CALIB_ARM_M = 0.330f;
 // etwa 480 1/min allein schon 84 km/h an der Trommel, eine Übersetzung ist also
 // nicht nötig — und jede
 // Übersetzung läge AUSSERHALB der Pendelwiege und würde mitgemessen
-// (docs/09-messtheorie.md §1.6). Die Konstante bleibt für den Fall, dass doch
+// (docs/09-measurement-theory.md §1.6). Die Konstante bleibt für den Fall, dass doch
 // einmal ein Riemen dazwischenkommt.
 constexpr float BELT_RATIO = 1.00f;
 
@@ -91,9 +107,27 @@ constexpr float BELT_RATIO = 1.00f;
 // Ergebnis geht, wird index-getriggert über ganze Umdrehungen gemessen, dort kürzt
 // sich die Markenteilung exakt heraus. Sie bringen nur Latenz auf dem
 // trommelseitigen Pfad; die eigentliche Auflösung liefert der Motor-Hall.
+// WAS WOFUER (docs/12-methodology-review.md K4): Fuer die Messung zaehlen echte
+// Umdrehungen -- sie machen aus "10 gerechnete Umdrehungen aus der Reglerdrehzahl"
+// zehn echte. Die liefert JEDER Geber an der Trommel: der Marken-Hall (jede 8. Flanke
+// ist eine Umdrehung, speed.cpp) oder ein eigener Index-Hall. Mit nur EINEM Hall sind
+// die 8 Marken die bessere Wahl: dazu kommen eine vom Regler unabhaengige Drehzahl,
+// Stillstands- und Schlupfpruefung und die Winkel-Bins. Der Index-Hall bringt nur noch
+// den festen Winkelnullpunkt. Ohne jeden Geber: revsrc rechnet (Quelle "regler").
 constexpr uint8_t MARKS_PER_REV = 8;
+// ZWISCHENMAGNET, optional (2026-11-24, docs/04-hardware.md §8.6): ein neunter Magnet
+// genau in der Mitte EINER 45°-Luecke. Der eine Marken-Hall sieht dann je Umdrehung
+// sieben Intervalle von 45° und zwei von 22,5°; der Impuls zwischen den beiden kurzen
+// ist der Index. Das gibt den festen Winkelnullpunkt ohne zweiten Hall, und die Zaehlung
+// rastet jede Umdrehung neu ein (speed.cpp service()). Erkennung automatisch; ohne den
+// Magneten bleibt es bei "jede 8. Flanke". Gegenueber eine gleich schwere NICHT-
+// magnetische Schraube gegen die Unwucht.
+constexpr bool    MARK_PATTERN_INDEX   = true;   // [Festlegung] Erkennung eingeschaltet
+constexpr float   MARK_SHORT_RATIO     = 0.7f;   // [gesch] Intervall darunter (vom Mittel) gilt als halbes
+constexpr float   MARK_MISSED_RATIO    = 1.6f;   // [gesch] darueber gilt eine Flanke als verschluckt
+constexpr uint8_t MARK_PATTERN_CONFIRM = 2;      // [gesch] so oft im Abstand von 9 Impulsen, dann bestaetigt
 // [Festlegung] Magnete an den Speichen des Prüflaufrads, Geber am Ausfallende
-// (docs/09-messtheorie.md §4). Die Laufraddrehzahl wird wie die Trommel über ein
+// (docs/09-measurement-theory.md §4). Die Laufraddrehzahl wird wie die Trommel über ein
 // Fenster von einer ganzen Umdrehung gerechnet; mehr Magnete brächten keine
 // Genauigkeit, nur eine schnellere Aktualisierung. Verbaut ist seit 2026-11-22
 // EIN Magnet — der Wert muss zum Rad passen, sonst stimmen Drehzahl und
@@ -141,7 +175,7 @@ constexpr uint8_t MOTOR_PULSES_PER_REV = MOTOR_POLE_PAIRS;
 // Vorher stand im Regler eine fremde Konfiguration: Uebersetzung und Oeffnungsdrehzahl
 // von Hand gesetzt, R/L/Flussverkettung aus einer Erkennung an einem ANDEREN Motor.
 // Polzahl, Raddurchmesser und die Drehzahlreglergewinne darin waren dagegen nur die
-// Werkseinstellungen — siehe docs/03-parameter.md §4.1.
+// Werkseinstellungen — siehe docs/03-parameters.md §4.1.
 
 // [gem] Flussverkettung, vom Regler erkannt (foc_detect_apply_all mit 50 W
 // Verlustgrenze). Scheitelwert der Strangverkettung.
@@ -164,7 +198,7 @@ constexpr float MOTOR_R_OHM = 0.2387f;
 // Tastverhaeltnis 0,50 bis 0,95 bei 40 V, streng linear (11 384 bis 11 450 ERPM je
 // Einheit Tastverhaeltnis).
 //
-// NICHT zu verwechseln mit den "kv = 14", die in docs/06-offene-fragen.md unter A13
+// NICHT zu verwechseln mit den "kv = 14", die in docs/06-open-questions.md unter A13
 // stehen: das ist die Endgeschwindigkeit des Systems MIT Trommel, also gegen deren
 // Luftwiderstand — eine Systemgroesse, keine Motorkonstante. Die Induktivitaet ist
 // hier bewusst nicht aufgefuehrt: measure_res_ind streute ueber vier Laeufe von
@@ -197,11 +231,11 @@ constexpr float LOADCELL_CAPACITY_N = 49.03f;
 // [TBD] KALIBRIERUNG AUSSTEHEND. Solange dieser Wert 0 ist, gibt die Firmware
 // keine Kräfte und kein Crr aus, sondern nur Rohwerte. Das ist Absicht:
 // ein erfundener Kalibrierfaktor wäre schlimmer als eine Lücke.
-// Ermittlung: docs/05-pruefablauf.md §2.
+// Ermittlung: docs/05-test-procedure.md §2.
 // [gem 2026-11-23] Geeichtes 1-kg-Gewicht bei 330 mm, Zellenarm 84 mm, also
 // 38,53 N an der Zelle; Faktor ueber die Oberflaeche ermittelt (Befehl k). Ein
 // einzelnes Gewicht -- die Linearitaet ueber den Bereich ist damit noch nicht
-// geprueft (docs/03-parameter.md §2).
+// geprueft (docs/03-parameters.md §2).
 constexpr float LOADCELL_N_PER_COUNT = 0.00002668f;
 
 // -------------------------------------------------------------- Messbetrieb
@@ -224,7 +258,15 @@ constexpr uint8_t PLATEAU_COUNT = sizeof(PLATEAUS_KMH) / sizeof(PLATEAUS_KMH[0])
 constexpr uint8_t PLATEAU_MAX = 16;           // Platz in den Einstellungen
 
 constexpr float RAMP_KMH_PER_S = 0.5f;        // [gesch] 2 min von 0 auf 60
-constexpr uint32_t SETTLE_MS = 15000;         // [gesch] nach Plateauwechsel
+constexpr uint32_t SETTLE_MS = 15000;         // [gesch] nach Plateauwechsel, Mindestzeit
+// [gesch 2026-11-24] Einschwingen endet nicht nach der Uhr, sondern wenn der Istwert
+// SETTLE_STEADY_MS lang innerhalb SETTLE_TOL_KMH am Sollwert lag -- die Regelung
+// braucht 17 bis 22 s bis ans Ziel (docs/03-parameters.md §8.2), SETTLE_MS allein
+// war zu kurz. Nach SETTLE_MAX_MS geht es trotzdem weiter; der Punkt wird dann
+// ueber dv/dt beurteilt.
+constexpr float    SETTLE_TOL_KMH   = 0.3f;
+constexpr uint32_t SETTLE_STEADY_MS = 5000;
+constexpr uint32_t SETTLE_MAX_MS    = 60000;
 constexpr uint8_t AVG_REVS_PER_POINT = 10;    // [gesch] ganze Umdrehungen
 // [Literatur] Der Referenzprüfstand fährt 30 min warm, bevor gemessen wird.
 // Crr sinkt mit der Reifentemperatur deutlich; ohne definierten Warmlauf sind
@@ -241,9 +283,16 @@ constexpr uint32_t DVDT_WINDOW_MS = 1000;
 // [ber] "Konstant" ist kein Augenmaß, sondern eine Grenze: ein Rest an
 // Beschleunigung erzeugt über M = J·dω/dt ein Scheinmoment. 1 % vom Signal eines
 // guten Rennreifens sind 0,012 Nm, über J = 1,94 kg·m² also 0,0062 rad/s² und damit
-// 0,010 km/h/s (docs/10-firmware.md §7.1). Die scharfe Variante ist 0,2 %.
+// 0,010 km/h/s (docs/10-firmware.md §7.1).
+// Seit 2026-11-24 wird das Scheinmoment je Punkt ABGEZOGEN (state.cpp), nicht nur
+// gegated: massgeblich ist die NETTO-Beschleunigung ueber das Mittelungsfenster,
+// als Ausgleichsgerade v(t) ueber den Punkt. Uebrig bleibt der Anteil UNC_J_REL
+// davon; ein Punkt gilt deshalb als gueltig, solange
+//     |dv/dt netto| < DVDT_CONST_KMH_PER_S / UNC_J_REL      (= 0,2 km/h/s)
+// -- dann liegt der Restfehler unter 1 % des Signals. Vorher stand das Gate auf
+// STEADY_DVDT_KMH_S (0,3 km/h/s Spitzenwert), das waeren 51 % des Signals gewesen.
 constexpr float DVDT_CONST_KMH_PER_S = 0.010f;
-constexpr float DVDT_STRICT_KMH_PER_S = 0.002f;
+constexpr float POINT_DVDT_NET_MAX_KMH_S = DVDT_CONST_KMH_PER_S / UNC_J_REL;
 
 // [Festlegung] Standard-Auflast: 42,5 kg, wie in der veröffentlichten Crr-Datenbank.
 // Nur ein Vorschlagswert für die Bedienung — die tatsächliche Last wird gemessen
@@ -271,7 +320,7 @@ constexpr float MAX_FORCE_N = 45.0f;          // 92 % vom Zellenendwert (5 kg)
 // geplante Ø-955-Trommel; an der gebauten Ø-933-Trommel hätte er schon bei 58,4 km/h
 // ausgelöst, also mitten im obersten Messplateau.
 // Bei U = 2,837 m sind es 353 1/min.
-// Erhöhung von V_MAX_KMH nur nach docs/07-sicherheit.md §5.
+// Erhöhung von V_MAX_KMH nur nach docs/07-safety.md §5.
 // [Festlegung 2026-11-23] 3 km/h Luft ueber V_MAX_KMH: das oberste Plateau liegt AUF
 // V_MAX, und 1 km/h Ueberschwingen brach den Leerlauflauf dort als "Drehzahlgrenze" ab.
 constexpr float OVERSPEED_MARGIN_KMH = 3.0f;
@@ -331,7 +380,7 @@ constexpr uint32_t LIVE_WINDOW_MS    = 5000;    // Mittelungsfenster, 400 Zellen
 // M_leer(w) = A0 + B0 w^2 aus dem Leerlauf (Rad abgehoben, Befehl m0): die Firmware
 // fittet am Ende des Laufs selbst und speichert. M_Rad(w_Rad) = A1 + B1 w_Rad^2 aus
 // dem Laufrad-Auslauf (Befehl u): J_Rad aus der Radmasse, J = WHEEL_J_FACTOR m r^2.
-// [Literatur] 0,85 fuer ein 622er Laufrad, docs/08-staender.md §6.
+// [Literatur] 0,85 fuer ein 622er Laufrad, docs/08-stand.md §6.
 constexpr float   WHEEL_J_FACTOR = 0.85f;
 constexpr float   WHEEL_MASS_DEFAULT_KG = 1.5f;  // [Festlegung 2026-11-23] Vorgabe, am Stand wiegen
 // Assistent Auslauf + Leerlauf (state.h): Trommel auf diese Geschwindigkeit, Rad
@@ -345,9 +394,9 @@ constexpr float   SPINDOWN_MIN_KMH  = 5.0f;     // [gesch] darunter endet der Au
 // HERUNTERFAHREN = BREMSEN. Liegt der Sollwert unter dem Istwert, wird nicht das
 // Tastverhaeltnis gesenkt -- das ist in FOC Rekuperation in den Bus, und das
 // Netzteil nimmt nichts auf: 43,8 V, Fehler 1 beim Sprung 40 -> 15 km/h am
-// 2026-11-23 (docs/07-sicherheit.md §3.1). Stattdessen Bremsstrom
+// 2026-11-23 (docs/07-safety.md §3.1). Stattdessen Bremsstrom
 // VESC_BRAKE_CURRENT_STOP bis knapp ueber den Sollwert, dann wieder stellen.
-// BREMSEN MIT NETZTEIL AM BUS (Quelltextbefund FW 7.01, docs/07-sicherheit.md
+// BREMSEN MIT NETZTEIL AM BUS (Quelltextbefund FW 7.01, docs/07-safety.md
 // §3.2d). Jeder Bremseinstieg aus Fahrt durchquert die Rueckspeisezone
 // 0 < |I| < I_kurz: der Regler fuehrt bei freigegebenem Motor die Gegen-EMK als
 // Tastverhaeltnis mit und springt darum nie direkt in den Kurzschluss. Der Stoss
@@ -362,20 +411,32 @@ constexpr float   SPINDOWN_MIN_KMH  = 5.0f;     // [gesch] darunter endet der Au
 constexpr float   BRAKE_MAX_KMH       = 45.0f;    // [gesch] 54 ok, 56 nicht; Rand nach unten. Anheben nur in 2-km/h-Schritten mit Blick auf vin
 constexpr uint32_t BRAKE_FAULT_HOLD_MS = 3000;    // [gesch] nach einem Reglerfehler so lange nicht wieder bremsen (500 ms davon verwirft der Regler selbst)
 
-// GEFUEHRTER MESSLAUF (run.h, docs/11-messablauf-review.md §2 und §3).
+// GEFUEHRTER MESSLAUF (run.h, docs/11-run-review.md §2 und §3).
 constexpr uint8_t  RUN_POINTS_PER_PLATEAU = 3;    // [Festlegung] R4: Streuung je Plateau aus drei Punkten zu je AVG_REVS_PER_POINT
 constexpr float    RUN_CTRL_MASS_KG  = 1.0f;      // [gemessen] geeichtes Kontrollgewicht, haengt bei CALIB_ARM_M
 constexpr float    RUN_CTRL_OK_PCT   = 0.5f;      // [gesch] Kontrollgewicht: Abweichung darunter ok
 constexpr float    RUN_CTRL_WARN_PCT = 1.0f;      // [gesch] darunter Warnung W10, darueber nur Nochmal oder Abbruch
-constexpr uint32_t RUN_CTRL_AVG_MS   = 2000;      // [gesch] Mittelungszeit beim Kontrollgewicht (160 Zellenwerte)
+constexpr uint32_t RUN_CTRL_AVG_MS   = 2000;      // [gesch] Mittelungszeit beim Kontrollgewicht (160 Zellenwerte, torque::sample*)
 constexpr uint32_t RUN_NOISE_MS      = 5000;      // [Festlegung] Rauschfenster der Systempruefung im Stillstand
-constexpr float    RUN_DRIFT_LIMIT_N = 0.02f;     // [ber] docs/09-messtheorie.md §8.8: Vor-/Nachlauf auf F_roll, darueber W08
-constexpr float    RUN_ANCHOR_WARN_N = 0.03f;     // [gesch] Ankerdrift auf F_roll, darueber W04
-// Typ-B-Anteile der Unsicherheit je Punkt (R9), relativ. Herkunft docs/03-parameter.md.
-constexpr float    UNC_K_REL   = 0.002f;          // [gesch] Kalibrierfaktor: Kontrollgewicht 0,05 %, Mittelung, Arm
-constexpr float    UNC_L_REL   = 0.0012f;         // [ber] 0,1 mm auf TORQUE_ARM_M 84 mm
-constexpr float    UNC_N_REL   = 0.005f;          // [gesch] Auflast: Plattformwaage 20 g, Hebelgeometrie
-constexpr float    UNC_RAD_REL = 0.005f;          // [ber] J_Rad +-1,5 % -> 0,52 % von M_Reifen (docs/09 §3.2)
+constexpr float    RUN_DRIFT_LIMIT_N = 0.02f;     // [ber] docs/09-measurement-theory.md §8.8: Vor-/Nachlauf auf F_roll, darueber W08
+constexpr float    RUN_ANCHOR_WARN_N = 0.03f;     // [gesch] Ankerdrift auf F_roll (Referenzpunkt vor und nach den Plateaus), darueber W04
+// NULLPUNKT, zweimal geprueft (docs/12-methodology-review.md K2, W6):
+//  - nach dem Nullen die Trommel von Hand eine Viertelumdrehung weiterdrehen und
+//    erneut lesen. Weicht der Rohwert ab, hielt etwas den Rotor gegen das Rastmoment
+//    fest (Rad auf der Trommel), und der Offset enthaelt das Rastmoment dieses Winkels.
+//  - nach dem Auslauf, Rad abgehoben, Trommel steht: die Zelle muss den Offset wieder
+//    zeigen. Was fehlt, ist Drift von Zelle, Kabel oder Vorspannung ueber den Lauf.
+// Beide Grenzen auf F_roll bezogen wie das Driftkriterium.
+constexpr float    RUN_ZERO_LIMIT_N  = 0.02f;     // [ber] = RUN_DRIFT_LIMIT_N, darueber W13 bzw. W14
+constexpr uint32_t RUN_ZERO_AVG_MS   = 2000;      // [gesch] Mittelungszeit der Nullpruefungen
+// Typ-B-Anteile der Unsicherheit je Punkt (R9), relativ. Herkunft docs/03-parameters.md.
+constexpr float    UNC_K_REL     = 0.002f;        // [gesch] Kalibrierfaktor: Kontrollgewicht 0,05 %, Mittelung, Linearitaet
+constexpr float    UNC_LCAL_REL  = 0.001f;        // [gesch] CALIB_ARM_M: 0,1 mm auf 330 mm plus Lotrichtung der Aufhaengung
+constexpr float    UNC_N_REL     = 0.005f;        // [gesch] Auflast: Haengewaage am Galgen, Armlage
+constexpr float    UNC_P_REL     = 0.010f;        // [gesch] Reifendruck: Manometer +-0,1 bar bzw. AirSpy-Offset, bei ~8 %/bar Crr-Empfindlichkeit
+constexpr float    UNC_BEARING_REL = 0.0065f;     // [ber] lastabhaengiger Trommellageranteil 4,7 mNm (docs/06 A11), nicht korrigiert
+constexpr float    UNC_RAD_REL   = 0.005f;        // [ber] J_Rad GEMESSEN (Bifilar +-1,5 %) -> 0,52 % von M_Reifen (docs/09 §3.2)
+constexpr float    UNC_RAD_EST_REL = 0.035f;      // [ber] J_Rad nur aus WHEEL_J_FACTOR (+-10 %): 10 % von 0,25 Nm = 3,5 % des Rennreifensignals
 constexpr float   SPEEDCTL_BRAKE_ABOVE_KMH = 2.0f;   // [gesch] ab so viel ueber Soll wird gebremst
 constexpr float   SPEEDCTL_BRAKE_UNTIL_KMH = 0.5f;   // [gesch] bis so viel ueber Soll
 constexpr uint32_t ESTOP_DETECT_MS  = 1000;   // [gesch] so lange muss der Befund stehen
@@ -449,8 +510,15 @@ constexpr uint8_t PIN_BRAKE_RELEASE = 40;
 constexpr char     WEBUI_SSID[]    = "Pruefstand";  // [Festlegung]
 // [Festlegung] WPA2 statt offen. Nicht aus Geheimhaltung, sondern weil sonst jeder in
 // Reichweite den Motor fahren kann. Eingetippt wird es nie — es steckt im QR-Code
-// (hardware/qr-wlan.png). Mindestens 8 Zeichen, sonst bleibt der AP offen.
-constexpr char     WEBUI_PASSWORD[] = "***REMOVED***";
+// (hardware/qr-wlan.png, nicht im Repo). Mindestens 8 Zeichen, sonst bleibt der AP offen.
+// DAS KENNWORT STEHT NICHT HIER, sondern in firmware/src/secrets.h (git-ignoriert).
+// Vorlage: secrets.example.h kopieren und das Kennwort eintragen. Ohne secrets.h
+// baut die Firmware mit dem Beispielkennwort aus der Vorlage.
+#if __has_include("secrets.h")
+#include "secrets.h"
+#else
+#include "secrets.example.h"
+#endif
 constexpr uint8_t  WEBUI_CHANNEL   = 6;             // [Festlegung]
 constexpr uint8_t  WEBUI_MAX_CLIENTS = 4;           // [Festlegung]
 constexpr uint16_t WEBUI_PORT      = 80;            // [Festlegung] Captive Portal braucht 80
@@ -488,7 +556,7 @@ constexpr uint8_t  WEBUI_AP_IP[4] = {4, 3, 2, 1};
 
 // SICHERHEITSGRENZE. Totmannschaltung: solange ein Lauf fährt, muss der
 // Bedienrechner sich melden. Bleibt er länger aus, bricht der Lauf ab — ein
-// Abschaltkriterium wie jedes andere, docs/07-sicherheit.md §4.
+// Abschaltkriterium wie jedes andere, docs/07-safety.md §4.
 // [Festlegung 2026-11-23] 10 s. Vorher 2000 ms -- das brach Fahrten ab, obwohl
 // das Handy die Seite offen hatte: der Webserver der Arduino-Bibliothek bedient
 // nur EINEN Client, und eine leere Vorab-Verbindung von iOS haelt ihn bis zu 5 s
@@ -527,7 +595,7 @@ constexpr uint32_t VESC_ALIVE_MS = 150;
 // gemessen: 10 877 ERPM bei Tastverhältnis 0,95 und 40 V, über zehn Stützstellen
 // linear, extrapoliert 11 450 ERPM = 763 1/min bei Vollaussteuerung. An der Trommel
 // wären das 130 km/h; für 60 km/h genügt Tastverhältnis 0,46. Die Grenze ist eine
-// Festlegung aus docs/07-sicherheit.md, keine Eigenschaft der Maschine.
+// Festlegung aus docs/07-safety.md, keine Eigenschaft der Maschine.
 //
 // Vorher stand hier 2400, abgeleitet aus den si_motor_poles = 14 des Reglers unter
 // der Annahme, das sei der kleinste plausible Wert. Es waren 30 Pole.
@@ -551,7 +619,7 @@ constexpr int32_t VESC_ERPM_MAX =
 //      die Hall-Tabelle passt nicht mehr — der Motor brummt dann mit Strom, aber ohne
 //      Moment, und meldet KEINEN Fehler (docs/04-hardware.md §10.6).
 //   2. Ein Richtungswechsel im Lauf ist ein BREMSBEFEHL und speist zurueck. Immer
-//      erst Stillstand abwarten (docs/07-sicherheit.md §3.3).
+//      erst Stillstand abwarten (docs/07-safety.md §3.3).
 // [gem 2026-11-23] +1 seit dem Neuverdrahten: Fallstrick 1 ist genau so eingetreten,
 // die Hall-Tabelle wurde neu erkannt (hardware/vesc-config-fw7.01/README.md), und mit
 // dem alten -1 lief die Trommel RUECKWAERTS. Nach jeder Neuerkennung der Hall-Tabelle
@@ -560,7 +628,7 @@ constexpr int32_t VESC_DIRECTION_SIGN = +1;
 
 // Unterhalb dieser Motortemperatur ist der Fuehler OFFEN, nicht kalt. Am
 // 2026-11-17 gemessen: offene Klemme meldet -75,5 C, angeschlossen 19,4 C
-// (docs/06-offene-fragen.md A5). Am 2026-11-18 hat eine nicht gesteckte
+// (docs/06-open-questions.md A5). Am 2026-11-18 hat eine nicht gesteckte
 // Sensorleitung -82 C gezeigt -- und weil TMP und die drei Hall-Geber im
 // SELBEN Stecker liegen, ist das zugleich der Verdacht auf die Hall-Geber.
 constexpr float MOTOR_TEMP_OPEN_C = -20.0f;
@@ -605,7 +673,7 @@ constexpr uint32_t SPEEDCTL_LEARN_TIMEOUT_MS = 20000;
 // den Bus. Oberhalb muss er Strom zusaetzlich treiben, das KOSTET Busleistung.
 //
 // Daraus folgt die wichtigste Konsequenz fuer den Betrieb: ein GROSSER Bremsstrom ist
-// netzteilfreundlich, ein kleiner nicht. Siehe docs/07-sicherheit.md §3.2a.
+// netzteilfreundlich, ein kleiner nicht. Siehe docs/07-safety.md §3.2a.
 
 // [Festlegung 2026-11-17] Es wird IMMER der schnellstmoegliche Stopp gefahren, nie ein
 // langsamer. Rueckgewinnung ist damit kein Auswahlkriterium — sie faellt an oder nicht.
@@ -620,14 +688,14 @@ constexpr uint32_t SPEEDCTL_LEARN_TIMEOUT_MS = 20000;
 // Sollwert unter dem Kurzschlussstrom, dort speist der Regler ZURUECK — erst bei
 // kleiner Drehzahl entnimmt er. Die Nettobilanz von -140 J verdeckt diesen
 // Anfangsstoss, und ein Netzteil kann ihn nicht aufnehmen.
-// docs/07-sicherheit.md §3.2b und §3.2c.
+// docs/07-safety.md §3.2b und §3.2c.
 constexpr float VESC_BRAKE_CURRENT_STOP = 20.0f;
 
 // ------------------------------------------- Geschwindigkeitsregelung der Trommel
 //
 // Der Drehzahlregler des VESC ist fuer diesen Motor unbrauchbar eingestellt, und
 // s_pid_min_erpm = 900 sperrt die unterste Pruefstufe (881 ERPM bei 10 km/h) —
-// docs/06-offene-fragen.md A15. Gefahren wird deshalb ueber das TASTVERHAELTNIS,
+// docs/06-open-questions.md A15. Gefahren wird deshalb ueber das TASTVERHAELTNIS,
 // mit Vorsteuerung aus der Leerlaufkennlinie und langsamem Trimm darueber.
 // Am 2026-11-17 so bis 99,2 km/h erprobt.
 
@@ -660,7 +728,7 @@ constexpr float SPEEDCTL_KD  = 0.015f;   // Tastverhaeltnis je (km/h/s) Beschleu
 //
 // ACHTUNG, die Asymmetrie ist der Kern: HERUNTERstellen ist ein BREMSBEFEHL. Ein
 // Tastverhaeltnis unter dem, was die momentane Drehzahl braucht, laesst den Regler
-// zurueckspeisen — am Netzteil endet das in Ueberspannung (docs/07-sicherheit.md
+// zurueckspeisen — am Netzteil endet das in Ueberspannung (docs/07-safety.md
 // §3.3). Deshalb darf der Stellwert nur ein Fuenftel so schnell fallen wie steigen.
 constexpr float SPEEDCTL_DUTY_UP_PER_S   = 0.30f;
 constexpr float SPEEDCTL_DUTY_DOWN_PER_S = 0.06f;
@@ -718,6 +786,32 @@ constexpr uint8_t LCD_COLS = 20;
 constexpr uint8_t LCD_ROWS = 4;
 
 // ------------------------------------------------------------- Umrechnungen
+
+// ------------------------------------------------- Reifendruck: SKS AIRSPY ueber BLE
+// Protokoll aus dem Schwesterprojekt ~/git/airspy, docs/20-protocol.md (dort als
+// CONFIRMED gemessen, 2026-10-13): der Sensor meldet sich als "AIRSPY-<Seriennummer>",
+// Dienst 0xFFF0, Characteristic 0xFFF4 streamt ohne Anfrage mit 2 Hz. Jede
+// 15-Byte-Notification enthaelt einen float32 (little endian) an Offset 8 und das
+// Feldkennzeichen in Byte 14: 0x2E Druck in kPa, in der zweiten Haelfte 0x22
+// Temperatur °C (Offset 0) und 0x1E Batterie % (Offset 7). Es gibt KEINE Druckdaten im
+// Advertisement; der Name steht in der Scan-Antwort, also aktiv scannen.
+// [INFERRED] Der Druck ist ein Relativdruck (Manometerdruck): 0,2 bis 0,8 bar an
+// einem bluten gelassenen Schlauch. Der absolute Offset ist dort noch offen (§3.4).
+// Am Stand: GENAU EIN Sensor; der erste gefundene wird genommen (tirepressure.cpp).
+constexpr char     AIRSPY_NAME_PREFIX[] = "AIRSPY";
+constexpr uint16_t AIRSPY_SVC_UUID16    = 0xFFF0;
+constexpr uint16_t AIRSPY_CHR_UUID16    = 0xFFF4;
+constexpr uint8_t  AIRSPY_TAG_PRESSURE  = 0x2E;
+constexpr uint8_t  AIRSPY_TAG_TEMP      = 0x22;
+constexpr uint8_t  AIRSPY_TAG_BATTERY   = 0x1E;
+constexpr uint8_t  AIRSPY_AVG_N         = 10;     // [Festlegung] gleitendes Mittel, 5 s bei 2 Hz
+constexpr uint32_t AIRSPY_STALE_MS      = 10000;  // [gesch] danach gilt der Wert als alt (Sensor schlaeft ~10 min nach Stillstand)
+// Verbindungsintervall in 1,25-ms-Einheiten: 400..500 ms statt 30..50, sonst ist die
+// Knopfzelle in einem Tag leer (airspy/docs/20-protocol.md §3.3). Eine Bitte, keine
+// Vorgabe -- der Sensor darf ablehnen.
+constexpr uint16_t AIRSPY_CONN_ITVL_MIN = 320;
+constexpr uint16_t AIRSPY_CONN_ITVL_MAX = 400;
+constexpr uint32_t AIRSPY_CONNECT_TIMEOUT_MS = 5000;
 
 constexpr float KMH_TO_MS = 1.0f / 3.6f;
 constexpr float MS_TO_KMH = 3.6f;

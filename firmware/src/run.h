@@ -2,13 +2,21 @@
 //
 // GEFUEHRTER MESSLAUF ("Messung" auf der Messseite), seit 2026-11-23.
 //
-// Vierzehn Schritte, Begruendung in docs/11-messablauf-review.md §3:
+// Vierzehn Schritte, Begruendung in docs/11-run-review.md §3:
 //
 //   A Vorbereitung (Haende)      1 Lauf anlegen  2 Sichtpruefung  3 Systempruefung
-//                                4 Nullen  5 Kontrollgewicht  6 Leerlaufmodell
+//                                4 Nullen (Rad abgehoben, Rotor frei) + Nullpruefung
+//                                  durch Weiterdrehen  5 Kontrollgewicht  6 Leerlaufmodell
 //                                7 Radmodell  8 Rad aufgelegt
-//   B Messfahrt (allein)         9 Warmlauf  10 Plateaus  11 Ankerpunkt  12 Anhalten
-//   C Abschluss                  13 Nachlauf Leerlauf (optional)  14 Protokoll
+//   B Messfahrt (allein)         9 Warmlauf  10 Referenzpunkt + Plateaus
+//                                11 Referenzpunkt danach  12 Anhalten
+//   C Abschluss                  13 Nullpunkt + Nachlauf Leerlauf (optional)  14 Protokoll
+//
+// Seit 2026-11-24 (docs/12-methodology-review.md): jeder Punkt ist um J*dw/dt
+// korrigiert, der Referenzpunkt (WARMUP_KMH) wird direkt nach dem Warmlauf und nach
+// den Plateaus gefahren (Ankerdrift ueber die ganze Messfahrt), Druck und
+// Reifentemperatur kommen je Punkt vom AirSpy mit, und die Unsicherheit je Plateau
+// nutzt die gepoolte Streuung aller Plateaus.
 //
 // Alles, was Haende braucht, liegt vor dem Warmlauf. Danach faehrt der Stand ohne
 // Bediener, und am Ende liegen Protokoll (.md) und Daten (.csv) im Flash
@@ -24,8 +32,9 @@
 //   Rs         Nebenknopf (Ueberspringen, Uebernehmen)
 //   Rn         Nochmal (Kontrollgewicht)
 //   Rx         abbrechen und schliessen
-//   Rm<k>=<v>  Metadaten: t Reifen, w Laufrad, b Druck bar, c Raum °C,
-//              l Auflast kg, p Position Laufgewicht mm, n Notiz, d Unixzeit s
+//   Rm<k>=<v>  Metadaten: t Reifen, w Laufrad, b Druck bar, c Raum °C (Start),
+//              e Raum °C (Ende), l Auflast kg, p Position Laufgewicht mm, n Notiz,
+//              d Unixzeit s
 //
 #include <Arduino.h>
 
