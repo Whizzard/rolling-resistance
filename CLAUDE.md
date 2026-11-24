@@ -1,8 +1,8 @@
 # Conventions in this project
 
 ## Language
-Documentation (`README.md`, `docs/`, the READMEs in `analysis/`, `tools/`, `hardware/`,
-`web/`) is written in **English**. Identifiers in code are English. Comments inside the
+Documentation (`README.md`, `docs/`, the READMEs in `analysis/`, `tools/`, `hardware/`)
+is written in **English**. Identifiers in code are English. Comments inside the
 firmware and the web UI texts are German; they are not translated piecemeal, only
 whole files at a time.
 

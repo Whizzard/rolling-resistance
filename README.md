@@ -93,7 +93,6 @@ and the web UI are in German; the documentation is in English.
 | `hardware/` | FreeCAD generators and exports of the printed parts, wiring and schematic generators, VESC configuration backups |
 | `tools/` | Host-side tools: test-stand console over USB, manual VESC console, VESC backup |
 | `data/` | Averaged measurement points as CSV, unchanged (raw 80 SPS streams stay on the stand) |
-| `web/vmrr.de/` | Placeholder page of the domain vmrr.de and its deployment |
 
 ## Quickstart
 
