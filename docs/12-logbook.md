@@ -27,6 +27,12 @@ Work on the desk, not at the stand:
 - **Wheel profiles:** lists of tires, tubes, rims and hubs in the flash, dropdowns in
   step 1, editing under Setup; each combination keeps its own wheel model, mass and J.
   The field "wheel" became rim + hub.
+- Requirement F8a ([01-requirements](01-requirements.md)) extended: raw logging of the
+  whole run, preparation, tare and check-weight calibration included, for checking
+  suspected errors in the procedure later and as a reference.
+- Commit c1131e7 pushed; the old history is on GitHub as branch
+  `history-until-2026-11-24` (contains the stand's local WLAN password, judged
+  uncritical by the builder).
 - vmrr logo chosen: mark E3 "Rolling" (wheel with a time sector, speed lines, road).
   Files under `logo/`; favicon, touch icon and top-left logo in the web UI; favicon and
   the mark large above the name on vmrr.de (hosts repo `sites/vmrr.de/`, deployed),
