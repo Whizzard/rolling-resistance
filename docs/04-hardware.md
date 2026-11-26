@@ -111,7 +111,7 @@ need 1393 rpm, three times its rated speed.
 Board: **ESP32-S3-DevKitC-1**, module WROOM-1 **N16R8** (16 MB flash, 8 MB octal PSRAM).
 Reconciled with `firmware/src/config.h` and `firmware/platformio.ini`.
 
-The authoritative source is `hardware/schaltplan.py` — it also wires the peripherals
+The authoritative source is `hardware/schematic.py` — it also wires the peripherals
 that the firmware does not yet touch.
 
 | GPIO | Constant | Function | Direction | Note |
@@ -299,7 +299,7 @@ costs the measurement.
 
 | Component | Supply | Signal to the ESP32 |
 |---|---|---|
-| TLE4905L | V_S = 5 V (minimum 3.8 V) | open collector, **pull-up 470 Ω to 5 V and Zener diode 3.3 V to ground at the ESP32** → ≈ 3.2 V, cathode to the signal. Soldering and connection template: `hardware/hallplan.pdf` |
+| TLE4905L | V_S = 5 V (minimum 3.8 V) | open collector, **pull-up 470 Ω to 5 V and Zener diode 3.3 V to ground at the ESP32** → ≈ 3.2 V, cathode to the signal. Soldering and connection template: `hardware/hall-plan.pdf` |
 | HX711 | **VCC = 5 V** (analog), **VDD = 3.3 V** (digital) | DOUT at 3.3 V |
 | ~~LCD / PCF8574~~ | — | **dropped since 2026-11-22**, operation is via WiFi |
 
@@ -429,6 +429,14 @@ If one does have to go into the analog run after all:
   per revolution** instead of 14, with which the revolution-synchronous averaging
   ([09-measurement-theory](09-measurement-theory.md) §3.8) collapses. If necessary cut the trace
   and bridge to DVDD.
+  **SparkFun SEN-13879 (installed):** the RATE solder jumper looks open but is closed by a
+  trace under the solder mask (10 SPS from the factory). The stand ran at 10.5 SPS until
+  2026-11-26 (95.4 ms between values in the raw log of run 2026-11-26-1542); the builder
+  cut the trace that day, since then 83.8 values/s (console `i`). Noise at standstill
+  after the cut: σ 801 counts per value above 6 Hz, 111 counts averaged over 8 values,
+  i.e. the same as one value at 10 SPS (σ 124 at the tare of that run); no mains line
+  in the spectrum. A lightly damped 4 Hz oscillation of the beam (decay over about 15 s
+  after a touch) dominates the peak-to-peak value.
 - **Motor leads over the pivot bearing as a soft loop.** On the hub motor they
   exit axially through the stator axle, i.e. on the pivot axis — the advantage is
   lost if the cable leaves taut.
@@ -511,14 +519,14 @@ speed sensing, on the frame. Its counterpart is §8.
 
 3D print, outer dimensions **37.2 × 20.0 × 12.0 mm**, 5.6 cm³.
 
-`hall-gehaeuse.FCStd` is a **PartDesign body with feature tree** and a
+`hall-housing.FCStd` is a **PartDesign body with feature tree** and a
 spreadsheet `Parameter`; all sketches are fully constrained and bound to the
 table via expressions. Dimensions are changed **in the table**, not in the sketches.
 
 | | |
 |---|---|
-| Feature tree | Grundkoerper · Kavitaet · Bauteilraum · **Auflagefasen · Kabelrampe** · Rastnasen · Federfeld · Schraubloch · Kabelnut (+rund) · Kabelmulde (+rund) · LED_Loch |
-| `hardware/hall_gehaeuse.py` | builds the tree from scratch, exports `.step` and `.stl` |
+| Feature tree | BaseBlock · Cavity · ComponentSpace · **LedgeChamfers · CableRamp** · SnapNoses · SpringRelief · ScrewHole · CableGroove (+round) · CableTrough (+round) · LED_Hole |
+| `hardware/hall_housing.py` | builds the tree from scratch, exports `.step` and `.stl` |
 
 Whoever works in the GUI maintains the FCStd — the script overwrites it. It is the
 generator, not the truth.
@@ -607,8 +615,8 @@ the load cell. Outer dimensions **49.2 × 28.2 × 12.3 mm**, 9.3 cm³.
 
 | | |
 |---|---|
-| Feature tree | Grundkoerper · Kavitaet · Bauteilraum · **Eckauflagen · Auflagefasen · Kabelrampe** · Rastnasen · Federfeld · Schraubloch · Kabelhals · Kabelnut · Kabelmulde (+rund) · Maulfasen |
-| `hardware/hx711_gehaeuse.py` | builds the tree from scratch, exports `.step` and `.stl` |
+| Feature tree | BaseBlock · Cavity · ComponentSpace · **CornerLedges · LedgeChamfers · CableRamp** · SnapNoses · SpringRelief · ScrewHole · CableNeck · CableGroove · CableTrough (+round) · MouthChamfers |
+| `hardware/hx711_housing.py` | builds the tree from scratch, exports `.step` and `.stl` |
 
 Structure, spreadsheet and caveat as above: the script is the generator, the FCStd
 the truth.
@@ -878,8 +886,8 @@ Outer dimensions **61.3 × 26.4 × 4.0 mm**, 4.8 cm³ (version of 2026-11-23).
 
 | | |
 |---|---|
-| Feature tree | Platte · M4_Gewinde · M6_Durchgang · M6_Senkung · Verrundung |
-| `hardware/esp_spange.py` | builds the tree from scratch, exports `.step` and `.stl` |
+| Feature tree | Plate · M4_Thread · M6_Clearance · M6_Counterbore · Fillet |
+| `hardware/esp_bracket.py` | builds the tree from scratch, exports `.step` and `.stl` |
 
 #### Three holes in a triangle
 
@@ -896,7 +904,7 @@ Outer dimensions **61.3 × 26.4 × 4.0 mm**, 4.8 cm³ (version of 2026-11-23).
 | Feature | Dimension |
 |---|---|
 | Plate | **4.0 mm** thick like the emergency-stop clamp, top side **smooth** |
-| M4 threads | **M4×0.7 directly in the plate**, modeled (FreeCAD hole as in `not-aus-spange.FCStd`), on the holes of the housing; just under six turns |
+| M4 threads | **M4×0.7 directly in the plate**, modeled (FreeCAD hole as in `estop-bracket.FCStd`), on the holes of the housing; just under six turns |
 | M6 through-hole | **Ø 6.5**, axis 12.7 mm from the M4 line |
 | M6 counterbore | **Ø 11, 2.5 mm deep** from above — **1.5 mm** of floor remains under the head. For button head ISO 7380 (Ø 10.5, 3.3 high), the head protrudes 0.8 mm |
 | Taper | 61.3 → 15.0 mm, kink at y = 6.2 (at the housing edge) |
@@ -957,8 +965,8 @@ Outer dimensions **40.0 × 34.0 × 19.1 mm**, 9.5 cm³.
 
 | | |
 |---|---|
-| Feature tree | Grundplatte · Stirnwand · Rippe_p/_m · Ausschnitt · Ohrloecher · M6_Durchgang · M6_Senkung · Fasen |
-| `hardware/xt60_halter.py` | builds the tree from scratch, exports `.step` and `.stl` |
+| Feature tree | BasePlate · EndWall · Rib_p/_m · Cutout · EarHoles · M6_Clearance · M6_Counterbore · Chamfers |
+| `hardware/xt60_holder.py` | builds the tree from scratch, exports `.step` and `.stl` |
 
 Connector dimensions from the dimensional drawing in the Amass datasheet, read off 2026-11-22:
 
@@ -1023,11 +1031,11 @@ housing sits with 0.1 mm of air per side and cannot wander when tightening.
 
 | | |
 |---|---|
-| Feature tree | Platte · Sitz · M6_Loch · Kanal_1 (· Kanal_2) |
-| `hardware/isolierplatte.py` | builds **both** plates, exports `.step` and `.stl` |
+| Feature tree | Plate · Seat · M6_Hole · Channel_1 (· Channel_2) |
+| `hardware/insulating_plate.py` | builds **both** plates, exports `.step` and `.stl` |
 
 **No dimensions of its own.** The script reads contour, hole position and channel position when building
-from the parameter lists of `hx711_gehaeuse.py` and `hall_gehaeuse.py`. If a housing changes,
+from the parameter lists of `hx711_housing.py` and `hall_housing.py`. If a housing changes,
 the script runs again, and the plate follows. The same number in
 two places was the source of almost all errors in this project.
 
@@ -1063,8 +1071,8 @@ Outer dimensions **71.3 × 18.6 × 17.1 mm**, 4.6 cm³, hole spacing **56.8 mm**
 
 | | |
 |---|---|
-| Feature tree | Grundplatte · Leisten · Stirnwaende · Stuetzen · Stuetzen_frei · M6_Loecher |
-| `hardware/libellen_clip.py` | builds the tree from scratch, exports `.step` and `.stl` |
+| Feature tree | BasePlate · Rails · EndWalls · Supports · Supports_Clear · M6_Holes |
+| `hardware/level_clip.py` | builds the tree from scratch, exports `.step` and `.stl` |
 
 **The vial remains visible from three sides**, from above and from both long sides. It
 is located at the end faces and by the longitudinal bars, and held by the tape:
@@ -1098,8 +1106,8 @@ at the cutout and outside at the circumference, are rounded with **r = 1 mm**. O
 
 | | |
 |---|---|
-| Feature tree | Scheibe · Nase · Rundung · Loch |
-| `hardware/distanzscheibe.py` | builds the tree from scratch, exports `.step` and `.stl` |
+| Feature tree | Washer · Nose · Fillet · Hole |
+| `hardware/spacer_washer.py` | builds the tree from scratch, exports `.step` and `.stl` |
 | Bar as printed | 7.8 mm wide: nominal 8.0 minus 0.2 print allowance (`nose_fit`), parallel flanks |
 | Bar pieces | 2 × 15.1 mm long; outside they end exactly on the circumference, inside 4.5 mm from the axis |
 
@@ -1117,12 +1125,49 @@ has to hang freely under the rider, so there is no cross member over the head.
 |---|---|
 | Collar | C-ring, inside Ø 33.6, 4 mm wall, 8 mm high, opening 30 mm towards +y: it springs open 3 mm when pushed onto the neck and then holds by form. The head rests on the collar top |
 | Posts | two 8 × 8 mm posts outside the head (1.5 mm air, 48 mm clear) from the collar lugs up to 3 mm above the head; there they bend inward at 45° (from z 26 to 40, the slanted part stays 8 mm thick) to 20.3 mm clear, i.e. rider width plus 1 mm air on each side, and run vertically to 85 mm |
-| Pivot | Ø 2.3 hole through both posts along x, 77 mm above the collar bottom. The 2 mm wire lies across the tube: post, rider hump, post; secure it outside on both sides. The tube runs lengthwise between the posts (bottom edge 37 mm above the collar bottom, rider legs end at 25 mm, head top at 23 mm). When the weight swings, the posts move beside the rider, never over it, so the rider's clamp screws are never in the way |
+| Pivot | Ø 2.3 hole through both posts along x, 77 mm above the collar bottom. The 2 mm wire lies across the tube: post, rider hump, post; secure it outside on both sides. The tube runs lengthwise between the posts (bottom edge 37 mm above the collar bottom, rider legs end at 28.3 mm since the beam rider was shortened on 2026-11-26, before at 25 mm; head top at 23 mm). When the weight swings, the posts move beside the rider, never over it, so the rider's clamp screws are never in the way |
 | Outer size | 64 × 35.2 × 85 mm, 14.6 cm³ |
-| `hardware/gewichtsclip.py` | builds the tree, exports `.step` and `.stl`; rider and tube dimensions are parameters |
+| `hardware/weight_clip.py` | builds the tree, exports `.step` and `.stl`; rider and tube dimensions are parameters |
 
 > **Print:** standing on the collar. Posts vertical or 45°, wire hole short and
 > horizontal. No support.
+
+#### Dual clip for 0.2 / 0.5 / 1.0 kg
+
+A second clip, `hardware/weight_clip_dual.py` (the clip above stays as it is), for the
+linearity check with three masses ([09-measurement-theory](09-measurement-theory.md) §5.1).
+It keeps the lower seat for the **1000 g and 500 g** weights (the 500 g head fits like the
+1000 g, builder 2026-11-26). Above it, the **200 g** weight hangs on **three claws**
+(builder's design 2026-11-26): three curved arches rise from the collar, one at each side
+of the opening and one at the back, bow around the 1000 g head and its path in from +y,
+and each ends in a claw that reaches into the 200 g neck groove. There is no ring at the
+top. One hangs either a weight in the lower seat or the 200 g on the claws. Same pivot
+interface (Ø 2.3 wire hole, 20.3 mm clear between the posts at the top), only taller.
+As of 2026-11-26.
+
+200 g weight, builder's caliper measurements 2026-11-26: neck Ø 21 (a round groove,
+about 8 long), head Ø 27, body Ø 28, overall height 46, neck centre to top edge 8.
+**Assumption** (not measured): the groove is modelled as a semicircle of radius 4 (half
+the neck length) whose bottom is the neck Ø.
+
+| | |
+|---|---|
+| Lower seat | as the clip above: collar inside Ø 33.6, opening 30 to +y, side webs, side posts 8 × 8 mm at 48 mm clear |
+| Arches | each a web on the bed from the collar, a vertical 6 × 6 mm column outside the 1000 g head (front columns centred at x ±27.6, y 9.5, turned towards their claw, clear of the side posts; back column centred at y −27), then a branch rising inward at exactly **45°** to the claw. The branch underside is the extended lower flank of the claw, one straight line from the column to the tip; the inside corner column/branch is filleted (R 4), the outer corners rounded (R 3) |
+| Claws | nose with its tip on r = 10.8 (groove bottom 10.5 + 0.3 play), 1.0 mm high at the tip, 45° flanks, top 3.0 mm above the neck centre; trimmed so that, with the weight seated, they stay clear of head (Ø 27) and body (Ø 28). Tips at 27.9°, 152.1° and 270° around the neck: the three contact points enclose the neck (largest gap 124°), so the weight is held and centred on the wire axis |
+| Snap | the front claws stand **19.1 mm** apart, from the lower collar's ratio 30 / 33 applied to the 21 mm groove: **1.9 mm snap travel** at the groove bottom. Sliding the weight in from +y, head, neck and body push each front claw out by up to **1.5 mm** (computed by the generator over the whole path); the front arches flex like a 34 mm cantilever, 6 mm thick: about **1.1 % strain** at the root, fine for PETG (2 % as a limit for repeated snapping) |
+| Heights | 200 g neck centre z 42.5 (set by "branch underside reaches the column at 3 mm above the 1000 g head"), head top z 50.5; its body hangs down to z 4.5 through the lower collar (Ø 28 < 33.6, and through the 30 mm opening when put in); pivot z 104.5 (clip above: 77), posts to z 112.5 |
+| Clearances (checked by the generator) | 1000 g head at rest and on its way in, 3 mm free above it; 200 g weight at rest (no claw inside head, groove or body), its body down through the collar; spread of the front claws over the insertion path; rider legs (12 mm below the tube, as the first rider; now 8.7, so more room) 2 mm above the 200 g head; front columns separate from the side posts |
+| Load line | the clip swings freely about the wire, so clip and weight settle with their common centre of gravity under the wire: the torque is m · g · L_cal for each weight, L_cal set by the wire hole in the rider. All seats are centred on the wire axis; the clip hangs within 0.2° of plumb |
+| Tare | rider and clip hang on the arm permanently, also while zeroing; only the weights go on and off. The clip mass is in the tare, m in m · g · L_cal is the weight alone |
+| Size | 64 × 44.4 × 112.5 mm, 24.3 cm³; about 31 g as solid PETG (1.27 g/cm³, typical datasheet value; with infill less, weigh it) |
+| Overhangs | none beyond 45°: checked on every face and on 0.3 mm slices (each layer within 45° of the one below); only the wire hole is a short horizontal bridge, as in the clip above |
+| Model | Part solids (booleans), not a sketch tree: the claws lie in inclined planes and are trimmed by a revolved envelope. Change values in `PARAMS` in the generator; the spreadsheet in the FCStd documents them. Objects: Arch_FR · Arch_FL · Arch_B · WeightClipDual |
+| `hardware/weight_clip_dual.py` | builds the part, exports `.step` and `.stl` |
+
+> **Print:** standing on the collar, like the clip above. No support. PETG (the front
+> arches have to spring). **Check before trusting it:** the 200 g groove shape (semicircle
+> assumed): the weight must click in with all three claws in the groove.
 
 ### 7.11 Rider for the balance beam
 
@@ -1133,21 +1178,46 @@ profile, as in the ESP clamp) in the back leg. With 0.1 to 0.15 mm layers the th
 prints usably; otherwise run a tap through once, it finds the turns.
 Tightening pulls the legs together and clamps the tube. The screws sit outside the range
 the clip's posts sweep when the weight swings. The legs are only 1.5 mm thick; at each
-screw a 2.5 mm boss (13 mm long from the end, 45° run-in) carries thread and screw head.
+screw a 2.5 mm boss (13 mm long from the end, 45° run-in) carries thread and screw head;
+it runs from the leg bottom to 2.3 mm above the tube bottom, 5.5 mm each side of the
+screw axis.
 On top, centred, a **hump over the full width of the rider** (12 mm long on top, 45°
 flanks both sides) with the Ø 2.3 hole for the 2 mm wire, **15 mm above the tube top,
 axis across the tube, parallel to the clamp screws**. The hole runs through the whole
 width, so the wire bears over 18 mm and has no long free span. The hole centre is the
 point of application along the arm; drill the hole to size after printing.
 
+**Snap claws (2026-11-26).** Like the vial saddle (§7.12), each leg has a small claw at
+the tube bottom, over the full length, so the rider clicks onto the arm when pushed on
+from above and sits there without the screws; **the M6 screws then only clamp**. Claw
+dimensions are those of the saddle; unlike the saddle, the legs are not preloaded
+(0.3 mm play across stays), so the rider still slides along the arm with the screws
+loose. Because the claws now do the locating, the **M6 moved up to the claws** (builder,
+2026-11-26): the axis is 3.2 mm below the tube instead of 6.5, the through-hole is tangent
+to the tube bottom, and the screw runs directly under the tube. The legs got shorter by
+the same 3.3 mm. To give the screw more material, **inner bosses** (builder: "the same
+pads inside") mirror the outer bosses to the inside of each leg at each screw: same
+13 mm along the tube with the 45° run-in, from the leg bottom up, but only 1.5 mm deep,
+i.e. to the claw tip line, and only up to the claw top line, so they keep the claws'
+play to the tube and touch it nowhere the claws don't. The holes run through them at the
+claw height; the claws run on unchanged over the 30 mm between the bosses.
+
 | | |
 |---|---|
-| Size | 56 mm along the tube, 18.3 wide (23.3 over the bosses), 57 high; legs 1.5 mm, 12 mm below the tube, top plate 4 mm, 0.3 mm play across; 19 cm³ |
-| `hardware/waagereiter.py` | builds the tree, exports `.step` and `.stl` |
+| Size | 56 mm along the tube, 18.3 wide (23.3 over the bosses), 53.7 high; legs 1.5 mm, 8.7 mm below the tube, top plate 4 mm, 0.3 mm play across; 19.0 cm³ |
+| Claws | reach 1.5 mm under the tube (from the leg inside), 0.8 mm end face, 45° lead-in underneath; the top face rises 0.4 mm from the tip to the leg (about 15°), as in `hardware/level_saddle.py` |
+| Claw height | chosen so that, with the top plate resting on the tube and the legs unloaded, the slope just touches the tube's lower edge: tip 0.36 mm below the tube bottom (`claw_gap`, derived from claw depth, rise and play). No vertical play, no preload; tightening the screws pulls the legs in, and the slope turns that into a pull that holds the top plate on the tube |
+| Mounting | press straight on: each leg springs 1.35 mm over 25 mm, about 0.5 % strain at the root (PETG). To remove, loosen the screws and push one leg outward at its lower edge |
+| M6 height | axis 3.2 mm below the tube bottom (`screw_below = m6_thru / 2`): through-hole top on the tube bottom in the model, 0.2 mm below it with the top plate resting on the tube, the M6 shank 0.4 mm below it. Over the holes only a skin of the claw slope remains (under 0.5 mm) |
+| Inner bosses | at each screw on both legs: 13 mm along the tube (45° run-in towards the middle, as outside), 1.5 mm deep (leg inside to the claw tip line), from 8.7 mm below the tube up to the claw top line (0.16 mm below the tube bottom in the model, the claw slope above). At the bottom a 45° lead-in over 1.5 mm, so the tube top edge spreads the legs when pushing on, by the same 1.35 mm as at the claws |
+| Walls | 2.3 mm of leg under the through-hole (`under_wall`, kept from the first version: 12 − 6.5 − 3.2), so the legs end 8.7 mm below the tube (`leg_below`, derived). Outer bosses from the leg bottom to 2.3 mm above the tube bottom, 5.5 mm each side of the axis |
+| Thread length | **5.5 mm** (outer boss 2.5 + leg 1.5 + inner boss 1.5), was 4 mm |
+| Feature tree | Sk_Outer · Block · Sk_BeamSpace · BeamSpace · Sk_Hump · Hump · Sk_Bosses · Bosses · Sk_Claws · Claws · Sk_Inner_Bosses · Inner_Bosses · Sk_Inner_Lead · Inner_Lead · Sk_Wire · WireHole · Sk_M6_Clearance · M6_Clearance · Sk_M6_Thread · M6_Thread |
+| `hardware/beam_rider.py` | builds the tree, exports `.step` and `.stl` |
 
 > **Print:** lying on its end face, so the profile reads as a U on the bed. All walls
-> vertical; hump and bosses have 45° run-ins on the side facing the bed; the cross holes
-> are short bridges. No support.
+> vertical; hump and bosses (outer and inner) have 45° run-ins on the side facing the bed; the claws are
+> profile edges; the cross holes are short bridges. No support. PETG for the claws.
 
 ### 7.12 Saddle for a second vial on the calibration arm
 
@@ -1166,8 +1236,8 @@ walls, and is **glued** to the deck. The profile is constant over the 40 mm leng
 | Claws | reach 1.5 mm under the tube. The top face rises 0.4 mm from the tip to the cheek (about 15°): the preload pushes the claw inward and the slope turns that into a pull that presses the deck onto the tube, self-tightening and insensitive to a few tenths in tube height. Tip 0.15 mm below the tube bottom, 0.8 mm end face, 45° lead-in underneath |
 | Mounting | press straight on (each cheek springs 1.8 mm over 25 mm, about 0.9 % strain at the root, fine for PETG, marginal for PLA) or hook one claw and press the other side down. To remove, push one cheek outward at its lower edge |
 | Size | 40 along the tube, 19.3 wide, 33 high; 7.0 cm³ |
-| Feature tree | one sketch `Sk_Profil` (closed 20-point polygon on YZ) · Sattel |
-| `hardware/libellen_sattel.py` | builds the tree, exports `.step` and `.stl`; tube, vial, preload and claw are parameters |
+| Feature tree | one sketch `Sk_Profile` (closed 20-point polygon on YZ) · Saddle |
+| `hardware/level_saddle.py` | builds the tree, exports `.step` and `.stl`; tube, vial, preload and claw are parameters |
 
 > **Print:** lying on its end face, the U on the bed. All walls vertical, all slopes are
 > profile edges, no overhang. PETG, 3 walls, brim: the footprint is only 19 × 33 mm at
@@ -1183,12 +1253,13 @@ not on the screw. As of 2026-11-26.
 | | |
 |---|---|
 | Interior | **Ø 50.0, 50.0 deep** from the top of the floor, as specified; no clearance added |
+| Small sizes | two more cups for the small weights, builder 2026-11-26: inside **Ø 38 × 38** (`weight-cup-38`, outside Ø 41.0 × 43.5, 13.8 cm³) and **Ø 28 × 28** (`weight-cup-28`, Ø 31.0 × 33.5, 7.5 cm³); same wall, floor and M6 |
 | Wall | 1.5 mm |
 | Floor | 5.5 mm = head height 4.0 (**assumed**, measure on the screw) + 1.5 under the head |
 | M6 | Ø 6.6 through, flat counterbore Ø 13.0 × 4.0 (takes DIN 7985 dk 12 and ISO 7380 dk 10.6) |
 | Size | Ø 53.0 × 55.5 mm, 23.7 cm³ |
-| Feature tree | Zylinder · Innenraum · M6 |
-| `hardware/gewichtsbecher.py` | builds the tree from scratch, exports `.step` and `.stl` |
+| Feature tree | Cylinder · Interior · M6 |
+| `hardware/weight_cup.py` | builds all three sizes from scratch (`weight-cup`, `weight-cup-38`, `weight-cup-28`), exports `.step` and `.stl` |
 
 > One screw only: the cup can turn about it, which does not matter for a cup. If the
 > weight sits too tight, raise `inner_d` in the table.
@@ -1304,7 +1375,7 @@ irrelevant. Compared to 3 to 6 minutes of free spin-down, a factor of 8 to 14.
 
 ### 9.1 Circuit — as proposed on 2026-11-24, not yet built
 
-Drawings: `hardware/bremsplan.pdf` (circuit detail) and `hardware/bremsverdrahtung.pdf`
+Drawings: `hardware/brake-plan.pdf` (circuit detail) and `hardware/brake-wiring.pdf`
 (wire by wire). Both are generated from the `.py` file of the same name.
 
 **Topology, decided by the builder on 2026-11-24:** the three coils sit in series on the
@@ -1808,7 +1879,7 @@ Where the assignment comes from:
 > via the firmware passthrough: `:foc_sensors_detect_apply 10`, new table in
 > `hardware/vesc-config-fw7.01/README.md`. **Whoever re-plugs the motor connector or the
 > phases re-detects the Hall table afterwards.** Without the VESC tool this is done with
-> `tools/konsole.py ":foc_sensors_detect_apply 10"`; beforehand `":hall_analyze 10"`
+> `tools/console.py ":foc_sensors_detect_apply 10"`; beforehand `":hall_analyze 10"`
 > shows whether the sensors deliver six states. **And afterwards check the direction of
 > rotation:** with the new table the drum ran backwards with unchanged
 > `VESC_DIRECTION_SIGN`; the sign has been at +1 since (`e1`).
@@ -2247,19 +2318,19 @@ Commands, identical over serial console and web UI ([10-firmware](10-firmware.md
 | `s` | STOP via the relay brake at any speed (§9.4); `sr` existed for a few hours on 2026-11-25 for the brake comparison and is gone |
 | `c` | let coast |
 | `t` | tare the load cell (only at standstill) |
-| `k<kg>` | calibrate with known weight on the calibration arm (console only since 2026-11-25; the web UI has no calibrate button any more, the guided run adopts the factor from the check weight) |
+| `k<kg>` | calibrate with known weight on the calibration arm. Console only from 2026-11-25 to 2026-11-26; since then again the scale button (calibrate) on the load tile under Manual, like zero shown only at standstill, (with the check weight from Setup, after a confirmation that names the current deviation). Next to it, while the check weight hangs (reading within ±25 % of m · L_cal / L), the deviation from the calibration small behind the values (± g, ± %). The utilization tile has a scale 0 … 160 % FS: green measuring range (`MEAS_TORQUE_*`), orange overload (`MAX_FORCE_N` to full scale), yellow target band of the end stop (`RUN_STOP_MIN/MAX_PCT`), red no-go above it, the whole bar red when the reading is there; marks for the check weight and the overload |
 | `K<kg>` | mass of the check weight (setup page, default `RUN_CTRL_MASS_KG`) |
 | `d<m>` `a<m>` `b<m>` | drum circumference · lever arm · calibration arm |
 | `z` | reset settings to the defaults from `config.h` |
 | `i` | **status**: controller, load cell, sensors, operator link |
 | `g` | zero the sensor counters (wiring test, see below) |
 | `m0` / `m1` | idle / measurement run: drives through the measurement speeds in sequence |
-| `R` / `Rk` / `Rs` / `Rn` / `Rx` / `Rm<k>=<v>` | Guided measurement run (`run.h`, [11-review](11-review.md) §3): start, main button, secondary button, again, abort, metadata (t tire, w wheel, b bar, c °C, l kg, p mm, n note, d Unix time). In the web UI behind *Measurement*. Report and data under `/runs/` |
+| `R` / `Rk` / `Rs` / `Rn` / `Rx` / `Rm<k>=<v>` | Guided measurement run (`run.h`, [11-review](11-review.md) §3): start, main button, secondary button, again, abort, metadata (t tire, w wheel, b bar, c °C, l kg, p mm, n note, d Unix time). In the web UI behind *Measurement*. Report and data under `/vmrr/<id>/` ([10-firmware](10-firmware.md) §11) |
 | `h<kmh>` / `h-<kmh>` | add / remove measurement speed (list in NVS, sorted) |
 | `l<N>` | wheel load; without it no measurement run starts |
 | `n<A0> <B0>` / `w<A1> <B1>` | set idle-loss and wheel-loss model by hand; `m0` fits the idle-loss model itself, `u` the wheel-loss model |
 | `u` / `y<kg>` | assistant spin-down + idle (drum up, lift wheel, both at once) / wheel mass for J_wheel |
-| `j<s>` | live telemetry to the console, every 200 ms for s seconds — for logging with `tools/konsole.py` |
+| `j<s>` | live telemetry to the console, every 200 ms for s seconds — for logging with `tools/console.py` |
 | `:<text>` | **passthrough** to the controller's terminal, as in the VESC tool: `:faults`, `:hall_analyze 5`. Answers as `# VESC> …` |
 | `><hex>` | raw packet to the controller, answer as `# V <hex>`. `>0e` fetches the motor configuration, `>11` the app configuration |
 | `?` | help |
@@ -2436,7 +2507,7 @@ exist at all — both only from **6.05**. The controller has been running on
 
 ## 15 microSD via an SD adapter
 
-As of 2026-11-25 (drawing 2026-11-26). Drawing: `hardware/sdplan.pdf` (source `hardware/sdplan.py`).
+As of 2026-11-25 (drawing 2026-11-26). Drawing: `hardware/sd-plan.pdf` (source `hardware/sd_plan.py`).
 Firmware: [10-firmware](10-firmware.md) §11.
 
 The passive adapter that comes with a microSD card serves as the socket: wires are

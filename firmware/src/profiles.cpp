@@ -4,6 +4,8 @@
 #include "storage.h"
 #include "wallclock.h"
 #include "calc/json.h"
+#include "calc/crc32.h"
+#include <time.h>
 
 namespace profiles {
 namespace {
@@ -195,7 +197,204 @@ String missingLocked(int i) {
   return m;
 }
 
+// ---------------------------------------------------------------- SD copy (wheels.md)
+// The four lists also live on the SD card as /vmrr/wheels.md, Markdown tables that can be
+// edited on any computer (2026-11-26). The flash stays the master: the stand works
+// without a card. The file ends with "<!-- parts crc XXXXXXXX -->", the CRC of everything
+// above it as the stand wrote it. When the card is mounted the stand reads the file; if
+// the CRC no longer matches (or is missing), someone edited it and the tables are taken
+// over: rows added become entries, changed rows update them, rows removed delete the
+// entry unless a profile uses it. Afterwards the file is written back in normal form.
+constexpr char MD_NAME[] = "/vmrr/wheels.md";
+constexpr char MD_TMP[]  = "/vmrr/wheels.tmp";
+constexpr char MD_STAMP[] = "<!-- parts crc ";
+constexpr size_t MD_MAX = 32768;            // larger files are not read
+bool g_mdDirty = true;                      // write once after boot (after the import)
+bool g_sdSeen  = false;                     // card handled since it was mounted
+uint16_t g_sdMountSeen = 0;                 // storage::sdMounts() handled: a format remounts
+                                            // fast enough that READY never drops in between
+const char* const MD_HEAD[LIST_N] = {"Tires", "Tubes", "Rims", "Hubs"};
+const char* const MD_COLS[LIST_N] = {
+  "| Name | ETRTO | Changed |\n|---|---|---|\n",
+  "| Name | Maker | Model | Material | Changed |\n|---|---|---|---|---|\n",
+  "| Name | Maker | Model | Inner width mm | Bead seat mm | Changed |\n|---|---|---|---|---|---|\n",
+  "| Name | Spokes | Axle | Brake | Drive wheel | Colour | Changed |\n|---|---|---|---|---|---|---|\n"};
+constexpr uint8_t MD_CELLS = 6;
+
+uint8_t cellsOf(List l, const Item& it, String* c) {
+  c[0] = it.name;
+  if (l == TIRE) { c[1] = it.etrto; return 2; }
+  if (l == HUB) {
+    c[1] = it.hub.spokes > 0 ? String(it.hub.spokes) : String("");
+    c[2] = it.hub.axle; c[3] = it.hub.brake;
+    c[4] = it.hub.drive < 0 ? "" : it.hub.drive ? "yes" : "no";
+    c[5] = it.hub.colour; return 6;
+  }
+  const uint8_t n = attrCount(l);
+  for (uint8_t k = 0; k < n; k++) c[1 + k] = it.at.a[k];
+  return 1 + n;
+}
+String dateText(uint32_t e) {
+  if (!e) return "";
+  time_t t = e; struct tm tm; gmtime_r(&t, &tm);   // epoch is local time already
+  char b[20]; strftime(b, sizeof(b), "%Y-%m-%d %H:%M", &tm);
+  return b;
+}
+String mdText() {
+  String o;
+  o += "# Wheel parts\n\nTires, tubes, rims and hubs as the test stand knows them (Setup, wheel profiles).\n"
+       "Edit the tables on a computer and put the card back: the stand reads this file when\n"
+       "the card is mounted. A new row is a new entry, a removed row deletes the entry unless\n"
+       "a profile uses it. \"Changed\" is set by the stand. Profiles and wheel models stay in\n"
+       "the stand's flash.\n";
+  for (uint8_t l = 0; l < LIST_N; l++) {
+    o += "\n## "; o += MD_HEAD[l]; o += "\n\n"; o += MD_COLS[l];
+    for (auto& it : g_list[l]) {
+      String c[MD_CELLS]; const uint8_t n = cellsOf(static_cast<List>(l), it, c);
+      o += "|";
+      for (uint8_t k = 0; k < n; k++) { String v = c[k]; v.replace("|", "/"); o += " "; o += v; o += " |"; }
+      o += " "; o += dateText(it.epoch); o += " |\n";
+    }
+  }
+  return o;
+}
+uint32_t crcOf(const String& s) {
+  return calc::crc32(0, reinterpret_cast<const uint8_t*>(s.c_str()), s.length());
+}
+bool writeMd() {
+  fs::FS* f = storage::fs(storage::SD_CARD);
+  if (!f || storage::info(storage::SD_CARD).state != storage::READY) return false;
+  if (!storage::makeDir(*f, storage::ROOT_DIR)) return false;
+  const String body = mdText();
+  char stamp[40]; snprintf(stamp, sizeof(stamp), "\n%s%08lx -->\n", MD_STAMP, static_cast<unsigned long>(crcOf(body)));
+  File o = f->open(MD_TMP, "w");
+  if (!o) return false;
+  o.print(body); o.print(stamp);
+  const bool ok = o.getWriteError() == 0;
+  o.close();
+  if (!ok) { f->remove(MD_TMP); return false; }
+  f->remove(MD_NAME);
+  return f->rename(MD_TMP, MD_NAME);
+}
+
+// Split a Markdown table row into cells; 0 for anything that is not a data row.
+int mdCells(String line, String* c, int maxc) {
+  line.trim();
+  if (!line.startsWith("|")) return 0;
+  line = line.substring(1);
+  if (line.endsWith("|")) line = line.substring(0, line.length() - 1);
+  int n = 0, from = 0;
+  while (n < maxc) {
+    const int bar = line.indexOf('|', from);
+    String v = bar < 0 ? line.substring(from) : line.substring(from, bar);
+    v.trim(); c[n++] = v;
+    if (bar < 0) break;
+    from = bar + 1;
+  }
+  bool rule = true;   // |---|:--| separator row
+  for (int k = 0; k < n; k++) for (size_t i = 0; i < c[k].length(); i++) if (c[k][i] != '-' && c[k][i] != ':') rule = false;
+  if (rule || c[0].equalsIgnoreCase("Name")) return 0;
+  return n;
+}
+// Take over one row; true if something changed.
+bool applyRow(List l, String* c, int n) {
+  const String name = clean(c[0].c_str());
+  if (!name.length()) return false;
+  Item nw; nw.name = name;
+  const int i = indexOf(l, name.c_str());
+  if (i >= 0) nw = g_list[l][i];
+  auto cell = [&](int k) { return k < n ? clean(c[k].c_str()) : String(""); };
+  if (l == TIRE) nw.etrto = cell(1);
+  else if (l == HUB) {
+    nw.hub.spokes = cell(1).toInt(); nw.hub.axle = cell(2); nw.hub.brake = cell(3);
+    const String d = cell(4);
+    nw.hub.drive = d.equalsIgnoreCase("yes") || d == "1" ? 1 : d.equalsIgnoreCase("no") || d == "0" ? 0 : -1;
+    nw.hub.colour = cell(5);
+  } else for (uint8_t k = 0; k < attrCount(l); k++) nw.at.a[k] = cell(1 + k);
+  String a[MD_CELLS], b[MD_CELLS];
+  const uint8_t na = cellsOf(l, nw, a);
+  bool diff = i < 0;
+  if (!diff) { cellsOf(l, g_list[l][i], b); for (uint8_t k = 0; k < na; k++) if (a[k] != b[k]) diff = true; }
+  if (!diff) return false;
+  nw.epoch = wallclock::now();
+  if (i < 0) g_list[l].push_back(nw); else g_list[l][i] = nw;
+  g_dirty = true;
+  return true;
+}
+void importMd() {
+  fs::FS* f = storage::fs(storage::SD_CARD);
+  if (!f) return;
+  if (!f->exists(MD_NAME)) { g_mdDirty = true; return; }   // new or empty card: write the copy from the flash
+  File in = f->open(MD_NAME, "r");
+  if (!in) return;
+  if (in.size() > MD_MAX) { in.close(); Serial.println("# Parts: wheels.md too large, ignored"); return; }
+  String text = in.readString();
+  in.close();
+  text.replace("\r", "");
+  const int st = text.lastIndexOf(MD_STAMP);
+  if (st >= 0) {
+    const String body = text.substring(0, st > 0 && text[st - 1] == '\n' ? st - 1 : st);
+    const uint32_t want = strtoul(text.c_str() + st + strlen(MD_STAMP), nullptr, 16);
+    if (crcOf(body) == want) return;   // as written by the stand: nothing to take over
+  }
+  int sec = -1, added = 0, changed = 0, removed = 0;
+  std::vector<String> seen[LIST_N];
+  bool had[LIST_N] = {false, false, false, false};
+  int from = 0;
+  while (from < static_cast<int>(text.length())) {
+    int nl = text.indexOf('\n', from); if (nl < 0) nl = text.length();
+    String line = text.substring(from, nl); from = nl + 1;
+    line.trim();
+    if (line.startsWith("## ")) {
+      String h = line.substring(3); h.trim(); h.toLowerCase();
+      sec = h.startsWith("tire") ? TIRE : h.startsWith("tube") ? TUBE : h.startsWith("rim") ? RIM : h.startsWith("hub") ? HUB : -1;
+      if (sec >= 0) had[sec] = true;
+      continue;
+    }
+    if (sec < 0) continue;
+    String c[MD_CELLS + 2];
+    const int n = mdCells(line, c, MD_CELLS + 2);
+    if (n < 1) continue;
+    const List l = static_cast<List>(sec);
+    const bool isNew = indexOf(l, c[0].c_str()) < 0;
+    if (applyRow(l, c, n)) { if (isNew) added++; else changed++; }
+    seen[sec].push_back(clean(c[0].c_str()));
+  }
+  for (uint8_t l = 0; l < LIST_N; l++) {
+    if (!had[l]) continue;   // a section missing from the file deletes nothing
+    for (size_t i = g_list[l].size(); i-- > 0;) {
+      bool keep = false;
+      for (auto& s : seen[l]) if (g_list[l][i].name.equalsIgnoreCase(s)) keep = true;
+      if (keep || usedBy(static_cast<List>(l), g_list[l][i].name.c_str())) continue;
+      g_list[l].erase(g_list[l].begin() + i); removed++; g_dirty = true;
+    }
+  }
+  g_mdDirty = true;
+  Serial.printf("# Parts: wheels.md taken over, %d new, %d changed, %d removed\n", added, changed, removed);
+}
+
 }  // namespace
+
+bool addRow(char tag, const char* row, const char** why) {
+  const char* const T = "TURH";
+  const char* p = strchr(T, toupper(tag));
+  if (!tag || !p) { *why = "List T, U, R or H"; return false; }
+  String c[MD_CELLS + 2];
+  const int n = mdCells(String(row), c, MD_CELLS + 2);
+  if (n < 1 || !clean(c[0].c_str()).length()) { *why = "Row | name | ... |"; return false; }
+  Lock l;
+  const List lst = static_cast<List>(p - T);
+  // Console rows only add: an empty cell keeps what the entry already has (the file
+  // import, by contrast, takes an emptied cell as cleared).
+  const int i = indexOf(lst, c[0].c_str());
+  int m = n;
+  if (i >= 0) {
+    String old[MD_CELLS]; m = cellsOf(lst, g_list[lst][i], old);
+    for (int k = 1; k < m; k++) if (k >= n || !c[k].length()) c[k] = old[k];
+  }
+  applyRow(lst, c, m > n ? m : n);
+  return true;
+}
 
 void begin() {
   g_mx = xSemaphoreCreateMutex();
@@ -207,10 +406,26 @@ void begin() {
 }
 
 void service() {
-  if (!g_dirty || !storage::flashWritable()) return;
+  // SD copy: on (re)mount take over edits first, then write when something changed.
+  // Only at standstill, like the flash (no SD traffic in the middle of a run).
+  const bool sdOk = storage::info(storage::SD_CARD).state == storage::READY;
+  if (!sdOk || storage::sdMounts() != g_sdMountSeen) g_sdSeen = false;
+  if (sdOk && !g_sdSeen && storage::flashWritable()) {
+    Lock l; storage::lockSd(); importMd(); storage::unlockSd(); g_sdSeen = true; g_sdMountSeen = storage::sdMounts();
+  }
+  if (!g_dirty && !g_mdDirty) return;
+  if (!storage::flashWritable()) return;
   Lock l;
-  if (save()) g_dirty = false;
-  else { Serial.println("# Profiles: not saved (flash)"); g_dirty = false; }   // no retry loop on a broken flash
+  if (g_dirty) {
+    g_mdDirty = true;
+    if (save()) g_dirty = false;
+    else { Serial.println("# Profiles: not saved (flash)"); g_dirty = false; }   // no retry loop on a broken flash
+  }
+  if (g_mdDirty && g_sdSeen) {
+    storage::lockSd();
+    if (writeMd()) g_mdDirty = false;
+    storage::unlockSd();
+  }
 }
 
 int find(const char* t, const char* s, const char* r, const char* h) { Lock l; return findLocked(t, s, r, h); }

@@ -1,5 +1,6 @@
 #include "profiles.h"
 #include "webui.h"
+#include "run.h"
 #include "wallclock.h"
 
 #include <WiFi.h>
@@ -153,8 +154,8 @@ void sendIndex() {
   logReq("-> UI");
   g_server.sendHeader("Content-Encoding", "gzip");
   g_server.sendHeader("Cache-Control", "no-store");
-  // charset MUST be included: without it iOS reads the page as Latin-1 and "Prüflaufrad"
-  // becomes "PrÃ¼flaufrad". The <meta charset> in the document comes too late when the
+  // charset MUST be included: without it iOS reads the page as Latin-1 and "±0.5 °C"
+  // becomes "Â±0.5 Â°C". The <meta charset> in the document comes too late when the
   // header claims something else.
   g_server.send_P(200, "text/html; charset=utf-8",
                   reinterpret_cast<const char*>(g_html), g_htmlLen);
@@ -172,7 +173,7 @@ void handleState() {
   // the page would get broken JSON.
   // Since 2026-11-24 also: tire pressure, tire temperature, sensor name, speed source.
   // Since 2026-11-25 also: storage and raw data (about 200 bytes).
-  char buf[4096];   // 2026-11-26: + change timestamps of the settings (about 450 bytes)
+  char buf[5632];   // 2026-11-26: + calibration procedure (up to about 900), + change timestamps of the settings (about 450 bytes), stand revision and commit (up to 350)
   buf[0] = '\0';
   if (g_state) g_state(buf, sizeof(buf));
   if (buf[0] == '\0') snprintf(buf, sizeof(buf), "{}");
@@ -243,105 +244,8 @@ void handleProfiles() {
   g_server.send(200, "application/json; charset=utf-8", out);
 }
 
-// Reports from the flash: /runs lists, /runs/<file> delivers for download,
-// /runs/<file>?view shows it as text in the browser.
-//
-// Download means application/octet-stream: text/markdown with Content-Disposition
-// was still shown in the window by Safari on the iPad (2026-11-24, iOS 12), and from
-// the view the file cannot be passed on via AirDrop. An unknown type is offered
-// via the share sheet; on the Mac it lands in the Downloads folder.
-// /runs/<id>.zip: report and data of a run as one archive, without compression
-// (calc/zip.h). Two passes per file: first CRC and size (Content-Length
-// comes before the first byte), then the stream in 512-byte chunks.
-// Since 2026-11-26 reports are on the SD or (without SD) in the flash, under
-// the same path /runs/<id>.*. The SD is searched first.
-fs::FS* runFs(const String& path) {
-  fs::FS* sd = storage::fs(storage::SD_CARD);
-  if (sd && sd->exists(path)) return sd;
-  fs::FS* fl = storage::fs(storage::FLASH);
-  if (fl && fl->exists(path)) return fl;
-  return nullptr;
-}
-
-void sendRunZip(const String& base) {
-  const char* EXT[] = {".md", ".csv"};
-  String   path[2]; String name[2]; uint32_t crc[2] = {0, 0}; uint32_t size[2] = {0, 0}; size_t nlen[2] = {0, 0};
-  size_t n = 0;
-  uint8_t buf[512];
-  for (const char* e : EXT) {
-    const String p = base + e;
-    fs::FS* fsp = runFs(p);
-    if (!fsp) continue;
-    File f = fsp->open(p, "r");
-    if (!f) continue;
-    uint32_t c = 0, sz = 0;
-    while (f.available()) { const size_t k = f.read(buf, sizeof(buf)); c = calc::crc32(c, buf, k); sz += k; }
-    f.close();
-    path[n] = p; name[n] = p.substring(p.lastIndexOf('/') + 1); crc[n] = c; size[n] = sz; nlen[n] = name[n].length(); n++;
-  }
-  if (n == 0) { g_server.send(404, "text/plain", "not found"); return; }
-  const String zipName = base.substring(base.lastIndexOf('/') + 1) + ".zip";
-  g_server.setContentLength(calc::zipArchiveSize(size, nlen, n));
-  g_server.sendHeader("Cache-Control", "no-store");
-  g_server.sendHeader("Content-Disposition", "attachment; filename=\"" + zipName + "\"");
-  g_server.send(200, "application/zip", "");
-  WiFiClient c = g_server.client();
-  uint8_t hdr[calc::ZIP_CENTRAL_FIXED + 64];
-  uint32_t offset[2] = {0, 0}, pos = 0;
-  for (size_t i = 0; i < n; i++) {
-    offset[i] = pos;
-    const size_t h = calc::zipLocalHeader(hdr, name[i].c_str(), crc[i], size[i]);
-    c.write(hdr, h); pos += h;
-    fs::FS* fsp = runFs(path[i]);
-    File f = fsp ? fsp->open(path[i], "r") : File();
-    if (f) { while (f.available()) { const size_t k = f.read(buf, sizeof(buf)); c.write(buf, k); pos += k; } f.close(); }
-  }
-  const uint32_t cdStart = pos;
-  for (size_t i = 0; i < n; i++) { const size_t h = calc::zipCentralHeader(hdr, name[i].c_str(), crc[i], size[i], offset[i]); c.write(hdr, h); pos += h; }
-  const size_t e = calc::zipEndRecord(hdr, static_cast<uint16_t>(n), pos - cdStart, cdStart);
-  c.write(hdr, e);
-}
-
 struct SdLock { SdLock() { storage::lockSd(); } ~SdLock() { storage::unlockSd(); } };
 
-void handleRuns() {
-  g_other++;
-  SdLock lk;   // reports can be on the SD
-  const String uri = g_server.uri();
-  if (uri.startsWith("/runs/") && uri.endsWith(".zip") && uri.indexOf("..") < 0) { sendRunZip(uri.substring(0, uri.length() - 4)); return; }
-  if (uri == "/runs" || uri == "/runs/") {
-    String html = "<!doctype html><meta charset=utf-8><title>Runs</title>"
-                  "<body style='font-family:system-ui;padding:16px'><h2>Runs</h2><ul>";
-    for (uint8_t m = 0; m < storage::MEDIA_N; m++) {
-      fs::FS* fsp = storage::fs(static_cast<storage::Media>(m));
-      if (!fsp) continue;
-      const char* where = m == storage::SD_CARD ? " (SD)" : " (Flash)";
-      File dir = fsp->open("/runs");
-      if (dir) { File f = dir.openNextFile(); while (f) {
-          String fn = String(f.name()); fn = fn.substring(fn.lastIndexOf('/') + 1);
-          html += "<li><a href='/runs/" + fn + "'>" + fn + "</a> " + String(f.size()) + " B" + where + " &middot; <a href='/runs/" + fn + "?view'>view</a>";
-          if (fn.endsWith(".md")) html += " &middot; <a href='/runs/" + fn.substring(0, fn.length() - 3) + ".zip'>report + data as .zip</a>";
-          html += "</li>";
-          f = dir.openNextFile(); } }
-    }
-    html += "</ul>";
-    g_server.send(200, "text/html; charset=utf-8", html);
-    return;
-  }
-  fs::FS* fsp = uri.indexOf("..") >= 0 ? nullptr : runFs(uri);
-  if (!fsp) { g_server.send(404, "text/plain", "not found"); return; }
-  File f = fsp->open(uri, "r");
-  if (!f) { g_server.send(404, "text/plain", "not found"); return; }
-  const String name = uri.substring(uri.lastIndexOf('/') + 1);
-  g_server.sendHeader("Cache-Control", "no-store");
-  if (g_server.hasArg("view")) {
-    g_server.streamFile(f, "text/plain; charset=utf-8");
-  } else {
-    g_server.sendHeader("Content-Disposition", "attachment; filename=\"" + name + "\"");
-    g_server.streamFile(f, "application/octet-stream");
-  }
-  f.close();
-}
 
 // ---------------------------------------------------------- Raw data (/raw)
 //
@@ -428,11 +332,23 @@ uint32_t csvPass(File& in, size_t hdrLen, calc::rrl::Type which, ZipOut& z, bool
   }
 }
 
+// Download name: inside a session directory <session>_<file>, so files from several runs
+// do not overwrite each other in the Downloads folder.
+String downloadName(const String& path) {
+  const int s = path.lastIndexOf('/');
+  const String file = path.substring(s + 1);
+  const int s2 = s > 0 ? path.lastIndexOf('/', s - 1) : -1;
+  const String parent = s2 >= 0 ? path.substring(s2 + 1, s) : String("");
+  if (file.indexOf(parent) >= 0) return file;   // raw_<session>.rrl, info_<session>.md: already unique
+  return path.startsWith(String(storage::ROOT_DIR) + "/") && parent.length() && parent != "vmrr" ? parent + "_" + file : file;
+}
+
 void sendRawZip(fs::FS& f, const String& path) {
   File in = f.open(path, "r");
   if (!in) { g_server.send(404, "text/plain", "not found"); return; }
   const String file = path.substring(path.lastIndexOf('/') + 1);
-  const String base = file.substring(0, file.length() - 4);
+  const String dl = downloadName(path);
+  const String base = dl.endsWith(".rrl") ? dl.substring(0, dl.length() - 4) : dl;
 
   static uint8_t hb[calc::rrl::HEADER_FIXED + 1024];
   const size_t hn = in.read(hb, sizeof(hb));
@@ -489,61 +405,268 @@ void sendRawZip(fs::FS& f, const String& path) {
   zipFinish(z, e, ne);
 }
 
-void listRaw(String& html, storage::Media m) {
-  const storage::Info si = storage::info(m);
-  html += "<h3>" + String(m == storage::SD_CARD ? "SD" : "Flash") + " &middot; " + storage::stateName(si.state);
-  if (si.pct >= 0) html += " &middot; " + String(si.pct) + " %";
-  html += "</h3><ul>";
-  fs::FS* f = storage::fs(m);
-  if (f) {
-    File dir = f->open("/raw");
-    if (dir) { File x = dir.openNextFile(); while (x) {
-        String fn = String(x.name());
-        fn = fn.substring(fn.lastIndexOf('/') + 1);
-        const String url = "/raw/" + String(storage::name(m)) + "/" + fn;
-        const bool writing = rawlog::active() && rawlog::media() == m && String(rawlog::fileName()).endsWith(fn);
-        html += "<li>" + fn + " " + String(static_cast<uint32_t>(x.size() / 1024)) + " kB";
-        if (writing) html += " &middot; <b>recording</b>";
-        if (fn.endsWith(".rrl")) html += " &middot; <a href='" + url.substring(0, url.length() - 4) + ".zip'>CSV (.zip)</a>";
-        html += " &middot; <a href='" + url + "'>raw</a></li>";
-        x = dir.openNextFile(); } }
+// ---------------------------------------------------------- File browser (since 2026-11-26)
+//
+//   GET /api/files?m=sd|flash&p=/vmrr       one directory as JSON (Setup -> Storage)
+//   GET /fs/<sd|flash><path>                 a file for download (application/octet-stream,
+//                                            see below), file name <session>_<file>
+//   GET /fs/<sd|flash><path>?view            the same as text/plain inline (the UI renders .md)
+//   GET /fs/<sd|flash><path.rrl>?csv         raw file converted to CSV per sensor, as .zip
+//   GET /fs/<sd|flash><dir>?zip              all files of a directory (not recursive) as .zip
+//
+// Download is application/octet-stream: text/markdown with Content-Disposition was still
+// shown in the window by Safari on the iPad (2026-11-24, iOS 12), and from the view the
+// file cannot be passed on via AirDrop.
+//
+// SD ACCESS AND THE RAW LOG: the storage task writes the raw data under the same SD lock.
+// A plain download therefore takes the lock per 1.4 kB chunk, never for the whole file.
+// The two .zip variants read the whole file under one lock: refused while a run or a raw
+// log is active on that medium (409).
+
+void appendJsonString(String& o, const String& v) {
+  o += '"';
+  for (size_t i = 0; i < v.length(); i++) {
+    const char c = v[i];
+    if (c == '"' || c == '\\') { o += '\\'; o += c; }
+    else if (static_cast<uint8_t>(c) < 0x20) { char h[8]; snprintf(h, sizeof(h), "\\u%04x", c); o += h; }
+    else o += c;
   }
-  html += "</ul>";
+  o += '"';
 }
 
-void handleRaw() {
-  g_other++;
-  const String uri = g_server.uri();
-  if (uri == "/raw" || uri == "/raw/") {
-    String html = "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'>"
-                  "<title>Raw data</title><body style='font-family:system-ui;padding:16px'><h2>Raw data</h2>";
-    storage::lockSd(); listRaw(html, storage::SD_CARD); storage::unlockSd();
-    listRaw(html, storage::FLASH);
-    g_server.send(200, "text/html; charset=utf-8", html);
-    return;
-  }
-  // /raw/<medium>/<file>
-  const int slash = uri.indexOf('/', 5);
-  if (slash < 0 || uri.indexOf("..") >= 0) { g_server.send(404, "text/plain", "not found"); return; }
-  const String medium = uri.substring(5, slash);
-  const storage::Media m = medium == "sd" ? storage::SD_CARD : medium == "flash" ? storage::FLASH : storage::MEDIA_N;
-  if (m == storage::MEDIA_N) { g_server.send(404, "text/plain", "not found"); return; }
-  const String name = uri.substring(slash + 1);
-  const bool zip = name.endsWith(".zip");
-  const String path = "/raw/" + (zip ? name.substring(0, name.length() - 4) + ".rrl" : name);
+bool fsMedia(const String& n, storage::Media& m) {
+  if (n == "sd") { m = storage::SD_CARD; return true; }
+  if (n == "flash") { m = storage::FLASH; return true; }
+  return false;
+}
+bool pathOk(const String& p) { return p.length() && p[0] == '/' && p.indexOf("..") < 0 && p.indexOf('"') < 0; }
 
+void handleFiles() {
+  g_other++;
+  storage::Media m;
+  String p = g_server.hasArg("p") ? g_server.arg("p") : String(storage::ROOT_DIR);
+  while (p.length() > 1 && p.endsWith("/")) p.remove(p.length() - 1);
+  if (!fsMedia(g_server.arg("m"), m) || !pathOk(p)) { g_server.send(400, "text/plain", "bad request"); return; }
+  const storage::Info si = storage::info(m);
+  // While formatting the storage task holds the SD lock for seconds; waiting for it here
+  // would stall the whole web task, /api/state included (2026-11-26).
+  if (si.formatting) { g_server.send(503, "text/plain", "formatting"); return; }
+  String o = "{\"m\":\"" + String(storage::name(m)) + "\",\"p\":";
+  appendJsonString(o, p);
+  o += ",\"state\":" + String(static_cast<unsigned>(si.state)) + ",\"fs\":\"" + si.fsType + "\",\"pct\":" + String(si.pct)
+     + ",\"mb\":" + String(static_cast<unsigned long>(si.total >> 20))
+     + ",\"rec\":";
+  appendJsonString(o, rawlog::active() && rawlog::media() == m ? String(rawlog::fileName()) : String(""));
+  o += ",\"d\":[";
   if (m == storage::SD_CARD) storage::lockSd();
   fs::FS* f = storage::fs(m);
-  if (!f || !f->exists(path)) g_server.send(404, "text/plain", "not found");
-  else if (zip) sendRawZip(*f, path);
-  else {
-    File in = f->open(path, "r");
-    g_server.sendHeader("Cache-Control", "no-store");
-    g_server.sendHeader("Content-Disposition", "attachment; filename=\"" + name + "\"");
-    g_server.streamFile(in, "application/octet-stream");
-    in.close();
+  File dir = f ? f->open(p) : File();
+  bool first = true, found = dir && dir.isDirectory();
+  if (found) {
+    for (File x = dir.openNextFile(); x; x = dir.openNextFile()) {
+      String fn = String(x.name()); fn = fn.substring(fn.lastIndexOf('/') + 1);
+      if (fn.startsWith(".")) continue;
+      if (!first) o += ",";
+      first = false;
+      o += "{\"n\":"; appendJsonString(o, fn);
+      o += ",\"dir\":" + String(x.isDirectory() ? 1 : 0) + ",\"s\":" + String(static_cast<unsigned long>(x.size()))
+         + ",\"t\":" + String(static_cast<unsigned long>(x.getLastWrite())) + "}";
+      if (o.length() > 24000) break;   // a few hundred entries at most per answer
+    }
   }
   if (m == storage::SD_CARD) storage::unlockSd();
+  o += "],\"ok\":" + String(found ? "true" : "false") + "}";
+  g_server.sendHeader("Cache-Control", "no-store");
+  g_server.send(200, "application/json; charset=utf-8", o);
+}
+
+void sendPlain(storage::Media m, const String& path, bool view) {
+  const bool sd = m == storage::SD_CARD;
+  if (sd) storage::lockSd();
+  fs::FS* f = storage::fs(m);
+  File in = f ? f->open(path, "r") : File();
+  const size_t size = in ? in.size() : 0;
+  if (sd) storage::unlockSd();
+  if (!in || in.isDirectory()) { if (in) in.close(); g_server.send(404, "text/plain", "not found"); return; }
+  // Small text for the viewer in one piece through the normal send() path (2026-11-26: a
+  // 713 B info.md came out empty in the viewer on the iPad with the streamed variant).
+  if (view && size <= 16384) {
+    String body;
+    body.reserve(size + 1);
+    if (sd) storage::lockSd();
+    static uint8_t tb[512];
+    for (;;) { const size_t k = in.read(tb, sizeof(tb)); if (!k) break; body.concat(reinterpret_cast<const char*>(tb), k); }
+    in.close();
+    if (sd) storage::unlockSd();
+    g_server.sendHeader("Cache-Control", "no-store");
+    g_server.send(200, "text/plain; charset=utf-8", body);
+    return;
+  }
+  g_server.setContentLength(size);
+  g_server.sendHeader("Cache-Control", "no-store");
+  if (!view) g_server.sendHeader("Content-Disposition", "attachment; filename=\"" + downloadName(path) + "\"");
+  g_server.send(200, view ? "text/plain; charset=utf-8" : "application/octet-stream", "");
+  WiFiClient c = g_server.client();
+  static uint8_t b[1436];
+  for (size_t done = 0; done < size;) {
+    if (sd) storage::lockSd();
+    const size_t k = in.read(b, sizeof(b));
+    if (sd) storage::unlockSd();
+    if (!k || c.write(b, k) != k) break;
+    done += k;
+    touch();
+  }
+  if (sd) storage::lockSd();
+  in.close();
+  if (sd) storage::unlockSd();
+}
+
+// Overview of a raw file as JSON for the viewer (?info, since 2026-11-26): header text,
+// time span, records and bytes per type, edges per channel, dropped bytes, the first and
+// last TEXT messages. One pass through the file on the ESP (a 30 MB file takes some
+// seconds); the SD lock is taken per 2 kB block, so a running raw log is not held up.
+void sendRawInfo(storage::Media m, const String& path) {
+  const bool sd = m == storage::SD_CARD;
+  if (sd) storage::lockSd();
+  fs::FS* f = storage::fs(m);
+  File in = f ? f->open(path, "r") : File();
+  static uint8_t ib[2048];
+  size_t have = in ? in.read(ib, sizeof(ib)) : 0;
+  const size_t size = in ? in.size() : 0;
+  if (sd) storage::unlockSd();
+  if (!in) { g_server.send(404, "text/plain", "not found"); return; }
+  const char* text = nullptr; size_t textLen = 0;
+  const size_t hdrLen = calc::rrl::parseHeader(ib, have, &text, &textLen);
+  String o = "{\"size\":" + String(static_cast<unsigned long>(size)) + ",\"hdrLen\":" + String(static_cast<unsigned long>(hdrLen)) + ",\"hdr\":";
+  appendJsonString(o, hdrLen ? String(text).substring(0, textLen) : String(""));
+  if (!hdrLen) {
+    o += ",\"ok\":false}";
+    if (sd) storage::lockSd();
+    in.close();
+    if (sd) storage::unlockSd();
+    g_server.send(200, "application/json; charset=utf-8", o);
+    return;
+  }
+  memmove(ib, ib + hdrLen, have - hdrLen);
+  have -= hdrLen;
+  calc::rrl::Decoder d;
+  calc::rrl::Summary sm;
+  constexpr uint8_t TXT_FIRST = 30, TXT_LAST = 10;
+  static char txt[TXT_FIRST + TXT_LAST][72];
+  static int64_t txtT[TXT_FIRST + TXT_LAST];
+  uint32_t txtN = 0;
+  bool bad = false;
+  uint32_t blocks = 0;
+  for (;;) {
+    size_t off = 0;
+    for (;;) {
+      calc::rrl::Rec r; size_t used = 0;
+      const calc::rrl::Status st = d.next(ib + off, have - off, r, &used);
+      if (st == calc::rrl::NEED_MORE) break;
+      if (st == calc::rrl::BAD) { bad = true; break; }
+      sm.add(r, used);
+      if (r.type == calc::rrl::T_TEXT) {
+        const uint32_t slot = txtN < TXT_FIRST ? txtN : TXT_FIRST + (txtN - TXT_FIRST) % TXT_LAST;
+        const size_t k = r.len < sizeof(txt[0]) - 1 ? r.len : sizeof(txt[0]) - 1;
+        memcpy(txt[slot], r.p, k); txt[slot][k] = '\0'; txtT[slot] = r.tUs;
+        txtN++;
+      }
+      off += used;
+    }
+    if (bad) break;
+    memmove(ib, ib + off, have - off);
+    have -= off;
+    if (sd) storage::lockSd();
+    const size_t got = in.read(ib + have, sizeof(ib) - have);
+    if (sd) storage::unlockSd();
+    have += got;
+    if (got == 0) break;
+    if (++blocks % 64 == 0) touch();   // a long pass must not look like a lost web link
+  }
+  const bool truncated = bad || have > 0;
+  if (sd) storage::lockSd();
+  in.close();
+  if (sd) storage::unlockSd();
+  char b[96];
+  snprintf(b, sizeof(b), ",\"ok\":true,\"unix\":%lu,\"t0\":%lld,\"t1\":%lld,\"end\":\"%s\",\"gap\":%llu",
+           static_cast<unsigned long>(d.unixStart), static_cast<long long>(sm.t0), static_cast<long long>(sm.t1),
+           truncated ? "truncated" : "clean", static_cast<unsigned long long>(sm.gapBytes));
+  o += b;
+  o += ",\"types\":[";
+  bool first = true;
+  for (uint8_t t = 1; t < calc::rrl::T_N; t++) {
+    if (!sm.n[t]) continue;
+    snprintf(b, sizeof(b), "%s{\"t\":\"%s\",\"n\":%lu,\"b\":%llu}", first ? "" : ",", calc::rrl::typeName(static_cast<calc::rrl::Type>(t)),
+             static_cast<unsigned long>(sm.n[t]), static_cast<unsigned long long>(sm.bytes[t]));
+    o += b; first = false;
+  }
+  o += "],\"edges\":[";
+  for (uint8_t c = 0; c < 4; c++) {
+    snprintf(b, sizeof(b), "%s[%lu,%lu]", c ? "," : "", static_cast<unsigned long>(sm.edges[c]), static_cast<unsigned long>(sm.rejected[c]));
+    o += b;
+  }
+  o += "],\"textN\":" + String(static_cast<unsigned long>(txtN)) + ",\"text\":[";
+  const uint32_t shown = txtN < TXT_FIRST + TXT_LAST ? txtN : TXT_FIRST + TXT_LAST;
+  for (uint32_t i = 0; i < shown; i++) {
+    // order: the first ones, then the ring of the last ones from its oldest entry
+    uint32_t slot = i;
+    if (i >= TXT_FIRST && txtN > TXT_FIRST + TXT_LAST) slot = TXT_FIRST + (txtN - TXT_LAST - TXT_FIRST + (i - TXT_FIRST)) % TXT_LAST;
+    snprintf(b, sizeof(b), "%s[%lld,", i ? "," : "", static_cast<long long>(txtT[slot]));
+    o += b;
+    appendJsonString(o, String(txt[slot]));
+    o += "]";
+  }
+  o += "]}";
+  g_server.sendHeader("Cache-Control", "no-store");
+  g_server.send(200, "application/json; charset=utf-8", o);
+}
+
+void sendDirZip(fs::FS& f, const String& dirPath) {
+  File dir = f.open(dirPath);
+  if (!dir || !dir.isDirectory()) { g_server.send(404, "text/plain", "not found"); return; }
+  const String base = dirPath.substring(dirPath.lastIndexOf('/') + 1);
+  g_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  g_server.sendHeader("Cache-Control", "no-store");
+  g_server.sendHeader("Content-Disposition", "attachment; filename=\"" + base + ".zip\"");
+  g_server.send(200, "application/zip", "");
+  static ZipOut z;
+  z = ZipOut();
+  static ZipEntry e[32];
+  size_t ne = 0;
+  static uint8_t b[1024];
+  for (File x = dir.openNextFile(); x && ne < 32; x = dir.openNextFile()) {
+    if (x.isDirectory()) continue;
+    String fn = String(x.name()); fn = fn.substring(fn.lastIndexOf('/') + 1);
+    if (fn.startsWith(".")) continue;
+    zipBegin(z, e[ne], (base + "/" + fn).c_str());
+    for (size_t k; (k = x.read(b, sizeof(b))) > 0;) z.data(b, k);
+    zipEnd(z, e[ne++]);
+  }
+  zipFinish(z, e, ne);
+}
+
+void handleFs() {
+  g_other++;
+  // /fs/<medium><path>
+  const String uri = g_server.uri();
+  const int slash = uri.indexOf('/', 4);
+  storage::Media m;
+  if (slash < 0 || !fsMedia(uri.substring(4, slash), m)) { g_server.send(404, "text/plain", "not found"); return; }
+  String path = uri.substring(slash);
+  while (path.length() > 1 && path.endsWith("/")) path.remove(path.length() - 1);
+  if (!pathOk(path)) { g_server.send(404, "text/plain", "not found"); return; }
+  if (storage::info(m).formatting) { g_server.send(503, "text/plain", "formatting"); return; }
+  if (g_server.hasArg("info")) { sendRawInfo(m, path); return; }
+  const bool zip = g_server.hasArg("zip"), csv = g_server.hasArg("csv");
+  if (!zip && !csv) { sendPlain(m, path, g_server.hasArg("view")); return; }
+  if ((rawlog::active() && rawlog::media() == m) || (m == storage::SD_CARD && run::busy())) {
+    g_server.send(409, "text/plain", "Not while a run or raw log is active"); return;
+  }
+  SdLock lk;
+  fs::FS* f = storage::fs(m);
+  if (!f || !f->exists(path)) { g_server.send(404, "text/plain", "not found"); return; }
+  if (zip) sendDirZip(*f, path);
+  else sendRawZip(*f, path);
 }
 
 // Accept a command -- but only if it is fresh.
@@ -601,8 +724,7 @@ void webTask(void*) {
 // Every unknown address shows the UI. The DNS answers everything with its own
 // address anyway -- whatever someone types, they want to come here.
 void handleNotFound() {
-  if (g_server.uri().startsWith("/runs/")) { handleRuns(); return; }
-  if (g_server.uri().startsWith("/raw/")) { handleRaw(); return; }
+  if (g_server.uri().startsWith("/fs/")) { handleFs(); return; }
   g_other++;
   if (redirectedToName()) return;
   sendIndex();
@@ -667,8 +789,7 @@ void begin(CommandFn handler, StateJsonFn state, StateJsonFn runJson,
   g_server.on("/api/cmd", HTTP_POST, handleCmd);
   g_server.on("/api/run", handleRun);
   g_server.on("/api/profiles", handleProfiles);
-  g_server.on("/runs", handleRuns);
-  g_server.on("/raw", handleRaw);
+  g_server.on("/api/files", handleFiles);
 
   g_server.on("/hotspot-detect.html", handleProbeApple);     // iOS, macOS
   g_server.on("/library/test/success.html", handleProbeApple);

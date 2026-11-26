@@ -58,8 +58,16 @@ void spindownFinish() {
     return;
   }
   float a1, b1; double w0;
-  if (!g_sd.solve(g_sdJ, a1, b1, w0, g_sdResidRms)) { Serial.println("# Spin-down rejected: normal equations singular"); return; }
+  int forced = 0;
+  if (!g_sd.solvePositive(g_sdJ, a1, b1, w0, g_sdResidRms, forced)) { Serial.println("# Spin-down rejected: no physical fit (singular or negative losses)"); return; }
+  if (forced) Serial.println(forced == 1 ? "# Spin-down: free fit gave A1 < 0, refitted with A1 = 0"
+                                         : "# Spin-down: free fit gave B1 < 0, refitted with B1 = 0");
   g_sdFitN = static_cast<uint32_t>(g_sd.n);
+  if (g_sdResidRms > SPINDOWN_RESID_MAX_RADS) {
+    Serial.print("# Spin-down rejected: residual "); Serial.print(g_sdResidRms, 2);
+    Serial.println(" rad/s, a disturbed pulse train (phantom or missing pulses)");
+    return;
+  }
   if (settings::setWheelModel(a1, b1)) {
     Serial.print("# Wheel loss model saved: A1="); Serial.print(a1, 5);
     Serial.print(" Nm  B1="); Serial.print(b1, 8); Serial.print(" Nm/(rad/s)^2  from ");
@@ -140,6 +148,14 @@ void service() {
 
   if (g_filled < N + 1) { g_circ = NAN; return; }
   const double drumRevs = g_hist[g_head] - g_hist[(g_head + 1) % (N + 1)];   // oldest
+  // Slip check: the last single wheel revolution against the window (config.h).
+  const double lastRev = g_hist[g_head] - g_hist[(g_head + N + 1 - WHEEL_MARKS_PER_REV) % (N + 1)];
+  const double meanRev = drumRevs / static_cast<double>(WHEEL_CIRC_WINDOW_REVS);
+  if (meanRev > 0.0 && fabs(lastRev / meanRev - 1.0) > WHEEL_CIRC_SLIP_REL) {
+    g_circRaw = settings::drumCircumferenceM() * static_cast<float>(lastRev);
+    clear();   // refills over WHEEL_CIRC_WINDOW_REVS revolutions once the wheel rolls again
+    return;
+  }
   g_circ = settings::drumCircumferenceM()
          * static_cast<float>(drumRevs / static_cast<double>(WHEEL_CIRC_WINDOW_REVS));
   // Plausible as in settings::setWheelCircM: 0.5 to 3 m. Turning the wheel by hand with

@@ -34,6 +34,8 @@ constexpr char K_RM_ETRTO[] = "rm_etrto"; constexpr char K_RM_TUBE[] = "rm_tube"
 constexpr char K_RM_BAR[] = "rm_bar"; constexpr char K_RM_TEMP[] = "rm_temp"; constexpr char K_RM_LOAD[] = "rm_load"; constexpr char K_RM_POS[] = "rm_pos";
 constexpr char K_ARMCAL[] = "arm_at_cal"; // cell arm at calibration
 constexpr char K_CTRLKG[] = "ctrl_kg";     // mass of the check weight (setup, 2026-11-25)
+constexpr char K_REV[] = "stand_rev";
+constexpr char K_CALREC[] = "cal_rec";      // CalRecord as bytes (2026-11-26)      // stand revision, free text (2026-11-26)
 constexpr char K_WORG[] = "wm_org";        // origin of the wheel model (WheelOrigin as bytes, 2026-11-26)
 constexpr uint8_t WORG_VER = 2;            // first byte of the blob; a different layout is ignored
 
@@ -43,7 +45,7 @@ constexpr uint8_t WORG_VER = 2;            // first byte of the blob; a differen
 // but without a clock (console only, or saved before 2026-11-26).
 const char* const STAMPED[] = {K_DRUM, K_ARM, K_CALIB, K_NPC, K_DIR, K_PLAT, K_TARE, K_LOAD,
                                K_A0, K_A1, K_MWHEEL, K_UWHEEL, K_JWHEEL, K_ARMCAL, K_CTRLKG,
-                               K_LD_EMPTY, K_LD_WEIGHT, K_LD_ARM};
+                               K_LD_EMPTY, K_LD_WEIGHT, K_LD_ARM, K_REV};
 constexpr size_t STAMP_N = sizeof(STAMPED) / sizeof(STAMPED[0]);
 uint32_t g_stamp[STAMP_N];
 
@@ -74,6 +76,8 @@ float   g_uWheel = NAN;
 float   g_jWheel = NAN;
 float   g_armCal = NAN;
 float   g_ctrlKg = RUN_CTRL_MASS_KG;
+char    g_rev[STAND_REV_LEN + 1] = "";
+CalRecord g_calRec = {};
 RunMeta g_rm = {"", "", "", "", "", "", NAN, NAN, NAN, 0};
 WheelOrigin g_wo = {};
 float   g_ldEmpty = LOAD_EMPTY_KG, g_ldWeight = LOAD_WEIGHT_KG, g_ldArm = LOAD_ARM_A_M;
@@ -155,6 +159,11 @@ void begin() {
     if (g_nvs.isKey(K_JWHEEL)) g_jWheel = g_nvs.getFloat(K_JWHEEL, NAN);
     if (g_nvs.isKey(K_ARMCAL)) g_armCal = g_nvs.getFloat(K_ARMCAL, NAN);
     if (g_nvs.isKey(K_CTRLKG)) g_ctrlKg = g_nvs.getFloat(K_CTRLKG, RUN_CTRL_MASS_KG);
+    if (g_nvs.isKey(K_REV))    g_nvs.getString(K_REV, g_rev, sizeof(g_rev));
+    if (g_nvs.isKey(K_CALREC) && g_nvs.getBytesLength(K_CALREC) == sizeof(CalRecord)) {
+      g_nvs.getBytes(K_CALREC, &g_calRec, sizeof(CalRecord));
+      if (g_calRec.ver != 1) g_calRec = CalRecord();
+    }
     if (g_nvs.isKey(K_LD_EMPTY))  g_ldEmpty  = g_nvs.getFloat(K_LD_EMPTY,  LOAD_EMPTY_KG);
     if (g_nvs.isKey(K_LD_WEIGHT)) g_ldWeight = g_nvs.getFloat(K_LD_WEIGHT, LOAD_WEIGHT_KG);
     if (g_nvs.isKey(K_LD_ARM))    g_ldArm    = g_nvs.getFloat(K_LD_ARM,    LOAD_ARM_A_M);
@@ -250,6 +259,25 @@ bool  setWheelModel(float a1, float b1) {
   // Origin: the inputs last entered for a run (saved while typing, so during a run they
   // are this run's). run.cpp overwrites it with the run id right after.
   setWheelOrigin(g_rm, "");
+  return true;
+}
+bool npcPlausible(float x) { return okNpc(x); }
+const CalRecord& calRecord() { return g_calRec; }
+bool setCalRecord(const CalRecord& r) {
+  g_calRec = r;
+  if (!g_nvs.begin(NS, false)) { nvsFailed("calibration record"); return false; }
+  const bool ok = g_nvs.putBytes(K_CALREC, &g_calRec, sizeof(CalRecord)) == sizeof(CalRecord);
+  g_nvs.end();
+  if (!ok) nvsFailed("calibration record");
+  return ok;
+}
+const char* standRev() { return g_rev; }
+bool setStandRev(const char* t) {
+  if (!t || strlen(t) > STAND_REV_LEN) return false;
+  snprintf(g_rev, sizeof(g_rev), "%s", t);
+  if (!g_nvs.begin(NS, false)) { nvsFailed("stand revision"); return true; }
+  if (g_nvs.putString(K_REV, g_rev) || !g_rev[0]) stamp(K_REV); else nvsFailed("stand revision");
+  g_nvs.end();
   return true;
 }
 float ctrlMassKg() { return g_ctrlKg; }
@@ -429,8 +457,10 @@ bool setDirectionSign(int8_t sign) {
 }
 
 void reset() {
+  // The stand revision describes the hardware, not a tunable value: it survives a reset.
   if (g_nvs.begin(NS, false)) {
     g_nvs.clear();
+    if (g_rev[0]) { g_nvs.putString(K_REV, g_rev); stamp(K_REV); }
     g_nvs.end();
   }
   g_drum = DRUM_CIRCUMFERENCE_M;
@@ -441,6 +471,7 @@ void reset() {
   g_tare = 0;
   g_load = LOAD_DEFAULT_N;
   g_a0 = g_b0 = g_a1 = g_b1 = NAN;
+  g_calRec = CalRecord();   // the NVS blob went with clear()
   g_mWheel = WHEEL_MASS_DEFAULT_KG;
   g_uWheel = NAN;
   g_jWheel = NAN;

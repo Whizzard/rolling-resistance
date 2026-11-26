@@ -73,7 +73,7 @@ the firmware's pass-through showed sensors and power stage in order; the mapping
 state to angle no longer fitted, so Hall or phase leads were plugged differently than at
 the detection on 17 Nov.
 
-`foc_sensors_detect_apply 10` (via `tools/konsole.py ":foc_sensors_detect_apply 10"`)
+`foc_sensors_detect_apply 10` (via `tools/console.py ":foc_sensors_detect_apply 10"`)
 re-detected and stored:
 
 | | `foc_hall_table` 0…7 |

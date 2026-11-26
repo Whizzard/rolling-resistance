@@ -86,6 +86,8 @@ uint32_t g_wizSteadyMs = 0, g_wizSlipMs = 0;
 float    g_wizRatioRef = 0.0f;  // wheel/drum ratio with the wheel resting
 PointFn   g_wizOnPoint = nullptr;  // callbacks of the guided run, otherwise null
 SeqDoneFn g_wizOnDone  = nullptr;
+float     g_wizKmh[PLATEAU_MAX];   // plateaus of the guided run
+uint8_t   g_wizKmhN = 0;
 
 void storeBaselineFit(const char* why) {
   float a0, b0;
@@ -432,9 +434,10 @@ void service() {
           if (g_wizOnPoint || g_wizOnDone) {
             // Guided run: points and end to run.cpp, HOLD at the end instead of coasting.
             float kmh[PLATEAU_MAX];
-            const uint8_t n = settings::plateauCount();
-            for (uint8_t i = 0; i < n; i++) kmh[i] = settings::plateauKmh(i);
-            if (!startSequence(RUN_BASELINE, kmh, n, 1, false, g_wizOnPoint, g_wizOnDone)) {
+            uint8_t n = g_wizKmhN;
+            for (uint8_t i = 0; i < n; i++) kmh[i] = g_wizKmh[i];
+            if (!n) { n = settings::plateauCount(); for (uint8_t i = 0; i < n; i++) kmh[i] = settings::plateauKmh(i); }
+            if (!startSequence(RUN_BASELINE, kmh, n, RUN_BASELINE_POINTS, false, g_wizOnPoint, g_wizOnDone)) {
               g_wizardAborted = true;
               stopRun();
             }
@@ -517,8 +520,10 @@ bool startHold(float kmh) {
 
 void endHold() { if (g_phase == HOLD) g_phase = IDLE; }
 
-void startWizard(PointFn onPoint, SeqDoneFn onDone) {
+void startWizard(PointFn onPoint, SeqDoneFn onDone, const float* kmh, uint8_t n) {
   g_wizOnPoint = onPoint; g_wizOnDone = onDone;
+  g_wizKmhN = 0;
+  for (uint8_t i = 0; kmh && i < n && i < PLATEAU_MAX; i++) g_wizKmh[g_wizKmhN++] = kmh[i];
   if (g_phase != IDLE) { logger::fail("Start refused: not IDLE"); return; }
   // The circumference is only measured during spin-up (WIZ_SPINUP); here only require
   // the mass or a measured J. Until 2026-11-25 the start refused without a stored circumference.

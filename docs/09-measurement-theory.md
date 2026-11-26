@@ -574,12 +574,12 @@ Order of evaluation. The equations are in §1, the constants in
 per sample:  F_Z = (raw − offset) · k
 
 per revolution, index-triggered, averaged over AVG_REVS_PER_POINT:
-             n   = marks / (k_Marken · Δt)
+             n   = marks / (k_marks · Δt)
              ω   = 2π·n              v = U·n
-             M_roh = F_Z,mittel · L
+             M_raw = F_Z,mean · L
              dω/dt = slope of the regression line ω(t) over the point
              J_eff = J_drum + J_wheel·(r/r_wheel)²        (measurement run; idle only J_drum)
-             M   = M_roh − J_eff · dω/dt                  inertia correction, §1.7
+             M   = M_raw − J_eff · dω/dt                  inertia correction, §1.7
              M_idle    = A₀ + B₀·ω²
              ω_wheel     = ω · r / r_wheel
              M_wheel     = (A₁ + B₁·ω_wheel²) · r / r_wheel
@@ -693,7 +693,7 @@ of it touches the cradle. The standard wheel load `STANDARD_LOAD_N` = **416.9 N
 
 ### 8.4 Baseline Pre-Run
 
-**Wheel lifted** (eccentric lever), *Leerlauf* (idle) on the measurement page or `m0` on
+**Wheel lifted** (eccentric lever), step 6 of the guided run, the *Wizard coast-down + no-load* under Setup, or `m0` on
 the console. The firmware runs through all measurement speeds from the settings
 (default `PLATEAUS_KMH`), waits `SETTLE_MS` each and averages over
 `AVG_REVS_PER_POINT` **whole revolutions**, triggered on the index mark.
@@ -775,10 +775,10 @@ is not, something fundamental is wrong.
 ### 8.11 Evaluation
 
 ```sh
-python3 analysis/crr.py data/<datei>.csv
+python3 analysis/crr.py data/<file>.csv
 ```
 
-Reads the run set of the guided measurement run (`/runs/<id>.csv`) and computes
+Reads the run set of the guided measurement run (`/vmrr/<id>/points.csv`) and computes
 **the same way as the firmware**: idle-loss model A₀/B₀ from the pre-run fit, wheel model
 A₁/B₁ from the header, Crr per plateau with pooled scatter and u(Crr), plus anchor drift,
 pre-/post-run drift and zero points. One run, two computers, one number. The old serial

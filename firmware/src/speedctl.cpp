@@ -216,7 +216,7 @@ void service() {
 
   if (g_brk) {
     if (!vesc::connected()) { g_brk = false; dropout("Abort: no controller data"); return; }
-    const float ist = kmhSigned();
+    const float actualKmh = kmhSigned();
     // Direction detection: the cell change against the start, judged at breakaway --
     // or already as soon as it exceeds the threshold (the drum need not move at all).
     if (g_dirDet) {
@@ -224,7 +224,7 @@ void service() {
       if (!isnan(f) && !isnan(g_dirBase)) g_dirDelta = f - g_dirBase;
     }
     const bool dirEnough = g_dirDet && !isnan(g_dirDelta) && fabsf(g_dirDelta) >= DIRDETECT_MIN_N;
-    if (fabsf(ist) >= BREAKAWAY_DETECT_KMH || dirEnough) {
+    if (fabsf(actualKmh) >= BREAKAWAY_DETECT_KMH || dirEnough) {
       g_brkDuty = g_duty;
       g_brkAmps = vesc::values().currentMotor;
       g_brk = false;

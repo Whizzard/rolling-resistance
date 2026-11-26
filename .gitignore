@@ -29,3 +29,6 @@ hardware/qr-wlan.svg
 
 # pytest
 .pytest_cache/
+
+# Generated at build time (git commit of the firmware)
+firmware/src/build_id.h

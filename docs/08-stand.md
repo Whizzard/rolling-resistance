@@ -349,7 +349,7 @@ torque: `M_wheel(ω) = −J · dω/dt`.
 
 For a wheel, J is well-behaved because rim, tire and tube account for almost all of it and
 all sit at the same radius. Calculated value for a 622 wheel of 2.5 kg:
-`J ≈ 0.85 · m · r_Felge² = 0.206 kg·m²`.
+`J ≈ 0.85 · m · r_rim² = 0.206 kg·m²`.
 
 ### 6.1 What a J error costs
 

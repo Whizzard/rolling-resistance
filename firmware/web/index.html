@@ -147,6 +147,17 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
   padding: 12px 0; width: 35%; margin-left: 2%; float: right; }
 .field button.plain { background: #c3ccd4; color: #16202a; }
 .field:after { content: ""; display: table; clear: both; }
+/* ---- SD format progress ---- */
+.fmtbar { height: 10px; background: #dde3e8; border-radius: 5px; overflow: hidden; margin: 8px 0 4px; }
+.fmtbar div { height: 100%; width: 0; background: #2f6f99; transition: width .5s; }
+/* ---- calibration procedure (calib.h) ---- */
+.calp { clear: both; padding-top: 8px; }
+.calp .act { font-size: 20px; font-weight: 700; color: #16202a; background: #fff3cd; border-left: 6px solid #e0a800;
+  border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+.calp .row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.calp .row button, .calp .row input { float: none; margin: 0; width: auto; flex: 1 1 28%; min-width: 90px; }
+.calp .row input { font-size: 19px; padding: 10px; }
+.calp .res { font-size: 17px; line-height: 1.55; color: #28475c; }
 .field .hint { font-size: 15px; color: #7d8a95; margin-top: 6px; clear: both;
                padding-top: 6px; line-height: 1.45; }
 /* ---- small icon in a tile label, here: zero ---- */
@@ -156,9 +167,45 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
   min-width: 48px; min-height: 40px; text-transform: none; letter-spacing: 0; }
 .lab .ico:active { background: #2f6f99; color: #fff; }
 .lab .ico.busy { background: #2f6f99; color: #fff; }
+/* Calibrate at the bottom edge of the load tile, the same look as zero (2026-11-26). */
+.tbtns { text-align: right; margin-top: 10px; }
+/* Utilization scale with marks 0, check weight, overload (2026-11-26), as at the end stop. */
+.uscale { position: relative; margin: 26px 0 18px; }
+.uscale .ml.up { top: -20px; }
+.uscale .tr { position: relative; height: 14px; border-radius: 4px; overflow: hidden; background: #e4e9ed; }
+.uscale .tr i { position: absolute; left: 0; top: 0; bottom: 0; background: #2f6f99; opacity: .75; }
+.uscale .tr b { position: absolute; top: 0; bottom: 0; }
+.uscale .mk { position: absolute; top: -3px; height: 20px; width: 2px; margin-left: -1px; background: #1e1e1e; }
+.uscale .mk.over { background: #c0392b; }
+.uscale .ml { position: absolute; top: 19px; font-size: 11px; color: #64737f; white-space: nowrap; -webkit-transform: translateX(-50%); transform: translateX(-50%); }
+.uscale .ml.l { -webkit-transform: none; transform: none; }
+.uscale .ml.r { -webkit-transform: translateX(-100%); transform: translateX(-100%); }
+.tbtns .ico { -webkit-appearance: none; border: 0; cursor: pointer; background: #d6dde3; color: #2b3a46;
+  border-radius: 7px; padding: 8px 12px; min-width: 48px; min-height: 40px; line-height: 0; }
+.tbtns .ico svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+/* zero and calibrate only at standstill (2026-11-26) */
+.ico.away { visibility: hidden; }
+.tbtns .ico:active { background: #2f6f99; color: #fff; }
+.tbtns .ico:disabled { opacity: .4; }
+/* word next to the symbol (2026-11-26) */
+#bTare { font-size: 18px; padding: 6px 12px; min-height: 34px; margin-top: -7px; line-height: 1;
+  display: -webkit-inline-flex; display: inline-flex; -webkit-align-items: center; align-items: center; }
+#bTare .bl { vertical-align: 0; margin-left: 6px; }
+.ico .bl { font-size: 14px; font-weight: 700; margin-left: 6px; vertical-align: 4px; line-height: 1; }
+.tbtns .ico svg { vertical-align: middle; }
+.tbtns .ico .bl { vertical-align: middle; }
+/* <tare> / <cal> in place of the value while it runs */
+.val .busyv { font-size: 24px; font-weight: 700; color: #2f6f99; letter-spacing: 0; }
+/* deviation from the check-weight mark, small behind the value (2026-11-26) */
+.val small.cwd { font-size: 13px; font-weight: 700; margin-left: 4px; letter-spacing: 0; white-space: nowrap; }
+@media (max-width: 480px) { .val small.cwd { display: block; margin: 2px 0 0; } }
 
 /* ---- Settings: shown as fixed values, Edit opens the editor ---- */
 .view { font-size: 25px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.revview { font-size: 17px; font-weight: 400; line-height: 1.4; }
+.revview span { white-space: pre-wrap; }
+.field textarea { -webkit-appearance: none; border: 1px solid #c3ccd4; border-radius: 5px; padding: 10px;
+  font-family: inherit; font-size: 17px; width: 100%; box-sizing: border-box; color: #16202a; background: #fbfcfd; margin-bottom: 6px; }
 .view small { font-size: 14px; color: #8795a1; font-weight: 400; margin-left: 4px; }
 .view button { -webkit-appearance: none; border: 0; cursor: pointer; float: right;
   font-family: inherit; font-size: 13px; font-weight: 700; background: #e3e8ec;
@@ -174,10 +221,17 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .wiz h1 { font-size: 16px; letter-spacing: .16em; text-transform: uppercase;
           color: #64737f; margin: 0 0 14px; }
 /* Header with target and actual sticks to the top of the wizard while scrolling
-   (the wizard is itself the scroll container, so sticky works here). Negative
-   margins so the background covers the full width. */
+   (the wizard is itself the scroll container, so sticky works here). Negative side
+   margins so the background covers the full width. Sticky top: 0 is measured from the
+   container's padding edge, so the run overlay has no top padding and the head no
+   negative top margin -- with them the head sat 24 px low and covered
+   "A · Preparation" (2026-11-26). */
+#run.wiz { padding-top: 0; }
+/* Close at the end of a run (report / abort), top right like the file browser (2026-11-26). */
+.wiz button.runx { float: right; width: auto; margin: -6px 0 0 8px; padding: 9px 14px; border-radius: 5px;
+                   background: #c3ccd4; color: #16202a; font-weight: 700; }
 .wiz .wizhead { position: -webkit-sticky; position: sticky; top: 0; z-index: 5; background: #eef1f4;
-                margin: -24px -16px 10px; padding: 16px 16px 6px; box-shadow: 0 2px 6px rgba(22,32,42,.10); }
+                margin: 0 -16px 10px; padding: 16px 16px 6px; box-shadow: 0 2px 6px rgba(22,32,42,.10); }
 .wiz .wizhead h1 { margin-bottom: 8px; }
 .wiz .wizhead .tiles { margin-bottom: 0; }
 .wiz .step { font-size: 17px; font-weight: 700; color: #51606d; letter-spacing: .04em; margin: 0 0 8px; }
@@ -194,6 +248,8 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .wiz .ok-mark.good { background: #1f8a5c; } .wiz .ok-mark.warn { background: #d98b00; } .wiz .ok-mark.bad { background: #c0392b; }
 .wiz li small { display: block; font-weight: 400; font-size: 16px; color: inherit; opacity: .85; }
 .wiz .txt { font-size: 20px; color: #28475c; line-height: 1.45; margin-bottom: 18px; }
+.wiz .act { font-size: 24px; font-weight: 700; color: #16202a; background: #fff3cd; border-left: 6px solid #e0a800;
+  border-radius: 6px; padding: 14px 16px; margin: 14px 0 12px; }
 .wiz .big { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .wiz .big small { font-size: 16px; color: #8795a1; font-weight: 400; margin-left: 4px; }
 .wiz button { -webkit-appearance: none; border: 0; cursor: pointer; font-family: inherit;
@@ -224,14 +280,93 @@ a.link { display: inline-block; margin-top: 6px; color: #2f6f99; font-weight: 70
   padding: 11px 34px 11px 10px; font-family: inherit; font-size: 21px; width: 100%; color: #16202a;
   background: #fbfcfd url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0h12L6 8z' fill='%2364737f'/%3E%3C/svg%3E") no-repeat right 12px center; }
 #profForm .field input { width: 100%; box-sizing: border-box; }
+/* Inputs and dropdowns: the same box everywhere (2026-11-26). Fixed height, border-box,
+   so a select is never taller than a text field next to it. */
+.field input, .field select { box-sizing: border-box; height: 48px; font-size: 19px; line-height: normal; padding-top: 0; padding-bottom: 0; }
+.wiz .field input, .wiz .field select { height: 44px; font-size: 17px; padding: 0 8px; }
+.wiz .field select { padding-right: 30px; background-position: right 10px center; }
 #profForm .pbar { position: -webkit-sticky; position: sticky; bottom: 0; background: #fff; padding: 8px 0; border-top: 1px solid #e4e9ed; display: -webkit-flex; display: flex; }
 #profForm .pbar button { -webkit-flex: 1; flex: 1; float: none; margin: 0 4px; }
 svg.bi { width: 15px; height: 15px; margin: 0 6px -2px 0; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .pgroup > label svg.bi { width: 20px; height: 20px; margin: 0 8px -5px 0; stroke: #2f6f99; stroke-width: 1.4; }
+/* ---- File browser (Setup -> Storage) and viewer, 2026-11-26 ---- */
+.recrow { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; margin: 14px 0 4px; }
+.recrow button { -webkit-appearance: none; border: 0; border-radius: 6px; padding: 12px 18px; font: inherit; font-size: 16px; font-weight: 700; background: #d7dde3; color: #16202a; margin-right: 12px; white-space: nowrap; }
+.recrow button.on { color: #c0392b; }
+/* Record: round red dot, black text; recording: black square, red text (2026-11-26). */
+.recrow button i { display: inline-block; width: 14px; height: 14px; margin: 0 9px -1px 0; border-radius: 50%; background: #c0392b; }
+.recrow button.on i { border-radius: 2px; background: #16202a; }
+.recrow button:disabled { opacity: .45; }
+.fbcrumb { font-size: 15px; margin: 2px 0 6px; word-break: break-all; }
+.fbcrumb a, .fbrow a.n { color: #2f6f99; text-decoration: none; font-weight: 700; }
+.fbrow { border-bottom: 1px solid #e4e9ed; padding: 9px 0; line-height: 1.35; }
+.fbrow:last-child { border-bottom: 0; }
+.fbrow .rec { color: #c0392b; font-weight: 700; }
+#files { z-index: 55; }
+#files .field { background: #fff; padding: 10px 12px; margin-bottom: 8px; border-radius: 6px; }
+#fview .md h1 { text-transform: none; letter-spacing: 0; color: #16202a; font-size: 24px; }
+#fview { z-index: 60; background: #fff; padding: 0 16px 24px; }
+.fvbar { position: fixed; left: 0; right: 0; top: 0; background: #eef1f4; padding: 8px 16px; z-index: 61; box-shadow: 0 2px 6px rgba(22,32,42,.16); }
+.fvbar button { -webkit-appearance: none; border: 0; border-radius: 5px; padding: 9px 14px; font: inherit; font-weight: 700; background: #c3ccd4; color: #16202a; margin-right: 8px; }
+.fvbar a.dl { display: inline-block; padding: 9px 14px; border-radius: 5px; background: #2f6f99; color: #fff; text-decoration: none; font-weight: 700; margin-right: 10px; }
+.fvbar span { color: #64737f; font-size: 13px; word-break: break-all; }
+#files .fvbar button, #fview .fvbar button { width: auto; float: none; display: inline-block; margin: 0 8px 0 0; padding: 11px 16px; font-size: 17px; }
+#files .pbtns button { width: auto; font-size: 15px; padding: 9px 12px; }
+#fview .md li { background: none; border: 0; padding: 2px 0; margin: 0; color: #16202a; font-size: 16px; font-weight: 400; }
+#fview .md ul, #fview .md ol { padding-left: 22px; margin: 6px 0; }
+.md { padding-top: 72px; font-size: 16px; line-height: 1.5; color: #16202a; }
+.md h1 { font-size: 24px; margin: 14px 0 8px; } .md h2 { font-size: 19px; margin: 18px 0 6px; letter-spacing: 0; text-transform: none; color: #16202a; }
+.md h3 { font-size: 16px; margin: 14px 0 4px; }
+.md table { border-collapse: collapse; margin: 8px 0; font-size: 14px; display: block; overflow-x: auto; }
+.md th, .md td { border: 1px solid #d6dde3; padding: 4px 8px; text-align: left; vertical-align: top; }
+.md th { background: #eef1f4; }
+.md code { background: #eef1f4; padding: 1px 4px; border-radius: 3px; font-size: 14px; }
+.md pre { background: #eef1f4; padding: 10px; overflow-x: auto; font-size: 13px; line-height: 1.35; white-space: pre; }
+.md pre code { background: none; padding: 0; }
 .pgroup .prow { border-bottom: 1px solid #e4e9ed; padding: 10px 0; line-height: 1.4; }
 .pgroup .prow:last-of-type { border-bottom: 0; }
 .pgroup .prow.on { background: #eaf2f8; margin: 0 -12px; padding: 10px 12px; }
 .pgroup .pbtns { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin-top: 8px; }
+.field .pbtns a.btn { display: inline-block; text-decoration: none; font-size: 15px; font-weight: 700; border-radius: 5px; background: #c3ccd4; color: #16202a; margin: 0 6px 6px 0; padding: 9px 12px; }
+.fbrow { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-flex-wrap: wrap; flex-wrap: wrap; }
+.fbmain { -webkit-flex: 1 1 auto; flex: 1 1 auto; min-width: 0; position: relative; padding-left: 54px; min-height: 44px; text-decoration: none; color: #16202a; display: block; }
+.fbmain .n { display: block; font-size: 19px; font-weight: 700; color: #2f6f99; word-break: break-all; padding-top: 2px; }
+.fbmain .sub { font-size: 13px; }
+.fbact { margin-left: auto; text-align: right; white-space: nowrap; padding-left: 8px; }
+.fbact a.btn { display: inline-block; margin: 4px 0 4px 6px; padding: 8px 12px; border-radius: 5px; background: #c3ccd4; color: #16202a; text-decoration: none; font-weight: 700; font-size: 15px; }
+.fbact a.btn:active { background: #2f6f99; color: #fff; }
+a.fbup { color: #2f6f99; text-decoration: none; font-weight: 700; font-size: 19px; margin-right: 14px; }
+.fmtrow { margin-top: 10px; }
+.spin { display: inline-block; width: 18px; height: 18px; margin: 0 8px -4px 0; border: 3px solid #d6dee5; border-top-color: #2f6f99; border-radius: 50%;
+  -webkit-animation: spin .9s linear infinite; animation: spin .9s linear infinite; }
+@-webkit-keyframes spin { to { -webkit-transform: rotate(360deg); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+.fbmain > svg.fi { position: absolute; left: 0; top: 0; width: 44px; height: 44px; fill: none; stroke: #2f6f99; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+.fbmain > svg.fi.fi-rrl { stroke: #b5651d; }
+.fbmain > svg.fi.fi-dir { stroke: #2f6f99; fill: #e3eef6; }
+
+.fbnav { margin: 2px 0 10px; }
+.fbnav button { -webkit-appearance: none; border: 0; border-radius: 5px; padding: 11px 16px; font: inherit; font-size: 17px; font-weight: 700; background: #c3ccd4; color: #16202a; margin: 0 10px 6px 0; vertical-align: middle; }
+.fbnav .fbcrumb { display: inline-block; vertical-align: middle; font-size: 19px; }
+a.link svg.bi.big { width: 24px; height: 24px; margin: 0 8px -6px 0; stroke-width: 1.3; }
+/* File browser entry at the top of Setup, large (2026-11-26). */
+a.link.fbentry { display: block; margin: 14px 0 16px; font-size: 19px; font-weight: 700; }
+a.link.fbentry svg.bi.big { width: 36px; height: 36px; margin: 0 10px -10px 0; }
+.fbfmt { margin-top: 22px; padding-top: 10px; border-top: 1px solid #e4e9ed; }
+.fbfmt button { float: none !important; width: auto !important; display: inline-block; padding: 6px 10px !important; font-size: 13px !important; margin: 0 8px 0 0 !important; }
+.fbfmt .sub { font-size: 12px; white-space: normal; }
+#fmtSt .ok { color: #1e7a46; font-weight: 700; }
+.md table.rrl td.r, .md table.rrl th.r { text-align: right; }
+.md table.rrl, .md table.kv { width: 100%; font-size: 14px; }
+.md table.rrl td, .md table.rrl th, .md table.kv td { white-space: normal; word-break: break-word; padding: 5px 6px; }
+/* key/value tables: the key column shaded and bold (2026-11-26) */
+.md table.kv td:first-child { background: #eef1f4; font-weight: 700; white-space: nowrap; width: 1%; }
+/* record statistics: the numbers never wrap, the type column takes the rest */
+.md table.rrl td.r, .md table.rrl th.r { white-space: nowrap; width: 1%; }
+.md table.rrl td .dt { display: block; color: #64737f; font-size: 12px; font-weight: 400; margin-top: 2px; }
+.md table.rrl th { font-size: 11px; letter-spacing: .04em; }
+.fvbar span#fvName { display: block; margin-top: 4px; }
+.md table.rrl td.dt { color: #64737f; font-size: 13px; }
 .field .pbtns button { float: none; width: auto; margin: 0 6px 6px 0; padding: 9px 12px; }
 .field button:disabled { opacity: .45; cursor: default; }
 .wiz td.ok { color: #1f8a5c; font-weight: 700; }
@@ -259,6 +394,14 @@ svg.bi { width: 15px; height: 15px; margin: 0 6px -2px 0; fill: none; stroke: cu
 .wiz .field input { width: 100%; font-size: 17px; padding: 8px; }
 .wiz .field { padding: 6px 0; margin: 0; background: none; }
 .wiz .cols { margin: 0 -4px; }
+.spdsel label { display: inline-block; margin: 4px 18px 4px 0; font-size: 19px; letter-spacing: 0;
+  text-transform: none; color: #16202a; cursor: pointer; font-variant-numeric: tabular-nums; }
+.spdsel input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.spdsel .cb { display: inline-block; width: 26px; height: 26px; margin-right: 8px; vertical-align: -6px;
+  border: 2px solid #c3ccd4; border-radius: 5px; background: #fbfcfd; position: relative; box-sizing: border-box; }
+.spdsel input:checked + .cb { border-color: #2f6f99; background: #2f6f99; }
+.spdsel input:checked + .cb:after { content: ""; position: absolute; left: 7px; top: 2px; width: 7px; height: 13px;
+  border: solid #fff; border-width: 0 3px 3px 0; -webkit-transform: rotate(45deg); transform: rotate(45deg); }
 .wiz .cols:after { content: ""; display: table; clear: both; }
 .wiz .cols .field { float: left; width: 50%; padding: 4px; }
 
@@ -291,29 +434,29 @@ svg.bi { width: 15px; height: 15px; margin: 0 6px -2px 0; fill: none; stroke: cu
   background: none; color: #c0392b; font-family: inherit; font-size: 17px;
   font-weight: 700; padding: 0 12px; margin: 0; width: auto; float: none;
   line-height: 1; }
-.chips .leer { color: #8795a1; font-weight: 400; font-size: 13px; padding: 9px 12px; }
+.chips .chipsEmpty { color: #8795a1; font-weight: 400; font-size: 13px; padding: 9px 12px; }
 .runhint { font-size: 13px; color: #51606d; margin-top: 8px; }
 .runhint b { color: #16202a; }
 
 /* ---- Sensors: wiring test ---- */
-table.geber { width: 100%; border-collapse: collapse; margin-top: 4px;
+table.stattab { width: 100%; border-collapse: collapse; margin-top: 4px;
               font-variant-numeric: tabular-nums; }
-table.geber td { padding: 7px 4px; border-top: 1px solid #e3e8ec; font-size: 15px; }
-table.geber tr:first-child td { border-top: 0; }
-table.geber td.n { text-align: right; font-weight: 700; width: 22%; }
-table.geber td.p { color: #7d8a95; width: 16%; font-family: ui-monospace, Menlo, monospace;
+table.stattab td { padding: 7px 4px; border-top: 1px solid #e3e8ec; font-size: 15px; }
+table.stattab tr:first-child td { border-top: 0; }
+table.stattab td.n { text-align: right; font-weight: 700; width: 22%; }
+table.stattab td.p { color: #7d8a95; width: 16%; font-family: ui-monospace, Menlo, monospace;
                    font-size: 13px; }
-table.geber td.s { font-weight: 700; text-align: right; width: 30%; }
-table.geber tr.ok td.s  { color: #1f8a5c; }
-table.geber tr.no td.s  { color: #c0392b; }
-table.geber tr.idle td.s { color: #7d8a95; font-weight: 400; }
+table.stattab td.s { font-weight: 700; text-align: right; width: 30%; }
+table.stattab tr.ok td.s  { color: #1f8a5c; }
+table.stattab tr.no td.s  { color: #c0392b; }
+table.stattab tr.idle td.s { color: #7d8a95; font-weight: 400; }
 /* ---- Storage: usage as a bar ---- */
-table.geber td.bar { width: 40%; }
-table.geber td.bar div { height: 8px; border-radius: 4px; background: #e3e8ec; overflow: hidden; }
-table.geber td.bar i { display: block; height: 100%; background: #2f6f99; }
-table.geber tr.warn td.s { color: #b57a00; }
+table.stattab td.bar { width: 40%; }
+table.stattab td.bar div { height: 8px; border-radius: 4px; background: #e3e8ec; overflow: hidden; }
+table.stattab td.bar i { display: block; height: 100%; background: #2f6f99; }
+table.stattab tr.warn td.s { color: #b57a00; }
 .chg { font-size: 12px; font-weight: 400; color: #7d8a95; text-transform: none; letter-spacing: 0; margin-left: 6px; white-space: nowrap; }
-table.geber td.s button { -webkit-appearance: none; border: 0; cursor: pointer; font: inherit;
+table.stattab td.s button { -webkit-appearance: none; border: 0; cursor: pointer; font: inherit;
   font-size: 14px; font-weight: 700; background: #c0392b; color: #fff; border-radius: 5px; padding: 6px 10px; }
 code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px;
        background: #eef1f4; padding: 2px 5px; border-radius: 3px;
@@ -352,6 +495,22 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   .stopbar button { font-size: 21px; padding: 16px 0; }
   body { padding-top: 54px; }
 }
+/* Forms on a phone (2026-11-26): one column, so labels that wrap do not shift the
+   fields against each other; hint lines wrap instead of being cut off. */
+@media (max-width: 480px) {
+  .wiz .cols .field { float: none; width: 100%; }
+}
+.wiz .sub, #files .sub, .pgroup .sub { white-space: normal; }
+/* Tabs on a phone (2026-11-26): below 480 px text only, smaller, less spacing;
+   below 360 px icons only. */
+@media (max-width: 480px) {
+  .tabs button { font-size: 12px; letter-spacing: .03em; padding: 12px 0; }
+  .tabs button svg.bi { display: none; }
+}
+@media (max-width: 359px) {
+  .tabs button { font-size: 0; letter-spacing: 0; }
+  .tabs button svg.bi { display: inline; width: 20px; height: 20px; margin: 0; }
+}
 @media (max-width: 400px) {
   .tile.big .val { font-size: 28px; }
   .val { font-size: 22px; }
@@ -374,7 +533,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     <div class="tiles">
       <div class="tile half big"><div>
         <div class="lab">Target</div>
-        <div class="val"><span id="soll">—</span><small>km/h</small></div>
+        <div class="val"><span id="tgt">—</span><small>km/h</small></div>
       </div></div>
       <div class="tile half big"><div>
         <div class="lab">Actual</div>
@@ -387,6 +546,10 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
   <!-- ===================== MEASURE ===================== -->
   <div id="pageMess">
+
+    <!-- speed selectors first (2026-11-26) -->
+    <h2>Test speeds</h2>
+    <div class="grid" id="grid"></div>
 
     <h2>Tire</h2>
     <div class="tiles">
@@ -414,14 +577,16 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     <h2>Load cell</h2>
     <div class="tiles">
       <div class="tile half big"><div>
-        <div class="lab">Load <button type="button" class="ico" id="bTare" title="Zero">&#8960;</button></div>
-        <div class="val"><span id="kg">—</span><small>kg</small></div>
+        <div class="lab">Load <button type="button" class="ico" id="bTare" title="Zero">&#8960;<span class="bl">tare</span></button></div>
+        <div class="val"><span id="kg">—</span><small>kg</small><small class="cwd" id="kgD"></small></div>
         <div class="sub" id="ppSub">—</div>
+        <div class="tbtns"><button type="button" class="ico" id="bCalib" title="Calibrate with the check weight"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10h9l3 10.5h-15zM9.5 10V8.5a2.5 2.5 0 0 1 5 0V10"/></svg><span class="bl">cal</span></button></div>
       </div></div>
       <div class="tile half big"><div>
         <div class="lab">Utilization</div>
-        <div class="val"><span id="pct">—</span><small>%</small></div>
+        <div class="val"><span id="pct">—</span><small>%</small><small class="cwd" id="pctD"></small></div>
         <div class="sub" id="pctSub">—</div>
+        <div class="uscale" id="uScale"></div>
       </div></div>
     </div>
 
@@ -461,20 +626,21 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     <div class="tiles">
       <div class="tile"><div>
         <div class="lab">Drum</div>
-        <div class="val"><span id="nTrommel">—</span><small>rpm</small></div>
+        <div class="val"><span id="nDrum">—</span><small>rpm</small></div>
       </div></div>
       <div class="tile"><div>
         <div class="lab">Wheel</div>
-        <div class="val"><span id="nRad">—</span><small>rpm</small></div>
+        <div class="val"><span id="nWheel">—</span><small>rpm</small></div>
       </div></div>
       <div class="tile half"><div>
         <div class="lab">Wheel circumference</div>
-        <div class="val"><span id="uRad">—</span><small>mm</small></div>
+        <div class="val"><span id="uWheel">—</span><small>mm</small></div>
       </div></div>
     </div>
 
-    <h2>Test speeds</h2>
-    <div class="grid" id="grid"></div>
+    <!-- Raw data by hand (2026-11-26 moved here from Setup -> Storage): a measurement run
+         records on its own; this is for manual driving only. -->
+    <div class="recrow"><button type="button" id="bRec"><i></i>Turn recording on</button><span class="sub" id="recHint"></span></div>
 
 
     <footer id="foot"></footer>
@@ -482,6 +648,20 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
   <!-- ===================== SETUP ===================== -->
   <div id="pageSetup" hidden>
+    <a class="link fbentry" id="fbOpen" href="#fb:sd/vmrr"></a>
+
+    <h2>Stand</h2>
+    <div class="field">
+      <label>Stand revision</label>
+      <div class="view revview"><span id="vRev">—</span>
+        <button type="button" id="eRev">Edit</button></div>
+      <div class="editor" id="edRev" hidden>
+        <textarea id="fRev" rows="3" maxlength="160" placeholder="drum surface, cell mounting, modifications"></textarea>
+        <button type="button" id="bRev">OK</button>
+        <button type="button" class="plain" id="xRev">Cancel</button>
+      </div>
+      <div class="hint">In every protocol. Firmware <span id="vCommit">—</span></div>
+    </div>
 
     <h2>Drum</h2>
     <div class="field">
@@ -528,6 +708,13 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       </div>
     </div>
 
+    <div class="field" id="fieldCalib">
+      <label>Calibration</label>
+      <div class="view"><span id="vCalib">—</span>
+        <button type="button" id="eCalib">Calibrate</button></div>
+      <div class="calp" id="calPanel" hidden></div>
+    </div>
+
     <h2>Drive direction</h2>
     <div class="field">
       <label>Direction</label>
@@ -551,7 +738,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     </div>
     <div class="field">
       <label>Wheel load</label>
-      <div class="view"><span id="vLoad">—</span><small>N</small>
+      <div class="view"><span id="vLoad">—</span><small>kg</small>
         <button type="button" id="eLoad">Edit</button></div>
       <div class="editor" id="edLoad" hidden>
         <input type="text" id="fLoad" inputmode="decimal">
@@ -569,7 +756,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     <div class="field">
       <label>Wheel</label>
       <div class="hint" style="padding-top:0;margin-top:0">Mass, J and the wheel model belong to the wheel profile (Setup → Wheels) since 2026-11-26.</div>
-      <button type="button" class="plain" id="bAuslauf"
+      <button type="button" class="plain" id="bCoastWiz"
               style="float:none;width:100%;margin:8px 0 0 0">Wizard coast-down + no-load</button>
     </div>
 
@@ -584,18 +771,15 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         <b>by hand</b>: every counter must follow. Level <b>low</b> means
         magnet at the sensor; its LED then lights up. A sensor without
         pulses is not wired or sees no magnet.</div>
-      <table class="geber" id="geber"></table>
+      <table class="stattab" id="sensTbl"></table>
       <div class="hint" id="markHint">—</div>
-      <button type="button" class="plain" id="bGeber"
+      <button type="button" class="plain" id="bSensReset"
               style="float:none;width:100%;margin:8px 0 0 0">Reset counters</button>
     </div>
 
     <h2>Storage</h2>
     <div class="field">
-      <table class="geber" id="sto"></table>
-      <div class="hint" id="recHint">—</div>
-      <button type="button" class="plain" id="bRec"
-              style="float:none;width:100%;margin:8px 0 0 0">Record raw data</button>
+      <table class="stattab" id="sto"></table>
     </div>
 
   </div>
@@ -606,7 +790,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   <h1>Coast-down + no-load</h1>
   <div class="tiles" style="margin-bottom:12px">
     <div class="tile half big"><div><div class="lab">Target</div>
-      <div class="val"><span id="wizSoll">—</span><small>km/h</small></div></div></div>
+      <div class="val"><span id="wizTgt">—</span><small>km/h</small></div></div></div>
     <div class="tile half big"><div><div class="lab">Actual</div>
       <div class="val"><span id="wizIst">—</span><small>km/h</small></div></div></div>
   </div>
@@ -619,12 +803,25 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   <button type="button" id="wizOk" hidden>Close</button>
 </div>
 
+<div class="wiz" id="files" hidden>
+  <div class="fvbar"><button type="button" class="plain" id="fbClose">&#x2715; Close</button><span id="fbTitle">Files</span></div>
+  <div style="padding-top:60px">
+    <div class="field pgroup"><label id="fbHead">Files</label><div id="fbBody">—</div></div>
+  </div>
+</div>
+
+<div class="wiz" id="fview" hidden>
+  <div class="fvbar"><button type="button" class="plain" id="fvClose">&larr; Back</button><a class="dl" id="fvDl" href="#">Download</a><span id="fvName"></span></div>
+  <div class="md" id="fvBody"></div>
+</div>
+
 <div class="wiz" id="run" hidden>
   <div class="wizhead">
+  <button type="button" class="plain runx" id="runX" hidden>&#x2715; Close</button>
   <h1>Test run <span id="runId"></span></h1>
   <div class="tiles">
     <div class="tile half big"><div><div class="lab">Target</div>
-      <div class="val"><span id="runSoll">—</span><small>km/h</small></div></div></div>
+      <div class="val"><span id="runTgt">—</span><small>km/h</small></div></div></div>
     <div class="tile half big"><div><div class="lab">Actual</div>
       <div class="val"><span id="runIst">—</span><small>km/h</small></div></div></div>
   </div>
@@ -635,6 +832,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     <div class="step" id="runTitle">—</div>
     <div class="txt" id="runTxt" hidden></div>
     <div id="runBody"></div>
+    <div class="act" id="runAct" hidden></div>
     <div class="btns">
       <button type="button" id="runOk" hidden>Next &rarr;</button>
       <button type="button" class="plain" id="runAlt" hidden>—</button>
@@ -658,7 +856,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 (function () {
   "use strict";
   var UI_HZ = 5, LINK_TIMEOUT_MS = 10000;   /* = config.h LINK_TIMEOUT_MS; was 2000 until 2026-11-25 */
-  var lastOk = 0, busy = false, soll = 0, vmax = 60, vmin = 10, step = 5;
+  var lastOk = 0, busy = false, tgt = 0, vmax = 60, vmin = 10, step = 5;
   var lastUp = 0;   /* device uptime from the last poll */
   var gridKey = ""; /* list the grid was last built from */
   var PHASE_TXT = { IDLE: "ready", TARE: "tare", SPINUP: "spin-up",
@@ -705,6 +903,17 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
      during page load and started the drive. Plus the timestamp: the device
      discards commands older than CMD_MAX_AGE_MS. STOP is exempt. */
   var localErr = "", localErrUntil = 0;   /* device reply to a rejected command */
+  /* After a confirm() dialog: it blocks the page, polls stop, and the command would go out
+     with the uptime of the last poll -- older than CMD_MAX_AGE_MS, "stale" (2026-11-26,
+     formatting). So read the uptime fresh first, then send. */
+  function sendFresh(cmd) {
+    var x = new XMLHttpRequest();
+    x.open("GET", "/api/state", true);
+    x.timeout = 3000;
+    x.onload = function () { try { var j = JSON.parse(x.responseText); if (typeof j.up === "number") lastUp = j.up; } catch (e) {} send(cmd); };
+    x.onerror = x.ontimeout = function () { send(cmd); };
+    x.send();
+  }
   function send(cmd) {
     var x = new XMLHttpRequest();
     x.open("POST", "/api/cmd?c=" + encodeURIComponent(cmd)
@@ -742,9 +951,16 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("tabSetup").className = mess ? "" : "on";
     layoutPin();
     window.scrollTo(0, 0);   /* a new tab starts at its top */
+    /* The tab goes into the URL (2026-11-26), so a refresh stays there. replaceState:
+       no history entry per tab change. The file browser's own #fb:/#fv: hashes win. */
+    if (!/^#f[bv]:/.test(location.hash) && window.history && history.replaceState)
+      history.replaceState(null, "", mess ? location.pathname : "#setup");
   }
   $("tabMess").onclick  = function () { tab(true); };
   $("tabSetup").onclick = function () { tab(false); profLoad(profEdit); };
+  /* After a refresh: back into the tab of the URL. "Measure" needs no entry: an active
+     run reopens its overlay by itself, and a refresh must not start a new run. */
+  if (location.hash === "#setup") setTimeout(function () { $("tabSetup").onclick(); }, 0);
 
   /* ---------- Speed grid: only the test speeds ----------
      The list comes sorted from the device (settings, NVS). A button drives to
@@ -777,7 +993,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
             + '<button type="button" data-v="' + list[i]
             + '" title="remove">×</button></span>';
     }
-    if (!list.length) html = '<span class="leer">empty</span>';
+    if (!list.length) html = '<span class="chipsEmpty">empty</span>';
     $("chips").innerHTML = html;
     var bs = $("chips").getElementsByTagName("button");
     for (i = 0; i < bs.length; i++) {
@@ -787,12 +1003,12 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     }
   }
 
-  function paintGrid(istSoll) {
+  function paintGrid(actualTgt) {
     var bs = $("grid").getElementsByTagName("button"), i, v;
     for (i = 0; i < bs.length; i++) {
       if (bs[i].id === "coast") continue;
       v = parseFloat(bs[i].getAttribute("data-v"));
-      bs[i].className = (Math.abs(v - istSoll) < 0.05) ? "on" : "";
+      bs[i].className = (Math.abs(v - actualTgt) < 0.05) ? "on" : "";
     }
   }
 
@@ -824,23 +1040,103 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   function editor(key, prefix, scale) {
     $("e" + key).onclick = function () {
       $("f" + key).value = $("v" + key).innerHTML;
-      editing[key] = true; $("ed" + key).hidden = false; $("f" + key).focus();
+      editing[key] = true; $("ed" + key).hidden = false; $("e" + key).hidden = true; $("f" + key).focus();
     };
-    $("x" + key).onclick = function () { editing[key] = false; $("ed" + key).hidden = true; };
+    /* Edit hidden while the editor is open (2026-11-26) */
+    $("x" + key).onclick = function () { editing[key] = false; $("ed" + key).hidden = true; $("e" + key).hidden = false; };
     $("b" + key).onclick = function () {
       var v = numOf("f" + key);
       if (!isNaN(v)) send(prefix + (v / scale));
-      editing[key] = false; $("ed" + key).hidden = true;
+      editing[key] = false; $("ed" + key).hidden = true; $("e" + key).hidden = false;
     };
   }
   editor("Drum", "d", 1000);
   editor("Arm",  "a", 1000);
   editor("Cal",  "b", 1000);
   editor("G",    "K", 1000);
-  editor("Load", "l", 1);
+  editor("Load", "l", 1 / 9.80665);   /* shown in kg, the command takes N */
   function view(key, v, d) { if (!editing[key]) $("v" + key).innerHTML = de(v, d); }
+  /* Stand revision: free text, not a number (console B<text>). */
+  $("eRev").onclick = function () {
+    $("fRev").value = lastJ && lastJ.rev ? lastJ.rev : "";
+    editing.Rev = true; $("edRev").hidden = false; $("eRev").hidden = true; $("fRev").focus();
+  };
+  $("xRev").onclick = function () { editing.Rev = false; $("edRev").hidden = true; $("eRev").hidden = false; };
+  $("bRev").onclick = function () {
+    send("B" + $("fRev").value.replace(/[\r\n]+/g, " ").replace(/^\s+|\s+$/g, ""));
+    editing.Rev = false; $("edRev").hidden = true; $("eRev").hidden = false;
+  };
 
   $("bTare").onclick  = function () { send("t"); };
+  /* Calibrate with the check weight from Setup (console k<kg>): zero without it first,
+     then hang it on the calibration arm. Asks first; the new factor replaces the old. */
+  var calCtx = null, calShowUntil = 0;   /* calibrating is one step on the stand: <cal> shown briefly */
+  $("bCalib").onclick = function () { openCalib(); };
+  /* Calibration procedure (calib.h, console C...): zero, loads with their masses, zero
+     again, evaluate, accept. The stand keeps the readings; the page only shows them. */
+  var calOpen = false;
+  /* In a run (check weight off) the field moves into the run overlay, back when done. */
+  var calHome = null;
+  function calPlace(inRun) {
+    var f = $("fieldCalib");
+    if (!calHome) { calHome = document.createComment("calib"); f.parentNode.insertBefore(calHome, f); }
+    if (inRun && f.parentNode !== $("runPanel")) $("runPanel").insertBefore(f, $("runAct"));
+    else if (!inRun && f.parentNode === $("runPanel")) calHome.parentNode.insertBefore(f, calHome);
+  }
+  function openCalib() {
+    calOpen = true;
+    if (!$("run").hidden) calPlace(true); else tab(false);
+    if (lastJ) paintCalib(lastJ);
+    setTimeout(function () { $("fieldCalib").scrollIntoView({ block: "start" }); }, 50);
+  }
+  $("eCalib").onclick = function () { calOpen = !calOpen; if (lastJ) paintCalib(lastJ); };
+  function calBtn(label, cmd, cls, dis) { return '<button type="button" class="' + (cls || "") + '" data-c="' + esc(cmd) + '"' + (dis ? " disabled" : "") + '>' + label + '</button>'; }
+  $("calPanel").onclick = function (e) {
+    var b = e.target.closest ? e.target.closest("button") : null; if (!b || b.disabled) return;
+    var c = b.getAttribute("data-c");
+    if (c === "own") { var g = parseFloat(String($("calOwn").value).replace(",", ".")); if (!(g > 0)) return; c = "Cm" + (g / 1000); }
+    if (c === "Cx") calOpen = false;
+    send(c);
+  };
+  function paintCalib(j) {
+    $("vCalib").innerHTML = (j.calV > 0 ? mark("good") : j.calV === 0 ? mark("warn") : mark("bad")) + esc(j.calWhy || "—");
+    var k = j.calib || null;
+    $("eCalib").textContent = calOpen && !k ? "Close" : "Calibrate";
+    $("eCalib").hidden = !!k;
+    var p = $("calPanel"); p.hidden = !(calOpen || k);
+    if (p.hidden || $("run").hidden) calPlace(false);
+    if (p.hidden) return;
+    var h = "", i, rows = [];
+    if (k && k.pts.length) {
+      for (i = 0; i < k.pts.length; i++) {
+        var q = k.pts[i];
+        rows.push([q[0] > 0 ? de(q[0] * 1000, 0) + " g" : "zero", de(q[1], 0), "±" + de(q[2], 0), q[3] === null ? "" : de(q[3], 3) + " %"]);
+      }
+      h += tbl(["Load", "Counts", "σ", k.st === 3 ? "Residual FS" : ""], rows);
+    }
+    if (!k) {
+      h += '<div class="act">Remove all weight</div><div class="row">' + calBtn("Start: read zero", "C0") + calBtn("Cancel", "Cx", "plain") + "</div>";
+    } else if (k.st === 1) {
+      h += '<div class="act">Hands off, reading ' + (k.reading > 0 ? de(k.reading * 1000, 0) + " g" : "zero") + " · " + de(Math.max(0, (k.avgMs - k.ms) / 1000), 0) + " s</div>";
+    } else {
+      var loads = 0; for (i = 0; i < k.pts.length; i++) if (k.pts[i][0] > 0) loads++;
+      if (k.st === 3) {
+        var d = (k.npc / k.old - 1) * 100;
+        h += '<div class="res">Factor <b>' + k.npc.toExponential(4) + "</b> N/count" + (k.old > 0 ? " (" + (d >= 0 ? "+" : "") + de(d, 2) + " %)" : "")
+           + "<br>Linearity " + de(k.lin, 3) + " % FS · hysteresis " + (k.hyst === null ? "—" : de(k.hyst, 3) + " % FS")
+           + " · zero return " + (k.zero === null ? "—" : de(k.zero, 3) + " % FS") + "</div>";
+      } else h += '<div class="act">Hang a weight at the mark, then its mass</div>';
+      var r = '<div class="row">';
+      for (i = 0; i < k.masses.length; i++) r += calBtn(k.masses[i] + " g", "Cm" + (k.masses[i] / 1000));
+      r += calBtn("Zero", "Cz", "plain") + "</div>";
+      r += '<div class="row"><input type="text" id="calOwn" inputmode="decimal" placeholder="g">' + calBtn("Read", "own") + "</div>";
+      r += '<div class="row">' + calBtn("Evaluate", "Ce", "", !(loads > 0 && k.pts.length >= 2))
+         + (k.st === 3 ? calBtn("Accept", "Ca") : "") + calBtn("Cancel", "Cx", "plain") + "</div>";
+      h += r;
+    }
+    var own = $("calOwn") ? $("calOwn").value : "";
+    if (p.getAttribute("data-h") !== h) { p.innerHTML = h; p.setAttribute("data-h", h); if ($("calOwn")) $("calOwn").value = own; }
+  }
   var airOpen = false;
   $("bAir").onclick = function () { airOpen = !airOpen; $("airInfo").hidden = !airOpen; if (lastJ) paintAir(lastJ); };
   /* Details on the pressure sensor (SKS AirSpy via BLE): what the firmware knows about it. */
@@ -856,32 +1152,32 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     for (var i = 0; i < rows.length; i++) h += "<tr><td style=\"color:#64737f;padding:2px 14px 2px 0\">" + rows[i][0] + "</td><td>" + rows[i][1] + "</td></tr>";
     $("airInfo").innerHTML = h + "</table>";
   }
-  $("bAuslauf").onclick = function () { wizOpen = true; paintWiz(lastJ); };
+  $("bCoastWiz").onclick = function () { wizOpen = true; paintWiz(lastJ); };
   /* z was r, e was l: 'r' and 'l' are assigned differently since the variants
      were merged (rolling radius and wheel load). docs/04-hardware.md §14.1. */
   /* Drive direction (2026-11-26): detected, not chosen -- slow start, the load cell must
      count positive (speedctl::detectDirection). Only state and result are shown. */
   $("bDirDet").onclick = function () { send("ed"); };
-  $("bGeber").onclick = function () { send("g"); };
+  $("bSensReset").onclick = function () { send("g"); };
 
   /* ---------- Sensors: wiring test ----------
      Per channel [pulses, ms since the last one, level low]. "detected" only
      means: at least one pulse since the last reset. */
-  var GEBER = ["Drum marks", "Index mark", "Wheel", "Motor Hall"];
-  function paintGeber(g) {
-    if (!g || g.length !== GEBER.length) return;
+  var SENSORS = ["Drum marks", "Index mark", "Wheel", "Motor Hall"];
+  function paintSensors(g) {
+    if (!g || g.length !== SENSORS.length) return;
     var html = "", i, c, ms, low, st, cls;
-    for (i = 0; i < GEBER.length; i++) {
+    for (i = 0; i < SENSORS.length; i++) {
       c = g[i][0]; ms = g[i][1]; low = g[i][2];
       if (c === 0)         { cls = "no";   st = "no pulses"; }
       else if (ms < 1500)  { cls = "ok";   st = "detected · running"; }
       else                 { cls = "idle"; st = "detected · " + de(ms / 1000, 0) + " s ago"; }
-      html += "<tr class=\"" + cls + "\"><td>" + GEBER[i] + "</td>"
+      html += "<tr class=\"" + cls + "\"><td>" + SENSORS[i] + "</td>"
             + "<td class=\"n\">" + c + "</td>"
             + "<td class=\"p\">" + (low ? "low" : "high") + "</td>"
             + "<td class=\"s\">" + st + "</td></tr>";
     }
-    $("geber").innerHTML = html;
+    $("sensTbl").innerHTML = html;
   }
 
   /* ---------- When each setting was last changed (settings::stampsJson) ----------
@@ -889,7 +1185,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
      from config.h, 0 = set, time unknown. "label": into the field's label, "after":
      right behind the element (for a second value in the same field). */
   var CHG = { drum_u: ["vDrum", "label"], arm: ["vArm", "label"], calib_arm: ["vCal", "label"],
-    ctrl_kg: ["vG", "label"], load_n: ["vLoad", "label"],
+    ctrl_kg: ["vG", "label"], load_n: ["vLoad", "label"], stand_rev: ["vRev", "label"],
     plateaus: ["chips", "label"], dir_sign: ["dirNow", "label"], a0: ["b0", "after"] };
   function chgText(t) {
     if (t === undefined) return "default";
@@ -917,9 +1213,11 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
      is offered only for "unreadable" and only after confirmation; the firmware
      refuses it for a readable file system anyway. */
   var stoRec = false;
-  function stoRow(name, st, pct, fmt, key) {
+  function stoRow(name, st, pct, fmt, key, fsT) {
+    if (fsT && (st === 1 || st === 2)) name += ' <span class="sub">' + fsT + '</span>';
     var cls = st === 1 ? "ok" : st === 0 ? "idle" : st === 2 ? "warn" : "no";
-    var txt = fmt ? "formatting …"
+    var txt = fmt ? "formatting …" + (key === "s" && stoState && stoState.sdFmtPct > 0 ? " " + stoState.sdFmtPct + " % · " + stoState.sdFmtSec + " s"
+                    + '<div class="fmtbar"><div style="width:' + stoState.sdFmtPct + '%"></div></div>' : "")
       : st === 0 ? "missing" : st === 3 ? '<button type="button" data-fmt="' + key + '">Format</button>'
       : (pct === null ? "—" : pct + " %") + (st === 2 ? " · read-only" : "");
     var bar = (st === 1 || st === 2) && pct !== null
@@ -929,21 +1227,31 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   }
   function paintSto(s) {
     if (!s) return;
-    $("sto").innerHTML = stoRow("SD", s.sd, s.sdPct, s.sdFmt, "s") + stoRow("Flash", s.fl, s.flPct, s.flFmt, "f");
+    stoState = s;
+    $("sto").innerHTML = stoRow("SD", s.sd, s.sdPct, s.sdFmt, "s", s.sdFs) + stoRow("Flash", s.fl, s.flPct, s.flFmt, "f", s.flFs);
+    stoState = s;
     stoRec = s.rec;
-    $("bRec").innerHTML = s.rec ? "Stop raw data" : "Record raw data";
-    $("recHint").innerHTML = (s.rec
-        ? "● " + (s.recOn === "sd" ? "SD" : "Flash") + " · " + s.recKB + " kB"
-          + (s.recPend > 64 ? " · buffer " + s.recPend + " kB" : "")
+    var had = !!fbFmt; fmtPaint(); if (!had && fbFmt && !$("files").hidden) fbPaint();
+    /* The listing only changes by the stand itself: a raw log growing, a run writing its
+       files. So it reloads on its own while visible and recording, and when that flips;
+       no Refresh button (2026-11-26). */
+    if (!$("files").hidden && $("fview").hidden && (s.rec || s.rec !== fbRecWas) && Date.now() - fbLoadedAt > 4000) fbLoad();
+    fbRecWas = s.rec;
+    var b = $("bRec");
+    b.className = s.rec ? "on" : "";
+    b.disabled = (s.rec && !s.recMan) || (!s.rec && s.sd !== 1);   /* a run's own recording is ended by the run */
+    b.innerHTML = "<i></i>" + (s.rec ? "Stop recording" : "Turn recording on");
+    $("recHint").innerHTML = s.rec
+        ? s.recKB + " kB" + (s.recPend > 64 ? " · buffer " + s.recPend + " kB" : "")
           + (s.recDrop ? ' · <span style="color:#c0392b">' + s.recDrop + " B lost</span>" : "")
-          + (s.recMan ? "" : " · test run") + " · "
-        : "") + '<a href="/raw">Files</a>';
+          + (s.recMan ? "" : " · recorded by the open measurement run; ends with it (Measure → Cancel)")
+        : (s.sd !== 1 ? "no SD card" : "raw data to SD");
   }
   $("sto").onclick = function (ev) {
     var k = ev.target && ev.target.getAttribute && ev.target.getAttribute("data-fmt");
     if (!k) return;
     if (confirm("Format " + (k === "s" ? "SD card" : "flash") + "?\n\nEverything on it will be erased."))
-      send("F" + k);
+      sendFresh("F" + k);
   };
   $("bRec").onclick = function () { send(stoRec ? "L0" : "L1"); };
 
@@ -962,7 +1270,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     if (w > 0) wizOpen = true;
     $("wiz").hidden = !wizOpen;
     if (!wizOpen) return;
-    $("wizSoll").innerHTML = $("soll").innerHTML;
+    $("wizTgt").innerHTML = $("tgt").innerHTML;
     $("wizIst").innerHTML  = $("kmh").innerHTML;
     $("wizErr").innerHTML = j.err || "";
     $("wizErr").hidden = !j.err;
@@ -1006,7 +1314,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     ["A", "Create run"], ["A", "Visual check, e-stop"], ["A", "System check"],
     ["A", "Zero, wheel lifted"], ["A", "Check weight, end stop"], ["A", "No-load + wheel coast-down"], ["A", "Wheel model"],
     ["A", "Wheel down, load"], ["B", "Warm-up"], ["B", "Reference + plateaus"],
-    ["B", "Reference after"], ["B", "Stop"], ["C", "Zero, after-run"], ["C", "Report"]
+    ["B", "Reference after"], ["B", "Stop"], ["C", "Zero, after-run"]
   ];
   function fm(v, d) { return (v === null || v === undefined) ? "—" : de(v, d); }
   /* Traffic-light level of a magnitude: up to ok green, below bad orange (decide), else red. bad null: green/orange only. */
@@ -1030,6 +1338,287 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   /* Form for step 1. Prefilled with the header data of the last run from NVS
      (r.meta), so nothing has to be retyped after an abort, restart or flashing;
      the pressure comes from the AirSpy when it is fresh. */
+  /* ---------- File browser (Setup -> Storage), since 2026-11-26 ----------
+     /api/files lists one directory; /fs/<medium><path> delivers (?view=1 text, ?zip=1 a
+     directory, ?csv=1 a raw file converted, ?info=1 raw-file overview; the "=1" is needed:
+     the Arduino WebServer drops arguments without "="). Sessions live in /vmrr/<YYYY-MM-DD-HHMMSS>/. */
+  var stoState = null, fbM = "sd", fbP = "/vmrr", fbData = null;
+  function fbSize(n) { return n < 1024 ? n + " B" : n < 1048576 ? de(n / 1024, 0) + " kB" : de(n / 1048576, 1) + " MB"; }
+  function fbTime(t) { return t > 946684800 ? new Date(t * 1000).toISOString().substr(0, 16).replace("T", " ") : ""; }
+  function fbUrl(n) { return "/fs/" + fbM + (fbP === "/" ? "" : fbP) + "/" + n; }
+  function fbLoad() {
+    var x = new XMLHttpRequest();
+    fbLoadedAt = Date.now();
+    x.open("GET", "/api/files?m=" + fbM + "&p=" + encodeURIComponent(fbP));
+    x.onload = function () {
+      /* 503 "formatting": the stand holds the card; not an error, the progress shows below */
+      if (x.status === 503 && x.responseText === "formatting") fbData = { formatting: true };
+      else { try { fbData = JSON.parse(x.responseText); } catch (e) { fbData = null; } }
+      fbPaint(); };
+    x.onerror = function () { fbData = null; fbPaint(); };
+    x.send();
+  }
+  function fbPaint() {
+    var h = "", d = fbData, i;
+    $("fbHead").innerHTML = IC.folder + (fbM === "sd" ? "SD card" : "Flash") + (d && d.fs ? " \u00b7 " + d.fs : "");
+    $("fbTitle").innerHTML = esc((fbM === "sd" ? "SD" : "Flash") + fbP);
+    h += '<div class="seg" style="margin-bottom:8px">'
+      + '<button type="button" class="plain' + (fbM === "sd" ? " on" : "") + '" data-fbm="sd">SD card</button>'
+      + '<button type="button" class="plain' + (fbM === "flash" ? " on" : "") + '" data-fbm="flash">Flash</button></div>';
+    var parts = fbP.split("/"), acc = "";
+    h += '<div class="fbnav">' + (fbP !== "/" ? '<a href="#" id="fbBack" class="fbup">&uarr; Back</a>' : '')
+      + '<div class="fbcrumb"><a href="#" data-fbp="/">' + (fbM === "sd" ? "SD" : "Flash") + '</a>';
+    for (i = 1; i < parts.length; i++) { if (!parts[i]) continue; acc += "/" + parts[i]; h += ' / <a href="#" data-fbp="' + esc(acc) + '">' + esc(parts[i]) + '</a>'; }
+    h += '</div></div>';
+    if (d && d.formatting) { }
+    else if (!d) h += '<div class="sub bad">Not reachable</div>';
+    else if (d.state !== 1 && d.state !== 2) h += '<div class="sub">' + (d.state === 0 ? "No card" : "Unreadable") + '</div>';
+    else if (!d.ok) h += '<div class="sub">Directory does not exist yet</div>';
+    else {
+      var L = d.d.slice(0);
+      L.sort(function (a, b) { return a.dir !== b.dir ? b.dir - a.dir : (a.dir ? (a.n < b.n ? 1 : -1) : (a.n < b.n ? -1 : 1)); });   /* folders newest first */
+      if (!L.length) h += '<div class="sub">empty</div>';
+      for (i = 0; i < L.length; i++) {
+        var e = L[i], u = fbUrl(e.n), full = (fbP === "/" ? "" : fbP) + "/" + e.n, rec = d.rec && d.rec === full;
+        if (e.dir) {
+          /* a tap on icon or name opens; the buttons on the right download (2026-11-26) */
+          h += '<div class="fbrow"><a class="fbmain" href="#" data-fbp="' + esc(full) + '">' + FI.dir + '<span class="n">' + esc(e.n) + '</span></a>'
+            + '<div class="fbact"><a class="btn" href="' + esc(u) + '?zip=1">' + IC.down + '.zip</a></div></div>';
+        } else {
+          var rrl = /\.rrl$/i.test(e.n), view = rrl || /\.(md|csv|txt|tsv|log|json)$/i.test(e.n);
+          var meta = '<span class="sub">' + fbSize(e.s) + (fbTime(e.t) ? " · " + fbTime(e.t) : "") + '</span>' + (rec ? ' <span class="rec">● recording</span>' : '');
+          h += '<div class="fbrow">' + (view ? '<a class="fbmain" href="#" data-fbv="' + esc(u) + '">' : '<span class="fbmain">')
+            + fileIcon(e.n) + '<span class="n">' + esc(e.n) + '</span>' + meta + (view ? '</a>' : '</span>')
+            + '<div class="fbact"><a class="btn" href="' + esc(u) + '">' + IC.down + 'Download</a>'
+            + (rrl && !rec ? '<a class="btn" href="' + esc(u) + '?csv=1">' + IC.down + 'CSV</a>' : '') + '</div></div>';
+        }
+      }
+    }
+    /* Format last and small (2026-11-26): rare, destructive, not in the way. */
+    if (fbM === "sd" && (fbFmt || (stoState && stoState.sdFmt))) h += '<div id="fmtSt"></div>';
+    else if (fbM === "sd" && stoState && (stoState.sd === 1 || stoState.sd === 2 || stoState.sd === 3))
+      h += '<div class="fbfmt"><button type="button" class="plain" id="fbFmt">' + IC.trash + 'Format SD card</button>'
+        + '<span class="sub">' + (d && d.fs ? d.fs + " · " : "") + (d && d.mb ? d.mb + " MB · " : "") + 'erases everything, new FAT file system</span></div>'
+        + '<div id="fmtSt"></div>';
+    var b = $("fbBody"); b.innerHTML = h;
+    var el = b.querySelectorAll("[data-fbp],[data-fbm],[data-fbv]");
+    for (i = 0; i < el.length; i++) el[i].onclick = function (ev) {
+      var t = this;
+      if (t.getAttribute("data-fbm")) fbGo("fb:" + t.getAttribute("data-fbm") + "/vmrr");
+      else if (t.getAttribute("data-fbp")) fbGo("fb:" + fbM + t.getAttribute("data-fbp"));
+      else fbGo("fv:" + t.getAttribute("data-fbv"));
+      return false;
+    };
+    if ($("fbFmt")) $("fbFmt").onclick = function () {
+      if (!confirm("Format the SD card?\n\nEverything on it is erased: all runs and raw logs.")) return;
+      fbFmt = { t0: Date.now(), n0: stoState ? stoState.sdFmtN : null, res: null };
+      sendFresh("Fs");
+      fmtPaint();
+    };
+    if ($("fbBack")) $("fbBack").onclick = function () { fbBackFn(); return false; };
+    fmtPaint();
+  }
+  /* Formatting feedback (2026-11-26): FatFs gives no progress, so a spinner with the
+     elapsed seconds while the stand reports sdFmt, then the result (sto.sdFmtRes) and a
+     fresh listing. */
+  var fbFmt = null, fbRecWas = false, fbLoadedAt = 0;
+  function fmtPaint() {
+    var el = $("fmtSt"), s = stoState;
+    /* Done when the stand's counter of finished formats moves (sto.sdFmtN): does not
+       depend on catching the short "formatting" phase in a poll. */
+    /* The stand knows it is formatting, the page may not (reloaded, view left and opened
+       again, started elsewhere): take the state over from it. */
+    if (!fbFmt && s && s.sdFmt) fbFmt = { t0: Date.now() - (s.sdFmtSec || 0) * 1000, n0: s.sdFmtN, res: null };
+    if (fbFmt && !fbFmt.res && s) {
+      var age = Date.now() - fbFmt.t0;
+      if (fbFmt.n0 !== null && s.sdFmtN !== undefined && s.sdFmtN !== fbFmt.n0) {
+        fbFmt.res = s.sdFmtRes || "ok"; fbFmt.t1 = Date.now(); fbLoad();
+      } else if (localErr && localErrUntil > Date.now() && age < 5000) { fbFmt.res = localErr; }
+      /* A 64 GB card takes minutes: give up only when the stand no longer formats. */
+      else if (age > 15000 && !s.sdFmt) { fbFmt.res = "no result"; fbLoad(); }
+    }
+    if (!el) return;
+    if (!fbFmt) { el.innerHTML = ""; return; }
+    if (!fbFmt.res) {
+      var pc = s && s.sdFmt ? (s.sdFmtPct || 0) : 0;
+      var sec = (pc > 0 ? pc + " % · " : "") + Math.round((Date.now() - fbFmt.t0) / 1000) + " s";
+      if (!$("fmtSec"))   /* build once: re-rendering restarted the animation */
+        el.innerHTML = '<div class="fmtrow"><span class="spin"></span><span class="sub">Formatting · <span id="fmtSec"></span> · do not remove the card</span></div>'
+          + '<div class="fmtbar"><div id="fmtBar"></div></div>';
+      $("fmtSec").innerHTML = sec;
+      $("fmtBar").style.width = pc + "%";
+      return;
+    }
+    el.innerHTML = fbFmt.res === "ok"
+      ? '<div class="sub"><span class="ok">Formatted</span> in ' + Math.round((fbFmt.t1 - fbFmt.t0) / 1000) + ' s</div>'
+      : '<div class="sub bad">' + esc(fbFmt.res) + '</div>';
+  }
+  /* Viewer: .md rendered, other text as is. */
+  function fbView(u) {
+    var x = new XMLHttpRequest();
+    $("fvName").innerHTML = esc(u.replace(/^\/fs\//, ""));
+    $("fvDl").href = u;
+    $("fvBody").innerHTML = "…";
+    $("fview").hidden = false;
+    if (/\.rrl$/i.test(u)) {
+      $("fvBody").innerHTML = "<p>Reading the raw file on the stand …</p>";
+      x.open("GET", u + "?info=1");
+      x.onload = function () {
+        var j = null; try { j = JSON.parse(x.responseText); } catch (e) {}
+        $("fvBody").innerHTML = x.status !== 200 || !j ? '<p class="bad">' + esc(x.responseText || "not readable") + '</p>' : rrlRender(j, u);
+      };
+      x.onerror = function () { $("fvBody").innerHTML = '<p class="bad">Not reachable</p>'; };
+      x.send();
+      return;
+    }
+    x.open("GET", u + "?view=1");
+    x.onload = function () {
+      $("fvBody").innerHTML = x.status !== 200 ? '<p class="bad">' + esc(x.responseText) + '</p>'
+        : !x.responseText ? '<p class="sub">The stand sent no content (' + (x.getResponseHeader("Content-Length") || "?") + ' B announced).</p>'
+        : /\.md$/i.test(u) ? mdRender(x.responseText) : "<pre>" + esc(x.responseText) + "</pre>";
+    };
+    x.send();
+  }
+  window.fbView = fbView;
+  /* Raw file overview (2026-11-26): time span, records per type with size and data
+     types, edges per channel, header, events. Data from /fs/...?info=1 (one pass on the
+     ESP over the whole file). Field types from calc/rawlog.h. */
+  var RRL_TYPES = {
+    sync:  ["time anchor", "u32 µs since boot, u32 Unix s"],
+    edge:  ["Hall edge", "u8 channel, bit 7 = rejected as echo"],
+    hx711: ["load cell sample", "i24 raw counts"],
+    vesc:  ["motor controller", "i32 ERPM, i32 tacho, i16 duty·1000, i32 I_mot·100, i32 I_in·100, u16 V_in·10, i16 T_fet·10, i16 T_mot·10, u8 fault, u8 status"],
+    ctrl:  ["speed controller", "i16 target km/h·100, i16 duty·10000, u8 brake, u8 phase"],
+    tire:  ["tire sensor (AirSpy)", "u16 pressure mbar, i16 temperature ·10 °C, u8 battery %"],
+    gap:   ["buffer full", "u32 dropped bytes"],
+    text:  ["event / note", "u8 length, text"]
+  };
+  function rrlDur(us) {
+    var s = Math.round(us / 1e6), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
+    return (h ? h + " h " : "") + (h || m ? m + " min " : "") + (s % 60) + " s";
+  }
+  function rrlT(us) { var s = us / 1e6, m = Math.floor(s / 60); return "+" + m + ":" + (s - m * 60 < 10 ? "0" : "") + de(s - m * 60, 1); }
+  function rrlRender(j, u) {
+    var h = "<h1>" + esc(u.replace(/^.*\//, "")) + "</h1>", i;
+    if (!j.ok) return h + "<p>Not a raw file (no rrl header). " + fbSize(j.size) + ".</p>";
+    var dur = j.t1 - j.t0, secs = dur / 1e6, tot = 0;
+    for (i = 0; i < j.types.length; i++) tot += j.types[i].n;
+    h += "<table class=\"kv\"><tr><td>Start</td><td>" + (j.unix > 946684800 ? esc(new Date(j.unix * 1000).toLocaleString()) : "clock not set at the start") + "</td></tr>"
+      + "<tr><td>Duration</td><td>" + rrlDur(dur) + "</td></tr>"
+      + "<tr><td>Size</td><td>" + fbSize(j.size) + " · header " + j.hdrLen + " B · " + tot + " records"
+      + (secs > 0 ? " · " + fbSize(Math.round((j.size - j.hdrLen) / secs)) + "/s" : "") + "</td></tr>"
+      + "<tr><td>End</td><td>" + (j.end === "clean" ? "complete" : "<b>cut off</b> (still recording, or power lost while writing)") + "</td></tr>"
+      + "<tr><td>Dropped</td><td>" + (j.gap ? '<b class="bad">' + fbSize(j.gap) + " lost (buffer full)</b>" : "nothing") + "</td></tr></table>";
+    h += "<h2>Records</h2><table class=\"rrl\"><tr><th>Type</th><th class=\"r\">Count</th><th class=\"r\">per s</th><th class=\"r\">Bytes</th><th class=\"r\">Share</th></tr>";
+    var bt = j.size - j.hdrLen || 1;
+    for (i = 0; i < j.types.length; i++) {
+      var t = j.types[i], d = RRL_TYPES[t.t] || ["", ""];
+      h += "<tr><td><b>" + esc(t.t) + "</b> · " + d[0] + "<span class=\"dt\">" + esc(d[1]) + "</span></td>"
+        + "<td class=\"r\">" + t.n + "</td><td class=\"r\">" + (secs > 0 ? de(t.n / secs, t.n / secs < 10 ? 1 : 0) : "—") + "</td>"
+        + "<td class=\"r\">" + fbSize(t.b) + "</td><td class=\"r\">" + de(100 * t.b / bt, 1) + " %</td></tr>";
+    }
+    h += "</table><p class=\"sub\">Every record: 1 byte type, then the time step to the previous record as varint (zigzag, µs), then the fields. Little endian.</p>";
+    var CH = ["drum marks", "index magnet", "test wheel", "motor Hall"];
+    h += "<h2>Edges per channel</h2><table class=\"rrl\"><tr><th>Channel</th><th class=\"r\">Edges</th><th class=\"r\">per s</th><th class=\"r\">Echo</th></tr>";
+    for (i = 0; i < 4; i++) {
+      var e = j.edges[i] || [0, 0];
+      h += "<tr><td>" + CH[i] + "</td><td class=\"r\">" + e[0] + "</td><td class=\"r\">" + (secs > 0 ? de(e[0] / secs, 1) : "—") + "</td><td class=\"r\">" + e[1] + "</td></tr>";
+    }
+    h += "</table>";
+    var kv = (j.hdr || "").split("\n"), rows = "";
+    for (i = 0; i < kv.length; i++) { var k = kv[i].indexOf("="); if (kv[i]) rows += "<tr><td>" + esc(k > 0 ? kv[i].substr(0, k) : kv[i]) + "</td><td>" + esc(k > 0 ? kv[i].substr(k + 1) : "") + "</td></tr>"; }
+    if (rows) h += "<h2>Header</h2><table class=\"kv\">" + rows + "</table>";
+    if (j.textN) {
+      h += "<h2>Events</h2>" + (j.textN > j.text.length ? "<p class=\"sub\">" + j.textN + " in all; the first 30 and the last 10.</p>" : "") + "<table class=\"kv\">";
+      for (i = 0; i < j.text.length; i++) h += "<tr><td>" + rrlT(j.text[i][0]) + "</td><td>" + esc(j.text[i][1]) + "</td></tr>";
+      h += "</table>";
+    }
+    return h + "<p class=\"sub\">All data as CSV: <a href=\"" + esc(u) + "?csv=1\">CSV .zip</a> · on the PC: <code>tools/rawlog.py</code></p>";
+  }
+  /* Navigation through the URL hash, so the browser's back button walks back through
+     the directories and closes the viewer (2026-11-26):
+       #fb:<sd|flash><path>   file browser in that directory
+       #fv:<url>              viewer on top of it                                    */
+  var fbDepth = 0;   /* own hash entries pushed in this page view */
+  function fbGo(h) { fbDepth++; location.hash = h; }
+  function fbRoute() {
+    var h = decodeURIComponent(location.hash.replace(/^#/, "")), m;
+    if ((m = /^fv:(.+)$/.exec(h))) {
+      $("files").hidden = false;
+      fbView(m[1]);
+      return;
+    }
+    $("fview").hidden = true;
+    if ((m = /^fb:(sd|flash)(\/.*)?$/.exec(h))) {
+      fbM = m[1]; fbP = m[2] || "/";
+      $("files").hidden = false;
+      fbLoad();
+      return;
+    }
+    $("files").hidden = true;
+  }
+  window.onhashchange = fbRoute;
+  function fbHome() { return $("pageSetup").hidden ? "" : "setup"; }
+  function fbBackFn() {
+    if (fbDepth > 0) { fbDepth--; history.back(); return; }
+    /* opened by URL (refresh): up one directory, or out */
+    if (!$("fview").hidden) { location.hash = "fb:" + fbM + fbP; return; }
+    if (fbP !== "/" && fbP) { location.hash = "fb:" + fbM + (fbP.replace(/\/[^\/]*$/, "") || "/"); return; }
+    location.hash = fbHome();
+  }
+  /* Close: out of the file browser in one step, also out of the browser history it made. */
+  function fbCloseFn() {
+    var n = fbDepth; fbDepth = 0; fbFmt = null;
+    if (n > 0) history.go(-n); else location.hash = fbHome();
+  }
+  $("fbClose").onclick = fbCloseFn;
+  $("fvClose").onclick = fbBackFn;
+  $("fbOpen").onclick = function () { fbGo("fb:" + fbM + fbP); return false; };
+  /* after the whole script ran: IC (icons) is defined further down */
+  setTimeout(function () {
+    $("fbOpen").innerHTML = IC.sd.replace('class="bi"', 'class="bi big"') + "Files on SD card and flash \u2192";
+    if (/^#f[bv]:/.test(location.hash)) fbRoute();
+  }, 0);
+  /* Small Markdown renderer for the reports: headings, tables, lists, code, quotes,
+     bold, italic, inline code, links. Input is escaped first. */
+  function mdInline(t) {
+    return esc(t).replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<i>$2</i>")
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (m, a, h) { return /^(https?:|\/|#)/.test(h) ? '<a href="' + h + '">' + a + '</a>' : a; });
+  }
+  function mdRender(src) {
+    var L = src.replace(/\r/g, "").split("\n"), o = "", i = 0, m, para = [];
+    function flush() { if (para.length) { o += "<p>" + mdInline(para.join(" ")) + "</p>"; para = []; } }
+    function cells(l) { return l.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|"); }
+    while (i < L.length) {
+      var l = L[i];
+      if (/^```/.test(l)) { flush(); var c = []; i++; while (i < L.length && !/^```/.test(L[i])) c.push(L[i++]); i++; o += "<pre><code>" + esc(c.join("\n")) + "</code></pre>"; continue; }
+      if ((m = /^(#{1,6})\s+(.*)$/.exec(l))) { flush(); var n = Math.min(m[1].length, 4); o += "<h" + n + ">" + mdInline(m[2]) + "</h" + n + ">"; i++; continue; }
+      if (/^\s*\|/.test(l) && i + 1 < L.length && /^\s*\|?\s*:?-{2,}/.test(L[i + 1])) {
+        flush(); var hd = cells(l), j; o += "<table><tr>";
+        for (j = 0; j < hd.length; j++) o += "<th>" + mdInline(hd[j].trim()) + "</th>";
+        o += "</tr>"; i += 2;
+        while (i < L.length && /^\s*\|/.test(L[i])) { var r = cells(L[i++]); o += "<tr>"; for (j = 0; j < r.length; j++) o += "<td>" + mdInline(r[j].trim()) + "</td>"; o += "</tr>"; }
+        o += "</table>"; continue;
+      }
+      if (/^\s*([-*+]|\d+\.)\s+/.test(l)) {
+        flush(); var ol = /^\s*\d+\./.test(l); o += ol ? "<ol>" : "<ul>";
+        while (i < L.length && /^\s*([-*+]|\d+\.)\s+/.test(L[i])) {
+          var it = L[i++].replace(/^\s*([-*+]|\d+\.)\s+/, "");
+          while (i < L.length && /^\s{2,}\S/.test(L[i]) && !/^\s*([-*+]|\d+\.)\s+/.test(L[i])) it += " " + L[i++].trim();
+          o += "<li>" + mdInline(it) + "</li>";
+        }
+        o += ol ? "</ol>" : "</ul>"; continue;
+      }
+      if (/^>\s?/.test(l)) { flush(); var q = []; while (i < L.length && /^>\s?/.test(L[i])) q.push(L[i++].replace(/^>\s?/, "")); o += '<blockquote class="sub">' + mdInline(q.join(" ")) + "</blockquote>"; continue; }
+      if (/^\s*(-{3,}|\*{3,})\s*$/.test(l)) { flush(); o += "<hr>"; i++; continue; }
+      if (!l.trim()) { flush(); i++; continue; }
+      para.push(l.trim()); i++;
+    }
+    flush();
+    return o;
+  }
+
   function esc(s) { return String(s === null || s === undefined ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
   /* ---------- Wheel profiles (2026-11-26, profiles.h) ----------
      Everything about the wheel is entered beforehand under Setup -> Wheels: the four
@@ -1042,6 +1631,17 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   var MATERIALS = ["latex", "butyl", "TPU", "tubeless"];
   /* Small line icons ahead of the button texts (2026-11-26), inline SVG in the text colour. */
   function ico(d) { return '<svg class="bi" viewBox="0 0 16 16" aria-hidden="true"><path d="' + d + '"/></svg>'; }
+  /* Larger file-type icons for the file browser (2026-11-26). */
+  function fico(d, cls) { return '<svg class="fi fi-' + cls + '" viewBox="0 0 16 16" aria-hidden="true"><path d="' + d + '"/></svg>'; }
+  var DOC = "M4 1.5h5l3 3v10H4zM9 1.5v3h3";
+  var FI = {
+    dir: fico("M1.5 4.5v8h13v-6.5h-6.5l-1.5-1.5z", "dir"),
+    md:  fico(DOC + "M5.8 8h4.4M5.8 10h4.4M5.8 12h2.8", "md"),
+    rrl: fico(DOC + "M5.2 10.5l1.1-2.3 1.2 3.6 1.2-2.8 1 1.5h1.1", "rrl"),
+    csv: fico(DOC + "M5.5 7.5h5v5h-5zM5.5 10h5M8 7.5v5", "csv"),
+    file: fico(DOC, "file")
+  };
+  function fileIcon(n) { return /\.md$/i.test(n) ? FI.md : /\.rrl$/i.test(n) ? FI.rrl : /\.(csv|tsv)$/i.test(n) ? FI.csv : FI.file; }
   var IC = {
     edit:   ico("M2 14l1-4 8-8 3 3-8 8zM10 3l3 3"),
     play:   ico("M4 2.5v11l9-5.5z"),
@@ -1049,6 +1649,12 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     trash:  ico("M2.5 4h11M6 4V2.5h4V4M4 4l1 10h6l1-10M7 7v4M9 7v4"),
     rename: ico("M2 12.5h12M3 10l6-6 2 2-6 6H3zM10 3l2 2"),
     plus:   ico("M8 3v10M3 8h10"),
+    folder: ico("M1.5 4.5v8h13v-6.5h-6.5l-1.5-1.5z"),
+    sd:     ico("M5 1.5h6.5v13h-9V4zM6.5 3.2v2.3M8.5 3.2v2.3M10.5 3.2v2.3"),
+    file:   ico("M4 1.5h5l3 3v10H4zM9 1.5v3h3"),
+    open:   ico("M6 3.5l4.5 4.5L6 12.5"),
+    down:   ico("M8 2v8.5M4.5 7.5L8 11l3.5-3.5M3 14h10"),
+    eye:    ico("M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8s-2.5 4.5-6.5 4.5S1.5 8 1.5 8zM6.3 8a1.7 1.7 0 1 0 3.4 0a1.7 1.7 0 1 0-3.4 0"),
     /* group icons: wheel, tire with tread, tube with valve, rim with spokes */
     wheel:  ico("M2 8a6 6 0 1 0 12 0a6 6 0 1 0-12 0M8 2v12M2 8h12M3.8 3.8l8.4 8.4M12.2 3.8l-8.4 8.4"),
     tire:   ico("M1.5 8a6.5 6.5 0 1 0 13 0a6.5 6.5 0 1 0-13 0M4.5 8a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0-7 0M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M3.4 12.6l2.1-2.1M10.5 5.5l2.1-2.1"),
@@ -1266,8 +1872,8 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   /* Step 1: choose the profile; pressure, load and note are per run. */
   function runForm(r) {
     var m = (r && r.meta) || {}, ps = (profData && profData.prof) || [], i;
-    var pos = $("vLoad").innerHTML;   /* wheel load from Setup, N -> kg */
-    var kg = (m.l !== null && m.l !== undefined) ? m.l : parseFloat(pos.replace(",", ".")) / 9.80665;
+    var pos = $("vLoad").innerHTML;   /* wheel load from Setup, already kg */
+    var kg = (m.l !== null && m.l !== undefined) ? m.l : parseFloat(pos.replace(",", "."));
     var live = (lastJ && lastJ.pSrc === "ble" && lastJ.pFresh && lastJ.bar !== null);
     var bar = live ? de(lastJ.bar, 2) : ((m.b !== null && m.b !== undefined) ? de(m.b, 2) : "");
     /* One card per profile, several lines (a native select shows only one short line). */
@@ -1291,8 +1897,21 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       + '<option value="1"' + (m.u === 1 ? ' selected' : '') + '>new</option>'
       + '<option value="0"' + (m.u === 0 ? ' selected' : '') + '>ridden</option></select></div>'
       + '</div>'
+      + '<div class="field"><label>Speeds km/h</label><div class="spdsel">' + spdChoice(r) + '</div></div>'
       + '<div class="field"><label>Note</label><input id="rNote" value="' + esc(m.n) + '"></div>'
       + '<div class="sub">Everything about the wheel comes from its profile; missing values are entered in Setup → Wheels.</div>';
+  }
+  /* Speeds of this run: all Setup speeds, the run's own ticked (default all). */
+  function spdChoice(r) {
+    var all = (r && r.plAll) || [], on = (r && r.plateaus) || [], h = "", i;
+    for (i = 0; i < all.length; i++)
+      h += '<label><input type="checkbox" class="rSpd" value="' + i + '"' + (on.indexOf(all[i]) >= 0 ? ' checked' : '') + '><span class="cb"></span>' + de(all[i], 1) + '</label>';
+    return h;
+  }
+  function spdMask() {
+    var cs = document.getElementsByClassName("rSpd"), m = 0, i;
+    for (i = 0; i < cs.length; i++) if (cs[i].checked) m += Math.pow(2, +cs[i].value);
+    return m;
   }
   /* Card text: tire (ETRTO) · tube / rim · hub with details / mass, J, wheel model. */
   function profCard(p, i, on) {
@@ -1322,6 +1941,8 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       $("rProfD").innerHTML = this.outerHTML.replace(" on", ""); $("rProfL").hidden = true; profInfo();
     };
     $("rProfD").onclick = function () { $("rProfL").hidden = !$("rProfL").hidden; };
+    var sp = document.getElementsByClassName("rSpd");
+    for (i = 0; i < sp.length; i++) sp[i].onchange = function () { if (!spdMask()) this.checked = true; };   /* never none */
     $("rToSetup").onclick = function (ev) { if (ev && ev.preventDefault) ev.preventDefault(); runParked = true; runShown = null; runOpen = false; $("run").hidden = true; tab(false); profLoad(function () { profEdit(); fitIn($("profEd"), null, false); }); };
     profInfo();
   }
@@ -1335,7 +1956,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       "Rmb=" + $("rBar").value.replace(",", "."),
       "Rml=" + $("rLoad").value.replace(",", "."),
       "Rmu=" + $("rNew").value, "Rmk=" + $("rTread").value.replace(",", "."),
-      "Rmn=" + $("rNote").value, "Rmd=" + local, "Rk"
+      "Rmn=" + $("rNote").value, "Rmv=" + spdMask(), "Rmd=" + local, "Rk"
     ], pollRun);
   }
   /* Raw-value trace: r.trace = deviations from r.trMean in counts (oldest first),
@@ -1343,10 +1964,10 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   /* Drum seen from the side: start at 12 o'clock, the quarter to turn shaded, a mark at
      the target, the hand at the angle turned so far (clockwise; the controller
      tachometer gives the amount, not the direction). */
-  function turnDial(deg, target) {
+  function turnDial(deg, target, min) {
     var C = 70, R = 60, pt = function (a, rr) { var t = (a - 90) * Math.PI / 180; return [C + rr * Math.cos(t), C + rr * Math.sin(t)]; };
     var e = pt(target, R), h = pt(Math.min(deg, 359), R - 8), t1 = pt(target, R - 10), t2 = pt(target, R + 6);
-    var done = deg >= target;
+    var done = deg >= (min || target);
     return '<svg class="dial" viewBox="0 0 140 140">'
       + '<circle cx="' + C + '" cy="' + C + '" r="' + R + '" fill="#fff" stroke="#c3ccd4" stroke-width="3"/>'
       + '<path d="M' + C + ',' + C + ' L' + C + ',' + (C - R) + ' A' + R + ',' + R + ' 0 0 1 ' + e[0].toFixed(1) + ',' + e[1].toFixed(1) + ' Z" fill="' + (done ? "#cfe6d2" : "#dbe8f1") + '"/>'
@@ -1423,7 +2044,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   function paintRun(r) {
     var s = r.step || 0, i;
     $("runId").innerHTML = r.id || "";
-    $("runSoll").innerHTML = $("soll").innerHTML;
+    $("runTgt").innerHTML = $("tgt").innerHTML;
     $("runIst").innerHTML  = $("kmh").innerHTML;
     var err = (lastJ && lastJ.err) || "";
     $("runErr").innerHTML = err; $("runErr").hidden = !err;
@@ -1436,6 +2057,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     var spin = s !== 4 && lastJ && lastJ.link && (lastJ.driving || (lastJ.kmh !== null && lastJ.kmh > 0.3));
     if (spin) rt = WARN_SIGN + "<b>Keep clear.</b>" + (rt ? " " + rt.replace(WARN_SIGN, "") : "");
     $("runTxt").innerHTML = (s === 2 || spin) ? rt : handsOff(rt); $("runTxt").hidden = !rt;
+    $("runAct").innerHTML = esc(r.act || ""); $("runAct").hidden = !r.act;
     /* Content per step. Build the form (step 1) only once. */
     var body = "", key = s + "/" + r.sub;
     if (s === 1) {
@@ -1482,7 +2104,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       else if (s === 5 && r.sub === 5) body = '<div class="tiles"><div class="tile half ' + lvl(r.stopZero, r.zeroLim, null) + '"><div><div class="lab">Zero after end stop</div><div class="val" style="white-space:nowrap">' + (r.stopZero === null ? "\u2014" : ((r.stopZero >= 0 ? "+" : "") + de(r.stopZero, 3))) + '<small>N</small></div><div class="sub">on F_roll \u00b7 limit ' + de(r.zeroLim, 2) + ' N</div></div></div></div>';
       else if (s === 5 && r.sub === 3) body = '<div class="tiles"><div class="tile half"><div><div class="lab">Measured at ' + de(r.calArmMm, 0) + ' mm</div><div class="val">' + fm(r.ctrlKg, 3) + '<small>kg</small></div><div class="sub">target ' + fm(r.ctrlTargetKg, 3) + ' kg · ' + fm(r.ctrlNm, 3) + ' / ' + fm(r.ctrlTarget, 3) + ' Nm</div></div></div>'
         + '<div class="tile half ' + lvl(r.ctrlDev, 0.5, 1.0) + '"><div><div class="lab">Deviation</div><div class="val">' + (r.ctrlDev === null ? "—" : ((r.ctrlDev >= 0 ? "+" : "") + de(r.ctrlDev, 2))) + '<small>%</small></div><div class="sub">ok below 0.5 %, warning up to 1 %</div></div></div></div>'
-        + (r.ctrlAdopted ? '<div class="txt good">' + mark("good") + 'Adopted as calibration</div>' : '')
+        + ''
         + (r.sub === 3 && r.ctrlDev !== null ? (r.ctrlOn ? '<div class="txt good">' + mark("good") + 'Weight on, end stop next</div>' : '<div class="txt warn">' + mark("warn") + 'Weight off</div>') : '');
       if ((s === 6 && r.sub >= 2) || (s === 13 && r.sub >= 2)) {
         var pts = (s === 6) ? (r.pre || []) : (r.post || []), rr = [];
@@ -1521,11 +2143,11 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         var wn = r.warn || [];
         if (wn.length) { body += "<h2>Warnings</h2><ul>"; for (i = 0; i < wn.length; i++) body += '<li class="txt ' + (wn[i].indexOf("W06") === 0 ? "bad" : "warn") + '">' + mark(wn[i].indexOf("W06") === 0 ? "bad" : "warn") + wn[i] + "</li>"; body += "</ul>"; }
         else body += '<div class="txt good">' + mark("good") + 'no warnings</div>';
-        if (r.md) body += '<a class="dl" href="' + r.md.replace(/\.md$/, ".zip") + '">Report + data .zip</a>';
+        if (r.dir) body += '<a class="dl" href="' + r.dir + '?zip=1">Report + data .zip</a>';
         if (r.md) body += '<a class="dl" href="' + r.md + '">Report .md</a>';
         if (r.csv) body += '<a class="dl" href="' + r.csv + '">Data .csv</a>';
-        if (r.md) body += '<div class="sub">download, share via AirDrop or mail · <a href="' + r.md + '?view">view report</a>' + (r.csv ? ' · <a href="' + r.csv + '?view">view data</a>' : '') + '</div>';
-        body += '<div class="sub"><a href="/runs">all test runs</a></div>';
+        if (r.md) body += '<div class="sub">download, share via AirDrop or mail · <a href="#fv:' + r.md + '">view report</a>' + (r.csv ? ' · <a href="#fv:' + r.csv + '">view data</a>' : '') + '</div>';
+        if (r.dir) body += '<div class="sub"><a href="#fb:' + r.dir.replace(/^\/fs\//, "") + '">all files of this run</a></div>';
       }
       /* Age of zero point and calibration at zeroing and check weight. */
       if ((s === 4 || s === 5) && r.sub <= 1) {
@@ -1537,7 +2159,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       /* Live raw values while zeroing (2026-11-26): what is being judged, as tiles and
          as a curve of the last 2 s with a scale fine enough to see flutter. */
       /* Quarter turn by hand (step 4, sub 2): the drum as a dial, live (2026-11-26). */
-      if (s === 4 && r.sub === 2 && r.turnDeg !== null && r.turnDeg !== undefined) body = turnDial(r.turnDeg, r.turnTarget || 90) + body;
+      if (s === 4 && r.sub === 2 && r.turnDeg !== null && r.turnDeg !== undefined) body = turnDial(r.turnDeg, r.turnTarget || 90, r.turnMin || r.turnTarget || 90) + body;
       if (r.trace && r.trace.length && !(s === 5 && (r.sub === 1 || r.sub === 2 || r.sub === 6))) body = traceHtml(r) + body;
       if (r.prog !== null && r.prog !== undefined)
         body = '<div class="bar"><div style="width:' + (r.prog * 100) + '%"></div></div><div class="txt" style="margin-bottom:10px">' + (r.progTxt || '') + '</div>' + body;
@@ -1545,7 +2167,10 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     }
     /* Buttons */
     /* Forward buttons carry an arrow, Back one to the left (2026-11-26); Close none. */
-    $("runOk").innerHTML = r.ok ? r.ok + (r.ok === "Close" ? "" : " \u2192") : ""; $("runOk").hidden = !r.ok;
+    /* Report and abort: no button step, the run is over; close with the X at the top (2026-11-26). */
+    var over = (s === 14 || s === 99);
+    $("runX").hidden = !over;
+    $("runOk").innerHTML = r.ok ? r.ok + " \u2192" : ""; $("runOk").hidden = !r.ok || over;
     $("runAlt").innerHTML = r.alt || ""; $("runAlt").hidden = !r.alt;
     $("runRedo").innerHTML = r.redo || ""; $("runRedo").hidden = !r.redo;
     $("runBack").hidden = !r.back;
@@ -1559,7 +2184,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     for (i = 0; i < RUN_STEPS.length; i++) {
       var n = i + 1, cls = "";
       if (s === 99) cls = (n < runAbortStep) ? "done" : (n === runAbortStep ? "bad" : "");
-      else cls = (n < now) ? "done" : (n === now ? "now" : "");
+      else cls = (n < now || s === 14) ? "done" : (n === now ? "now" : "");
       if (cls === "done" && wsteps[n]) cls = "done warn";
       html[RUN_STEPS[i][0]] += '<li class="' + cls + '">' + n + " · " + RUN_STEPS[i][1] + "</li>";
     }
@@ -1602,15 +2227,21 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     x.onerror = x.ontimeout = function () { runBusy = false; };
     x.send();
   }
-  function runClose() { runOpen = false; runShown = null; listStep = ""; runFitKey = ""; $("runHome").appendChild($("runPanel")); $("run").hidden = true; }
+  /* Closing the report: a state poll already on its way still says rs = 14 and would
+     reopen the window at once (2026-11-26); hold reopening off for a few seconds. */
+  var runClosedAt = 0;
+  function runClose() { runClosedAt = Date.now(); runOpen = false; runShown = null; listStep = ""; runFitKey = ""; $("runHome").appendChild($("runPanel")); $("run").hidden = true; }
   $("runOk").onclick = function () {
     if (runStep === 1) { runSubmitMeta(); return; }
     if (runStep === 14 || runStep === 99) { send("Rk"); runClose(); return; }
     send("Rk"); setTimeout(pollRun, 300);
   };
-  $("runAlt").onclick  = function () { send("Rs"); setTimeout(pollRun, 300); };
+  $("runAlt").onclick  = function () {
+    if ($("runAlt").textContent === "Calibrate") { openCalib(); return; }   /* check weight off: the procedure, then Again */
+    send("Rs"); setTimeout(pollRun, 300); };
   $("runRedo").onclick = function () { send("Rn"); setTimeout(pollRun, 300); };
   $("runBack").onclick = function () { send("Rb"); runShown = null; setTimeout(pollRun, 300); };
+  $("runX").onclick = function () { send("Rk"); runClose(); };
   $("runCancel").onclick = function () { send("Rx"); setTimeout(pollRun, 300); };
   setInterval(pollRun, 500);
 
@@ -1622,7 +2253,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       if (build === null) build = j.build;
       else if (build !== j.build) { location.reload(); return; }
     }
-    vmax = j.vmax; vmin = j.vmin; step = j.step; soll = j.target;
+    vmax = j.vmax; vmin = j.vmin; step = j.step; tgt = j.target;
     var list = j.plateaus || [], key = list.join(",");
     if (key !== gridKey) { buildGrid(list); buildChips(list); gridKey = key; }
 
@@ -1653,28 +2284,64 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("trend").innerHTML = tr;
     /* Target: the setpoint while driving; 0 while braking and after every stop by
        a fault (e-stop, FAULT); a dash only while coasting freely. */
-    var gestoppt = (j.braking && !j.descending) || j.motorOpen || j.estop || j.phase === "FAULT";
-    $("soll").innerHTML = j.driving ? de(j.target, 1) : (gestoppt ? "0" : "—");
-    $("soll").className  = "val" + ((j.driving || gestoppt) ? "" : " dim");
+    var stopped = (j.braking && !j.descending) || j.motorOpen || j.estop || j.phase === "FAULT";
+    /* braking: BRK; coasting freely: a dash (2026-11-26, was "0" while braking) */
+    var brk = j.braking && !j.descending;
+    $("tgt").innerHTML = j.driving ? de(j.target, 1) : brk ? "BRK" : (stopped ? "0" : "\u2014");
+    $("tgt").className  = "val" + ((j.driving || stopped) ? "" : " dim");
     paintGrid(j.driving ? j.target : -1);
 
     /* Load cell */
-    var kal = j.cal;
-    $("kg").className  = "val" + (kal ? "" : " dim");
-    $("pct").className = "val" + (kal ? "" : " dim");
-    show("kg",  j.taring ? null : j.kg,  3);
-    show("pct", j.pct, 1);
+    var calOk = j.cal;
+    $("kg").className  = "val" + (calOk ? "" : " dim");
+    $("pct").className = "val" + (calOk ? "" : " dim");
+    var busyV = j.taring ? "&lt;tare&gt;" : Date.now() < calShowUntil ? "&lt;cal&gt;" : "";
+    if (busyV) { $("kg").innerHTML = $("pct").innerHTML = '<span class="busyv">' + busyV + '</span>'; }
+    else { show("kg", j.kg, 3); show("pct", j.pct, 1); }
     show("pw",  j.pw,  1);
     show("crr", j.crr, 4);
     $("crrLab").innerHTML = j.corr ? "Crr" : "Crr raw";
     /* Peak-to-peak in the same 0.5 s window that is averaged. Tells how calm the
        mean really is -- a clean value and a mean over wild jitter would
        otherwise look the same. */
-    $("ppSub").innerHTML = kal
+    $("ppSub").innerHTML = calOk
       ? ("± " + de(j.ripple * j.npc / 9.80665 * 1000 / 2, 0) + " g · mean 0.5 s")
       : (j.counts + " counts raw");
-    $("pctSub").innerHTML = kal ? ("of " + de(j.fsN / 9.80665, 2) + " kg")
+    $("pctSub").innerHTML = calOk ? ("of " + de(j.fsN / 9.80665, 2) + " kg")
                                 : "not calibrated";
+    /* Check weight hanging? The cell then reads m · L_cal / L (lever ratio); within
+       +-25 % of that the deviation from the calibration is shown: in g on the load tile,
+       in % on the utilization tile (2026-11-26). */
+    var cwExp = j.ctrlKg > 0 && j.arm > 0 ? j.ctrlKg * j.calArm / j.arm : 0;
+    var cwNear = calOk && cwExp > 0 && !j.taring && j.kg !== null && Math.abs(j.kg / cwExp - 1) < 0.25;
+    var cwD = cwNear ? j.kg - cwExp : 0, cwP = cwNear ? (j.kg / cwExp - 1) * 100 : 0;
+    var cwC = Math.abs(cwP) < 0.5 ? "#1e7a46" : Math.abs(cwP) < 1 ? "#b5651d" : "#c0392b";
+    $("kgD").innerHTML = cwNear ? (cwD >= 0 ? "+" : "\u2212") + de(Math.abs(cwD) * 1000, 0) + " g" : "";
+    $("pctD").innerHTML = cwNear ? (cwP >= 0 ? "+" : "\u2212") + de(Math.abs(cwP), 2) + " %" : "";
+    $("kgD").style.color = $("pctD").style.color = cwC;
+    /* Scale 0 ... end-stop bar end (2026-11-26), zones as at the end stop:
+       green  measuring range of the torque signal (config.h MEAS_TORQUE_*)
+       orange overload: the firmware's force limit (MAX_FORCE_N) up to full scale
+       yellow target band of the end stop (RUN_STOP_MIN/MAX_PCT, above full scale)
+       red    no-go above it; with the reading there the whole bar turns red. */
+    var pc = function (n) { return j.fsN > 0 ? n / j.fsN * 100 : 0; };
+    var ovP = j.maxN > 0 ? pc(j.maxN) : 100, cwP2 = pc(cwExp * 9.80665);
+    var sMin = j.stopMin || 100, sMax = j.stopMax || 140, usc = j.stopBar || 160;
+    var up = function (v) { return Math.max(0, Math.min(100, v / usc * 100)); };
+    var mg0 = j.arm > 0 && j.mMin ? pc(j.mMin / j.arm) : 0, mg1 = j.arm > 0 && j.mMax ? pc(j.mMax / j.arm) : 0;
+    var uNow = calOk && j.pct !== null && j.pct !== undefined && !j.taring ? j.pct : 0, nogo = uNow > sMax;
+    var zone = function (a, b, c) { return b > a ? '<b style="left:' + up(a) + '%;width:' + (up(b) - up(a)) + '%;background:' + c + '"></b>' : ''; };
+    $("uScale").innerHTML = '<div class="tr"' + (nogo ? ' style="background:#e8a49c"' : '') + '>'
+      + (nogo ? '' : zone(mg0, mg1, "#cfe6d2") + zone(ovP, sMin, "#f5c99a") + zone(sMin, sMax, "#f1dfa3") + zone(sMax, usc, "#f0b8b2"))
+      + '<i style="width:' + up(uNow) + '%' + (nogo ? ';background:#c0392b;opacity:1' : '') + '"></i></div>'
+      + '<span class="mk" style="left:0;margin-left:0"></span><span class="ml l" style="left:0">0</span>'
+      + (cwP2 > 0 ? '<span class="mk" style="left:' + up(cwP2) + '%"></span><span class="ml up" style="left:' + up(cwP2) + '%">check ' + de(cwP2, 0) + ' %</span>' : '')
+      + '<span class="mk over" style="left:' + up(ovP) + '%"></span><span class="ml" style="left:' + up(ovP) + '%">overload ' + de(ovP, 0) + ' %</span>'
+      + '<span class="mk" style="left:' + up(100) + '%;width:1px;background:#64737f"></span>';
+    calCtx = { kg: j.ctrlKg, arm: j.calArm, near: cwNear, p: cwNear ? (j.kg / cwExp - 1) * 100 : null, cal: calOk };
+    var still = !j.driving && !(j.link && j.kmh > 0.3);
+    $("bCalib").disabled = j.taring;
+    $("bCalib").className = "ico" + (still ? "" : " away");
 
     /* Drive */
     show("imot", j.link ? j.imot : null, 2);
@@ -1687,7 +2354,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("tileFet").className = "tile half" + (j.tfet > 80 ? " warn" : "");
 
     if (typeof j.up === "number") lastUp = j.up;
-    paintGeber(j.sensors);
+    paintSensors(j.sensors);
     paintSto(j.sto);
     paintChg(j.chg);
     /* Where the revolution comes from: 0 every 8th edge, 1 intermediate magnet, 2 index Hall. */
@@ -1698,11 +2365,11 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
     /* Wheel: effective rolling diameter from the speed ratio.
        null as long as not both are turning. */
-    show("nTrommel", j.nDrum, 1);
-    show("nRad",     j.nWheel,     1);
+    show("nDrum", j.nDrum, 1);
+    show("nWheel",     j.nWheel,     1);
     /* Circumference: sliding window over the last wheel revolutions, updated on
        every pulse; appears once the window is full. */
-    show("uRad",     j.uWheel,     0);
+    show("uWheel",     j.uWheel,     0);
 
     /* Drive direction (A/B) and the slow test. Hints are rewritten completely -- NO access to an
        element inside it: exactly that froze the page after the first poll
@@ -1715,13 +2382,15 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       : "Starts slowly; in measuring direction the load cell counts positive, otherwise the sign is reversed. <b>Keep clear.</b>";
 
     /* Setup */
-    if (j.load !== null && j.load !== undefined) view("Load", j.load, 1);
+    if (j.load !== null && j.load !== undefined) view("Load", j.load / 9.80665, 1);
+    if (!editing.Rev && j.rev !== undefined) $("vRev").innerHTML = j.rev ? esc(j.rev) : "not entered";
+    if (j.commit) $("vCommit").innerHTML = esc(j.commit);
     view("Drum", j.drumU * 1000, 1);
     view("Arm",  j.arm * 1000,   1);
     view("Cal",  j.calArm * 1000, 1);
     if (j.ctrlKg !== null && j.ctrlKg !== undefined) view("G", j.ctrlKg * 1000, 0);
     $("dia").innerHTML = de(j.drumU / Math.PI * 1000, 1);
-    $("bTare").className = "ico" + (j.taring ? " busy" : "");
+    $("bTare").className = "ico" + (j.taring ? " busy" : "") + (j.taring || !j.driving && !(j.link && j.kmh > 0.3) ? "" : " away");
     $("a0").innerHTML = (j.a0 === null) ? "—" : j.a0;
     $("b0").innerHTML = (j.b0 === null) ? "—" : j.b0;
 
@@ -1738,9 +2407,10 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       : (j.pSrc === "manual" ? "manual entry" : "no sensor — spin wheel");
     $("tTireSub").innerHTML = (found && !noData) ? ((j.pAge < 60000 ? de(j.pAge / 1000, 0) + " s" : de(j.pAge / 60000, 0) + " min") + " ago") : "—";
     paintAir(j);
+    paintCalib(j);
     lastJ = j;
     paintWiz(j);
-    if (j.rs > 0 && !runOpen && !runParked) { runOpen = true; $("run").hidden = false; pollRun(); }
+    if (j.rs > 0 && !runOpen && !runParked && Date.now() - runClosedAt > 4000) { runOpen = true; $("run").hidden = false; pollRun(); }
     if (j.rs === 0) runParked = false;
     if (j.rs === 0 && runOpen && runStep > 0 && runStep !== 14 && runStep !== 99) runClose();
 

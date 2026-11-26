@@ -19,8 +19,22 @@
 //   UNREADABLE   card answers, but no readable file system (unformatted,
 //                exFAT, corrupted). Flash: LittleFS cannot be mounted.
 //
-// FORMATTING only out of UNREADABLE -- a readable file system is never erased
-// from here. The UI asks for confirmation; the console does not ask.
+// FORMATTING: the SD card also when it is readable (since 2026-11-26, wanted by the
+// builder: a fresh FAT32 card), never while a run or a raw log uses it. The flash
+// only out of UNREADABLE -- it holds the wheel profiles. The UI asks for
+// confirmation; the console does not ask.
+//
+// FILE SYSTEMS: SD = FAT12/16/32 (ESP-IDF FatFs as built into the Arduino core
+// 2.0.14: exFAT switched off, FF_FS_EXFAT 0). Flash = LittleFS.
+//
+// LAYOUT (since 2026-11-26), the same on both media:
+//   /vmrr/<session>/            one directory per run or manual raw log;
+//                               <session> = run id = local time YYYY-MM-DD-HHMMSS,
+//                               "up<s>" while the clock is not set
+//     raw_<session>.rrl         raw log (SD only); raw_<session>-b.rrl ... after a name clash
+//     protocol.md, points.csv   report and averaged points of a run
+//     info_<session>.md         manual raw log: what it is, header constants
+// Older files in /raw and /runs (before 2026-11-26) stay where they are.
 // Flash only at standstill (config.h RAWLOG_FLASH_IDLE_MS: erasing locks the ISRs).
 //
 #include <Arduino.h>
@@ -36,7 +50,14 @@ struct Info {
   uint64_t total = 0, used = 0;   // bytes; 0/0 while not mounted
   int8_t   pct   = -1;            // usage in %, -1 unknown
   bool     formatting = false;
+  const char* fsType = "";        // "FAT32", "FAT16", "FAT12", "exFAT", "LittleFS"; "" unknown
 };
+
+constexpr const char* ROOT_DIR = "/vmrr";
+// Name of a new session directory: local time YYYY-MM-DD-HHMMSS, "up<s>" without clock.
+void sessionName(char* out, size_t n);
+// mkdir for ROOT_DIR and one level below it; true if it exists afterwards.
+bool makeDir(fs::FS& f, const char* path);
 
 void begin();                     // before run::begin(): run.cpp writes to /runs
 Info info(Media m);               // from any task
@@ -46,11 +67,17 @@ const char* stateName(State s);   // "absent" | "ready" | "read-only" | "unreada
 
 // Request formatting (main loop or console). false + reason if refused.
 bool requestFormat(Media m, const char** why);
+const char* formatResult(Media m);
+uint8_t  formatPct();    // SD format progress 0..99 while formatting (sectors written / expected)
+uint32_t formatSec();    // seconds since the last SD format started
+uint16_t sdMounts();   // counts every successful SD mount (also after formatting): "a new card file system"
+uint16_t formatsDone(Media m);       // counts up when a format has finished (UI waits for it)   // last format: "" none/running, "ok", or why it failed
 
 // Exclusive access to the SD for longer read streams (webui.cpp): the
 // insertion check sends a command bypassing the FAT and must not land in the middle of
 // a multi-block read.
 void lockSd();
+void sdBench();   // console Gb: raw sector read speed, past the file system
 void unlockSd();
 
 // Where a measurement run report goes: SD if ready, otherwise flash (decision

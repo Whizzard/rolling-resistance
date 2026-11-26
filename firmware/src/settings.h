@@ -82,6 +82,10 @@ uint32_t baselineAgeMs(); uint32_t wheelModelAgeMs(); uint32_t tareAgeMs();
 // the chain cell, arm, factor and takes over the factor -- since then there is no separate
 // calibration in the UI any more (k<kg> remains on the console).
 float ctrlMassKg(); bool setCtrlMassKg(float kg);
+// Stand revision (2026-11-26): free text on the mechanical build that the constants do not
+// capture (drum surface, cell mounting, modifications), dated by its stamp. Goes into every
+// protocol and raw log. Console B<text>, Setup. Survives reset().
+const char* standRev(); bool setStandRev(const char* t);
 // Wheel mass with tire [kg]; gives J_wheel = WHEEL_J_FACTOR m r_wheel^2. NAN = unknown.
 float wheelMassKg(); bool setWheelMassKg(float kg);
 // MEASURED J_wheel [kg m^2] from the bifilar pendulum (docs/09-measurement-theory.md §9.2).
@@ -94,6 +98,21 @@ uint32_t wheelJSetMs();   // millis() of the last setWheelJKgm2 with a value, 0 
 // (M = counts * m g L_cal / counts_cal), but only as long as the same value applies as at
 // calibration. If torqueArmM() differs from it, the measuring run warns (W15). NAN = unknown.
 float armAtCalM();
+// Calibration record (2026-11-26): under which conditions the factor was determined, and
+// how. A factor holds only for the same cell arm, calibration arm, HX711 rate and gain
+// (calib.h checks this before every run). ver 0 = no record (factor from before).
+struct CalRecord {
+  uint8_t  ver;            // 1
+  uint8_t  gainPulses;     // HX711_GAIN_PULSES at calibration
+  uint16_t sps;            // HX711_RATE_SPS at calibration
+  uint32_t epoch;          // local time, 0 = unknown
+  float    npc, armM, lcalM, spsMeas;
+  float    linPctFS, hystPctFS, zeroPctFS;   // NAN for a single-point calibration
+  uint8_t  nLoads, nPoints;
+  char     method[22];     // "procedure", "single point (k)"
+};
+const CalRecord& calRecord(); bool setCalRecord(const CalRecord& r);
+bool npcPlausible(float x);   // the same range check setLoadcellNPerCount applies
 // Last measured wheel circumference [m] (wheel.h), survives standstill and
 // restart -- the assistant needs it before anything turns. NAN = never measured.
 float wheelCircM(); bool setWheelCircM(float m);

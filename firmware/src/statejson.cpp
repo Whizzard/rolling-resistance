@@ -1,3 +1,5 @@
+#include "calib.h"
+#include "build_id.h"
 #include "statejson.h"
 
 
@@ -160,7 +162,7 @@ void build(char* buf, size_t len) {
     "\"plateaus\":[%s],\"phase\":\"%s\",\"run\":%u,\"plateau\":%u,"
     "\"sfault\":%s,\"load\":%s,\"motorOpen\":%s,\"estop\":%s,"
     "\"drumU\":%.4f,\"arm\":%.4f,\"calArm\":%.4f,\"npc\":%.8f,"
-    "\"vmax\":%.0f,\"vmin\":%.0f,\"step\":%.0f,\"fsN\":%.1f,\"maxN\":%.1f,\"ctrlKg\":%.3f,\"rs\":%u}",
+    "\"vmax\":%.0f,\"vmin\":%.0f,\"step\":%.0f,\"fsN\":%.1f,\"maxN\":%.1f,\"ctrlKg\":%.3f,\"mMin\":%.2f,\"mMax\":%.2f,\"stopMin\":%.0f,\"stopMax\":%.0f,\"stopBar\":%.0f,\"rs\":%u}",
     ok ? "true" : "false",
     static_cast<unsigned>(v.fault), vesc::faultText(v.fault),
     static_cast<unsigned>(v.status), static_cast<unsigned long>(v.ageMs),
@@ -200,7 +202,7 @@ void build(char* buf, size_t len) {
     speedctl::motorOpen() ? "true" : "false", speedctl::estopInput() ? "true" : "false",
     settings::drumCircumferenceM(), settings::torqueArmM(),
     settings::calibArmM(), settings::loadcellNPerCount(),
-    V_MAX_KMH, V_MIN_KMH, SPEED_STEP_KMH, LOADCELL_CAPACITY_N, MAX_FORCE_N, settings::ctrlMassKg(),
+    V_MAX_KMH, V_MIN_KMH, SPEED_STEP_KMH, LOADCELL_CAPACITY_N, MAX_FORCE_N, settings::ctrlMassKg(), MEAS_TORQUE_MIN_NM, MEAS_TORQUE_MAX_NM, RUN_STOP_MIN_PCT, RUN_STOP_MAX_PCT, RUN_STOP_BAR_PCT,
     static_cast<unsigned>(run::step()));
 
   // Storage and raw data (storage.h, rawlog.h), since 2026-11-25. Appended instead of in
@@ -213,10 +215,11 @@ void build(char* buf, size_t len) {
   if (sd.pct >= 0) snprintf(sdPct, sizeof(sdPct), "%d", sd.pct); else snprintf(sdPct, sizeof(sdPct), "null");
   if (fl.pct >= 0) snprintf(flPct, sizeof(flPct), "%d", fl.pct); else snprintf(flPct, sizeof(flPct), "null");
   snprintf(buf + used - 1, len - used + 1,
-    ",\"sto\":{\"sd\":%u,\"sdPct\":%s,\"sdMB\":%lu,\"sdFmt\":%s,\"fl\":%u,\"flPct\":%s,\"flMB\":%lu,\"flFmt\":%s,"
+    ",\"sto\":{\"sd\":%u,\"sdPct\":%s,\"sdMB\":%lu,\"sdFmt\":%s,\"sdFs\":\"%s\",\"sdFmtRes\":\"%s\",\"sdFmtN\":%u,\"sdFmtPct\":%u,\"sdFmtSec\":%lu,\"fl\":%u,\"flPct\":%s,\"flMB\":%lu,\"flFmt\":%s,\"flFs\":\"%s\","
     "\"rec\":%s,\"recMan\":%s,\"recOn\":\"%s\",\"recKB\":%lu,\"recPend\":%lu,\"recDrop\":%lu}}",
-    static_cast<unsigned>(sd.state), sdPct, static_cast<unsigned long>(sd.total >> 20), sd.formatting ? "true" : "false",
-    static_cast<unsigned>(fl.state), flPct, static_cast<unsigned long>(fl.total >> 20), fl.formatting ? "true" : "false",
+    static_cast<unsigned>(sd.state), sdPct, static_cast<unsigned long>(sd.total >> 20), sd.formatting ? "true" : "false", sd.fsType, storage::formatResult(storage::SD_CARD), static_cast<unsigned>(storage::formatsDone(storage::SD_CARD)),
+    static_cast<unsigned>(storage::formatPct()), static_cast<unsigned long>(storage::formatSec()),
+    static_cast<unsigned>(fl.state), flPct, static_cast<unsigned long>(fl.total >> 20), fl.formatting ? "true" : "false", fl.fsType,
     rawlog::active() ? "true" : "false", rawlog::manual() ? "true" : "false",
     rawlog::active() ? storage::name(rawlog::media()) : "",
     static_cast<unsigned long>(rawlog::bytesWritten() / 1024), static_cast<unsigned long>(rawlog::bytesPending() / 1024),
@@ -230,7 +233,27 @@ void build(char* buf, size_t len) {
   const size_t at = u2 - 1 + k;
   const size_t w = settings::stampsJson(buf + at, len - at);
   if (at + w + 2 <= len) { buf[at + w] = '}'; buf[at + w + 1] = '\0'; }
-  else { buf[u2 - 1] = '}'; buf[u2] = '\0'; }   // does not fit: better without than broken JSON
+  else { buf[u2 - 1] = '}'; buf[u2] = '\0'; return; }   // does not fit: better without than broken JSON
+
+  // Stand revision and firmware commit (Setup), since 2026-11-26.
+  char rev[2 * STAND_REV_LEN + 8];
+  calc::jsonStr(rev, sizeof(rev), settings::standRev());
+  const size_t u3 = strlen(buf);
+  const int r = snprintf(buf + u3 - 1, len - u3 + 1, ",\"rev\":%s,\"commit\":\"" FW_COMMIT "\"}", rev);
+  if (r <= 0 || static_cast<size_t>(r) >= len - u3 + 1) { buf[u3 - 1] = '}'; buf[u3] = '\0'; return; }
+
+  // Calibration (calib.h), since 2026-11-26: validity of the stored factor always, the
+  // procedure while it is open.
+  char why[160], whyJ[200];
+  const int8_t cv = calib::validity(why, sizeof(why));
+  calc::jsonStr(whyJ, sizeof(whyJ), why);
+  const size_t u4 = strlen(buf);
+  const int q = snprintf(buf + u4 - 1, len - u4 + 1, ",\"calV\":%d,\"calWhy\":%s}", cv, whyJ);
+  if (q <= 0 || static_cast<size_t>(q) >= len - u4 + 1) { buf[u4 - 1] = '}'; buf[u4] = '\0'; return; }
+  const size_t u5 = strlen(buf);
+  const size_t c = calib::json(buf + u5 - 1, len - u5 - 1);
+  if (c > 0 && u5 - 1 + c + 2 <= len) { buf[u5 - 1 + c] = '}'; buf[u5 + c] = '\0'; }
+  else { buf[u5 - 1] = '}'; buf[u5] = '\0'; }
 }
 
 }  // namespace statejson

@@ -16,6 +16,7 @@
 #include "calc/rawlog.h"
 #include "calc/linfit.h"
 #include "calc/loss.h"
+#include "calc/warmup.h"
 #include "calc/spindown.h"
 #include "calc/timefmt.h"
 
@@ -99,6 +100,31 @@ static void test_spindown_recovers_a1_b1() {
   TEST_ASSERT_FLOAT_WITHIN(0.01f * B, B, b1);
   TEST_ASSERT_FLOAT_WITHIN(0.05, 49.0, w0);
   TEST_ASSERT_TRUE(resid < 0.01f);
+}
+static void test_spindown_negative_a_constrained() {
+  // A loss rising faster than w^2 (here w^3) makes the free A + B w^2 fit put A < 0;
+  // solvePositive must refit with A = 0 and keep B positive.
+  const double J = 0.0697;
+  double w = 38.0, t = 0.0, I = 0.0;
+  calc::SpindownSums s;
+  double nextSample = 0.0;
+  while (w > 6.0) {
+    if (t >= nextSample) { s.add(t, I, w); nextSample += 2.0 * M_PI / w; }
+    const double dt = 1e-4;
+    I += w * w * dt;
+    w -= (1.5e-6 * w * w * w) / J * dt;
+    t += dt;
+  }
+  float a1, b1, resid; double w0; int forced;
+  TEST_ASSERT_TRUE(s.solve(J, a1, b1, w0, resid));
+  TEST_ASSERT_TRUE(a1 < 0.0f);                       // the free fit is unphysical
+  TEST_ASSERT_TRUE(s.solvePositive(J, a1, b1, w0, resid, forced));
+  TEST_ASSERT_EQUAL_INT(1, forced);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, a1);
+  TEST_ASSERT_TRUE(b1 > 0.0f);
+  // Only a safety net: the B-only model is coarse for such a curve (here 0.024 against
+  // 0.054 Nm at 33 rad/s), but physical and of the right order.
+  TEST_ASSERT_TRUE(b1 * 33.0f * 33.0f > 0.3f * 0.054f && b1 * 33.0f * 33.0f < 3.0f * 0.054f);
 }
 static void test_spindown_singular() {
   calc::SpindownSums s;
@@ -206,6 +232,15 @@ static void test_rrl_roundtrip() {
   }
   TEST_ASSERT_EQUAL_UINT(n, off);
   TEST_ASSERT_EQUAL(NEED_MORE, d.next(b + off, 0, r, &used));
+  // summary over the same records
+  { Decoder ds; Summary sm; size_t o = h;
+    while (ds.next(b + o, n - o, r, &used) == OK) { sm.add(r, used); o += used; }
+    TEST_ASSERT_EQUAL_UINT32(1, sm.n[T_EDGE]); TEST_ASSERT_EQUAL_UINT32(1, sm.n[T_VESC]);
+    TEST_ASSERT_EQUAL_INT64(0, sm.t0); TEST_ASSERT_EQUAL_INT64(70000002, sm.t1);
+    TEST_ASSERT_EQUAL_UINT32(1, sm.edges[0]); TEST_ASSERT_EQUAL_UINT32(1, sm.rejected[0]);
+    TEST_ASSERT_EQUAL_UINT64(99, sm.gapBytes);
+    uint64_t tot = 0; for (int k = 0; k < T_N; k++) tot += sm.bytes[k];
+    TEST_ASSERT_EQUAL_UINT64(n - h, tot); }
   // truncated record: reading on asks for more, not nonsense
   Decoder d2; size_t o2 = h; d2.next(b + o2, n - o2, r, &used); o2 += used;
   TEST_ASSERT_EQUAL(NEED_MORE, d2.next(b + o2, 5, r, &used));   // VESC record is 29 bytes
@@ -229,6 +264,21 @@ static void test_zip_streamed_entry() {
   if (FILE* f = std::fopen("/tmp/rr_test_stream.zip", "wb")) { std::fwrite(z, 1, p, f); std::fclose(f); }
 }
 
+void test_warmup_settled() {
+  // Minute values of M (Nm) from run 2026-11-26-1542: minutes 13-17 and 1-5.
+  const float flat[5] = {0.3698f, 0.3618f, 0.3758f, 0.3649f, 0.3612f};
+  const float rising[5] = {0.4285f, 0.3883f, 0.3834f, 0.3809f, 0.3680f};
+  const float gap[5] = {0.37f, NAN, 0.37f, 0.37f, 0.37f};
+  const float tFlat[5] = {21.0f, 21.1f, 21.1f, 21.2f, 21.3f};
+  const float tWarming[5] = {20.0f, 21.0f, 22.0f, 23.0f, 24.0f};
+  const float nanT[5] = {NAN, NAN, NAN, NAN, NAN};
+  TEST_ASSERT_TRUE(calc::warmupSettled(flat, tFlat, 5, 0.025f, 0.2f));
+  TEST_ASSERT_TRUE(calc::warmupSettled(flat, nanT, 5, 0.025f, 0.2f));     // no sensor: power alone
+  TEST_ASSERT_FALSE(calc::warmupSettled(rising, tFlat, 5, 0.025f, 0.2f));  // 0.06 Nm spread
+  TEST_ASSERT_FALSE(calc::warmupSettled(flat, tWarming, 5, 0.025f, 0.2f)); // tire still warming 1 K/min
+  TEST_ASSERT_FALSE(calc::warmupSettled(gap, tFlat, 5, 0.025f, 0.2f));     // a missing minute
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_crc32_catalog_value);
@@ -245,8 +295,10 @@ int main(int, char**) {
   RUN_TEST(test_loss_wheel_needs_circumference);
   RUN_TEST(test_spindown_recovers_a1_b1);
   RUN_TEST(test_spindown_singular);
+  RUN_TEST(test_spindown_negative_a_constrained);
   RUN_TEST(test_fmt_time);
   RUN_TEST(test_json_str_escapes);
   RUN_TEST(test_json_str_truncates_safely);
+  RUN_TEST(test_warmup_settled);
   return UNITY_END();
 }

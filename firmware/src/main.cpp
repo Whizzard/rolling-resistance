@@ -20,6 +20,8 @@
 //   3. In hardware: the short-circuit relays on the emergency stop. The only one that
 //      also works if the controller or computer fails (docs/07-safety.md §3).
 //
+#include "calib.h"
+#include "relaytest.h"
 #include "profiles.h"
 #include <Arduino.h>
 #include "config.h"
@@ -97,8 +99,12 @@ void loop() {
   }
   // Internal messages (state machine, control) also into the UI.
   {
-    static char seen[96] = "";
-    if (strcmp(logger::lastNote(), seen) != 0) {
+    // As large as logger's buffer and compared over its full length: with 96 bytes a
+    // longer note (W18, 114 characters) never matched its truncated copy and was written
+    // to the raw log on every loop round -- 42029 times in run 2026-11-26-1651, 90 s of
+    // raw data lost to the overflow (2026-11-26).
+    static char seen[128] = "";
+    if (strncmp(logger::lastNote(), seen, sizeof(seen) - 1) != 0) {
       strncpy(seen, logger::lastNote(), sizeof(seen) - 1);
       if (logger::lastNoteBad()) console::fail(seen); else console::note(seen);
       rawlog::text(seen);
@@ -127,6 +133,8 @@ void loop() {
   TIMED("wheel", wheel::service());
   TIMED("speedctl", speedctl::service());
   TIMED("brake", brake::service());
+  relaytest::service();
+  calib::service();
   TIMED("state", state::service());
   TIMED("run", run::service());
   TIMED("serial", console::pollSerial());

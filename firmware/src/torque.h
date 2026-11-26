@@ -18,6 +18,7 @@ void begin();
 bool update();
 
 long  lastRaw();
+uint32_t readsTotal();    // HX711 values read since boot (rate check, console i)
 
 // Moving average over the last DISPLAY_AVG_N raw values, plus peak-to-peak.
 // ONLY for the DISPLAY -- a number jittering at 80 Hz is not readable

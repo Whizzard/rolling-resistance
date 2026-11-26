@@ -140,6 +140,11 @@ constexpr uint8_t WHEEL_MARKS_PER_REV = 1;
 // last WHEEL_CIRC_WINDOW_REVS wheel revolutions, recalculated on every pulse.
 constexpr uint8_t  WHEEL_CIRC_WINDOW_REVS = 10;   // [spec 2026-11-23]
 constexpr uint32_t WHEEL_CIRC_GAP_MS      = 3000; // [est] no pulse: wheel stationary, window discarded
+// Slip / wheel lifted (2026-11-26): the circumference from the LAST wheel revolution alone
+// against the window mean. Lifted, the wheel coasts on by itself and the ratio drifts
+// away; the window then kept showing (and could store) a wrong value until the wheel
+// stood for WHEEL_CIRC_GAP_MS. Above this deviation the window is discarded.
+constexpr float    WHEEL_CIRC_SLIP_REL    = 0.03f; // [est] 3 %; check on the stand that steady running stays below
 constexpr uint32_t MIN_PULSE_US = 800;   // [calc] shortest real spacing is 21 ms
 // [est] DOUBLE PULSE: if a mark edge arrives after less than MARK_ECHO_PCT % of the
 // last mark spacing, it is an echo of the same mark and is discarded. Found
@@ -150,6 +155,12 @@ constexpr uint32_t MIN_PULSE_US = 800;   // [calc] shortest real spacing is 21 m
 // second spacing after a standstill (STALL_TIMEOUT_MS), otherwise the first one after a
 // long pause would see every edge as an echo.
 constexpr uint32_t MARK_ECHO_PCT = 35;
+// [est] The same for the TEST WHEEL (one magnet per revolution): an edge after less than
+// WHEEL_ECHO_PCT % of the last wheel interval is a phantom. Found on 2026-11-26 in the raw
+// log of run 2026-11-26-1542: when the brake relays dropped (227.995 s, 1495.8 s) a second
+// wheel pulse came 5 and 17 ms after a real one at 150 ms spacing; in the lifted-wheel
+// spin-down it made the wheel model about eight times too high.
+constexpr uint32_t WHEEL_ECHO_PCT = 50;
 // [calc] The limiting case is not 10 km/h but the run-up: with 8 marks the
 // pulse spacing at 10 km/h is only 132 ms, but at 1 km/h it is 1.32 s. 2000 ms means
 // "slower than 0.64 km/h counts as standstill" — the ramp is above that after 1.3 s.
@@ -248,6 +259,18 @@ static_assert(TRACE_N >= TARE_SAMPLES, "run.cpp takes the tare peak-to-peak from
 // said 10 kg; that was wrong and, together with the 40-mm arm, would have destroyed
 // the cell when starting. Still read the nameplate and set the origin to [DS].
 constexpr float LOADCELL_CAPACITY_N = 49.03f;
+// [spec 2026-11-26] Load cell and amplifier as fitted, for the protocol's "Stand build"
+// section. Type from the builder's statement above; the board from docs/04-hardware.md §5.5.
+constexpr const char* LOADCELL_TYPE = "5 kg (nameplate not read)";
+constexpr const char* LOADCELL_AMP  = "HX711, SparkFun SEN-13879, RATE trace cut 2026-11-26";
+// [est] Calibration procedure (calib.h): averaging time per reading at standstill, at most
+// this many readings, and the masses offered as quick choices in the UI (builder's weights,
+// stated 2026-11-26; 1000 g certified, 500 and 200 g nominal until weighed).
+constexpr uint32_t CAL_AVG_MS     = 5000;
+constexpr uint8_t  CAL_MAX_POINTS = 16;
+constexpr uint16_t CAL_MASSES_G[] = {200, 500, 1000};
+// [spec] Longest stand revision text (settings::standRev), characters.
+constexpr uint16_t STAND_REV_LEN = 160;
 
 // [TBD] CALIBRATION PENDING. As long as this value is 0, the firmware outputs
 // no forces and no Crr, only raw values. This is intentional:
@@ -293,6 +316,16 @@ constexpr uint8_t AVG_REVS_PER_POINT = 10;    // [est] whole revolutions
 // Crr drops markedly with tire temperature; without a defined warm-up,
 // comparisons between tires are not reliable.
 constexpr uint32_t WARMUP_MS = 1800000;
+// [est] The warm-up ends early once it has settled (2026-11-26): at least WARMUP_MIN_MS,
+// and the last WARMUP_STABLE_MIN minute values of the corrected torque M span at most
+// WARMUP_STABLE_NM, and the tire temperature (AIRSPY, if present) rises by at most
+// WARMUP_TTIRE_K_PER_MIN. WARMUP_MS stays the upper limit. Run 2026-11-26-1542 (SX-R,
+// 5 bar): minutes 8-12 and 13-17 spanned 0.014 Nm each, minutes 1-5 0.06 Nm; 0.025 Nm
+// is 0.055 N on F_roll at r = 0.452 m, Crr 0.0001 at 49.8 kg. To be checked over further runs.
+constexpr uint32_t WARMUP_MIN_MS          = 600000;
+constexpr uint8_t  WARMUP_STABLE_MIN      = 5;
+constexpr float    WARMUP_STABLE_NM       = 0.025f;
+constexpr float    WARMUP_TTIRE_K_PER_MIN = 0.2f;
 // [spec] Speed at which the warm-up counts, and the band around it.
 // WARMUP_KMH is PLATEAUS_KMH[1] — the same support point, for the same reason.
 constexpr float WARMUP_KMH = 28.8f;
@@ -327,12 +360,14 @@ constexpr float STANDARD_LOAD_N = 416.9f;
 // (tape measure on the beam, zero at the pivot axis). A measurement with the hanging scale at
 // the axle may override the value and thereby checks the lever model.
 // [meas 2026-11-23] 7.2 kg empty, 10.4 kg sliding weight, a = 20.2 cm, b = 84 cm -> 50.4 kg.
+// [meas 2026-11-26, builder] 10.46 kg sliding weight, a = 20.5 cm, b = 84 cm, fork preload
+// 1.7 kg at 84 cm (= 6.97 kg at the axle) -> 49.8 kg.
 // All three can be overridden at runtime (settings.h, Setup -> Wheel load).
-constexpr float LOAD_EMPTY_KG     = 7.2f;    // [meas] wheel and arm, weighed at the axle, without sliding weight
-constexpr float LOAD_WEIGHT_KG    = 10.4f;   // [meas] sliding weight
-constexpr float LOAD_ARM_A_M      = 0.202f;  // [meas] pivot -> wheel axle, horizontal
+constexpr float LOAD_EMPTY_KG     = 6.97f;   // [meas] wheel, arm and fork at the axle, without sliding weight: 1.7 kg at 84 cm x 0.84 / 0.205 (2026-11-26; 7.2 weighed until then)
+constexpr float LOAD_WEIGHT_KG    = 10.46f;  // [meas] sliding weight (2026-11-26; 10.4 until then)
+constexpr float LOAD_ARM_A_M      = 0.205f;  // [meas] pivot -> wheel axle, horizontal (2026-11-26; 0.202 until then)
 constexpr float LOAD_POS_DEFAULT_M = 0.84f;  // [meas] position of the sliding weight as of 2026-11-23
-// [calc] Default for settings::loadN, from the four values above: 494.3 N.
+// [calc] Default for settings::loadN, from the four values above: 488.7 N = 49.8 kg.
 constexpr float LOAD_DEFAULT_N = (LOAD_EMPTY_KG + LOAD_WEIGHT_KG * LOAD_POS_DEFAULT_M / LOAD_ARM_A_M) * 9.80665f;
 
 // [spec] Design upper limit of the rolling resistance coefficient. The test stand is
@@ -441,6 +476,10 @@ constexpr uint32_t WIZ_STEADY_MS = 3000;        // [est] this long steady at WIZ
 constexpr uint32_t WIZ_LIFT_CONFIRM_MS = 500;   // [est] this long below WIZ_SLIP_RATIO, then the wheel counts as lifted
 constexpr uint8_t SPINDOWN_MIN_REVS = 30;       // [est] fewer is not a fit
 constexpr float   SPINDOWN_MIN_KMH  = 5.0f;     // [est] the spin-down ends below this; standstill takes forever
+// [est] A fit whose residual exceeds this is rejected: the clean spin-down of 2026-11-26
+// (run 2026-11-26-1542, replayed with the wheel echo filter) left 0.043 rad/s, the same
+// data with one phantom pulse 32.8 rad/s.
+constexpr float   SPINDOWN_RESID_MAX_RADS = 0.5f;
 // SLOWING DOWN = BRAKING. If the setpoint is below the actual value, the duty cycle is
 // not lowered -- in FOC that is regeneration into the bus, and the
 // power supply absorbs nothing: 43.8 V, fault 1 on the step 40 -> 15 km/h on
@@ -474,6 +513,10 @@ constexpr uint32_t BRAKE_FAULT_HOLD_MS = 3000;    // [est] after a controller fa
 constexpr bool     RELAY_BRAKE_WIRED      = true;   // [spec] coil chain, emergency stop and Q1 wired per §9.1 on 2026-11-25
 constexpr uint32_t RELAY_DRIVER_OFF_MS    = 100;    // [est] controller released -> relays drop; one UART command and one controller cycle are milliseconds, 100 is reserve
 constexpr uint32_t RELAY_SETTLE_MS        = 100;    // [est] after pulling in, do not drive for this long, contacts finish bouncing
+// [est] Relay pulse test (relaytest.h, console X<n>): length of the quiet window and of the
+// window after the brake command. 2000 ms covers drop (RELAY_DRIVER_OFF_MS) and pull-in
+// (RELAY_RELEASE_STILL_MS after standstill) of one cycle.
+constexpr uint32_t RELAYTEST_WIN_MS       = 2000;
 constexpr uint32_t RELAY_RELEASE_STILL_MS = 1000;   // [est] this long at standstill, then the relays pull in again
 // REJECTED 2026-11-25: descents in the run via the relays, pulling in before the ramp target.
 // The weighing arm rattled considerably on opening and closing, mechanically unusable
@@ -492,10 +535,17 @@ constexpr uint32_t RUN_CTRL_AVG_MS   = 2000;      // [est] averaging time for th
 // measuring range) and BELOW the permissible overload of the cell (150 % FS).
 constexpr float    RUN_STOP_MIN_PCT  = 100.0f;    // [spec] below this the stop engages too early
 constexpr uint32_t RUN_TARE_SETTLE_MS = 300;      // [est] wait this long after the tare before the zero check starts
-constexpr float    RUN_CTRL_MIN_DELTA_COUNTS = 1.0f; // [est] less deflection at the check weight is none (W18)
 constexpr uint32_t RUN_WARM_LIVE_MAX_MS = 60000;  // [est] an older live value does not go into the warm-up table
 constexpr float    RUN_STOP_MAX_PCT  = 140.0f;    // [spec] above this it does not protect the cell (cell: 150 % permissible)
 constexpr float    RUN_STOP_BAR_PCT  = 160.0f;    // [spec] scale end of the bar in the web UI
+// Measuring range of the torque signal (tire + idle losses) for the green band of the
+// utilization scale under Manual (2026-11-26); in % via the torque arm and full scale.
+constexpr float    MEAS_TORQUE_MIN_NM = 0.5f;     // [calc] docs/09-measurement-theory.md §5: signal 0.5 to 1.4 Nm
+constexpr float    MEAS_TORQUE_MAX_NM = 1.4f;     // [calc] same source, upper end
+// [est] Idle-loss points per speed in the pre- and post-run (2026-11-26): W08 compares
+// their means. With one point each, run 2026-11-26-1542 compared single values whose
+// difference lay within the noise of one point.
+constexpr uint8_t  RUN_BASELINE_POINTS = 2;
 constexpr float    RUN_DRIFT_LIMIT_N = 0.02f;     // [calc] docs/09-measurement-theory.md §8.8: pre-/post-run on F_roll, above this W08
 constexpr float    RUN_ANCHOR_WARN_N = 0.03f;     // [est] anchor drift on F_roll (reference point before and after the plateaus), above this W04
 // ZERO POINT, checked twice (docs/11-review.md K2, W6):
@@ -518,6 +568,9 @@ constexpr float    RUN_ANCHOR_WARN_N = 0.03f;     // [est] anchor drift on F_rol
 constexpr float    RUN_ZERO_LIMIT_N  = 0.25f;     // [est] above this W13 or W14
 constexpr uint32_t RUN_ZERO_AVG_MS   = 2000;      // [est] averaging time of the zero checks
 constexpr float    RUN_TURN_DEG       = 90.0f;     // [est] zero check: the drum is turned on by hand this far (monitored via the controller's tachometer)
+// [est] Accepted short of RUN_TURN_DEG (builder, 2026-11-26: "88 or so"). The tachometer
+// counts 4 degrees per step (VESC_TACHO_PER_REV = 90), so 88 passes, 84 does not.
+constexpr float    RUN_TURN_TOL_DEG   = 5.0f;
 constexpr uint32_t RUN_TURN_STANDSTILL_MS  = 1500;      // [est] then still for this long before the Measure button appears (no automatic start since 2026-11-26)
 // Type B components of the uncertainty per point (R9), relative. Origin docs/03-parameters.md.
 constexpr float    UNC_K_REL     = 0.002f;        // [est] calibration factor: check weight 0.05 %, averaging, linearity
@@ -569,7 +622,7 @@ constexpr bool     ESTOP_FB_WIRED   = false;
 //   GPIO 22…25  do not exist on the S3
 // The old assignment came from the classic ESP32 and, with 25/26/27/32/33/34/35/22,
 // lay almost entirely on reserved or non-existent pins.
-// The authority is hardware/schaltplan.py — all peripherals are wired there,
+// The authority is hardware/schematic.py — all peripherals are wired there,
 // including the parts the firmware does not touch yet.
 
 constexpr uint8_t PIN_MARK       = 4;   // drum speed marks (interrupt), 8/rev
@@ -593,7 +646,7 @@ constexpr uint8_t PIN_STATUS_LED = 48;  // addressable RGB LED of the DevKit, se
 // microSD on SPI2 (FSPI), since 2026-11-25. These are the pins of the IO-MUX direct connection
 // of SPI2 (FSPICS0/FSPID/FSPICLK/FSPIQ) — no detour via the GPIO matrix — and
 // at the same time the SPI default of the DevKitC-1. Wiring via a microSD-to-SD
-// adapter: docs/04-hardware.md §15, hardware/sdplan.py.
+// adapter: docs/04-hardware.md §15, hardware/sd_plan.py.
 constexpr uint8_t PIN_SD_MOSI    = 11;  // SD contact 2 (CMD/DI)
 constexpr uint8_t PIN_SD_SCK     = 12;  // SD contact 5 (CLK)
 constexpr uint8_t PIN_SD_MISO    = 13;  // SD contact 7 (DAT0/DO), 10 kOhm pull-up
@@ -610,7 +663,7 @@ constexpr uint8_t PIN_BRAKE_RELEASE = 40;
 // [TBD] Which sensor type it is remains open (A5) — that only decides which
 // curve is set in the VESC Tool, no longer where the wire goes.
 
-// PIN_HX7112_DOUT is reserved and wired in hardware/schaltplan.py, but not yet used
+// PIN_HX7112_DOUT is reserved and wired in hardware/schematic.py, but not yet used
 // by the firmware. It is listed here so that the assignment is maintained in exactly
 // one place.
 //
@@ -621,7 +674,9 @@ constexpr uint8_t PIN_BRAKE_RELEASE = 40;
 //
 // SPI clock of the microSD. [spec] 10 MHz: flying leads to the adapter tolerate
 // less than the default 20 MHz; about 2 kB/s of raw data are needed. On
-// read errors halve this value first.
+// read errors halve this value first. Set explicitly after the card's init
+// (storage.cpp sdSetClock): the driver alone knows only 20 MHz and up and fell
+// back to 400 kHz until 2026-11-26.
 constexpr uint32_t SD_SPI_KHZ          = 10000;
 constexpr uint32_t STORAGE_CHECK_MS    = 2000;    // [spec] check SD inserted/removed
 constexpr uint32_t STORAGE_STATS_MS    = 10000;   // [spec] recalculate usage (LittleFS walks through all blocks for this)
@@ -931,10 +986,14 @@ constexpr int32_t VESC_ERPM_STEP_LARGE = 1000;  // [spec] coarse approach
 // NOT work, neopixelWrite() initialises RMT once for the pin of the first call.
 constexpr uint8_t  STATUS_LED_DIV       = 6;     // [spec] divide brightness; the
                                                  // LED is dazzling on the table otherwise
-// The LED shows the state of the OPERATOR CONNECTION:
-// green = an operator device is checking in, red blinking = waiting.
-// This makes the dead man's switch visible from three metres away.
-constexpr uint32_t STATUS_BLINK_MS      = 700;   // [spec] half period red
+// The LED shows the operator connection and the raw-data recording (2026-11-26):
+//   blue, blinking slowly   -- waiting for an operator device (dead man's switch open)
+//   green, steady           -- an operator device is checking in
+//   red, blinking fast      -- raw data are being recorded (connected)
+//   red / blue alternating  -- recording, but no operator device
+// Visible from three metres away; red is used for nothing else.
+constexpr uint32_t STATUS_BLINK_MS      = 1200;  // [spec] half period of the blue waiting blink (700 ms red until 2026-11-26)
+constexpr uint32_t STATUS_REC_BLINK_MS  = 300;   // [spec] half period of the red recording blink
 
 // --------------------------------------------------------------------- LCD
 

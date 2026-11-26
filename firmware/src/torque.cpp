@@ -94,6 +94,10 @@ void finishTare() {
   resetAccumulator();
 }
 
+// Samples actually read since boot, for the measured rate (console i).
+uint32_t g_sampleCount = 0;
+uint32_t readsTotal() { return g_sampleCount; }
+
 bool update() {
   // Emergency exit for a silent HX711: BEFORE waiting for ready(). Until 2026-11-25
   // the check came after the read and was only reachable if a value did arrive --
@@ -101,6 +105,7 @@ bool update() {
   if (g_tareBusy && (millis() - g_tareStartMs) > TARE_TIMEOUT_MS) finishTare();
   if (!ready()) return false;
   g_raw = readRaw();
+  g_sampleCount++;
   g_haveValue = true;
   g_lastValueMs = millis();
 

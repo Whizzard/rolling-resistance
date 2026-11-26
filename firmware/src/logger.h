@@ -28,8 +28,8 @@ void angleBins();
 
 void note(const char* text);
 // Like note(), but marked as an error: refusals, aborts, FAULT. The user interface
-// colours by this, no longer by the first word (until 2026-11-25 main.cpp guessed from
-// the German words "nicht", "kein", "Abbruch" ...).
+// colours by this, no longer by the first word (until 2026-11-25 main.cpp guessed it
+// from the wording of the then German messages).
 void fail(const char* text);
 const char* lastNote();    // last text passed, for the user interface
 bool lastNoteBad();        // true if it came via fail()

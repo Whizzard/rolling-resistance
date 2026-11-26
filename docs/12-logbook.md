@@ -10,6 +10,34 @@ Days with only design or documentation work are left out.
 
 ## 2026-11-26
 
+**SD card swapped, SD clock found at 400 kHz.** File transfers over USB ran at about
+45 kB/s; the SPI clock register showed 400 kHz instead of the configured 10 MHz (the
+driver raises the clock only in steps from 20 MHz upward). Set explicitly since then:
+about 1 MB/s read (`SD_SPI_KHZ`, [03-parameters](03-parameters.md)). The old card's files
+were backed up off the repo before the swap; the new card (64 GB) was formatted FAT32 on
+the stand. Load-cell calibration became its own guided procedure with a calibration book
+on the SD; the check weight in a run no longer replaces the factor.
+
+**Second complete run with full raw logging** (SX-R 42-406, Vittoria latex, 4.99 bar,
+49.8 kg, run `2026-11-26-1542` on the stand's SD). Check weight 0.55 % off the calibration,
+the old +24 % riddle gone with L_cal 340 mm on the 85 mm arm. Findings from the raw log:
+the wheel model from the lifted-wheel spin-down was about eight times too high (a single
+spurious wheel pulse at the lift, and the model form A + B·ω²), which drove the corrected
+Crr negative; re-evaluated from the pulses, about 0.005 at 28.8 km/h. The HX711 ran at
+10.5 SPS: the RATE jumper on the SparkFun board is closed from the factory; cut by the
+builder, since then 83.8 values/s with the same averaged noise
+([04-hardware](04-hardware.md) §5.5). Wheel load newly measured: 10.46 kg at 84 cm, arm
+20.5 cm, fork 1.7 kg at 84 cm, 49.8 kg.
+
+**Short run with the fixes** (run `2026-11-26-1651`, SX-R, 15 and 28.8 km/h, 80 SPS): Crr
+corrected 0.00447 / 0.00480, wheel model from the spin-down clean (A1 0.021 Nm, residual
+0.068 rad/s). The check weight read 2.0 % off the calibration and was adopted as the new
+factor (W18); the day before it was 0.55 % at 10 SPS. Warm-up flat from minute 7 in the
+minute means of the raw log. Relay pulse test at standstill (console `X5`): no edge on
+any input, load cell unaffected; the phantom wheel and mark pulses come only when the
+relays short the motor while the drum turns (18 and 27 ms after the drop in this run),
+and the echo filters caught them.
+
 Work on the desk, not at the stand:
 
 - **Web UI and run sequence** revised: tabs Manual · Measure · Setup, trend arrow next
@@ -27,6 +55,19 @@ Work on the desk, not at the stand:
 - **Wheel profiles:** lists of tires, tubes, rims and hubs in the flash, dropdowns in
   step 1, editing under Setup; each combination keeps its own wheel model, mass and J.
   The field "wheel" became rim + hub.
+- **Storage on the SD card in use:** one directory per run or manual recording under
+  `/vmrr/<date-time>/` (raw log, protocol, points), file browser in the web UI with a
+  raw-file viewer, recording by hand from Manual. Two bugs found at the stand on the way:
+  *.zip* downloads answered "not found", and formatting a readable card did nothing.
+  [10-firmware](10-firmware.md) §11.
+- Repository fully in English: German identifiers and file names removed from firmware, web UI,
+  tools (`tools/console.py`) and `hardware/` (generators, exports and FreeCAD object names
+  regenerated). Beam rider for the check weight redesigned with snap claws, the M6 screws
+  only clamp ([04-hardware](04-hardware.md) §7.11); not printed yet.
+- At the stand: drum marks and wheel count about 1200 edges/s at standstill, the same rate
+  on both inputs; index and motor Hall quiet. Cause open.
+- Firmware of commit f6ccf63 flashed. SD card at the stand: FAT, 3814 MB, "ready";
+  write test with the console (`L1`, 5 s, `L0`): `/raw/up23.rrl`, 118562 B, 0 B dropped.
 - Requirement F8a ([01-requirements](01-requirements.md)) extended: raw logging of the
   whole run, preparation, tare and check-weight calibration included, for checking
   suspected errors in the procedure later and as a reference.
@@ -59,10 +100,10 @@ Work on the desk, not at the stand:
   pressure, run id); a stored one may be taken only for the same wheel (pressure series).
   Fixed: a stored model counted as "from this run" when the spin-down failed.
 - **Cup for the check weight** designed: Ø 50 × 50 inside, 1.5 mm wall, one M6 button
-  head in a counterbore in the floor. `hardware/gewichtsbecher.py`,
+  head in a counterbore in the floor. `hardware/weight_cup.py`,
   [04-hardware](04-hardware.md) §7.13. Not yet printed.
 - **SD wiring drawing** redrawn: one straight wire per contact to its ESP32 pin,
-  pull-ups and decoupling capacitors drawn as parts. `hardware/sdplan.pdf`,
+  pull-ups and decoupling capacitors drawn as parts. `hardware/sd-plan.pdf`,
   [04-hardware](04-hardware.md) §15.
 - Run hint starts with the yellow warning sign and "Keep clear." whenever the drum
   turns under power (not in step 4, where it is turned by hand).

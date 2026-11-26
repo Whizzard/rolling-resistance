@@ -52,6 +52,10 @@ void service();                       // cyclic, non-blocking
 
 bool command(const char* text);       // everything after the 'R'; false = refused
 bool active();                        // step 1..14 or abort visible
+// A run that is still measuring: active() minus the report / abort page at the end.
+// Downloads, the SD listing, formatting and the raw log go by this (2026-11-26).
+bool busy();
+const char* id();                     // run id = session directory under storage::ROOT_DIR, "" if none
 uint8_t step();                       // 0 off, 1..14, 99 aborted
 
 // State of the run for /api/run, JSON into the buffer.

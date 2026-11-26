@@ -1,7 +1,13 @@
+extern "C" {
+#include "heatshrink_encoder.h"
+}
+#include "relaytest.h"
 #include "console.h"
+#include "calib.h"
 
 
 #include "config.h"
+#include "profiles.h"
 #include "calc/linfit.h"
 #include "calc/loss.h"
 #include "calc/json.h"
@@ -23,6 +29,7 @@
 #include "run.h"
 #include "storage.h"
 #include "rawlog.h"
+#include "calc/crc32.h"
 
 namespace console {
 namespace {
@@ -69,7 +76,7 @@ const char* currentError() {
 }
 
 // Live telemetry to the console (command j<s>): one line every 200 ms, for s
-// seconds. For debugging over USB -- tools/konsole.py records it.
+// seconds. For debugging over USB -- tools/console.py records it.
 uint32_t g_liveUntil = 0, g_liveLast = 0;
 
 // Longest loop round since the last query. The web server can block the main
@@ -85,8 +92,8 @@ void telemetry() {
   g_liveLast = now;
   const vesc::Values& v = vesc::values();
   Serial.print("# J ");      Serial.print(now);
-  Serial.print(" ist=");     Serial.print(revsrc::kmh(), 1);
-  Serial.print(" rampe=");   Serial.print(speedctl::rampKmh(), 1);
+  Serial.print(" actual=");  Serial.print(revsrc::kmh(), 1);
+  Serial.print(" ramp=");    Serial.print(speedctl::rampKmh(), 1);
   Serial.print(" duty=");    Serial.print(speedctl::duty(), 3);
   Serial.print(" erpm=");    Serial.print(v.erpm);
   Serial.print(" imot=");    Serial.print(v.currentMotor, 2);
@@ -98,7 +105,7 @@ void telemetry() {
   torque::displayStats(mean, ripple);
   Serial.print(" counts=");  Serial.print(mean);
   const live::Result lv = live::result();
-  Serial.print(" konst=");   Serial.print(live::steady() ? 1 : 0);
+  Serial.print(" steady=");  Serial.print(live::steady() ? 1 : 0);
   Serial.print(" pw=");      if (isnan(lv.pW)) Serial.print("-"); else Serial.print(lv.pW, 1);
   Serial.print(" crr=");     if (isnan(lv.crr)) Serial.print("-"); else Serial.print(lv.crr, 4);
   Serial.print(" loopmax="); Serial.print(g_loopMaxMs);
@@ -114,7 +121,7 @@ void printHelp() {
   Serial.println("#   c       let it coast down        q  acknowledge fault");
   Serial.println("#   m0      baseline run (wheel lifted)    m1  measurement run");
   Serial.println("#   h<kmh>  add measurement speed          h-<kmh>  remove");
-  Serial.println("#   t       tare load cell          k<kg>  calibrate (console only)   K<kg>  check weight");
+  Serial.println("#   t       tare load cell          k<kg>  calibrate (also web)   K<kg>  check weight");
   Serial.println("#   l<N>    wheel load              p<bar> tire pressure");
   Serial.println("#   d<m>    drum circumference      a<m>   cell arm");
   Serial.println("#   b<m>    calibration arm         z      reset settings");
@@ -125,10 +132,16 @@ void printHelp() {
   Serial.println("#   g       reset sensor counters (wiring test)");
   Serial.println("#   j<s>    live telemetry, every 200 ms, s seconds (default 5)");
   Serial.println("#   L1 / L0 raw data on / off (SD only; automatic in a measurement run)");
-  Serial.println("#   Fs / Ff format SD / flash -- ONLY if unreadable, erases everything on it");
+  Serial.println("#   Fs / Ff format SD (also readable) / flash (only if unreadable) -- erases everything on it\n"
+  "#   D       list /vmrr on the SD (sessions and their files); D<file> prints a text file below /vmrr");
+  Serial.println("#   G?<dir> / G<path> <off> <len>  file transfer, for tools/console.py --get");
+  Serial.println("#   C0 / Cm<kg> / Cz / Ce / Ca / Cx  calibration: zero, load with mass, zero, evaluate, accept, cancel");
+  Serial.println("#   X<n>    relay pulse test at standstill: n drop/pull-in cycles, edges and load cell per cycle");
+  Serial.println("#   B<text> stand revision (free text into every protocol), B alone clears");
   Serial.println("#   n<A0> <B0>  set baseline model (m0 fits it itself)");
   Serial.println("#   w<A1> <B1>  set wheel loss model   y<kg>  wheel mass");
   Serial.println("#   Y<kgm2>  J_wheel MEASURED (bifilar pendulum), Y0 clears -> estimate 0.85 m r^2");
+  Serial.println("#   P<T/U/R/H>| name | ... |  tire/tube/rim/hub entry as a row of /vmrr/wheels.md");
   Serial.println("#   Ae<kg> Aw<kg> Aa<m>  lever balance: empty weight, sliding weight, wheel arm   Ap<m>  position -> wheel load");
   Serial.println("#   u       assistant spin-down + baseline (drum up, wheel lifted); uq acknowledges");
   Serial.println("#   :<text> terminal command to the controller (faults, hall_analyze 5, ...)");
@@ -257,8 +270,15 @@ void printStatus() {
     Serial.println("#          WARNING sensor connector: TMP open. The Hall wires"
                    " are in the same connector, so they are suspect too.");
 
+  // Measured read rate over the last call of i (HX711_RATE_SPS is what the RATE pin
+  // should give; the main loop may read fewer).
+  static uint32_t lastN = 0, lastMs = 0;
+  const uint32_t nNow = torque::readsTotal(), msNow = millis();
+  const float sps = (lastMs && msNow > lastMs) ? (nNow - lastN) * 1000.0f / (msNow - lastMs) : NAN;
+  lastN = nNow; lastMs = msNow;
   Serial.print("# Cell     ");
   if (torque::isResponding()) {
+    if (!isnan(sps)) { Serial.print(sps, 1); Serial.print(" values/s | "); }
     Serial.print("OK | "); Serial.print(mean);
     Serial.print(" counts | peak-to-peak "); Serial.print(ripple);
     Serial.print(" | zero ");  Serial.print(torque::tareOffset());
@@ -414,10 +434,8 @@ void calibrate(float kg) {
   const float f = kg * 9.80665f * settings::calibArmM() / settings::torqueArmM();
   const float nPerCount = f / static_cast<float>(delta > 0 ? delta : -delta);
 
-  if (!settings::setLoadcellNPerCount(nPerCount)) {
-    fail("Factor implausible");
-    return;
-  }
+  if (!settings::npcPlausible(nPerCount)) { fail("Factor implausible"); return; }
+  if (!calib::singlePoint(nPerCount)) return;
   snprintf(g_note, sizeof(g_note),
            "calibrated: %.1f N over %ld counts  ->  %.8f N/count", f, delta, nPerCount);
   Serial.print("# "); Serial.println(g_note);
@@ -427,6 +445,131 @@ void calibrate(float kg) {
 }
 
 // The same command vocabulary for console and web UI (docs/10-firmware.md G5).
+
+// File transfer over USB (tools/console.py --get, 2026-11-26). Text lines that a
+// line-based reader can pick out between other output (other tasks print too):
+//   G?<dir>                  ->  "=L <size> <name>" per entry ("/" after directories), "=E"
+//   G<path> <offset> <len>   ->  "=G <offset> <base64 of up to 384 bytes> <crc32 hex>" lines,
+//                                then "=E <next offset> <file size>"
+//   Gz<path> <offset> <len>  ->  the same range heatshrink-compressed (window 2^10, lookahead
+//                                2^5, lib/heatshrink): "=Z <n> <base64> <crc32 hex>" lines of
+//                                the compressed stream, then "=E <next offset> <file size>".
+//                                Each request is compressed on its own, so a retry is simple.
+// <path> lies below /vmrr on the SD. One request blocks the main loop for its length
+// (at most GET_CHUNK_MAX bytes; native USB, the baud rate does not apply), so only at standstill
+// and outside a measurement run; the client asks chunk by chunk and repeats a chunk
+// whose CRC does not match.
+namespace {
+// 2026-11-26: 16 kB per request and 384 bytes per line instead of 3 kB / 48 bytes; the
+// first version ran at 8 kB/s, mostly per-request and per-line overhead.
+constexpr size_t GET_CHUNK_MAX = 16384;
+constexpr size_t GET_LINE = 384;
+constexpr size_t GET_READ = 8192;   // SD read block; larger blocks were not faster (2026-11-26)
+constexpr size_t GET_ZCHUNK_MAX = 32768;   // raw bytes per compressed request (about 9 kB on the line)
+const char B64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+void b64(const uint8_t* p, size_t n, char* out) {
+  size_t o = 0;
+  for (size_t i = 0; i < n; i += 3) {
+    const uint32_t v = (uint32_t(p[i]) << 16) | (i + 1 < n ? uint32_t(p[i + 1]) << 8 : 0) | (i + 2 < n ? p[i + 2] : 0);
+    out[o++] = B64[(v >> 18) & 63]; out[o++] = B64[(v >> 12) & 63];
+    out[o++] = i + 1 < n ? B64[(v >> 6) & 63] : '=';
+    out[o++] = i + 2 < n ? B64[v & 63] : '=';
+  }
+  out[o] = '\0';
+}
+// Compressed variant: raw range -> heatshrink -> lines of up to GET_LINE compressed bytes.
+heatshrink_encoder g_hse;
+uint8_t g_zLine[GET_LINE];
+size_t g_zN = 0, g_zIdx = 0;
+void zFlush() {
+  if (!g_zN) return;
+  static char ln[GET_LINE / 3 * 4 + 40];
+  int k = snprintf(ln, sizeof(ln), "=Z %lu ", (unsigned long)g_zIdx++);
+  b64(g_zLine, g_zN, ln + k); k += strlen(ln + k);
+  k += snprintf(ln + k, sizeof(ln) - k, " %08lx\n", (unsigned long)calc::crc32(0, g_zLine, g_zN));
+  Serial.write(reinterpret_cast<const uint8_t*>(ln), k);
+  g_zN = 0;
+}
+void zDrain() {
+  size_t got;
+  do {
+    got = 0;
+    heatshrink_encoder_poll(&g_hse, g_zLine + g_zN, GET_LINE - g_zN, &got);
+    g_zN += got;
+    if (g_zN == GET_LINE) zFlush();
+  } while (got);
+}
+void zPut(uint8_t* p, size_t n) {
+  while (n) {
+    size_t used = 0;
+    heatshrink_encoder_sink(&g_hse, p, n, &used);
+    p += used; n -= used;
+    zDrain();
+  }
+}
+void zEnd() {
+  while (heatshrink_encoder_finish(&g_hse) == HSER_FINISH_MORE) zDrain();
+  zFlush();
+}
+
+void fileGet(const String& cmd) {
+  if (run::busy() || state::phase() != state::IDLE || revsrc::kmh() > 0.5f) { Serial.println("=X busy: only at standstill, outside a run"); return; }
+  const bool list = cmd.length() > 1 && cmd[1] == '?';
+  const bool z = cmd.length() > 1 && cmd[1] == 'z';
+  String rest = cmd.substring(list || z ? 2 : 1); rest.trim();
+  const int sp = rest.indexOf(' ');
+  const String path = sp < 0 ? rest : rest.substring(0, sp);
+  if (!path.startsWith(storage::ROOT_DIR) || path.indexOf("..") >= 0) { Serial.println("=X path must lie below /vmrr"); return; }
+  // Formatting holds the SD lock for minutes: waiting here would stall the main loop.
+  if (storage::info(storage::SD_CARD).formatting) { Serial.println("=X busy: SD formatting"); return; }
+  storage::lockSd();
+  fs::FS* f = storage::fs(storage::SD_CARD);
+  File h = f ? f->open(path, "r") : File();
+  if (!h) { storage::unlockSd(); Serial.println("=X not found"); return; }
+  if (list) {
+    if (!h.isDirectory()) { Serial.print("=L "); Serial.print((unsigned long)h.size()); Serial.print(' '); Serial.println(h.name()); }
+    else for (File x = h.openNextFile(); x; x = h.openNextFile()) {
+      Serial.print("=L "); Serial.print((unsigned long)(x.isDirectory() ? 0 : x.size())); Serial.print(' ');
+      Serial.print(x.name()); Serial.println(x.isDirectory() ? "/" : "");
+    }
+    h.close(); storage::unlockSd(); Serial.println("=E"); return;
+  }
+  if (h.isDirectory()) { h.close(); storage::unlockSd(); Serial.println("=X is a directory"); return; }
+  unsigned long off = 0, len = GET_CHUNK_MAX;
+  if (sp >= 0) sscanf(rest.c_str() + sp + 1, "%lu %lu", &off, &len);
+  if (len > (z ? GET_ZCHUNK_MAX : GET_CHUNK_MAX)) len = z ? GET_ZCHUNK_MAX : GET_CHUNK_MAX;
+  const size_t size = h.size();
+  if (off > size) off = size;
+  h.seek(off);
+  // Read in blocks. The card delivers about 48 kB/s over SPI at 10 MHz whatever the block
+  // size (384 B, 8 kB and 32 kB measured on 2026-11-26): the SD limits the transfer.
+  static uint8_t buf[GET_READ]; static char ln[GET_LINE / 3 * 4 + 40];
+  size_t done = 0;
+  uint32_t tRead = 0; const uint32_t t0 = micros();
+  if (z) { heatshrink_encoder_reset(&g_hse); g_zN = 0; g_zIdx = 0; }
+  while (done < len) {
+    const size_t want = len - done < sizeof(buf) ? len - done : sizeof(buf);
+    const uint32_t tr = micros();
+    const size_t n = h.read(buf, want);
+    tRead += micros() - tr;
+    if (!n) break;
+    if (z) { zPut(buf, n); done += n; continue; }
+    for (size_t i = 0; i < n; i += GET_LINE) {
+      const size_t m = n - i < GET_LINE ? n - i : GET_LINE;
+      int k = snprintf(ln, sizeof(ln), "=G %lu ", off + done + i);
+      b64(buf + i, m, ln + k); k += strlen(ln + k);
+      k += snprintf(ln + k, sizeof(ln) - k, " %08lx\n", (unsigned long)calc::crc32(0, buf + i, m));
+      Serial.write(reinterpret_cast<const uint8_t*>(ln), k);
+    }
+    done += n;
+  }
+  if (z) zEnd();
+  h.close(); storage::unlockSd();
+  // Behind the two numbers the client needs: time spent reading the SD and in total, ms.
+  Serial.printf("=E %lu %lu %lu %lu\n", off + done, (unsigned long)size, (unsigned long)(tRead / 1000), (unsigned long)((micros() - t0) / 1000));
+}
+}  // namespace
+
 void handleCommand(const String& cmd) {
   if (cmd.length() == 0) return;
   const float arg = cmd.substring(1).toFloat();
@@ -434,6 +577,15 @@ void handleCommand(const String& cmd) {
   // Pass-through to the controller, only sensible from the console (vesc.h).
   if (cmd[0] == ':') { vesc::terminal(cmd.c_str() + 1); return; }
   // Guided run (run.h). Whoever starts it is subject to the dead-man check.
+  if (cmd == "Gb") { if (run::busy() || state::phase() != state::IDLE || storage::info(storage::SD_CARD).formatting) Serial.println("# SD bench: only at standstill"); else storage::sdBench(); return; }
+  if (cmd[0] == 'C' && cmd.length() > 1) { calib::command(cmd.c_str() + 1); return; }
+  if (cmd[0] == 'G') { fileGet(cmd); return; }
+  if (cmd[0] == 'X') { relaytest::start(static_cast<uint8_t>(constrain(cmd.substring(1).toInt(), 1, 20))); return; }
+  if (cmd[0] == 'B') {   // stand revision, free text; "B" alone clears it
+    if (settings::setStandRev(cmd.c_str() + 1)) note(cmd.length() > 1 ? "Stand revision set" : "Stand revision cleared");
+    else fail("Stand revision too long");
+    return;
+  }
   if (cmd[0] == 'R') {
     if (cmd.length() == 1) webui::setWebOperator(webui::inWebCommand());
     if (!run::command(cmd.c_str() + 1)) fail(logger::lastNote()[0] ? logger::lastNote() : "Run refused");
@@ -584,6 +736,11 @@ void handleCommand(const String& cmd) {
       if (settings::setWheelMassKg(arg)) note("Wheel mass set");
       else                                fail("Wheel mass implausible");
       break;
+    case 'P': {   // P<T|U|R|H>| name | ... |  list entry as a wheels.md row (profiles.h)
+      const char* why = "";
+      if (profiles::addRow(cmd.length() > 1 ? cmd[1] : 0, cmd.c_str() + (cmd.length() > 1 ? 2 : 1), &why)) note("Parts entry set");
+      else fail(why);
+      break; }
     case 'Y':
       if (settings::setWheelJKgm2(arg)) note(arg == 0.0f ? "J_wheel cleared, estimate used" : "J_wheel set");
       else                               fail("J_wheel implausible (0.01 to 2 kg m^2)");
@@ -613,7 +770,32 @@ void handleCommand(const String& cmd) {
       if (arg > 0.0f) { if (rawlog::start()) note("Raw data on"); else fail(logger::lastNote()); }
       else rawlog::stop();
       break;
-    case 'F': {   // format, only an UNREADABLE medium (storage.h): Fs SD, Ff flash
+    case 'D': {   // list /vmrr on the SD, two levels (storage.h layout); not during a run
+      if (run::busy()) { fail("Not during a run"); break; }
+      if (storage::info(storage::SD_CARD).formatting) { fail("SD formatting"); break; }   // holds the lock for minutes
+      storage::lockSd();
+      fs::FS* f = storage::fs(storage::SD_CARD);
+      File root = f ? f->open(storage::ROOT_DIR) : File();
+      if (!root || !root.isDirectory()) { storage::unlockSd(); fail("No /vmrr on the SD"); break; }
+      if (cmd.length() > 1) {   // D<name>: print a text file below /vmrr, at most 16 kB
+        String path = String(storage::ROOT_DIR) + "/" + cmd.substring(1);
+        File t = f->open(path, "r");
+        if (!t || t.isDirectory() || t.size() > 16384) { if (t) t.close(); storage::unlockSd(); fail("No such text file"); break; }
+        while (t.available()) { String ln = t.readStringUntil('\n'); Serial.print("# | "); Serial.println(ln); }
+        t.close(); storage::unlockSd(); break;
+      }
+      Serial.print("# SD "); Serial.print(storage::info(storage::SD_CARD).fsType); Serial.print(" "); Serial.println(storage::ROOT_DIR);
+      for (File d = root.openNextFile(); d; d = root.openNextFile()) {
+        Serial.print("#   "); Serial.print(d.name()); Serial.println(d.isDirectory() ? "/" : "");
+        if (!d.isDirectory()) continue;
+        for (File x = d.openNextFile(); x; x = d.openNextFile()) {
+          Serial.print("#     "); Serial.print(x.name()); Serial.print("  "); Serial.print(static_cast<unsigned long>(x.size())); Serial.println(" B");
+        }
+      }
+      storage::unlockSd();
+      break;
+    }
+    case 'F': {   // format (storage.h): Fs SD (also readable, not during a run), Ff flash (only unreadable)
       const char m = cmd.length() > 1 ? cmd[1] : '?';
       if (m != 's' && m != 'f') { fail("Fs or Ff"); break; }
       const char* why = "";
@@ -634,7 +816,7 @@ void handleCommand(const String& cmd) {
 void pollSerial() {
   // 1100 characters: a controller configuration as hex (>0d + 493 bytes) must fit.
   static char line[1100];
-  static uint8_t n = 0;
+  static uint16_t n = 0;   // was uint8_t until 2026-11-26: lines over 255 characters wrapped
   while (Serial.available()) {
     const char c = Serial.read();
     if (c == '\n' || c == '\r') {

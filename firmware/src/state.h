@@ -66,7 +66,8 @@ void endHold();                // HOLD -> IDLE, the drive stays as it is
 // With callbacks (guided measurement run, run.cpp step 6): the idle-loss points go
 // to onPoint, the end to onDone, and the drum then stays in HOLD instead of coasting
 // down -- the caller brakes. Without callbacks as before (Setup).
-void startWizard(PointFn onPoint = nullptr, SeqDoneFn onDone = nullptr);
+// kmh/n: the plateaus of the guided run (its speed choice); null = all Setup speeds.
+void startWizard(PointFn onPoint = nullptr, SeqDoneFn onDone = nullptr, const float* kmh = nullptr, uint8_t n = 0);
 uint8_t wizardStep();
 void wizardAck();      // acknowledge step 4
 

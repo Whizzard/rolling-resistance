@@ -97,8 +97,8 @@ are the same on the serial console and in the web UI.
    computes J and stores it; or the result directly with `Y<kgm2>` or *Setup → J_wheel
    measured*. **Open** — without it the firmware uses 0.85·m·r² with ±10 % and states
    so in the report.
-5. **Wheel spin-down** per wheel → `A₁`, `B₁`: step 6 of the guided run (*Neu fahren*), or
-   standalone as *Assistant spin-down + idle* under Setup — same mechanics, same result;
+5. **Wheel spin-down** per wheel → `A₁`, `B₁`: step 6 of the guided run (*Measure new*), or
+   standalone as *Wizard coast-down + no-load* under Setup — same mechanics, same result;
    the setup entry stays for a wheel check without a full run.
    Drum with the wheel resting on it up to 40 km/h, lift the wheel **while running**; the
    firmware fits `A₁ + B₁·ω²` over the **whole** spin-down (integral method) and prints
@@ -121,7 +121,7 @@ today** at the end. About two hours, of which 30 min warm-up. (11)
 > off), runs the idle pre-run baseline if needed, then on its own
 > warm-up, reference point, plateaus with three points each, reference point and stop,
 > optionally zero check and post-run baseline, and stores report and data under
-> `/runs/`. Every point is corrected by `J·dω/dt`; pressure and tire temperature come
+> `/vmrr/<id>/`. Every point is corrected by `J·dω/dt`; pressure and tire temperature come
 > from the AirSpy ([11-review](11-review.md)). The steps below
 > remain the reference for what the human does meanwhile. **Not yet run on the stand.**
 
@@ -224,7 +224,7 @@ today** at the end. About two hours, of which 30 min warm-up. (11)
 
 ### B9 Evaluation and acceptance
 
-1. `python3 analysis/crr.py data/<datei>.csv`
+1. `python3 analysis/crr.py data/<file>.csv`
 2. **Reject** if the post-run baseline deviates from the pre-run baseline at any support
    point by more than **0.02 N** (referred to `F_roll`) (W08), or if zero (W13, W14) or
    reference point (W04) exceed the limit. `crr.py` shows the warnings. (18)

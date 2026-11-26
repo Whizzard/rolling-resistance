@@ -105,7 +105,7 @@ cp firmware/src/secrets.example.h firmware/src/secrets.h   # then set the passwo
 cd firmware && pio run -e esp32s3
 pio run -t upload && pio device monitor -b 115200
 
-# Evaluate a run record downloaded from http://tire.local/runs
+# Evaluate a run record (points.csv) downloaded from the file browser, Setup > Storage
 python3 analysis/crr.py data/2026-11-24-1530.csv
 
 # Consistency checks: every constant documented, every link valid

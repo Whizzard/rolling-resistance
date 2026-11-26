@@ -11,10 +11,11 @@ A knowledge-base mirror of the documentation existed until 2026-11-22 and was re
 The repository is the only source; there is nothing to synchronise.
 
 ## Logbook
-`docs/12-logbook.md` is kept up to date as part of the work: an entry (newest first, by
-date) for every event at the stand, milestone, measurement run, rebuild, notable change
-or commit, and whenever the builder names a point. Short, factual, with the source
-(commit, file under `data/`, document section); no value without a source.
+`docs/12-logbook.md` is the project's diary: milestones and events at the stand
+(measurement runs, rebuilds, findings, what the builder names), newest first, one short
+high-level entry each, with the source (commit, file under `data/`, document section);
+no value without a source. **Not** every UI tweak or bug fix: that is what commit
+messages are for (builder, 2026-11-26).
 
 ## Units
 **SI throughout internally**: N, Nm, W, m, m/s, rad/s, s, Pa.

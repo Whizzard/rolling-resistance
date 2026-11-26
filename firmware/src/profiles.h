@@ -19,6 +19,11 @@
 // turns is written as soon as it stands. No fixed number of entries: the limit is
 // the flash (a few hundred bytes per profile).
 //
+// SD COPY (2026-11-26): the four lists are also kept as Markdown tables in
+// /vmrr/wheels.md on the SD card, editable on any computer; edits are taken over when the
+// card is mounted (CRC stamp at the end of the file tells an edited file from one the
+// stand wrote). Profiles stay in the flash only. Details in profiles.cpp.
+//
 // Format, one record per line, fields separated by TAB:
 //   T <name> <etrto> <epoch>        tire
 //   U <name> <maker> <model> <material> <epoch>                    tube
@@ -73,6 +78,9 @@ struct Profile {
 String missing(int i);
 
 void begin();      // after storage::begin()
+// Add or change one list entry from a Markdown table row as in wheels.md, e.g.
+// tag 'T', "| Schwalbe One | 28-406 |" (console P<tag><row>). false + why on bad input.
+bool addRow(char tag, const char* row, const char** why);
 void service();    // main loop: writes pending changes once the flash may be written
 
 // Index of the profile for exactly this combination, -1 if none. Names compare without

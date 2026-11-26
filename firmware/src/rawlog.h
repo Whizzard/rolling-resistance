@@ -33,7 +33,7 @@ bool active();                       // requested or file open
 bool manual();
 bool draining();                     // stopped, ring still being written
 storage::Media media();
-const char* fileName();              // "/raw/....rrl" or ""
+const char* fileName();              // "/vmrr/<session>/raw_<session>.rrl" or ""
 uint32_t bytesWritten();
 uint32_t bytesPending();             // still in the ring
 uint32_t bytesDropped();             // dropped since start

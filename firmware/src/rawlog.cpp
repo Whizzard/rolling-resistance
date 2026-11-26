@@ -1,4 +1,6 @@
+#include "build_id.h"
 #include "rawlog.h"
+#include "run.h"
 #include "config.h"
 #include "calc/rawlog.h"
 #include "calc/timefmt.h"
@@ -37,8 +39,8 @@ std::atomic<uint8_t> g_w{W_IDLE};
 std::atomic<const char*> g_err{nullptr};   // set by the task, reported by service()
 
 storage::Media g_media = storage::SD_CARD;
-char     g_file[48] = "";
-char     g_hdr[640];
+char     g_file[72] = "";
+char     g_hdr[1024];   // 2026-11-26: + commit, stand revision (up to 160), cell and lever
 size_t   g_hdrLen = 0;
 std::atomic<uint32_t> g_written{0};
 
@@ -93,19 +95,24 @@ void sync(uint32_t us) {
 // ------------------------------------------------------------------ Header
 void buildHeader() {
   char t[24]; calc::fmtTime(wallclock::now(), t, sizeof(t), true);
+  // Stand revision on one line: a line break would end the key.
+  char rev[STAND_REV_LEN + 1]; snprintf(rev, sizeof(rev), "%s", settings::standRev());
+  for (char* c = rev; *c; c++) if (*c == '\n' || *c == '\r') *c = ' ';
   const int n = snprintf(g_hdr, sizeof(g_hdr),
-    "format=rrl1\nfirmware=" __DATE__ " " __TIME__ "\nstart_local=%s\nunix_start_local=%lu\n"
+    "format=rrl1\nfirmware=" __DATE__ " " __TIME__ "\ncommit=" FW_COMMIT "\nstand_rev=%s\nstart_local=%s\nunix_start_local=%lu\n"
     "time_unit=us (micros of the ESP32)\n"
     "edge_channels=0 drum marks,1 drum index,2 test wheel,3 motor hall; bit7 = rejected as echo\n"
     "marks_per_rev=%u\nwheel_marks_per_rev=%u\nmotor_pole_pairs=%u\n"
     "drum_circumference_m=%.5f\ntorque_arm_m=%.5f\nloadcell_n_per_count=%.9f\ntare_offset_counts=%ld\n"
-    "direction_sign=%d\nvesc_poll_ms=%lu\n",
-    t, static_cast<unsigned long>(wallclock::now()),
+    "direction_sign=%d\nvesc_poll_ms=%lu\n"
+    "hx711_rate_sps=%u\nloadcell_capacity_n=%.2f\nload_empty_kg=%.3f\nload_weight_kg=%.3f\nload_arm_m=%.4f\n",
+    rev, t, static_cast<unsigned long>(wallclock::now()),
     static_cast<unsigned>(MARKS_PER_REV), static_cast<unsigned>(WHEEL_MARKS_PER_REV),
     static_cast<unsigned>(MOTOR_POLE_PAIRS),
     settings::drumCircumferenceM(), settings::torqueArmM(), settings::loadcellNPerCount(),
     torque::tareOffset(), static_cast<int>(settings::directionSign()),
-    static_cast<unsigned long>(VESC_POLL_MS));
+    static_cast<unsigned long>(VESC_POLL_MS),
+    static_cast<unsigned>(HX711_RATE_SPS), LOADCELL_CAPACITY_N, settings::loadEmptyKg(), settings::loadWeightKg(), settings::loadArmM());
   size_t k = n > 0 ? static_cast<size_t>(n) : 0;
   if (k > sizeof(g_hdr) - 1 - calc::rrl::HEADER_FIXED) k = sizeof(g_hdr) - 1 - calc::rrl::HEADER_FIXED;
   g_hdrLen = calc::rrl::HEADER_FIXED + k;
@@ -115,14 +122,49 @@ void buildHeader() {
   calc::rrl::put16(reinterpret_cast<uint8_t*>(g_hdr) + 4, static_cast<uint16_t>(g_hdrLen - calc::rrl::HEADER_FIXED));
 }
 
+// Session directory /vmrr/<id>/ (storage.h): the run's id during a run, otherwise a new
+// one from the clock. The file is raw_<session>.rrl in it (the session also in the file
+// name since 2026-11-26, so a file copied out on its own still says where it belongs);
+// openFile() creates the directory.
+// A run records from step 2 on (since 2026-11-26): step 1 only creates the run (choose
+// the wheel), and the Measure tab opens it on a tap -- that alone must not start a raw log.
+bool runWantsRaw() { return run::busy() && run::step() >= 2; }
+
+char g_dir[40] = "";
 void buildName() {
-  const uint32_t t = wallclock::now();
-  if (t) {
-    char s[24]; calc::fmtTime(t, s, sizeof(s), false);
-    snprintf(g_file, sizeof(g_file), "/raw/%s%02lu.rrl", s, static_cast<unsigned long>(t % 60));
-  } else {
-    snprintf(g_file, sizeof(g_file), "/raw/up%lu.rrl", static_cast<unsigned long>(millis() / 1000));
+  char sess[24];
+  if (run::active() && run::id()[0]) strncpy(sess, run::id(), sizeof(sess) - 1), sess[sizeof(sess) - 1] = '\0';
+  else storage::sessionName(sess, sizeof(sess));
+  snprintf(g_dir, sizeof(g_dir), "%s/%s", storage::ROOT_DIR, sess);
+  snprintf(g_file, sizeof(g_file), "%s/raw_%s.rrl", g_dir, sess);
+}
+
+// Manual raw log: a short info.md next to it, so the directory explains itself in the
+// file browser. Written once at opening (storage task), from the header constants.
+void writeInfo(fs::FS& f) {
+  char p[sizeof(g_dir) * 2 + 12];
+  snprintf(p, sizeof(p), "%s/info_%s.md", g_dir, g_dir + strlen(storage::ROOT_DIR) + 1);
+  if (f.exists(p)) return;
+  File o = f.open(p, FILE_WRITE);
+  if (!o) return;
+  o.print("# Raw log "); o.println(g_dir + strlen(storage::ROOT_DIR) + 1);
+  o.println();
+  o.println("Started by hand (console `L1` or Setup), not by a measurement run.");
+  o.print("Raw file: `"); o.print(g_file + strlen(g_dir) + 1); o.println("`, decode with `tools/rawlog.py`.");
+  o.println();
+  o.println("| Key | Value |");
+  o.println("|---|---|");
+  const char* t = g_hdr + calc::rrl::HEADER_FIXED;
+  const char* end = g_hdr + g_hdrLen;
+  while (t < end) {
+    const char* nl = static_cast<const char*>(memchr(t, '\n', end - t));
+    if (!nl) nl = end;
+    const char* eq = static_cast<const char*>(memchr(t, '=', nl - t));
+    if (eq) { o.print("| "); o.write(reinterpret_cast<const uint8_t*>(t), eq - t); o.print(" | ");
+              o.write(reinterpret_cast<const uint8_t*>(eq + 1), nl - eq - 1); o.println(" |"); }
+    t = nl + 1;
   }
+  o.close();
 }
 
 bool startInternal(bool manualStart) {
@@ -180,8 +222,10 @@ bool openFile(fs::FS& f) {
   // Never overwrite: same name after reboot without clock -> suffix.
   char name[sizeof(g_file)];
   strncpy(name, g_file, sizeof(name));
+  storage::makeDir(f, g_dir);
   for (char c = 'b'; f.exists(name) && c <= 'z'; c++)
     snprintf(name, sizeof(name), "%.*s-%c.rrl", static_cast<int>(strlen(g_file) - 4), g_file, c);
+  if (g_manual) writeInfo(f);
   strncpy(g_file, name, sizeof(g_file));
   g_fh = f.open(g_file, FILE_WRITE);
   if (!g_fh) return false;
@@ -217,13 +261,13 @@ void service(bool loadcellFresh) {
   // Report errors of the writer task (from the main loop: logger is not thread-safe).
   if (const char* e = g_err.exchange(nullptr)) {
     g_rec = false; g_manual = false;
-    g_autoRefused = run::active();   // do not restart and fail again every round
+    g_autoRefused = runWantsRaw();   // do not restart and fail again every round
     logger::fail(e);
   }
 
   // Automatically with the guided run.
   if (!g_manual) {
-    const bool want = run::active();
+    const bool want = runWantsRaw();
     if (want && !g_rec && !g_autoRefused && g_w.load() == W_IDLE) {
       if (!startInternal(false)) g_autoRefused = true;
     }

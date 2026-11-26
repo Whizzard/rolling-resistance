@@ -294,5 +294,35 @@ inline size_t csvLine(char* o, size_t n, const Rec& r) {
 constexpr Type CSV_FILES[] = {T_HX711, T_EDGE, T_VESC, T_CTRL, T_TIRE, T_TEXT};
 constexpr size_t CSV_FILE_N = sizeof(CSV_FILES) / sizeof(CSV_FILES[0]);
 
+// ------------------------------------------------------------------ Summary
+// Overview of a raw file for the viewer (webui.cpp /fs/...?info, since 2026-11-26): records
+// and bytes per type, time span, edges per channel (and how many were rejected as echo),
+// dropped bytes. Feed every decoded record with the bytes it used.
+struct Summary {
+  uint32_t n[T_N] = {};
+  uint64_t bytes[T_N] = {};
+  int64_t  t0 = 0, t1 = 0;      // first and last time stamp, µs from the first SYNC
+  bool     any = false;
+  uint32_t edges[4] = {}, rejected[4] = {};
+  uint64_t gapBytes = 0;
+  void add(const Rec& r, size_t used) {
+    n[r.type]++;
+    bytes[r.type] += used;
+    if (!any) { t0 = t1 = r.tUs; any = true; }
+    if (r.tUs < t0) t0 = r.tUs;
+    if (r.tUs > t1) t1 = r.tUs;
+    if (r.type == T_EDGE && r.len >= 1) { const uint8_t ch = r.p[0] & 0x7F; if (ch < 4) { edges[ch]++; if (r.p[0] & 0x80) rejected[ch]++; } }
+    if (r.type == T_GAP && r.len >= 4) gapBytes += get32(r.p);
+  }
+};
+
+inline const char* typeName(Type t) {
+  switch (t) {
+    case T_SYNC: return "sync"; case T_EDGE: return "edge"; case T_HX711: return "hx711";
+    case T_VESC: return "vesc"; case T_CTRL: return "ctrl"; case T_TIRE: return "tire";
+    case T_GAP: return "gap"; case T_TEXT: return "text"; default: return "?";
+  }
+}
+
 }  // namespace rrl
 }  // namespace calc

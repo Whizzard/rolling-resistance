@@ -11,18 +11,26 @@ They need **pyserial**. PlatformIO's environment already has it:
 ~/.platformio/penv/bin/python tools/vesc_console.py /dev/cu.usbmodem3041
 ```
 
-## `konsole.py` — test-stand console over USB
+## `console.py` — test-stand console over USB
 
 Talks to the **ESP32**, not to the controller: the same command vocabulary as the web
 UI and the serial console, logged with timestamps. For debugging and driving from the
 computer without a browser.
 
 ```sh
-~/.platformio/penv/bin/python tools/konsole.py i                  # state
-~/.platformio/penv/bin/python tools/konsole.py j8 v15 sleep:6 c   # telemetry, start, release
-~/.platformio/penv/bin/python tools/konsole.py ":faults"          # controller terminal, passed through
-~/.platformio/penv/bin/python tools/konsole.py --watch 30         # read only
+~/.platformio/penv/bin/python tools/console.py i                  # state
+~/.platformio/penv/bin/python tools/console.py j8 v15 sleep:6 c   # telemetry, start, release
+~/.platformio/penv/bin/python tools/console.py ":faults"          # controller terminal, passed through
+~/.platformio/penv/bin/python tools/console.py --watch 30         # read only
+~/.platformio/penv/bin/python tools/console.py --get /vmrr/2026-11-26-1542 --out raw/   # files from the SD
 ```
+
+`--get` fetches a file or a session directory from the SD card over USB (firmware
+command `Gz`, only at standstill and outside a run): 32 kB chunks, heatshrink-compressed
+on the stand (`firmware/lib/heatshrink`, about 3.5x on raw logs), as base64 lines with
+CRC32; a damaged chunk is requested again. 5.6 MB in 156 s (2026-11-26). The limit is the
+SD card itself: it reads about 48 kB/s over SPI at 10 MHz, whatever the block size; the
+compression only shortens the line. Firmware without `Gz` gets the plain `G` transfer. Then `rawlog.py` turns the `.rrl` into CSV.
 
 Arguments are commands in order, `sleep:<s>` waits in between, `--log` writes the
 capture to a file as well. `j<s>` is the firmware's live telemetry (one line every

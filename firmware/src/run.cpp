@@ -1,5 +1,9 @@
 #include "run.h"
+#include "build_id.h"
+#include "speed.h"
+#include "calib.h"
 #include "wallclock.h"
+#include "calc/warmup.h"
 #include "calc/json.h"
 #include "calc/linfit.h"
 #include "calc/loss.h"
@@ -66,14 +70,13 @@ struct Record {
   long     tarePp = 0;                    // peak-to-peak of the tare values, counts (the noise record since 2026-11-26)
   long     tareRaw = 0;                   // zero point taken in step 4, raw counts
   bool     tareTaken = false;
-  char     rawFile[40] = "";              // raw-data file of this run ("" = none, no SD)
+  char     rawFile[88] = "";              // raw-data file of this run ("" = none, no SD)
   float    tareCheckN = NAN;             // zero check by turning further, on F_roll
   bool     tareCheckOk = false;
   float    ctrlNm = NAN, ctrlDev = NAN;   // check weight: actual and deviation %
   float    ctrlRaw = NAN, ctrlRaw2 = NAN; // check weight above tare in counts: before / after the end-stop press
   float    ctrlRep = NAN;                 // second reading against the first, %
   bool     ctrlSkipped = false;
-  float    ctrlAdoptedFrom = NAN;         // factor before adopting it from the check weight (NAN: not adopted)
   bool     ctrlOnHint = false;            // Next pressed, but the weight is still hanging
   int32_t  turnTacho0 = 0;                // tachometer at the start of turning further
   float    turnDeg = NAN;                 // turned so far, degrees (NAN without controller)
@@ -82,8 +85,8 @@ struct Record {
   float    stopPeakPct = NAN;             // end-stop check: peak in % of the cell's full scale
   bool     stopSkipped = false;
   float    stopZeroN = NAN;               // zero point after the end-stop press, N on F_roll (overload bias)
-  Point    pre[PLATEAU_MAX];  uint8_t preN = 0;
-  Point    post[PLATEAU_MAX]; uint8_t postN = 0;
+  Point    pre[PLATEAU_MAX * RUN_BASELINE_POINTS];  uint8_t preN = 0;
+  Point    post[PLATEAU_MAX * RUN_BASELINE_POINTS]; uint8_t postN = 0;
   float    a0 = NAN, b0 = NAN, a0Old = NAN, b0Old = NAN;   // idle-loss model of this run and the one before
   bool     baseTaken = false;   // adopted instead of driven
   bool     wheelUsed = false;
@@ -93,7 +96,9 @@ struct Record {
   int      profile = -1;                  // wheel profile of this run (profiles.h), from step 1
   bool     prevSame = false;              // a1Old/b1Old come from this profile (same wheel)
   Warm     warm[WARM_N]; uint8_t warmN = 0;
+  uint8_t  warmSettledMin = 0;            // minute at which the warm-up was found settled, 0 = not (ran to the end or skipped)
   LiveVals liveLast = {NAN, NAN, NAN, false}; uint32_t liveLastMs = 0;   // last valid live value in the warm-up
+  double   wSumM = 0, wSumP = 0, wSumC = 0; uint32_t wCnt = 0;           // live values of the current warm-up minute
   float    barWarm = NAN, tTireWarm = NAN;   // pressure and tire temperature at the end of the warm-up
   Point    meas[MEAS_N]; uint8_t measN = 0;
   Point    anchorPre[RUN_POINTS_PER_PLATEAU]; uint8_t anchorPreN = 0;   // reference point right after the warm-up
@@ -103,10 +108,12 @@ struct Record {
   char     warn[WARN_N][120]; uint8_t warnN = 0;
   char     abortWhy[96] = "";
   uint32_t startMs = 0, endMs = 0, stopMs = 0;
+  uint32_t readsStart = 0, readsEnd = 0;   // HX711 values at start and end: the rate actually reached
   float    plateaus[PLATEAU_MAX]; uint8_t plateauN = 0;
   float    seq[PLATEAU_MAX + 1]; uint8_t seqN = 0;   // reference point + plateaus for the measurement drive
   float    loadN = NAN;
-  char     fileMd[40] = "", fileCsv[40] = "";
+  char     fileMd[56] = "", fileCsv[56] = "";   // full paths on fileMedia
+  uint8_t  fileMedia = 0;                        // storage::Media of the two files
 };
 Record g_r;
 
@@ -210,12 +217,27 @@ float pooledSd(uint8_t& dof) {
   return dof ? static_cast<float>(sqrt(ssq / dof)) : NAN;
 }
 
+// Pre/post idle loss of plateau k: means over its points (RUN_BASELINE_POINTS each), the
+// spread within each, and the drift post - pre on F_roll. NaN where a side has no point.
+struct Drift { float pre = NAN, post = NAN, preSpread = NAN, postSpread = NAN, n = NAN; };
+void meanOf(const Point* p, uint8_t cnt, uint8_t k, float& mean, float& spread) {
+  float s = 0, lo = INFINITY, hi = -INFINITY; uint8_t c = 0;
+  for (uint8_t i = 0; i < cnt; i++) if (p[i].plateau == k && !isnan(p[i].m)) { s += p[i].m; c++; lo = fminf(lo, p[i].m); hi = fmaxf(hi, p[i].m); }
+  mean = c ? s / c : NAN; spread = c ? hi - lo : NAN;
+}
+Drift drift(uint8_t k) {
+  Drift d;
+  meanOf(g_r.pre, g_r.preN, k, d.pre, d.preSpread);
+  meanOf(g_r.post, g_r.postN, k, d.post, d.postSpread);
+  if (!isnan(d.pre) && !isnan(d.post)) d.n = (d.post - d.pre) / rDrum();
+  return d;
+}
+
 // Idle-loss uncertainty on F_roll: largest drift pre-/post-run, otherwise the criterion.
 float baselineUncN() {
   if (!g_r.postN) return RUN_DRIFT_LIMIT_N;
   float u = 0;
-  for (uint8_t i = 0; i < g_r.postN && i < g_r.preN; i++) {
-    const float d = fabsf(g_r.post[i].m - g_r.pre[i].m) / rDrum(); if (d > u) u = d; }
+  for (uint8_t k = 0; k < g_r.plateauN; k++) { Drift d = drift(k); if (!isnan(d.n) && fabsf(d.n) > u) u = fabsf(d.n); }
   return u;
 }
 
@@ -275,8 +297,8 @@ void fromStats(Point& p, const state::PointStats& st) {
   p.revs = st.revs; p.ok = st.ok; p.realRevs = st.realRevs; p.tMs = st.tMs;
   p.bar = tirepressure::bar(); p.tTire = tirepressure::tempC();
 }
-void onPrePoint(const state::PointStats& st)  { if (g_r.preN  < PLATEAU_MAX) fromStats(g_r.pre[g_r.preN++], st); }
-void onPostPoint(const state::PointStats& st) { if (g_r.postN < PLATEAU_MAX) fromStats(g_r.post[g_r.postN++], st); }
+void onPrePoint(const state::PointStats& st)  { if (g_r.preN  < PLATEAU_MAX * RUN_BASELINE_POINTS) fromStats(g_r.pre[g_r.preN++], st); }
+void onPostPoint(const state::PointStats& st) { if (g_r.postN < PLATEAU_MAX * RUN_BASELINE_POINTS) fromStats(g_r.post[g_r.postN++], st); }
 // Measurement drive: sequence index 0 is the reference point, then the plateaus.
 void onMeasPoint(const state::PointStats& st) {
   if (st.plateau == 0) {
@@ -300,7 +322,7 @@ void finishRun() { writeFiles(); go(S_REPORT); }
 
 // Sequence over all plateaus, idle loss (one point per plateau).
 bool startBaselineSeq(state::PointFn fn) {
-  return state::startSequence(state::RUN_BASELINE, g_r.plateaus, g_r.plateauN, 1, false, fn, seqDone);
+  return state::startSequence(state::RUN_BASELINE, g_r.plateaus, g_r.plateauN, RUN_BASELINE_POINTS, false, fn, seqDone);
 }
 
 void anchorDrift(float& dNm, bool& have) {
@@ -337,10 +359,7 @@ void seqDone(bool completed) {
     }
     case S_POST: {
       float worst = 0;
-      for (uint8_t i = 0; i < g_r.postN && i < g_r.preN; i++) {
-        const float d = fabsf(g_r.post[i].m - g_r.pre[i].m) / rDrum();
-        if (d > worst) worst = d;
-      }
+      for (uint8_t k = 0; k < g_r.plateauN; k++) { Drift d = drift(k); if (!isnan(d.n) && fabsf(d.n) > worst) worst = fabsf(d.n); }
       if (g_r.preN && worst > RUN_DRIFT_LIMIT_N) warn("W08", "Idle-loss drift %.3f N above %.2f N: discard series", worst, RUN_DRIFT_LIMIT_N);
       state::stopRun(); sub(3);
       break;
@@ -369,18 +388,16 @@ void runChecks() {
     if (isnan(fN)) addCheck("Load cell", 1, "responding");
     else addCheck("Load cell", 1, "responding · %.1f %% of full scale", fabsf(fN) / LOADCELL_CAPACITY_N * 100.0f);
   }
-  if (settings::calibrated()) addCheck("Calibration factor", 1, "%.4g N/count", settings::loadcellNPerCount());
-  else addCheck("Calibration factor", -1, "not calibrated (TBD)");
-  // The factor only holds for the cell arm it was calibrated with (docs/12 D2).
-  if (!isnan(settings::armAtCalM()) && fabsf(settings::armAtCalM() - settings::torqueArmM()) > 0.0001f)
-    addCheck("Cell arm", -1, "L now %.1f mm, calibrated at %.1f mm: recalibrate", settings::torqueArmM() * 1000.0f, settings::armAtCalM() * 1000.0f);
-  else addCheck("Cell arm", 1, "%.1f mm · L_cal %.1f mm%s", settings::torqueArmM() * 1000.0f, settings::calibArmM() * 1000.0f,
-                isnan(settings::armAtCalM()) ? " (arm at calibration unknown)" : "");
-  addCheck("Revolutions", revsrc::realRevolutions() || !speedctl::running() ? 1 : 0, "source %s%s", revsrc::sourceName(),
-           revsrc::realRevolutions() ? "" : " (no index: calculated revolutions, residual error in the budget)");
+  // The factor holds only for the conditions it was calibrated under (calib.h): cell arm,
+  // calibration arm, HX711 rate and gain. Changed -> red; no record -> note.
+  { char why[150]; const int8_t v = calib::validity(why, sizeof(why)); addCheck("Calibration", v, "%s", why); }
+  addCheck("Cell arm", 1, "%.1f mm · L_cal %.1f mm", settings::torqueArmM() * 1000.0f, settings::calibArmM() * 1000.0f);
+  // At the check the drum stands, so the live source is the controller; what counts is
+  // whether marks and index are fitted (the header names the source of the run itself).
+  addCheck("Revolutions", 1, "drum marks, %u per revolution (source while turning in the header)", static_cast<unsigned>(MARKS_PER_REV));
   if (tirepressure::source() == tirepressure::SRC_BLE && tirepressure::fresh())
     addCheck("Tire pressure", 1, "%s · %.2f bar · %.1f °C · battery %.0f %%", tirepressure::name(), tirepressure::bar(), tirepressure::tempC(), tirepressure::battery());
-  else if (!isnan(g_r.meta.bar)) addCheck("Tire pressure", 1, "manual entry %.2f bar (no AirSpy)", g_r.meta.bar);
+  else if (!isnan(g_r.meta.bar)) addCheck("Tire pressure", 1, "entry %.2f bar; AirSpy not reporting at the check (it wakes when the wheel turns)", g_r.meta.bar);
   else addCheck("Tire pressure", -1, "neither AirSpy nor entry: turn the wheel and Check again, or abort and enter it in step 1 (entries are kept)");
   if (!g_r.plateauN) addCheck("Plateaus", -1, "no measurement speeds");
   else {
@@ -404,6 +421,34 @@ bool checksBlock() {
 // ------------------------------------------------------------- Report
 void pf(Print& o, float v, uint8_t d) { if (isnan(v)) o.print("—"); else o.print(v, d); }
 
+// Stand build (2026-11-26): everything about the mechanics and electronics that may change
+// with a rebuild, so that a protocol can still be placed later. Settings with their value,
+// constants with the firmware commit that carries them, and the builder's free text.
+void writeBuild(Print& o) {
+  const float u = settings::drumCircumferenceM();
+  o.println("## Stand build");
+  o.print("Stand revision: "); o.println(settings::standRev()[0] ? settings::standRev() : "not entered (Setup)");
+  o.println();
+  o.println("| Item | Value |"); o.println("|---|---|");
+  o.print("| Firmware | commit " FW_COMMIT ", built " __DATE__ " " __TIME__ " |\n");
+  o.print("| Drum | circumference "); o.print(u, 4); o.print(" m, Ø "); o.print(u / PI * 1000.0f, 1); o.print(" mm, J "); o.print(DRUM_INERTIA_KGM2, 3); o.println(" kg·m² (calculated) |");
+  o.print("| Drum marks | "); o.print(MARKS_PER_REV); o.print(" per revolution, "); o.print(speed::pulsesPerRev()); o.print(" seen, revolution from ");
+  o.print(speed::revSource() == speed::REV_INDEX_HALL ? "index Hall" : speed::revSource() == speed::REV_PATTERN ? "intermediate magnet" : "counting only (no index)");
+  o.print(", echo filter "); o.print(MARK_ECHO_PCT); o.println(" % |");
+  o.print("| Test-wheel pulses | "); o.print(WHEEL_MARKS_PER_REV); o.print(" per revolution, echo filter "); o.print(WHEEL_ECHO_PCT); o.println(" % |");
+  o.print("| Load cell | "); o.print(LOADCELL_TYPE); o.print(", capacity "); o.print(LOADCELL_CAPACITY_N, 2); o.print(" N; "); o.print(LOADCELL_AMP); o.print(", nominal ");
+  o.print(HX711_RATE_SPS); o.print(" SPS, measured ");
+  { const uint32_t ms = g_r.endMs - g_r.startMs, n = g_r.readsEnd - g_r.readsStart;
+    if (g_r.endMs > g_r.startMs && ms > 0) { o.print(n * 1000.0f / ms, 1); o.print(" values/s over the run"); } else o.print("—"); }
+  o.println(" |");
+  o.print("| Cell arm / calibration arm | "); o.print(settings::torqueArmM() * 1000.0f, 1); o.print(" mm / "); o.print(settings::calibArmM() * 1000.0f, 1); o.println(" mm |");
+  o.print("| Wheel-load lever | empty (wheel, arm, fork at the axle) "); o.print(settings::loadEmptyKg(), 2); o.print(" kg, sliding weight "); o.print(settings::loadWeightKg(), 2);
+  o.print(" kg, pivot to axle "); o.print(settings::loadArmM() * 1000.0f, 1); o.print(" mm, weight at "); if (g_r.meta.posMm) { o.print(g_r.meta.posMm); o.print(" mm"); } else o.print("—"); o.println(" |");
+  o.print("| Motor | "); o.print(MOTOR_POLE_PAIRS); o.print(" pole pairs, kt "); o.print(MOTOR_KT_NM_PER_A, 3); o.print(" Nm/A (from the flux linkage), controller FW ");
+  o.print(vesc::fwMajor()); o.print("."); o.print(vesc::fwMinor()); o.print(", relay brake "); o.print(RELAY_BRAKE_WIRED ? "wired" : "not wired"); o.println(" |");
+  o.println();
+}
+
 void writeMd(Print& o) {
   char t[24];
   o.print("# Measurement run "); o.println(g_r.id);
@@ -417,8 +462,9 @@ void writeMd(Print& o) {
       o.print(h.drive == 1 ? ", drive wheel" : h.drive == 0 ? ", no drive" : ""); if (h.colour.length()) { o.print(", "); o.print(h.colour); }
       o.print(")"); } }
   { profiles::Attr a;
-    if (profiles::attr(profiles::TUBE, g_r.meta.tube, a)) { o.print(" · Tube: "); o.print(a.a[0]); o.print(" "); o.print(a.a[1]); o.print(", "); o.print(a.a[2]); }
-    if (profiles::attr(profiles::RIM, g_r.meta.rim, a)) { o.print(" · Rim: "); o.print(a.a[0]); o.print(" "); o.print(a.a[1]); o.print(", inner width "); o.print(a.a[2]); o.print(" mm, BSD "); o.print(a.a[3]); o.print(" mm"); } }
+    // Details only: the names are already in the line above (2026-11-26: printed twice).
+    if (profiles::attr(profiles::TUBE, g_r.meta.tube, a) && a.a[2].length()) { o.print(" · tube material "); o.print(a.a[2]); }
+    if (profiles::attr(profiles::RIM, g_r.meta.rim, a)) { o.print(" · rim inner width "); o.print(a.a[2]); o.print(" mm, BSD "); o.print(a.a[3]); o.print(" mm"); } }
   o.print(" · Wheel mass "); pf(o, settings::wheelMassKg() * 1000.0f, 0); o.print(" g · J_wheel ");
   if (wheel::jWheelMeasured()) { pf(o, settings::wheelJKgm2(), 4); o.print(" kg·m² (bifilar)"); } else o.print("estimated");
   o.print(" · Pressure cold: "); pf(o, g_r.meta.bar, 2); o.print(" bar · after warm-up: "); pf(o, g_r.barWarm, 2); o.print(" bar");
@@ -440,6 +486,7 @@ void writeMd(Print& o) {
   o.print("Raw data: "); o.println(g_r.rawFile[0] ? g_r.rawFile : "none (no SD card ready)");
   if (g_r.abortWhy[0]) { o.println(); o.print("**ABORTED: "); o.print(g_r.abortWhy); o.println("**"); }
   o.println();
+  writeBuild(o);
   o.println("## Checks");
   o.println("| Check | Result | Value |"); o.println("|---|---|---|");
   for (uint8_t i = 0; i < g_r.checkN; i++) {
@@ -451,10 +498,10 @@ void writeMd(Print& o) {
   o.print(" counts · peak-to-peak "); o.print(g_r.tarePp); o.print(" counts ("); pf(o, countsToFrollN(g_r.tarePp), 4); o.print(" N) · noise σ = "); pf(o, countsToFrollN(g_r.tareSigma), 4); o.print(" N on F_roll ("); pf(o, g_r.tareSigma, 0); o.println(" counts) |");
   o.print("| Zero check after turning | "); o.print(isnan(g_r.tareCheckN) ? "not done" : (g_r.tareCheckOk ? "ok" : "DEVIATION (W13)"));
   o.print(" | "); if (!isnan(g_r.tareCheckN)) { pf(o, g_r.tareCheckN, 3); o.print(" N on F_roll, limit "); o.print(RUN_ZERO_LIMIT_N, 2); o.print(" N"); } o.println(" |");
-  o.print("| Check weight | "); o.print(g_r.ctrlSkipped ? "skipped" : (!isnan(g_r.ctrlAdoptedFrom) ? "ADOPTED AS CALIBRATION (W18)" : (fabsf(g_r.ctrlDev) < RUN_CTRL_OK_PCT ? "ok" : "warning (W10)")));
-  o.print(" | "); if (g_r.ctrlSkipped) o.print("W01"); else { pf(o, g_r.ctrlNm, 3); o.print(" Nm · "); pf(o, g_r.ctrlDev, 2); o.print(" %"); if (!isnan(g_r.ctrlAdoptedFrom)) { o.print(" · factor before "); o.print(g_r.ctrlAdoptedFrom, 8); } } o.println(" |");
+  o.print("| Check weight | "); o.print(g_r.ctrlSkipped ? "skipped" : (fabsf(g_r.ctrlDev) < RUN_CTRL_OK_PCT ? "ok" : "warning (W10)"));
+  o.print(" | "); if (g_r.ctrlSkipped) o.print("W01"); else { pf(o, g_r.ctrlNm, 3); o.print(" Nm · "); pf(o, g_r.ctrlDev, 2); o.print(" %"); } o.println(" |");
   o.print("| Load cell end stop | "); o.print(g_r.stopSkipped || isnan(g_r.stopPeakPct) ? "skipped" : ((g_r.stopPeakPct >= RUN_STOP_MIN_PCT && g_r.stopPeakPct <= RUN_STOP_MAX_PCT) ? "ok" : "OUTSIDE (W16)"));
-  o.print(" | "); if (!isnan(g_r.stopPeakPct)) { o.print("peak "); pf(o, g_r.stopPeakPct, 0); o.print(" % FS, target "); o.print(RUN_STOP_MIN_PCT, 0); o.print(" to "); o.print(RUN_STOP_MAX_PCT, 0); o.print(" %"); }   // print, not printf: one % else o.print("W17"); o.println(" |");
+  o.print(" | "); if (!isnan(g_r.stopPeakPct)) { o.print("peak "); pf(o, g_r.stopPeakPct, 0); o.print(" % FS, target "); o.print(RUN_STOP_MIN_PCT, 0); o.print(" to "); o.print(RUN_STOP_MAX_PCT, 0); o.print(" %"); } else o.print("W17"); o.println(" |");   // print, not printf: one %
   o.print("| Check weight after end stop | ");
   if (isnan(g_r.ctrlRep)) o.print("not read | |\n");
   else { o.print(fabsf(g_r.ctrlRep) < RUN_CTRL_OK_PCT ? "ok" : "CHANGED (W22)"); o.print(" | "); pf(o, g_r.ctrlRep, 3); o.print(" % against the first reading, limit "); pf(o, RUN_CTRL_OK_PCT, 1); o.println(" % |"); }
@@ -471,9 +518,9 @@ void writeMd(Print& o) {
   o.print("| L_cal calibration arm | "); o.print(settings::calibArmM(), 4); o.println(" m | settings (determines the torque chain) |");
   { char ct[24]; fmtTime(settings::calibEpoch(), ct, sizeof(ct), true);
     o.print("| N_per_count | "); o.print(settings::loadcellNPerCount(), 8); o.print(" N/count | ");
-    if (!isnan(g_r.ctrlAdoptedFrom)) { o.print("adopted from the check weight in this run (W18), before "); o.print(g_r.ctrlAdoptedFrom, 8); }
-    else { o.print("calibration of "); o.print(settings::calibEpoch() ? ct : "unknown date"); }
+    o.print("calibration of "); o.print(settings::calibEpoch() ? ct : "unknown date");
     o.println(" |"); }
+  calib::describe(o);
   o.print("| Check weight raw | ");
   if (isnan(g_r.ctrlRaw)) o.print("— | not read |\n");
   else {
@@ -516,6 +563,11 @@ void writeMd(Print& o) {
       o.print(" | "); pf(o, w.crr, 5); o.print(" | "); pf(o, w.bar, 2); o.print(" | "); pf(o, w.tTire, 1); o.println(" |"); }
     if (g_r.warmN >= 6) { const float a = g_r.warm[g_r.warmN - 6].p, b = g_r.warm[g_r.warmN - 1].p;
       o.println(); o.print("Change in the last 5 min: "); pf(o, (b / a - 1.0f) * 100.0f, 1); o.println(" %"); }
+    if (g_r.warmSettledMin) {
+      o.println(); o.print("Ended after "); o.print(g_r.warmSettledMin); o.print(" min: settled (last ");
+      o.print(WARMUP_STABLE_MIN); o.print(" minute values of M within "); o.print(WARMUP_STABLE_NM, 3);
+      o.print(" Nm, tire temperature rise at most "); o.print(WARMUP_TTIRE_K_PER_MIN, 1); o.println(" K/min).");
+    }
     o.println();
   }
   if (g_r.measN || g_r.anchorPreN) {
@@ -553,9 +605,10 @@ void writeMd(Print& o) {
   }
   o.println("## Idle loss pre/post");
   if (g_r.postN) {
-    o.println("| v km/h | pre Nm | post Nm | Δ on F_roll N |"); o.println("|---|---|---|---|");
-    for (uint8_t i = 0; i < g_r.postN && i < g_r.preN; i++) { o.print("| "); pf(o, g_r.post[i].v, 1); o.print(" | "); pf(o, g_r.pre[i].m, 4); o.print(" | "); pf(o, g_r.post[i].m, 4);
-      o.print(" | "); pf(o, fabsf(g_r.post[i].m - g_r.pre[i].m) / rDrum(), 3); o.println(" |"); }
+    o.print("Mean of "); o.print(RUN_BASELINE_POINTS); o.println(" points per speed; spread = max − min within pre and post.");
+    o.println(); o.println("| v km/h | pre Nm | spread | post Nm | spread | Δ on F_roll N |"); o.println("|---|---|---|---|---|---|");
+    for (uint8_t k = 0; k < g_r.plateauN; k++) { const Drift d = drift(k); o.print("| "); pf(o, g_r.plateaus[k], 1); o.print(" | "); pf(o, d.pre, 4); o.print(" | "); pf(o, d.preSpread, 4);
+      o.print(" | "); pf(o, d.post, 4); o.print(" | "); pf(o, d.postSpread, 4); o.print(" | "); pf(o, isnan(d.n) ? NAN : fabsf(d.n), 3); o.println(" |"); }
   } else o.println("Post-run not driven (W05).");
   o.println();
   o.println("## Warnings");
@@ -603,17 +656,22 @@ void writeCsv(Print& o) {
 
 void writeFiles() {
   g_r.endMs = millis();
+  g_r.readsEnd = torque::readsTotal();
   if (!g_r.rawFile[0] && rawlog::fileName()[0]) {
     snprintf(g_r.rawFile, sizeof(g_r.rawFile), "%s (%s)", rawlog::fileName(), storage::name(rawlog::media()));
-    rawNote("run end, protocol /runs/%s.md", g_r.id);
+    rawNote("run end, protocol %s/%s/protocol.md", storage::ROOT_DIR, g_r.id);
   }
-  snprintf(g_r.fileMd, sizeof(g_r.fileMd), "/runs/%s.md", g_r.id);
-  snprintf(g_r.fileCsv, sizeof(g_r.fileCsv), "/runs/%s.csv", g_r.id);
-  // To the SD card when it is ready, otherwise to the flash (storage::protocolMedia, since
-  // 2026-11-26). The URL stays /runs/<id>.*; webui.cpp searches both media.
+  // Into the run's session directory /vmrr/<id>/ (storage.h, since 2026-11-26), on the SD
+  // card when it is ready, otherwise in the flash (storage::protocolMedia).
+  char dir[40];
+  snprintf(dir, sizeof(dir), "%s/%s", storage::ROOT_DIR, g_r.id);
+  snprintf(g_r.fileMd, sizeof(g_r.fileMd), "%s/protocol.md", dir);
+  snprintf(g_r.fileCsv, sizeof(g_r.fileCsv), "%s/points.csv", dir);
   const storage::Media m = storage::protocolMedia();
+  g_r.fileMedia = static_cast<uint8_t>(m);
   fs::FS* fsp = storage::fs(m);
   if (m == storage::SD_CARD) storage::lockSd();
+  if (fsp) storage::makeDir(*fsp, dir);
   File f = fsp ? fsp->open(g_r.fileMd, "w") : File();
   if (f) { writeMd(f); f.close(); } else { g_r.fileMd[0] = '\0'; logger::fail("Report not written: file system"); }
   f = fsp ? fsp->open(g_r.fileCsv, "w") : File();
@@ -635,10 +693,29 @@ void abortRun(const char* why) {
 }
 
 // ------------------------------------------------------------- Start
+// Reference point = warm-up speed; the plateaus follow in ascending order.
+void buildSeq() {
+  g_r.seqN = 0;
+  g_r.seq[g_r.seqN++] = g_r.anchorKmh;
+  for (uint8_t i = 0; i < g_r.plateauN && g_r.seqN < PLATEAU_MAX + 1; i++) g_r.seq[g_r.seqN++] = g_r.plateaus[i];
+}
+// Speeds of this run (2026-11-26): bit i = Setup plateau i is measured. Default all; only
+// in step 1, and never none. Baseline pre/post, points and report all use this list.
+void selectPlateaus(uint32_t mask) {
+  const uint8_t n = settings::plateauCount();
+  uint8_t k = 0;
+  for (uint8_t i = 0; i < n; i++) if (mask & (1UL << i)) k++;
+  if (!k) return;
+  g_r.plateauN = 0;
+  for (uint8_t i = 0; i < n; i++) if (mask & (1UL << i)) g_r.plateaus[g_r.plateauN++] = settings::plateauKmh(i);
+  buildSeq();
+}
+
 void startRun() {
   g_r.~Record();
   new (&g_r) Record();   // no temporary on the main loop's stack
   g_r.startMs = millis();
+  g_r.readsStart = torque::readsTotal();
   g_r.plateauN = settings::plateauCount();
   for (uint8_t i = 0; i < g_r.plateauN; i++) g_r.plateaus[i] = settings::plateauKmh(i);
   g_r.loadN = state::loadN();
@@ -655,12 +732,9 @@ void startRun() {
     if (!isnan(rm.loadKg) && rm.loadKg > 0) { g_r.meta.loadKg = rm.loadKg; g_r.loadN = rm.loadKg * 9.80665f; }
     g_r.meta.bar = (tirepressure::source() == tirepressure::SRC_BLE && tirepressure::fresh()) ? tirepressure::bar() : rm.bar; }
   g_r.a0Old = settings::baselineA0(); g_r.b0Old = settings::baselineB0();
-  // Reference point = warm-up speed; the plateaus follow in ascending order.
   g_r.anchorKmh = WARMUP_KMH;
-  g_r.seqN = 0;
-  g_r.seq[g_r.seqN++] = g_r.anchorKmh;
-  for (uint8_t i = 0; i < g_r.plateauN && g_r.seqN < PLATEAU_MAX + 1; i++) g_r.seq[g_r.seqN++] = g_r.plateaus[i];
-  snprintf(g_r.id, sizeof(g_r.id), "run-%lu", static_cast<unsigned long>(millis() / 1000));
+  buildSeq();
+  storage::sessionName(g_r.id, sizeof(g_r.id));   // also the name of the session directory
   go(S_META);
 }
 
@@ -697,6 +771,7 @@ void setMeta(char key, const char* val) {
       m.loadCalcKg = isnan(n) ? NAN : n / 9.80665f;
       if (!isnan(n) && isnan(m.loadMeasKg)) { m.loadKg = m.loadCalcKg; g_r.loadN = n; state::setLoadN(n); }
       break; }
+    case 'v': if (g_step == S_META) selectPlateaus(static_cast<uint32_t>(strtoul(val, nullptr, 10))); break;   // speeds
     case 'd': m.epoch = static_cast<uint32_t>(strtoul(val, nullptr, 10)); m.epochMs = millis();
               fmtTime(m.epoch, g_r.id, sizeof(g_r.id), false); break;
     default: break;
@@ -753,22 +828,6 @@ void originText(const settings::WheelOrigin& o, char* out, size_t n) {
 }
 float liveNm() { const float f = torque::newtons(); return isnan(f) ? NAN : f * settings::torqueArmM(); }
 bool  ctrlWeightOn() { const float m = liveNm(); return !isnan(m) && m > 0.5f * ctrlTargetNm(); }
-// The check weight IS the calibration: the same weight at the same mark. If it deviates,
-// the old factor may have been just as wrong as today's setup -- the human decides.
-// Adopting sets the factor anew from the sample just measured (like command k), which
-// makes the deviation 0; the old factor goes into the report (W18).
-void adoptCtrlAsCalibration() {
-  if (isnan(g_r.ctrlNm) || torque::sampleN() == 0) return;
-  const float delta = torque::sampleMean() - torque::tareOffset();
-  if (fabsf(delta) < RUN_CTRL_MIN_DELTA_COUNTS) { warn("W18", "Check weight without deflection, factor not adopted"); return; }
-  const float old = settings::loadcellNPerCount();
-  const float nPerCount = ctrlTargetNm() / settings::torqueArmM() / fabsf(delta);
-  if (!settings::setLoadcellNPerCount(nPerCount, epochNow())) { warn("W18", "Factor %.3e implausible, not adopted", nPerCount); return; }
-  g_r.ctrlAdoptedFrom = old;
-  warn("W18", "Calibration factor adopted from the check weight: %.4e -> %.4e N/count (%+.2f %%)", old, nPerCount, g_r.ctrlDev);
-  g_r.ctrlNm = ctrlTargetNm(); g_r.ctrlDev = 0.0f;
-}
-
 // ------------------------------------------------------------- Buttons
 // ok = main button, alt = secondary button, redo = Again.
 void onOk() {
@@ -806,7 +865,7 @@ void onOk() {
       // offset (W21). Both compare raw counts, so an adopted factor does not matter.
       if (g_sub == 1) { torque::sampleBegin(); sub(2); }              // hanging -> measure
       else if (g_sub == 3) {                                           // result -> end stop, weight stays on
-        if (fabsf(g_r.ctrlDev) >= RUN_CTRL_OK_PCT && isnan(g_r.ctrlAdoptedFrom)) warn("W10", "Check weight deviates %.2f %%, continued without adopting", g_r.ctrlDev);
+        if (fabsf(g_r.ctrlDev) >= RUN_CTRL_OK_PCT) warn("W10", "Check weight deviates %.2f %%, continued without recalibrating", g_r.ctrlDev);
         g_r.stopPeakPct = NAN; sub(0);
       }
       else if (g_sub == 0) {                                           // end stop reached and released
@@ -828,7 +887,7 @@ void onOk() {
       if (g_sub == 0) sub(1);                       // drive new -> confirm wheel placed
       else if (g_sub == 1) {                        // confirmed -> wizard: spin up, lift, both models
         g_r.preN = 0;
-        state::startWizard(onPrePoint, seqDone);
+        state::startWizard(onPrePoint, seqDone, g_r.plateaus, g_r.plateauN);
         if (state::wizardStep() == 1) sub(2); else abortRun(logger::lastNote());
       } else if (g_sub == 4) go(S_WHEEL);           // wheel lowered
       break;
@@ -836,7 +895,7 @@ void onOk() {
       if ((g_r.wheelFresh || (g_r.baseTaken && storedWheelUsable())) && !isnan(settings::wheelCircM())) { g_r.wheelUsed = true; go(S_READY); }
       break;
     case S_READY:
-      if (state::startHold(WARMUP_KMH)) { go(S_WARMUP); g_r.warmN = 0; } else abortRun(logger::lastNote());
+      if (state::startHold(WARMUP_KMH)) { go(S_WARMUP); g_r.warmN = 0; g_r.warmSettledMin = 0; g_r.wSumM = g_r.wSumP = g_r.wSumC = 0; g_r.wCnt = 0; } else abortRun(logger::lastNote());
       break;
     case S_POST:
       if (g_sub == 0) { torque::sampleBegin(); sub(1); }              // wheel lifted -> check zero point
@@ -857,7 +916,8 @@ void onAlt() {
                         if (isnan(g_r.ctrlRaw)) go(S_BASE); else { g_r.ctrlRaw2 = NAN; g_r.ctrlRep = NAN; sub(7); } }   // still remove the weight
       else if (g_sub == 1) { g_r.ctrlSkipped = true; warn("W01", "Check weight skipped"); g_r.stopPeakPct = NAN; sub(0); }
       else if (g_sub == 5) { warn("W21", "Zero after end stop off by %.3f N on F_roll, continued anyway", g_r.stopZeroN); go(S_BASE); }
-      else if (g_sub == 3 && !isnan(g_r.ctrlNm)) adoptCtrlAsCalibration();   // this value holds from now on
+      // sub 3: "Calibrate" is handled in the UI (opens the calibration procedure, calib.h);
+      // afterwards Again reads the check weight with the new factor.
       break;
     case S_BASE:
       if (g_sub == 0 && settings::haveBaseline() && storedWheelUsable()) {
@@ -950,7 +1010,7 @@ void service() {
           const int32_t d = vesc::values().tacho - g_r.turnTacho0;
           g_r.turnDeg = fabsf(static_cast<float>(d)) * 360.0f / VESC_TACHO_PER_REV;
           const bool still = revsrc::revPerSec() < STANDSTILL_RPS && fabsf(static_cast<float>(vesc::values().erpm)) < STANDSTILL_RPM * MOTOR_POLE_PAIRS;
-          if (g_r.turnDeg >= RUN_TURN_DEG && still) {
+          if (g_r.turnDeg >= RUN_TURN_DEG - RUN_TURN_TOL_DEG && still) {
             if (g_r.turnStandstillMs == 0) g_r.turnStandstillMs = millis();
             else if (millis() - g_r.turnStandstillMs >= RUN_TURN_STANDSTILL_MS) g_r.turnReady = true;
           } else { g_r.turnStandstillMs = 0; g_r.turnReady = false; }
@@ -1010,14 +1070,40 @@ void service() {
         const uint8_t minute = inSubMs() / 60000;
         // Track the live value: the minute point takes the last valid one of the minute,
         // not whatever the moment happens to give (at 30 km/h it was mostly not steady).
-        { LiveVals lv; if (g_live && g_live(lv)) { g_r.liveLast = lv; g_r.liveLastMs = millis(); } }
+        // Since 2026-11-26 the minute value is the MEAN of all valid live values of that
+        // minute: a single snapshot scattered by +-0.012 Nm, and five of them rarely lay
+        // within WARMUP_STABLE_NM even with the tire settled.
+        { LiveVals lv;
+          if (g_live && g_live(lv)) {
+            g_r.liveLast = lv; g_r.liveLastMs = millis();
+            if (isfinite(lv.mNm) && isfinite(lv.pW)) { g_r.wSumM += lv.mNm; g_r.wSumP += lv.pW; g_r.wSumC += isfinite(lv.crr) ? lv.crr : 0.0; g_r.wCnt++; }
+          } }
         if (minute >= 1 && g_r.warmN < WARM_N && (g_r.warmN == 0 || g_r.warm[g_r.warmN - 1].min < minute)) {
           Warm& w = g_r.warm[g_r.warmN++];
           w.min = minute; w.bar = tirepressure::bar(); w.tTire = tirepressure::tempC();
-          if (g_r.liveLastMs && millis() - g_r.liveLastMs < RUN_WARM_LIVE_MAX_MS) { w.m = g_r.liveLast.mNm; w.p = g_r.liveLast.pW; w.crr = g_r.liveLast.crr; }
+          if (g_r.wCnt) { w.m = g_r.wSumM / g_r.wCnt; w.p = g_r.wSumP / g_r.wCnt; w.crr = g_r.wSumC / g_r.wCnt; }
+          else if (g_r.liveLastMs && millis() - g_r.liveLastMs < RUN_WARM_LIVE_MAX_MS) { w.m = g_r.liveLast.mNm; w.p = g_r.liveLast.pW; w.crr = g_r.liveLast.crr; }
           else { w.m = w.p = w.crr = NAN; }
+          g_r.wSumM = g_r.wSumP = g_r.wSumC = 0; g_r.wCnt = 0;
+          // One console line per minute: shows what the settle test sees.
+          { float lo = INFINITY, hi = -INFINITY;
+            for (uint8_t k = g_r.warmN > WARMUP_STABLE_MIN ? g_r.warmN - WARMUP_STABLE_MIN : 0; k < g_r.warmN; k++) { lo = fminf(lo, g_r.warm[k].m); hi = fmaxf(hi, g_r.warm[k].m); }
+            Serial.printf("# Warm-up min %u: M %.4f Nm, P %.1f W, Crr %.5f, tire %.1f degC, span of last %u: %.4f Nm (limit %.3f)\n",
+                          static_cast<unsigned>(minute), w.m, w.p, w.crr, w.tTire, static_cast<unsigned>(g_r.warmN < WARMUP_STABLE_MIN ? g_r.warmN : WARMUP_STABLE_MIN), hi - lo, WARMUP_STABLE_NM); }
+          // Settled? Last WARMUP_STABLE_MIN minute values (calc/warmup.h).
+          if (inSubMs() >= WARMUP_MIN_MS && g_r.warmN >= WARMUP_STABLE_MIN) {
+            float p[WARMUP_STABLE_MIN], t[WARMUP_STABLE_MIN];
+            for (uint8_t k = 0; k < WARMUP_STABLE_MIN; k++) {
+              const Warm& x = g_r.warm[g_r.warmN - WARMUP_STABLE_MIN + k]; p[k] = x.m; t[k] = x.tTire;
+            }
+            if (calc::warmupSettled(p, t, WARMUP_STABLE_MIN, WARMUP_STABLE_NM, WARMUP_TTIRE_K_PER_MIN)) {
+              g_r.warmSettledMin = minute;
+              logger::note("Warm-up settled");
+              sub(1);
+            }
+          }
         }
-        if (inSubMs() >= WARMUP_MS) sub(1);
+        if (g_sub == 0 && inSubMs() >= WARMUP_MS) sub(1);
         if (state::phase() != state::HOLD) { abortRun("Warm-up interrupted"); return; }
       }
       if (g_sub == 1) {
@@ -1069,6 +1155,8 @@ bool command(const char* t) {
 }
 
 bool active() { return g_step != S_OFF; }
+bool busy()   { return g_step != S_OFF && g_step != S_REPORT && g_step != S_ABORT; }
+const char* id() { return g_step != S_OFF ? g_r.id : ""; }
 uint8_t step() { return static_cast<uint8_t>(g_step); }
 
 // ------------------------------------------------------------- JSON
@@ -1090,6 +1178,8 @@ void json(char* buf, size_t len) {
   size_t p = 0;
   // Buttons per step: ok = main button, alt = secondary button, redo = Again; "" = hidden.
   const char *ok = "", *alt = "", *redo = "", *title = "", *txt = "";
+  const char* act = "";   // what to do now, shown large right above the buttons
+  static char abuf[64];
   switch (g_step) {
     case S_META:   title = "Create run"; ok = "Next";   // refused in onOk without a complete profile
       if (g_r.profile >= 0 && profiles::missing(g_r.profile).length()) { static char tm[120]; snprintf(tm, sizeof(tm), "Profile incomplete: %s. Setup \xe2\x86\x92 Wheels.", profiles::missing(g_r.profile).c_str()); txt = tm; }
@@ -1105,7 +1195,7 @@ void json(char* buf, size_t len) {
       else if (g_sub == 1) { static char ttxt[40]; snprintf(ttxt, sizeof(ttxt), "Hands off. %u values.", static_cast<unsigned>(TARE_SAMPLES)); txt = ttxt; }
       else if (g_sub == 2) { txt = isnan(g_r.turnDeg) ? "Turn the drum a quarter turn further by hand, let it swing out."
                                  : g_r.turnReady ? "Quarter turn reached, drum still. Hands off, then measure."
-                                 : g_r.turnDeg >= RUN_TURN_DEG ? "Quarter turn reached. Wait until the drum is still."
+                                 : g_r.turnDeg >= RUN_TURN_DEG - RUN_TURN_TOL_DEG ? "Quarter turn reached. Wait until the drum is still."
                                  : "Turn the drum further by hand until the bar is full, then let go.";
                              ok = isnan(g_r.turnDeg) ? "Turned" : (g_r.turnReady ? "Measure" : ""); }
       else if (g_sub == 3) txt = "Hands off, measuring.";
@@ -1121,9 +1211,9 @@ void json(char* buf, size_t len) {
         const bool on = ctrlWeightOn();
         if (!on) g_r.ctrlOnHint = false;
         const bool same = !isnan(g_r.ctrlRep) && fabsf(g_r.ctrlRep) < RUN_CTRL_OK_PCT;
-        snprintf(ctxt, sizeof(ctxt), "%s%s", isnan(g_r.ctrlRep) ? "" : same ? "Same as before the press. " : "Changed by the press: the cell or the arm may be bent, or the weight moved. ",
-                 on ? (g_r.ctrlOnHint ? "WEIGHT STILL HANGING: remove it, then Next." : "Remove the weight, then Next.") : "Weight is off.");
-        txt = ctxt; ok = "Next"; redo = on ? "Again" : ""; }
+        snprintf(ctxt, sizeof(ctxt), "%s", isnan(g_r.ctrlRep) ? "" : same ? "Same as before the press." : "Changed by the press: the cell or the arm may be bent, or the weight moved.");
+        txt = ctxt;
+        act = on ? (g_r.ctrlOnHint ? "Weight still hanging: remove it" : "Remove the weight") : ""; ok = "Next"; redo = on ? "Again" : ""; }
       else if (g_sub == 4) { title = "Zero after end stop"; txt = "Hands off, measuring."; }
       else if (g_sub == 5) { title = "Zero after end stop";
         const bool zok = !isnan(g_r.stopZeroN) && fabsf(g_r.stopZeroN) <= RUN_ZERO_LIMIT_N;
@@ -1133,22 +1223,21 @@ void json(char* buf, size_t len) {
         snprintf(ctxt, sizeof(ctxt), "Wheel lifted, check weight stays on. Push the arm by hand SLOWLY in the pull direction against the end stop until the bar stops rising, then let go and wait until the weight hangs still. The end stop must engage between %.0f and %.0f %% of the cell's full scale: below that it limits the measurement (and the check weight would already rest on it), above that it does not protect the cell (150 %% is the limit). If the value rises above %.0f %% without holding: let go.",
                  RUN_STOP_MIN_PCT, RUN_STOP_MAX_PCT, RUN_STOP_MAX_PCT);
         txt = ctxt; ok = "Released, still"; alt = "Skip"; redo = "Again"; }
-      else if (g_sub == 1) { snprintf(ctxt, sizeof(ctxt), "Hang the certified %.0f g weight at the mark %.0f mm from the pivot (Setup: calibration arm), plumb, without weighing hook or cord. The wheel stays lifted. Checks the whole chain of cell, arm and factor against the calibration. The arm must not rest on the end stop.",
-                                settings::ctrlMassKg() * 1000.0f, lcal); txt = ctxt; ok = "Weight hangs"; alt = "Skip"; }
+      else if (g_sub == 1) { snprintf(ctxt, sizeof(ctxt), "Certified weight at the mark (Setup: calibration arm), plumb, without weighing hook or cord. The wheel stays lifted. Checks the whole chain of cell, arm and factor against the calibration. The arm must not rest on the end stop.");
+                             snprintf(abuf, sizeof(abuf), "Hang the %.0f g weight at %.0f mm", settings::ctrlMassKg() * 1000.0f, lcal);
+                             txt = ctxt; act = abuf; ok = "Weight hangs"; alt = "Skip"; }
       else if (g_sub == 2) txt = "Hands off, measuring 2 s.";
       else {
         const bool good = fabsf(g_r.ctrlDev) < RUN_CTRL_OK_PCT;
         const bool on = ctrlWeightOn();
-        const bool adopted = !isnan(g_r.ctrlAdoptedFrom);
         // Continue is offered as soon as the weight is demonstrably off (live torque) -- the
         // deviation never blocks, it warns (W10). Adopt makes today's value the calibration
         // (from the sample just taken; the weight may already be off).
-        ok = "Next"; alt = (adopted || good) ? "" : "Adopt as calibration"; redo = "Again";
+        ok = "Next"; alt = good ? "" : "Calibrate"; redo = "Again";
         const char* hang = on ? " Leave the weight on: the end stop comes next." : " Weight is off: hang it again for the end-stop check, or Next without.";
-        if (adopted) { snprintf(ctxt, sizeof(ctxt), "Adopted: factor %.4e instead of %.4e N/count.%s", settings::loadcellNPerCount(), g_r.ctrlAdoptedFrom, hang); txt = ctxt; }
-        else if (good) { snprintf(ctxt, sizeof(ctxt), "Matches the calibration.%s", hang); txt = ctxt; }
+        if (good) { snprintf(ctxt, sizeof(ctxt), "Matches the calibration.%s", hang); txt = ctxt; }
         else {
-          snprintf(ctxt, sizeof(ctxt), "%+.1f %% against the stored factor. Either something is wrong today (weight not at the %.0f mm mark, hook or cord weighed, arm on the end stop, cable) -- then Again. Or the old calibration was wrong -- then Adopt, today's value holds. Next keeps the old factor and records W10.%s",
+          snprintf(ctxt, sizeof(ctxt), "%+.1f %% against the stored factor. Either something is wrong today (weight not at the %.0f mm mark, hook or cord weighed, arm on the end stop, cable) -- then Again. Or the calibration is off -- then Calibrate (the full procedure), and Again afterwards. Next keeps the factor and records W10.%s",
                    g_r.ctrlDev, lcal, hang);
           txt = ctxt;
         }
@@ -1164,7 +1253,7 @@ void json(char* buf, size_t len) {
           snprintf(t6, sizeof(t6), "Spin up with the wheel resting, lift at 40 km/h: idle loss and wheel model in one. Same wheel as the stored model (%s): stored allowed in a pressure series.", o); }
         else snprintf(t6, sizeof(t6), "Spin up with the wheel resting, lift at 40 km/h: idle loss and wheel model in one. Part of every run.");
         txt = t6; }
-      else if (g_sub == 1) { title = "Wheel resting?"; txt = ctrlWeightOn() ? "Check weight still hanging: remove it." : "Wheel rests on the drum, sliding weight in position. The drum runs up to 40 km/h, then the wheel is lifted."; ok = ctrlWeightOn() ? "" : "Spin up"; }
+      else if (g_sub == 1) { title = "Wheel resting?"; txt = ctrlWeightOn() ? "" : "Wheel rests on the drum, sliding weight in position. The drum runs up to 40 km/h, then the wheel is lifted."; act = ctrlWeightOn() ? "Check weight still hanging: remove it" : ""; ok = ctrlWeightOn() ? "" : "Spin up"; }
       else if (g_sub == 2) {
         const uint8_t w = state::wizardStep();
         if (w == 1)      { title = "Spin-up with wheel"; txt = "The wheel stays down until the drum has run steadily at 40 km/h for 3 s."; }
@@ -1194,7 +1283,7 @@ void json(char* buf, size_t len) {
     case S_ANCHOR: title = "Reference point after"; break;
     case S_STOP:   title = "Stopping"; break;
     case S_POST:   title = "Idle-loss post-run";
-      if (g_sub == 0) { txt = "Lift the wheel. Then the zero point is checked first, then the idle loss is repeated warm."; ok = "Wheel lifted"; alt = "Skip"; }
+      if (g_sub == 0) { txt = "Then the zero point is checked first, then the idle loss is repeated warm."; act = "Lift the wheel"; ok = "Wheel lifted"; alt = "Skip"; }
       else if (g_sub == 1) { title = "Zero point"; txt = "Hands off, measuring."; }
       else if (g_sub == 3) title = "Stopping";
       break;
@@ -1209,7 +1298,7 @@ void json(char* buf, size_t len) {
                                      "Reference point after", "Stopping", "Idle-loss post-run", "Report"};
   if (g_step >= 1 && g_step <= 14 && strcmp(title, BASE[g_step]) == 0) title = "";
   J("{\"step\":%u,\"sub\":%u,\"id\":", static_cast<unsigned>(g_step), static_cast<unsigned>(g_sub)); JS(g_r.id);
-  J(",\"title\":"); JS(title); J(",\"txt\":"); JS(txt);
+  J(",\"title\":"); JS(title); J(",\"txt\":"); JS(txt); J(",\"act\":"); JS(act);
   J(",\"ok\":"); JS(ok); J(",\"alt\":"); JS(alt); J(",\"redo\":"); JS(redo); J(",\"back\":%s", canBack() ? "true" : "false");
   J(",\"subMs\":%lu,\"warmMs\":%lu", static_cast<unsigned long>(inSubMs()), static_cast<unsigned long>(WARMUP_MS));
   { LiveVals lv; const bool ok = g_live && g_live(lv);   // live values for the display, NAN while not steady
@@ -1224,7 +1313,7 @@ void json(char* buf, size_t len) {
       prog = byCount > byTime ? byCount : byTime;
       snprintf(ptxt, sizeof(ptxt), "Zeroing: %u of %u values", torque::tareCount(), static_cast<unsigned>(TARE_SAMPLES)); }
     else if (g_step == S_TARE && g_sub == 2 && !isnan(g_r.turnDeg)) { prog = g_r.turnDeg / RUN_TURN_DEG;
-      snprintf(ptxt, sizeof(ptxt), g_r.turnReady ? "%.0f degrees, still" : g_r.turnDeg >= RUN_TURN_DEG ? "%.0f degrees, still moving" : "%.0f of %.0f degrees turned", g_r.turnDeg, RUN_TURN_DEG); }
+      snprintf(ptxt, sizeof(ptxt), g_r.turnReady ? "%.0f degrees, still" : g_r.turnDeg >= RUN_TURN_DEG - RUN_TURN_TOL_DEG ? "%.0f degrees, still moving" : "%.0f of %.0f degrees turned", g_r.turnDeg, RUN_TURN_DEG); }
     else if ((g_step == S_TARE && g_sub == 3) || (g_step == S_POST && g_sub == 1) || (g_step == S_CTRL && g_sub == 4)) { prog = static_cast<float>(inSubMs()) / RUN_ZERO_AVG_MS; snprintf(ptxt, sizeof(ptxt), "Reading zero point, %lu s", static_cast<unsigned long>(RUN_ZERO_AVG_MS / 1000)); }
     else if (g_step == S_CTRL && g_sub == 6) { prog = static_cast<float>(inSubMs()) / RUN_CTRL_AVG_MS; snprintf(ptxt, sizeof(ptxt), "Reading check weight again, %lu s", static_cast<unsigned long>(RUN_CTRL_AVG_MS / 1000)); }
     else if (g_step == S_CTRL && g_sub == 2) { prog = static_cast<float>(inSubMs()) / RUN_CTRL_AVG_MS; snprintf(ptxt, sizeof(ptxt), "Reading check weight, %lu s", static_cast<unsigned long>(RUN_CTRL_AVG_MS / 1000)); }
@@ -1240,7 +1329,8 @@ void json(char* buf, size_t len) {
       const bool isRef = (g_step == S_PLATEAUS && pi == 0) || g_step == S_ANCHOR;
       if (ph == state::POINT) snprintf(ptxt, sizeof(ptxt), "%s %s %.1f km/h: point %u of %u, revolution %u of %u", isRef ? "Reference" : (g_step == S_PLATEAUS ? "Plateau" : "Idle"), what, speedctl::targetKmh(), k + 1, pp, state::revsInPoint() + 1, static_cast<unsigned>(AVG_REVS_PER_POINT));
       else if (ph == state::SETTLE) snprintf(ptxt, sizeof(ptxt), "%s %.1f km/h: settling, %lu s of at least %lu s", isRef ? "Reference" : (g_step == S_PLATEAUS ? "Plateau" : "Idle"), speedctl::targetKmh(), static_cast<unsigned long>(state::settleElapsedMs() / 1000), static_cast<unsigned long>(SETTLE_MS / 1000));
-      else snprintf(ptxt, sizeof(ptxt), "%s: spin-up to %.1f km/h (%u of %u)", g_step == S_PLATEAUS ? "Plateaus" : (g_step == S_ANCHOR ? "Reference" : "Idle"), speedctl::targetKmh(), pi + 1, n);
+      else { const bool down = speedctl::slowingDown() || speedctl::kmh() > speedctl::targetKmh() + 0.5f;   // coming from above: braking
+        snprintf(ptxt, sizeof(ptxt), "%s: %s to %.1f km/h (%u of %u)", g_step == S_PLATEAUS ? "Plateaus" : (g_step == S_ANCHOR ? "Reference" : "Idle"), down ? "slowing down" : "spin-up", speedctl::targetKmh(), pi + 1, n); }
     }
     J(",\"prog\":"); JN(isnan(prog) ? NAN : (prog < 0 ? 0 : (prog > 1 ? 1 : prog)), 3); J(",\"progTxt\":"); JS(ptxt); }
   // Live raw-value trace while zeroing (step 4) and at the zero point after the run
@@ -1261,7 +1351,7 @@ void json(char* buf, size_t len) {
   J(",\"tareSigma\":"); JN(g_r.tareSigma, 1); J(",\"tareSigmaN\":"); JN(countsToFrollN(g_r.tareSigma), 4);
   J(",\"tareChk\":"); JN(g_r.tareCheckN, 3); J(",\"zeroEnd\":"); JN(g_r.zeroEndN, 3); J(",\"zeroLim\":%.3f", RUN_ZERO_LIMIT_N);
   J(",\"ctrlNm\":"); JN(g_r.ctrlNm, 3); J(",\"ctrlDev\":"); JN(g_r.ctrlDev, 2); J(",\"ctrlOn\":%s", ctrlWeightOn() ? "true" : "false");
-  J(",\"ctrlAdopted\":%s,\"turnDeg\":", isnan(g_r.ctrlAdoptedFrom) ? "false" : "true"); JN(g_r.turnDeg, 1); J(",\"turnTarget\":%.0f", static_cast<double>(RUN_TURN_DEG));
+  J(",\"turnDeg\":"); JN(g_r.turnDeg, 1); J(",\"turnTarget\":%.0f,\"turnMin\":%.0f", static_cast<double>(RUN_TURN_DEG), static_cast<double>(RUN_TURN_DEG - RUN_TURN_TOL_DEG));
   J(",\"ctrlTarget\":%.3f", ctrlTargetNm());
   J(",\"ctrlLive\":"); JN(liveNm(), 3);
   // Counts above tare the stored calibration expects for the check weight (null if not
@@ -1291,8 +1381,8 @@ void json(char* buf, size_t len) {
   for (uint8_t i = 0; i < g_r.preN; i++) { J("%s", i ? "," : ""); jpoint(buf, len, p, g_r.pre[i], false); }
   J("],\"a0\":"); JN(g_r.a0, 5); J(",\"b0\":"); JN(g_r.b0, 7); J(",\"a0Old\":"); JN(g_r.a0Old, 5);
   J(",\"post\":[");
-  for (uint8_t i = 0; i < g_r.postN; i++) { J("%s[", i ? "," : ""); JN(g_r.post[i].v, 1); J(","); JN(g_r.post[i].m, 4); J(",");
-    JN(i < g_r.preN ? fabsf(g_r.post[i].m - g_r.pre[i].m) / rDrum() : NAN, 3); J("]"); }
+  for (uint8_t k = 0; g_r.postN && k < g_r.plateauN; k++) { const Drift d = drift(k); J("%s[", k ? "," : ""); JN(g_r.plateaus[k], 1); J(","); JN(d.post, 4); J(",");
+    JN(isnan(d.n) ? NAN : fabsf(d.n), 3); J("]"); }
   J("],\"warm\":[");
   for (uint8_t i = 0; i < g_r.warmN; i++) { J("%s[%u,", i ? "," : "", g_r.warm[i].min); JN(g_r.warm[i].p, 1); J(","); JN(g_r.warm[i].crr, 5); J(","); JN(g_r.warm[i].bar, 2); J("]"); }
   J("],\"anchorPre\":[");
@@ -1308,9 +1398,16 @@ void json(char* buf, size_t len) {
   { float d; bool have; anchorDrift(d, have); J(",\"anchorDN\":"); JN(have ? d / rDrum() : NAN, 3); }
   J(",\"warn\":[");
   for (uint8_t i = 0; i < g_r.warnN; i++) { J("%s", i ? "," : ""); JS(g_r.warn[i]); }
-  J("],\"md\":"); JS(g_r.fileMd); J(",\"csv\":"); JS(g_r.fileCsv);
+  // URLs of the file browser (webui.cpp /fs/<medium><path>), null while not written.
+  { const char* mn = storage::name(static_cast<storage::Media>(g_r.fileMedia));
+    char u[72];
+    J("],\"md\":"); if (g_r.fileMd[0]) { snprintf(u, sizeof(u), "/fs/%s%s", mn, g_r.fileMd); JS(u); } else J("null");
+    J(",\"csv\":"); if (g_r.fileCsv[0]) { snprintf(u, sizeof(u), "/fs/%s%s", mn, g_r.fileCsv); JS(u); } else J("null");
+    J(",\"dir\":"); if (g_r.fileMd[0]) { snprintf(u, sizeof(u), "/fs/%s%s/%s", mn, storage::ROOT_DIR, g_r.id); JS(u); } else J("null"); }
   J(",\"plateaus\":[");
   for (uint8_t i = 0; i < g_r.plateauN; i++) J("%s%.1f", i ? "," : "", g_r.plateaus[i]);
+  J("],\"plAll\":[");   // all Setup speeds, for the choice in step 1
+  for (uint8_t i = 0; i < settings::plateauCount(); i++) J("%s%.1f", i ? "," : "", settings::plateauKmh(i));
   J("]}");
   if (p >= len) { buf[len - 1] = '\0'; }
 }

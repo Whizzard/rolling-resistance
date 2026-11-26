@@ -1,18 +1,17 @@
 #include "statusled.h"
 #include "config.h"
 #include "webui.h"
+#include "rawlog.h"
 
 namespace statusled {
 
-// State of the operator connection, the LED shows nothing more:
-//   green, steady  -- an operator computer checks in within LINK_TIMEOUT_MS
-//   red, blinking  -- nobody is waiting yet, or it has gone away
+// Operator connection and raw-data recording (config.h, since 2026-11-26):
+//   blue blinking slowly  -- nobody checks in (yet), dead man's switch open
+//   green steady          -- an operator computer checks in within LINK_TIMEOUT_MS
+//   red blinking fast     -- raw data are recorded
+//   red / blue alternating -- recording without an operator computer
 //
-// A rainbow used to run here at boot as a sign of life. It is no longer needed:
-// the connection indicator says the same and something useful besides, and it is
-// up a few milliseconds after the start.
-//
-// Written only on a state change. neopixelWrite() occupies the RMT and takes
+// Written only when the colour changes. neopixelWrite() occupies the RMT and takes
 // about 30 us; doing that on every loop pass would be a waste.
 
 void begin() {
@@ -20,25 +19,20 @@ void begin() {
 }
 
 void service() {
-  const bool up = webui::clientSeen() && webui::linkAlive();
-  static bool lastUp = false;
-  static bool lastOn = false;
-  static bool first  = true;
-
-  if (up) {
-    if (first || !lastUp || !lastOn) {
-      neopixelWrite(PIN_STATUS_LED, 0, 190 / STATUS_LED_DIV, 0);
-      lastOn = true;
-    }
-  } else {
-    const bool on = (millis() / STATUS_BLINK_MS) % 2 == 0;
-    if (first || on != lastOn || lastUp) {
-      neopixelWrite(PIN_STATUS_LED, on ? 220 / STATUS_LED_DIV : 0, 0, 0);
-      lastOn = on;
-    }
-  }
-  lastUp = up;
-  first  = false;
+  const bool up  = webui::clientSeen() && webui::linkAlive();
+  const bool rec = rawlog::active();
+  const uint32_t t = millis();
+  const bool fast = (t / STATUS_REC_BLINK_MS) % 2 == 0;
+  const bool slow = (t / STATUS_BLINK_MS) % 2 == 0;
+  constexpr uint8_t D = STATUS_LED_DIV;
+  uint8_t r = 0, g = 0, b = 0;
+  if (rec && up)      { if (fast) r = 220 / D; }
+  else if (rec)       { if (fast) r = 220 / D; else b = 220 / D; }
+  else if (up)        { g = 190 / D; }
+  else                { if (slow) b = 220 / D; }
+  static uint32_t last = 0xFFFFFFFFu;
+  const uint32_t rgb = (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | b;
+  if (rgb != last) { neopixelWrite(PIN_STATUS_LED, r, g, b); last = rgb; }
 }
 
 bool busy() { return false; }

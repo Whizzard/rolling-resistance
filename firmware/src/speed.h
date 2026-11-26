@@ -73,6 +73,7 @@ struct ChannelState {
 };
 const char*  channelName(Channel ch);   // "Marks" | "Index" | "Wheel" | "Motor"
 ChannelState channel(Channel ch);
+uint32_t wheelEchoes();  // rejected phantom pulses at the test wheel (config.h WHEEL_ECHO_PCT)
 uint32_t markEchoes();   // rejected double pulses at the drum marks (config.h MARK_ECHO_PCT)
 void patternDiag(float& refUs, uint8_t& hits, uint16_t& since, uint32_t& seen, uint32_t& resets);
 // Last n mark intervals in degrees, the last perRev of them = 360 (diagnostics). Number of values.

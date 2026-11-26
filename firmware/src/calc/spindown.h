@@ -32,6 +32,28 @@ struct SpindownSums {
     b1 = static_cast<float>(-cb * J);
     return true;
   }
+  // As solve(), but with A >= 0 and B >= 0 (2026-11-26): a loss is never negative. A
+  // wheel whose losses rise about linearly with w (bearings, a rubbing drum brake) gave
+  // A < 0 with the free fit; then the fit is repeated with A = 0 (w0 and B only), or with
+  // B = 0 if B came out negative. constrained = which one was forced, 0 none.
+  bool solvePositive(double J, float& a1, float& b1, double& w0, float& residRms, int& constrained) const {
+    constrained = 0;
+    if (!solve(J, a1, b1, w0, residRms)) return false;
+    if (a1 >= 0.0f && b1 >= 0.0f) return true;
+    // Two-parameter fit w = w0 + c * x with x = I (A = 0) or x = t (B = 0).
+    const bool dropA = a1 < 0.0f;
+    const double sx = dropA ? i : t, sxx = dropA ? ii : tt, sxy = dropA ? yi : yt;
+    const double D = n * sxx - sx * sx;
+    if (n < 2 || std::fabs(D) < 1e-18) return false;
+    const double c = (n * sxy - sx * y) / D;
+    w0 = (y - c * sx) / n;
+    const double rss = yy - w0 * y - c * sxy;
+    residRms = rss > 0 ? static_cast<float>(std::sqrt(rss / n)) : 0.0f;
+    if (dropA) { a1 = 0.0f; b1 = static_cast<float>(-c * J); constrained = 1; }
+    else       { b1 = 0.0f; a1 = static_cast<float>(-c * J); constrained = 2; }
+    if (a1 < 0.0f || b1 < 0.0f) return false;
+    return true;
+  }
 };
 
 }  // namespace calc

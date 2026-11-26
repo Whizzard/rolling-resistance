@@ -58,7 +58,7 @@ joystick breakouts: they output a voltage, not five contacts.
 | N4 | M | The state holds until the drum stands still and then clears itself (since 2026-11-23; previously latching with acknowledgement). |
 | N5 | M | The same state is reached by the shutdown criteria in [07-safety](07-safety.md) §4. |
 | N6 | M | On reset the relays are dropped, so the stand is braked (R2 at the gate, hardware). Since 2026-11-25 the firmware energizes them in `setup()` and keeps them energized; it drops them only for a stop, at any speed since the evening of 2026-11-25 ([04-hardware](04-hardware.md) §9.4). |
-| N7 | M | **Since 2026-11-25 (`brake.cpp`):** the firmware drops the relays itself for every stop (until the evening of 2026-11-25 only above 40 km/h) (not for descents within a run: tried on 2026-11-25 and dropped, the weighing arm rattled), in the order of N2 (`RELAY_DRIVER_OFF_MS` after releasing the controller), and pulls them in again after `RELAY_RELEASE_STILL_MS` of standstill. While it has dropped them, the criterion "no motor on the controller" is muted and drive commands are refused; the hand emergency stop stays detected. Only with `RELAY_BRAKE_WIRED`. Circuit [04-hardware](04-hardware.md) §9.1, behaviour §9.4. |
+| N7 | M | **Since 2026-11-25 (`brake.cpp`):** the firmware drops the relays itself for every stop (until the evening of 2026-11-25 only above 40 km/h) (large descents within a run: one relay pulse each, released again before standstill by `releaseEarly`; the first attempt with a full stop made the weighing arm rattle), in the order of N2 (`RELAY_DRIVER_OFF_MS` after releasing the controller), and pulls them in again after `RELAY_RELEASE_STILL_MS` of standstill. While it has dropped them, the criterion "no motor on the controller" is muted and drive commands are refused; the hand emergency stop stays detected. Only with `RELAY_BRAKE_WIRED`. Circuit [04-hardware](04-hardware.md) §9.1, behaviour §9.4. |
 
 ## 3.1 Web UI over Wi-Fi
 
@@ -87,8 +87,8 @@ once more; it replaces nothing and nothing depends on it.
 
 | | P | Requirement |
 |---|---|---|
-| L1 | M | The DevKit's RGB LED shows **exclusively** the state of the operator connection. No startup animation: the connection indicator is up a few milliseconds after start and says more. |
-| L2 | M | **Steady green** = an operator's computer is reporting in, **blinking red** = waiting. Written only on a state change; `neopixelWrite()` occupies the RMT and takes about 30 µs. |
+| L1 | M | The DevKit's RGB LED shows the operator connection and, since 2026-11-26, the raw-data recording. No startup animation: the indicator is up a few milliseconds after start and says more. The board's red LED is the power LED and cannot be switched. |
+| L2 | M | **Blue, blinking slowly** = waiting for an operator computer; **steady green** = one is reporting in; **red, blinking fast** = raw data are recorded; **red/blue alternating** = recording without an operator computer. Written only when the colour changes; `neopixelWrite()` occupies the RMT and takes about 30 µs. |
 | L3 | M | The animation is **non-blocking** (G1): `statusled::service()` runs from `loop()`, there is no `delay()`. |
 
 Constants in [03-parameters](03-parameters.md) §8; the pin question v1.0/v1.1 is listed
@@ -132,9 +132,9 @@ the header keys of the run CSV are English throughout (`target`, `driving`, `sen
 drops the values stored before: calibration factor, circumference, models and wheel
 mass have to be entered again once — accepted during development.
 
-**Run files as one archive.** `/runs/<id>.zip` delivers `<id>.md` and `<id>.csv` as a
-stored (uncompressed) ZIP built on the fly (`calc/zip.h`, `calc/crc32.h`); the report
-step and the `/runs` listing link to it.
+**Run files as one archive.** `/fs/<medium>/vmrr/<id>?zip=1` delivers all files of the run's
+session directory (protocol, points, raw log) as a stored (uncompressed) ZIP built on the
+fly (`calc/zip.h`, `calc/crc32.h`); the report step links to it (§11.7).
 
 ## 5 Diagnostic Pages
 
@@ -268,7 +268,7 @@ dv/dt                                    = 0.010 km/h/s
 
 | | P | Requirement |
 |---|---|---|
-| L9 | M | The apparent torque is **subtracted per point**: `M = M_roh − J_eff·dω/dt` with the net acceleration as the slope of the regression line v(t) over the point (since 2026-11-24, `state.cpp`). Residual: `UNC_J_REL` = 5 % of it. |
+| L9 | M | The apparent torque is **subtracted per point**: `M = M_raw − J_eff·dω/dt` with the net acceleration as the slope of the regression line v(t) over the point (since 2026-11-24, `state.cpp`). Residual: `UNC_J_REL` = 5 % of it. |
 | L10 | M | Measurement points whose net acceleration exceeds `POINT_DVDT_NET_MAX_KMH_S` = 0.2 km/h/s (residual > 1 %) are **marked invalid**, in the display, in the report (W03) and in the CSV row. Peak |dv/dt| and M_inert are listed per point alongside. |
 | ~~L11~~ | — | The tighter window has been dropped: the correction replaces it. |
 
@@ -292,7 +292,7 @@ Via the serial console, single-line, and included in the CSV header.
 | `w<A₁> <B₁>` | Wheel-loss model by hand | `w0.012 0.000071` | from the wheel spin-down |
 | `n<A₀> <B₀>` | Idle-loss model by hand | `n0.004 0.000209` | the idle run `m0` fits and stores it itself since 2026-11-23; from the baseline run |
 | `t` | static tare | | offset |
-| `R` | **Guided measurement run** | `R`, then `Rk`/`Rs`/`Rn`/`Rx`, `Rm<k>=<v>` | Fourteen steps ([11-review](11-review.md) §3): create run, visual check, system check, zeroing, control weight, idle-loss model (adopt, or since 2026-11-25 the spin-down wizard inside the run: wheel resting to 40 km/h, lift, wheel spin-down and idle pre-run together), wheel model, wheel resting; then on its own warm-up (`WARMUP_MS` at `WARMUP_KMH`, live point every minute), plateaus with `RUN_POINTS_PER_PLATEAU` points, anchor point, stop; optional idle post-run; report `.md` and data `.csv` in LittleFS under `/runs/<id>`, retrievable via `/runs`. Warnings W01…W12 in the report. In the web UI behind *Measurement*. Since 2026-11-23 |
+| `R` | **Guided measurement run** | `R`, then `Rk`/`Rs`/`Rn`/`Rx`, `Rm<k>=<v>` | Fourteen steps ([11-review](11-review.md) §3): create run, visual check, system check, zeroing, control weight, idle-loss model (adopt, or since 2026-11-25 the spin-down wizard inside the run: wheel resting to 40 km/h, lift, wheel spin-down and idle pre-run together), wheel model, wheel resting; then on its own warm-up (`WARMUP_MS` at `WARMUP_KMH`, live point every minute), plateaus with `RUN_POINTS_PER_PLATEAU` points, anchor point, stop; optional idle post-run; report `protocol.md` and data `points.csv` in the session directory `/vmrr/<id>/` (SD, else flash), retrievable in the file browser (§11.7). Warnings W01…W12 in the report. In the web UI behind *Measurement*. Since 2026-11-23 |
 
 ### 8.1 Wheel profiles (since 2026-11-26)
 
@@ -325,6 +325,42 @@ carried over to another combination.
   written only at standstill (`storage::flashWritable()`), via a temporary file. No fixed
   number of entries. HTTP: `GET /api/profiles`, edits as `POST /api/profiles?op=…`
   (`pset`, `hub`, `ren`, `del`, `pdel`, `pclr`); the run takes a profile with `Rmq=<index>`.
+- **Mirror on the SD (since 2026-11-26):** the four lists (tires, tubes, rims, hubs) are
+  also kept as Markdown tables in `/vmrr/wheels.md`, editable on any computer. The flash
+  stays the master. Every change in Setup is written to both; when a card is mounted the
+  stand reads `wheels.md` and takes over edits made elsewhere (a CRC stamp in the last
+  line tells an edited file from one the stand wrote): new rows become entries, changed
+  rows update them, removed rows delete the entry unless a profile uses it. Profiles and
+  wheel models stay in the flash only. Console: `P<T|U|R|H>| name | ... |` adds or
+  changes one entry (empty cells keep the old value), `Dwheels.md` prints the file.
+- **Speeds per run (since 2026-11-26):** step 1 ticks which Setup speeds this run measures
+  (default all, never none; meta key `Rmv=<bitmask>`). Pre-run idle loss, plateaus and
+  post-run use the same list, so the pre/post comparison stays index for index.
+- **Test-wheel phantom pulses (since 2026-11-26):** an edge after less than
+  `WHEEL_ECHO_PCT` of the last wheel interval is rejected (bit 7 in the raw log), and a
+  spin-down fit is rejected if its residual exceeds `SPINDOWN_RESID_MAX_RADS`; a fit with
+  A1 < 0 or B1 < 0 is repeated with that term at 0.
+- **Stand build in every protocol (since 2026-11-26):** section "Stand build" with the firmware
+  commit (`src/build_id.h`, generated by `web/embed_pio.py`, `-dirty` with uncommitted
+  changes), drum, marks and index, test-wheel pulses, load cell and HX711 with the rate
+  measured over the run, cell and calibration arm, wheel-load lever, motor. Plus the stand
+  revision, a free text in Setup → Stand (console `B<text>`), dated by its change stamp and
+  kept through a settings reset. The raw-log header carries commit, revision, HX711 rate,
+  cell capacity and lever.
+- **Warm-up minute values (since 2026-11-26):** the mean of all valid live values of that
+  minute, no longer the last snapshot; one console line per minute with M, P, Crr, tire
+  temperature and the span the settle test sees.
+- **Relay pulse test (since 2026-11-26):** console `X<n>` lets the brake relays drop and pull
+  in n times at standstill and prints per cycle the edges on all four inputs and the
+  load-cell excursion, against a quiet window of the same length (`RELAYTEST_WIN_MS`).
+- **Files over USB, compressed (since 2026-11-26):** `Gz<path> <offset> <len>` sends up to
+  32 kB as a heatshrink stream (`lib/heatshrink`, window 2^10, lookahead 2^5), lines `=Z`;
+  `=E` carries the SD read time and the total in ms. The SD reads about 48 kB/s over SPI
+  and limits the transfer.
+- **Files over USB (since 2026-11-26):** console `G?<dir>` lists, `G<path> <offset> <len>`
+  sends up to 16 kB of a file below `/vmrr` as base64 lines with CRC32 (`=G`, end `=E`,
+  refusal `=X`); only at standstill and outside a run, since one request holds the main
+  loop for about 0.5 s. Client: `tools/console.py --get`, about 32 kB/s.
 
 | | P | Requirement |
 |---|---|---|
@@ -374,8 +410,17 @@ Constants: [03-parameters](03-parameters.md) §10.
 
 | Medium | File system | Size | Holds |
 |---|---|---|---|
-| microSD | FAT, mounted by ESP-IDF (`esp_vfs_fat_sdspi_mount`) at `/sd` | card | `/raw/*.rrl` (raw log, **only here**), `/runs/*` (run protocols) |
-| internal flash | NVS (settings, calibration) and LittleFS, partition `spiffs` | 3.4 MB | `/runs/*` only when no card is ready at the end of a run |
+| microSD | FAT12/16/32, mounted by ESP-IDF (`esp_vfs_fat_sdspi_mount`) at `/sd`; **no exFAT** (FatFs in the Arduino core 2.0.14 is built with `FF_FS_EXFAT 0`), long file names on | card | `/vmrr/<session>/`: raw log (**only here**), run protocol and points; `/vmrr/wheels.md` mirror of the wheel-part lists |
+| internal flash | NVS (settings, calibration) and LittleFS, partition `spiffs` | 3.4 MB | `/profiles.tsv`; `/vmrr/<session>/` protocols only when no card is ready at the end of a run |
+
+**Layout (since 2026-11-26), the same on both media:** one directory per run or manual
+raw log, `/vmrr/<session>/`, `<session>` = run id = local time `YYYY-MM-DD-HHMMSS`
+(`up<seconds since boot>` while the browser has not set the clock). In it `raw_<session>.rrl`
+(`raw_<session>-b.rrl` … after a name clash, never overwritten), `protocol.md`, `points.csv`, and
+for a manual raw log `info_<session>.md` (what it is, the header constants as a table). Files from
+before 2026-11-26 stay in `/raw` and `/runs` and are reachable in the file browser.
+The file system type (FAT32 …, LittleFS) is shown next to the medium under Setup >
+Storage, in `/api/state` (`sto.sdFs`, `sto.flFs`) and by `D` on the console.
 
 **The flash holds only what is written rarely and at standstill** (decision
 2026-11-26): settings and calibration in NVS, and — without a card — the run protocols
@@ -397,10 +442,11 @@ State per medium, shown under **Setup > Storage** and by `i` on the console:
 | read-only | mounted, write probe failed | — |
 | unreadable | card answers, no FAT (unformatted, exFAT, damaged) | LittleFS does not mount |
 
-Next to it the usage in % as a bar. **Format** appears only for *unreadable*, and only
-after a confirmation dialog with a warning; the firmware refuses to format a readable
-file system or a medium being recorded to, and the flash only at standstill. Console:
-`Fs` / `Ff`, without a question.
+Next to it the usage in % as a bar. **Format:** the SD card also when readable (since
+2026-11-26: a fresh FAT card on demand), from the file browser after a confirmation
+dialog; refused while a run is active or a raw log is written to it. The flash only when
+*unreadable* (it holds the wheel profiles), and only at standstill. Console: `Fs` / `Ff`,
+without a question.
 
 Until 2026-11-25 `run.cpp` called `LittleFS.begin(true)`, which formats silently when
 mounting fails. That is gone: an unreadable flash is reported and waits for the
@@ -470,26 +516,26 @@ continuously. The ring (1 MB, about 8 minutes) only has to bridge the card's own
 pauses. Flash usage and formatting still wait for `RAWLOG_FLASH_IDLE_MS` of standstill.
 Requirement: [01-requirements](01-requirements.md) F8a.
 
-Reading from the flash (downloads, `/runs`) also briefly locks the cache per access —
+Reading from the flash (downloads in the file browser) also briefly locks the cache per access —
 shorter, but large downloads belong to standstill as well.
 
 ### 11.6 Operation
 
-- **Automatic** while a guided run is active (`run::active()`), on the SD. Without a
-  ready card: no raw log, the run still works.
+- **Automatic** while a guided run is active **from step 2 on** (since 2026-11-26; step 1
+  only creates the run, and tapping *Measure* alone must not start a recording), on the
+  SD. Without a ready card: no raw log, the run still works.
   The whole run is recorded continuously, waiting times between steps included. Every
   step change writes a TEXT mark `run <step>.<sub>` into the file, and the results of
   the standstill readings follow as TEXT next to their samples (`tare raw_counts=… sigma_counts=… pp_counts=…`, `check_weight raw_above_tare=…`,
   `check_weight_after_stop …`, `zero_after_stop …`), so each window can be cut out of
   `_loadcell.csv` by time. The protocol names the raw file.
-- **By hand:** Setup > Storage > *Record raw data*, console `L1` / `L0` (refused
-  without a ready card).
-- **Protocols** (`/runs/<id>.md`, `.csv`) go to the SD if it is ready at the end of the
-  run, otherwise to the flash. `/runs` lists both.
-- File name: local time of the browser, `/raw/YYYY-MM-DD-HHMMSS.rrl`; without a browser
-  clock `up<seconds since boot>.rrl`. An existing file is never overwritten.
-- **Download:** `/raw` lists both media (old files on the flash stay readable). Per
-  file *CSV (.zip)* and *raw*.
+- **By hand:** the button *Turn recording on* / *Stop recording* under Manual (since 2026-11-26; it was under Setup >
+  Storage), console `L1` / `L0` (refused without a ready card). A run's own recording
+  cannot be switched off there.
+- **Protocols** (`/vmrr/<id>/protocol.md`, `points.csv`) go to the SD if it is ready at
+  the end of the run, otherwise to the flash.
+- File name: `/vmrr/<session>/raw_<session>.rrl` (§11.1). An existing file is never overwritten.
+- **Download:** in the file browser (§11.7); per raw file *Download* and *CSV .zip*.
   The zip is converted while sending: one CSV per record type
   (`_loadcell.csv`, `_edges.csv`, `_vesc.csv`, `_control.csv`, `_tire.csv`,
   `_events.csv`) plus `_info.txt` with the header constants and row counts. Streamed
@@ -498,6 +544,37 @@ shorter, but large downloads belong to standstill as well.
   While a download streams, the web task serves nothing else.
 - **On the PC:** `python3 tools/rawlog.py <file>.rrl` gives the same CSVs (cross-checked
   against the firmware decoder).
+
+### 11.7 File browser
+
+Setup > Storage > *Files on SD card and flash* opens a page of its own (since 2026-11-26):
+SD / Flash switch, *↑ Back* and the path as breadcrumbs, directories newest first, per file
+size and time. A tap on icon or name opens a directory or views a file; *Download*, *.zip* and
+*CSV* sit right-aligned. No Refresh button: the listing reloads by itself while a raw log is
+written and when recording starts or stops (nothing else changes it while it is open).
+Viewing: (`.md` rendered, `.csv`/`.txt` as text, `.rrl` as an overview: start, duration, size, complete or cut off, dropped bytes, records per type with rate, bytes and field types, edges per channel, header, events), *Download*, for raw files *CSV .zip*,
+per directory *.zip*. *Format SD card* small at the very bottom, with a spinner and the elapsed seconds while the stand formats (FatFs reports no progress), then a fresh listing, then *Formatted in n s* or the reason (`sto.sdFmtRes`). The UI waits for the counter of finished formats (`sto.sdFmtN`), not for the short *formatting* phase, which a poll can miss; file requests get 503 while formatting, so they never stall the web task on the SD lock. Formatting a readable card runs FatFs `f_mkfs` (FAT type by size); until 2026-11-26 it only re-mounted with `format_if_mount_failed`, which does nothing on a readable card. *Close* at the top leaves the browser, *↑ Back* next to the path goes one step back. Navigation runs through the URL
+hash (`#fb:sd/vmrr/<session>`, `#fv:<url>`), so the browser's back button walks back
+through directories and closes the viewer; *Back* in the bar does the same. The Setup
+tab itself is kept as `#setup`, so a refresh stays there.
+
+| Endpoint | Delivers |
+|---|---|
+| `GET /api/files?m=sd\|flash&p=<dir>` | the directory as JSON: `d` = [{n, dir, s, t}], `fs`, `state`, `rec` (file being recorded) |
+| `GET /fs/<medium><path>` | the file, `application/octet-stream`, name `<session>_<file>` |
+| `…?view=1` | the same as `text/plain` inline (the viewer) |
+| `…?csv=1` | a raw file converted to one CSV per record type, as streamed ZIP |
+| `…?zip=1` | all files of a directory (not recursive) as streamed ZIP |
+| `…?info=1` | overview of a raw file as JSON: time span, records and bytes per type, edges per channel (echo rejected), dropped bytes, header, first 30 and last 10 TEXT events; shown by the viewer |
+
+The flags need a value (`?zip=1`, not `?zip`): the Arduino WebServer drops query
+arguments without `=` (`Parsing.cpp`), which made every *.zip* answer 404 until
+2026-11-26.
+
+SD access: the storage task writes the raw log under the same SD lock. A plain download
+takes the lock per 1.4 kB chunk, so it never stalls the raw log for long. The two ZIP
+variants hold it for the whole file and are therefore refused (409) while a run or a raw
+log is active on that medium. The old pages `/runs` and `/raw` are gone.
 
 ### 11.7 Open
 

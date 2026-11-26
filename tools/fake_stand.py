@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fake test stand for UI work: serves firmware/web/index.html and simulates the firmware.
 
-No ESP32 needed. Endpoints as on the stand: /api/state, /api/cmd, /api/run, /runs, /raw.
+No ESP32 needed. Endpoints as on the stand: /api/state, /api/cmd, /api/run, /api/profiles, /api/files, /fs.
 The guided measurement run (14 steps) runs on a shortened clock, so a whole run takes
 a few minutes. Physics is a rough stand-in -- good enough to see every screen, not for
 judging numbers.
@@ -54,6 +54,8 @@ class Stand:
         self.loaded = False          # wheel on the drum
         self.sd = SD_STATES[sd]
         self.sd_fmt_until = 0
+        self.sd_fmt_res = ""
+        self.sd_fmt_n = 0
         self.fl = 1
         self.rec = False
         self.rec_man = False
@@ -85,7 +87,7 @@ class Stand:
         if self.target == 0 and self.kmh < 0.3:
             self.kmh = 0.0
         if self.sd_fmt_until and time.time() > self.sd_fmt_until:
-            self.sd_fmt_until, self.sd = 0, 1
+            self.sd_fmt_until, self.sd, self.sd_fmt_res = 0, 1, "ok"; self.sd_fmt_n += 1
         if self.rec:
             self.rec_kb += 2.1 * dt
         # HX711 at standstill: white noise plus a slow wobble (air, cable)
@@ -137,9 +139,9 @@ class Stand:
             "uWheelN": 10, "uWheelMin": 10, "plateaus": self.set["plateaus"], "phase": "SETTLE" if v > 0.5 and not steady else ("POINT" if steady else "IDLE"),
             "run": 0, "plateau": 0, "sfault": "", "load": self.set["load_n"], "motorOpen": False, "estop": False,
             "drumU": self.set["drum_u"], "arm": self.set["arm"], "calArm": self.set["calib_arm"], "npc": self.set["npc"],
-            "vmax": 100, "vmin": 10, "step": 5, "fsN": 49.03, "maxN": 45, "ctrlKg": self.set["ctrl_kg"],
+            "vmax": 100, "vmin": 10, "step": 5, "fsN": 49.03, "maxN": 45, "ctrlKg": self.set["ctrl_kg"], "mMin": 0.5, "mMax": 1.4, "stopMin": 100, "stopMax": 140, "stopBar": 160,
             "rs": self.run.step if self.run.step else 0, "build": "fake", "mRad": self.set["m_wheel"],
-            "sto": {"sd": self.sd, "sdPct": sd_pct, "sdMB": 30436, "sdFmt": bool(self.sd_fmt_until), "fl": self.fl,
+            "sto": {"sd": self.sd, "sdPct": sd_pct, "sdMB": 30436, "sdFmt": bool(self.sd_fmt_until), "sdFmtRes": "" if self.sd_fmt_until else self.sd_fmt_res, "sdFmtN": self.sd_fmt_n, "sdFs": "FAT32" if self.sd in (1, 2) else "", "flFs": "LittleFS", "fl": self.fl,
                     "flPct": 2, "flMB": 3, "flFmt": False, "rec": self.rec, "recMan": self.rec_man,
                     "recOn": "sd", "recKB": int(self.rec_kb), "recPend": 3, "recDrop": 0},
             "chg": self.chg,
@@ -179,7 +181,7 @@ class Stand:
             self.stamp("tare")
         elif k == "F":
             which = c[1:2]
-            if which == "s" and self.sd == 3:
+            if which == "s" and self.sd in (1, 2, 3):   # firmware: SD also when readable
                 self.sd_fmt_until = time.time() + 4
             elif which == "f":
                 self.note = "Flash is readable"
@@ -600,7 +602,9 @@ class Run:
         ok, alt, redo, back, txt = self.buttons()
         tg = S.set["ctrl_kg"] * 9.81 * S.set["calib_arm"]
         live = self.step == 9 and S.kmh > 25
-        md = f"/runs/{self.id}.md" if self.step in (14, 99) else None
+        md = f"/fs/sd/vmrr/{self.id}/protocol.md" if self.step in (14, 99) else None
+        if md:
+            FILES.write_run(self.id)
         return {
             "step": self.step, "sub": self.sub, "id": self.id, "title": TITLES.get(self.step, ""), "txt": txt,
             "ok": ok, "alt": alt, "redo": redo, "back": back, "subMs": getattr(self, "sub_ms", 0), "warmMs": 60000,
@@ -622,7 +626,8 @@ class Run:
             "pre": self.pre, "a0": self.a0, "b0": self.b0, "a0Old": 0.05, "post": self.post, "warm": self.warm,
             "anchorPre": self.anchor_pre, "pts": self.pts, "anchor": self.anchor, "stat": self.stat,
             "anchorKmh": 28.8, "anchorDN": self.anchor_dn, "warn": self.warns, "md": md,
-            "csv": f"/runs/{self.id}.csv" if md else None, "plateaus": S.set["plateaus"],
+            "csv": f"/fs/sd/vmrr/{self.id}/points.csv" if md else None, "dir": f"/fs/sd/vmrr/{self.id}" if md else None,
+            "plateaus": S.set["plateaus"],
             **self.trace_json(),
         }
 
@@ -675,14 +680,11 @@ class H(BaseHTTPRequestHandler):
                 return self.out(200, json.dumps(STAND.run.json()))
             if u.path == "/api/profiles":
                 return self.out(200, json.dumps(PROFILES.out()))
-            if u.path.startswith("/runs"):
-                if u.path.endswith(".md"):
-                    return self.out(200, f"# Run {STAND.run.id}\n\n(fake protocol)\n", "text/markdown")
-                if u.path.endswith(".csv"):
-                    return self.out(200, "phase,k,v_kmh\nmeasure,1,28.80\n", "text/csv")
-                return self.out(200, "<h1>Runs</h1><ul><li>2026-11-25-183012.md 4120 B (SD)</li></ul>", "text/html")
-            if u.path.startswith("/raw"):
-                return self.out(200, "<h1>Raw data</h1><ul><li>2026-11-25-183012.rrl 1.2 MB (SD)</li></ul>", "text/html")
+            if u.path == "/api/files":
+                return self.out(200, json.dumps(FILES.listing(q.get("m", ["sd"])[0], q.get("p", ["/vmrr"])[0])))
+            if u.path.startswith("/fs/"):
+                code, body, ctype = FILES.get(u.path, [a.split("=")[0] for a in u.query.split("&")])
+                return self.out(code, body, ctype)
         self.out(404, "not found", "text/plain")
 
     def do_POST(self):
@@ -697,6 +699,76 @@ class H(BaseHTTPRequestHandler):
             print("cmd", c, code)
             return self.out(code, msg, "text/plain")
         self.out(404, "not found", "text/plain")
+
+
+class Files:
+    """The SD card and flash as the file browser sees them (webui.cpp /api/files, /fs).
+    Demo content in memory, clearly marked as fake; a finished fake run adds its files."""
+
+    def __init__(self):
+        now = int(time.time())
+        demo = ("# Measurement run 2026-11-25-183012 (FAKE)\n\nDemo content of tools/fake_stand.py, "
+                "not a measurement.\n\n## Wheel\n\n| Part | Name |\n|---|---|\n| Tire | Tire A, 28-622 |\n"
+                "| Tube | Latex tube (latex) |\n\n## Points\n\n| km/h | Crr |\n|---|---|\n| 28.8 | 0.00451 |\n\n"
+                "- tare raw value `81234`\n- **check weight** +0.31 %\n")
+        self.fs = {"sd": {"/vmrr": None, "/vmrr/2026-11-25-183012": None,
+                          "/vmrr/2026-11-25-183012/protocol.md": (demo, now - 86400),
+                          "/vmrr/2026-11-25-183012/points.csv": ("kind,plateau,v_kmh,crr\nmeasure,1,28.80,0.00451\n", now - 86400),
+                          "/vmrr/2026-11-25-183012/raw_2026-11-25-183012.rrl": ("x" * 1200000, now - 86400),
+                          "/vmrr/2026-11-26-101500": None,
+                          "/vmrr/2026-11-26-101500/raw_2026-11-26-101500.rrl": ("x" * 118562, now - 600),
+                          "/vmrr/2026-11-26-101500/info_2026-11-26-101500.md": ("# Raw log 2026-11-26-101500 (FAKE)\n\nStarted by hand.\n\n| Key | Value |\n|---|---|\n| format | rrl1 |\n", now - 600),
+                          "/raw": None, "/raw/up23.rrl": ("x" * 118562, now - 3600)},
+                   "flash": {"/vmrr": None, "/profiles.tsv": ("RRP2\n", now - 7200)}}
+
+    def write_run(self, rid):
+        d = self.fs["sd"]
+        if f"/vmrr/{rid}/protocol.md" in d:
+            return
+        now = int(time.time())
+        d[f"/vmrr/{rid}"] = None
+        d[f"/vmrr/{rid}/protocol.md"] = (f"# Measurement run {rid} (FAKE)\n\nFake run of tools/fake_stand.py.\n", now)
+        d[f"/vmrr/{rid}/points.csv"] = ("kind,plateau,v_kmh\nmeasure,1,28.80\n", now)
+        d[f"/vmrr/{rid}/raw_{rid}.rrl"] = ("x" * 900000, now)
+
+    def listing(self, m, p):
+        d = self.fs.get(m, {})
+        p = p.rstrip("/") or "/"
+        ok = p == "/" or (p in d and d[p] is None)
+        out = []
+        for k, v in d.items():
+            parent = k.rsplit("/", 1)[0] or "/"
+            if parent == p and k != p:
+                out.append({"n": k.rsplit("/", 1)[1], "dir": 1 if v is None else 0,
+                            "s": 0 if v is None else len(v[0]), "t": 0 if v is None else v[1]})
+        return {"m": m, "p": p, "state": 1, "fs": "FAT32" if m == "sd" else "LittleFS", "pct": 37 if m == "sd" else 2,
+                "mb": 3814 if m == "sd" else 3, "rec": "", "d": out, "ok": ok}
+
+    def get(self, path, q):
+        m, _, rest = path[4:].partition("/")
+        p = "/" + rest.rstrip("/")
+        d = self.fs.get(m, {})
+        if p not in d:
+            return 404, "not found", "text/plain"
+        if "info" in q and p.endswith(".rrl"):   # FAKE overview, shape as webui.cpp sendRawInfo
+            n = len(d[p][0])
+            return 200, json.dumps({"size": n, "hdrLen": 212, "ok": True, "unix": int(d[p][1]) - 300,
+                "hdr": "format=rrl1\nfirmware=FAKE\nsps=80\ndrum_circ_m=2.8420\nmarks=8\nloadcell_n_per_count=TBD\n",
+                "t0": 0, "t1": 300_000_000, "end": "clean", "gap": 0,
+                "types": [{"t": "sync", "n": 300, "b": 2700}, {"t": "edge", "n": 21000, "b": 63000},
+                          {"t": "hx711", "n": 24000, "b": 96000}, {"t": "vesc", "n": 6000, "b": 162000},
+                          {"t": "ctrl", "n": 6000, "b": 48000}, {"t": "tire", "n": 60, "b": 540},
+                          {"t": "text", "n": 3, "b": 120}],
+                "edges": [[18000, 12], [0, 0], [3000, 0], [0, 0]], "textN": 3,
+                "text": [[0, "raw log started by hand"], [120000000, "note FAKE"], [300000000, "raw log stopped"]]}), "application/json"
+        if "zip" in q or "csv" in q:
+            return 200, b"PK\x05\x06" + b"\0" * 18, "application/zip"
+        if d[p] is None:
+            return 404, "not found", "text/plain"
+        return 200, d[p][0], "text/plain" if "view" in q else "application/octet-stream"
+
+
+FILES = Files()
 
 
 class Profiles:

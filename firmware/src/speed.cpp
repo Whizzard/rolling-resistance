@@ -51,6 +51,8 @@ volatile uint32_t g_wheelCount = 0;
 volatile uint32_t g_chCount[CH_N]  = {0};
 volatile uint32_t g_chLastUs[CH_N] = {0};
 volatile uint32_t g_wheelLastUs = 0;
+volatile uint32_t g_wheelDtUs = 0;      // last accepted wheel interval (echo filter)
+volatile uint32_t g_wheelEchoes = 0;
 constexpr uint8_t CH_PIN[CH_N] = {PIN_MARK, PIN_INDEX, PIN_WHEEL, PIN_MOTOR_HALL};
 const char* const CH_NAME[CH_N] = {"Marks", "Index", "Wheel", "Motor"};
 
@@ -133,8 +135,20 @@ void IRAM_ATTR onMotorHall() {
 
 void IRAM_ATTR onWheel() {
   const uint32_t now = micros();
-  if (now - g_wheelLastUs < MIN_PULSE_US) return;
+  const uint32_t dt = now - g_wheelLastUs;
+  if (dt < MIN_PULSE_US) return;
+  // Phantom pulse (config.h WHEEL_ECHO_PCT): a few ms after a real one, e.g. when the
+  // brake relays switch. Rejected and recorded with bit 7 like the mark echoes.
+  if (g_wheelDtUs != 0 && g_wheelDtUs < STALL_TIMEOUT_MS * 1000UL &&
+      dt < g_wheelDtUs / 100UL * WHEEL_ECHO_PCT) {
+    portENTER_CRITICAL_ISR(&g_mux);
+    g_wheelEchoes++;
+    edge(CH_WHEEL | 0x80, now);
+    portEXIT_CRITICAL_ISR(&g_mux);
+    return;
+  }
   portENTER_CRITICAL_ISR(&g_mux);
+  g_wheelDtUs = dt;
   g_wheelLastUs = now;
   g_wheelHead = (g_wheelHead + 1) % WBUF;
   g_wheelUs[g_wheelHead] = now;
@@ -357,6 +371,7 @@ bool stalled() {
 
 const char* channelName(Channel ch) { return CH_NAME[ch]; }
 uint32_t markEchoes() { return g_markEchoes; }
+uint32_t wheelEchoes() { return g_wheelEchoes; }
 void patternDiag(float& refUs, uint8_t& hits, uint16_t& since, uint32_t& seen, uint32_t& resets) {
   refUs = g_refUs; hits = g_patternHits; since = g_sinceIndex; seen = g_patternSeen; resets = g_patternResets;
 }
