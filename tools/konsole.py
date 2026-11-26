@@ -1,30 +1,31 @@
 #!/usr/bin/env python3
-"""Konsole des Pruefstands ueber USB: Befehle schicken, Antworten mitschreiben.
+"""Console of the test stand over USB: send commands, record the replies.
 
-Dasselbe Befehlsvokabular wie Oberflaeche und serielle Konsole (docs/10-firmware.md
-G5). Gedacht fuers Fehlersuchen und Steuern vom Rechner aus, ohne Browser:
+The same command vocabulary as the web UI and the serial console (docs/10-firmware.md
+G5). Meant for troubleshooting and for driving the stand from the computer, without a
+browser:
 
     ~/.platformio/penv/bin/python tools/konsole.py i
     ~/.platformio/penv/bin/python tools/konsole.py j8 v15 sleep:6 c
     ~/.platformio/penv/bin/python tools/konsole.py --watch 30
-    ~/.platformio/penv/bin/python tools/konsole.py --log lauf.txt j20 m0
+    ~/.platformio/penv/bin/python tools/konsole.py --log run.txt j20 m0
 
-Argumente sind Befehle, der Reihe nach; `sleep:<s>` wartet dazwischen, und
-`until:<feld><op><wert>` wartet, bis die Live-Telemetrie (Befehl j) die Bedingung
-erfuellt, z. B. `until:ist>=14.5` oder `until:ist<=0.3` -- die Telemetrie wird dafuer
-von selbst nachgefordert, laengstens --max Sekunden (Vorgabe 300). Nach dem
-letzten Befehl wird noch --tail Sekunden mitgelesen (Vorgabe 2, bei `j<s>`
-automatisch bis die Telemetrie zu Ende ist).
+Arguments are commands, in order; `sleep:<s>` waits in between, and
+`until:<field><op><value>` waits until the live telemetry (command j) meets the
+condition, e.g. `until:ist>=14.5` or `until:ist<=0.3` -- the telemetry is requested
+again automatically for this, for at most --max seconds (default 300). After the
+last command reading continues for --tail seconds (default 2, with `j<s>`
+automatically until the telemetry has ended).
 
     konsole.py j30 v15 until:ist>=14.5 sleep:5 s until:ist<=0.3 c
 
-Jede Zeile bekommt einen Zeitstempel in Sekunden seit Start; eigene Befehle stehen
-mit `>>>` im Mitschnitt.
+Every line gets a timestamp in seconds since start; our own commands appear
+with `>>>` in the transcript.
 
-Der Port wird gesucht (/dev/cu.usbmodem*), --port setzt ihn fest. Braucht pyserial,
-PlatformIOs Python hat es.
+The port is searched for (/dev/cu.usbmodem*), --port fixes it. Needs pyserial,
+PlatformIO's Python has it.
 
-STOP ist immer `s`, Auslaufen `c`. Beides geht auch, waehrend ein j laeuft.
+STOP is always `s`, coast-down `c`. Both also work while a j is running.
 """
 import argparse
 import glob
@@ -35,7 +36,7 @@ import time
 try:
     import serial
 except ImportError:
-    sys.exit("pyserial fehlt — ~/.platformio/penv/bin/python benutzen")
+    sys.exit("pyserial missing — use ~/.platformio/penv/bin/python")
 
 
 def find_port(explicit):
@@ -43,22 +44,22 @@ def find_port(explicit):
         return explicit
     ports = sorted(glob.glob('/dev/cu.usbmodem*')) or sorted(glob.glob('/dev/ttyACM*'))
     if not ports:
-        sys.exit("kein USB-Port gefunden — haengt das Board am USB?")
+        sys.exit("no USB port found — is the board connected via USB?")
     return ports[0]
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('befehle', nargs='*', help="Befehle, dazwischen sleep:<s>")
-    ap.add_argument('--port', help="serieller Port, sonst /dev/cu.usbmodem*")
+    ap.add_argument('befehle', nargs='*', help="commands, sleep:<s> in between")
+    ap.add_argument('--port', help="serial port, otherwise /dev/cu.usbmodem*")
     ap.add_argument('--watch', type=float, default=0.0,
-                    help="nur mitlesen, so viele Sekunden")
+                    help="only listen, for this many seconds")
     ap.add_argument('--tail', type=float, default=2.0,
-                    help="nach dem letzten Befehl noch so lange lesen")
-    ap.add_argument('--log', help="Mitschnitt zusaetzlich in diese Datei")
+                    help="keep reading this long after the last command")
+    ap.add_argument('--log', help="also append the transcript to this file")
     ap.add_argument('--max', type=float, default=300.0,
-                    help="laengstes Warten je until:, Sekunden")
+                    help="longest wait per until:, seconds")
     a = ap.parse_args()
 
     port = find_port(a.port)
@@ -74,7 +75,7 @@ def main():
             logf.write(txt + "\n")
             logf.flush()
 
-    last_j = {}      # zuletzt gesehene Telemetriefelder
+    last_j = {}      # most recently seen telemetry fields
     rest = [b""]
 
     def handle(line):
@@ -105,7 +106,7 @@ def main():
     def wait_until(expr):
         m = re.match(r'^(\w+)(>=|<=|>|<)(-?\d+(?:\.\d+)?)$', expr)
         if not m:
-            sys.exit("until: unverstanden: %s" % expr)
+            sys.exit("until: not understood: %s" % expr)
         key, op, val = m.group(1), m.group(2), float(m.group(3))
         t_start = time.time()
         next_j = 0.0
@@ -115,9 +116,9 @@ def main():
                 next_j = time.time() + 25.0
             read_for(0.2)
             if key in last_j and isinstance(last_j[key], float) and OPS[op](last_j[key], val):
-                out(">>> until:%s erfuellt (%s=%s)" % (expr, key, last_j[key]))
+                out(">>> until:%s met (%s=%s)" % (expr, key, last_j[key]))
                 return
-        out(">>> until:%s NICHT erfuellt nach %.0f s — breche ab, gebe frei" % (expr, a.max))
+        out(">>> until:%s NOT met after %.0f s — aborting, releasing" % (expr, a.max))
         s.write(b"c\n")
         sys.exit(2)
 

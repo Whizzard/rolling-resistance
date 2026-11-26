@@ -37,10 +37,10 @@ is fitted per baseline run and interpolated in time, that format has no wheel mo
 
 | Message | Meaning |
 |---|---|
-| `kein Leerlaufmodell im Kopf` | no baseline run driven or adopted; Crr contains the drum losses |
-| `kein Radmodell im Kopf` | W09, Crr contains the wheel's own losses |
-| `kein Nachlauf (W05)` | drift unchecked, the budget assumes the criterion |
-| `REIHE VERWERFEN (W08)` | baseline drift above 0.02 N |
+| `no idle-loss model in the header` | no baseline run driven or adopted; Crr contains the drum losses |
+| `no wheel-loss model in the header` | W09, Crr contains the wheel's own losses |
+| `no post-run baseline (W05)` | drift unchecked, the budget assumes the criterion |
+| `DISCARD SERIES (W08)` | baseline drift above 0.02 N |
 | `N_per_count=0` | old format, load cell was uncalibrated |
 
 The script never writes back into the raw file.
@@ -59,3 +59,11 @@ CLAUDE.md); the script finds what was forgotten while documenting.
 
 Checks every relative Markdown link in `README.md` and `docs/` for an existing target
 and reports link texts that do not use the file name.
+
+## Tests
+
+`.venv/bin/python -m pytest analysis -q` runs `analysis/tests/test_crr.py`: header parsing,
+the loss model against a power-balance formulation, plateau statistics with pooled
+standard deviation, baseline drift against the limit, and `fit_ab`. The firmware's host
+tests for the same arithmetic are `cd firmware && pio test -e native`
+([10-firmware](../docs/10-firmware.md) §4.2).

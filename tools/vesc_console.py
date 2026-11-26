@@ -1,133 +1,77 @@
 #!/usr/bin/env python3
 """
-Motorregler von Hand fahren — über USB, ohne ESP32.
+Drive the motor controller by hand — over USB, without the ESP32.
 
     python3 tools/vesc_console.py /dev/cu.usbmodem3041
 
-Zweck: ein erster Probelauf am Prüfstand, bevor die Firmware dazwischensteht.
-Der Regler spricht über USB dasselbe Paketprotokoll wie über UART, deshalb ist
-der Rahmen hier derselbe wie in firmware/src/vesc/packet.cpp.
+Purpose: a first trial run on the test stand before the firmware sits in between.
+Over USB the controller speaks the same packet protocol as over UART, so the
+framing here is the same as in firmware/src/vesc/packet.cpp.
 
-    Pfeil hoch/runter   Sollwert ± VESC_ERPM_STEP_SMALL
-    Pfeil rechts/links  Sollwert ± VESC_ERPM_STEP_LARGE
-    Leertaste           STOP — Antrieb stromlos, Trommel läuft aus
-    0                   Sollwert auf null
-    q                   Beenden (stoppt vorher)
+    Arrow up/down       setpoint ± VESC_ERPM_STEP_SMALL
+    Arrow right/left    setpoint ± VESC_ERPM_STEP_LARGE
+    Space               STOP — drive unpowered, drum coasts down
+    0                   setpoint to zero
+    q                   quit (stops first)
 
-SICHERHEIT — was dieses Skript tut und was es nicht tut:
+SAFETY — what this script does and what it does not do:
 
-  * Der Sollwert wird NUR gesendet, solange das Skript lebt. Stürzt es ab oder
-    wird das Fenster geschlossen, kommt nichts mehr, und der Regler stellt nach
-    seinem eigenen timeout_msec ab. Das ist die zweite, unabhängige Ebene.
+  * The setpoint is sent ONLY while the script is alive. If it crashes or the
+    window is closed, nothing more arrives, and the controller switches off after
+    its own timeout_msec. That is the second, independent layer.
 
-  * TOTMANN: Kommt DEADMAN_S lang kein Tastendruck, fährt der Sollwert von selbst
-    auf null. Wer weggeht, lässt den Stand nicht laufen.
+  * DEAD MAN: if no key is pressed for DEADMAN_S, the setpoint goes to zero by
+    itself. Whoever walks away does not leave the stand running.
 
-  * Beim Beenden — auch bei Strg-C oder einem Fehler — wird freigegeben.
+  * On quitting — also on Ctrl-C or an error — the drive is released.
 
-  * ACHTUNG: Steht timeout_brake_current des Reglers auf 0 (Werksvorgabe), heißt
-    "abstellen" AUSLAUFEN, nicht bremsen. Die Trommel braucht dann 3 bis 6 Minuten.
+  * CAUTION: if the controller's timeout_brake_current is 0 (factory default),
+    "switch off" means COASTING, not braking. The drum then takes 3 to 6 minutes.
 
-  * Dieses Skript ist KEIN Not-Aus. Der Not-Aus trennt in Hardware.
+  * This script is NOT an emergency stop. The emergency stop disconnects in hardware.
 """
 import argparse
 import curses
 import math
 import struct
+
+from vescproto import frame, Reader  # noqa: E402
 import sys
 import time
 
 try:
     import serial
 except ImportError:
-    sys.exit("pyserial fehlt:  pip install pyserial")
+    sys.exit("pyserial missing:  pip install pyserial")
 
-# --- gespiegelt aus firmware/src/config.h; Begründung steht dort -------------
-ERPM_MAX        = 2400     # VESC_ERPM_MAX, vorläufig (Polzahl nicht gemessen)
+# --- mirrored from firmware/src/config.h; the rationale is there --------------
+ERPM_MAX        = 2400     # VESC_ERPM_MAX, provisional (pole count not measured)
 STEP_SMALL      = 100      # VESC_ERPM_STEP_SMALL
 STEP_LARGE      = 1000     # VESC_ERPM_STEP_LARGE
-SEND_MS         = 100      # Sollwert wiederholen; < timeout_msec des Reglers
-POLL_MS         = 200      # Messwerte holen (ist zugleich das Mittelungsfenster)
-DEADMAN_S       = 30.0     # ohne Tastendruck von selbst auf null
+SEND_MS         = 100      # repeat the setpoint; < controller's timeout_msec
+POLL_MS         = 200      # fetch readings (this is also the averaging window)
+DEADMAN_S       = 30.0     # to zero by itself without a key press
 
 COMM_FW_VERSION           = 0
 COMM_SET_CURRENT          = 6
 COMM_SET_RPM              = 8
 COMM_GET_VALUES_SELECTIVE = 50
 
-# 0 FET-Temp · 2 Motorstrom · 3 Eingangsstrom · 6 Aussteuerung
-# 7 ERPM · 8 Busspannung · 15 Fehlercode
+# 0 FET temp · 2 motor current · 3 input current · 6 duty cycle
+# 7 ERPM · 8 bus voltage · 15 fault code
 MASK = (1 << 0) | (1 << 2) | (1 << 3) | (1 << 6) | (1 << 7) | (1 << 8) | (1 << 15)
 FIELD_BYTES = [2, 2, 4, 4, 4, 4, 2, 4, 2, 4, 4, 4, 4, 4, 4, 1, 4, 1, 6, 4, 4, 1]
 
 FAULT = {
-    0: "kein Fehler", 1: "Ueberspannung", 2: "Unterspannung",
-    3: "Treiberstufe (DRV)", 4: "Ueberstrom", 5: "Uebertemperatur FET",
-    6: "Uebertemperatur Motor", 7: "Treiberversorgung hoch",
-    8: "Treiberversorgung niedrig", 9: "MCU-Unterspannung",
-    10: "Neustart durch Watchdog", 19: "Abschalteingang (BRK)",
+    0: "no fault", 1: "overvoltage", 2: "undervoltage",
+    3: "gate driver (DRV)", 4: "overcurrent", 5: "overtemperature FET",
+    6: "overtemperature motor", 7: "gate driver supply high",
+    8: "gate driver supply low", 9: "MCU undervoltage",
+    10: "watchdog reset", 19: "shutdown input (BRK)",
 }
 
 
-# ---------------------------------------------------------------- Paketrahmen
-def crc16(data: bytes) -> int:
-    crc = 0
-    for b in data:
-        crc ^= b << 8
-        for _ in range(8):
-            crc = ((crc << 1) ^ 0x1021) & 0xFFFF if crc & 0x8000 else (crc << 1) & 0xFFFF
-    return crc
-
-
-def frame(payload: bytes) -> bytes:
-    n = len(payload)
-    head = bytes([2, n]) if n <= 255 else bytes([3, n >> 8, n & 0xFF])
-    return head + payload + struct.pack(">H", crc16(payload)) + b"\x03"
-
-
-class Reader:
-    """Puffert und wertet bei Fehlern ab der naechsten Position neu aus —
-    dieselbe Eigenschaft wie die C++-Fassung, damit ein Stoerbyte hoechstens
-    ein Paket kostet."""
-
-    def __init__(self):
-        self.buf = bytearray()
-
-    def feed(self, data: bytes):
-        self.buf += data
-        while True:
-            if not self.buf:
-                return
-            if self.buf[0] == 2:
-                hdr = 2
-                if len(self.buf) < 2:
-                    return
-                ln = self.buf[1]
-            elif self.buf[0] == 3:
-                hdr = 3
-                if len(self.buf) < 3:
-                    return
-                ln = (self.buf[1] << 8) | self.buf[2]
-            else:
-                del self.buf[0]
-                continue
-            if ln == 0 or ln > 512:
-                del self.buf[0]
-                continue
-            total = hdr + ln + 3
-            if len(self.buf) < total:
-                return
-            body = bytes(self.buf[hdr:hdr + ln])
-            ok = (self.buf[total - 1] == 3 and
-                  crc16(body) == struct.unpack(">H", self.buf[hdr + ln:hdr + ln + 2])[0])
-            if ok:
-                del self.buf[:total]
-                yield body
-            else:
-                del self.buf[0]
-
-
-# ---------------------------------------------------------------------- Regler
+# ------------------------------------------------------------------ controller
 class Vesc:
     def __init__(self, port):
         self.s = serial.Serial(port, 115200, timeout=0)
@@ -143,7 +87,7 @@ class Vesc:
         self.send(bytes([COMM_SET_RPM]) + struct.pack(">i", int(erpm)))
 
     def release(self):
-        """Strom null: Bruecke sperren, Maschine laeuft frei aus."""
+        """Current zero: bridge off, machine coasts freely."""
         self.send(bytes([COMM_SET_CURRENT]) + struct.pack(">i", 0))
 
     def poll(self):
@@ -175,7 +119,7 @@ class Vesc:
                 continue
             w = FIELD_BYTES[bit]
             if i + w > len(d):
-                break          # aeltere Firmware liefert hintere Felder nicht
+                break          # older firmware does not deliver the later fields
             if   bit == 0:  self.v["tfet"] = struct.unpack_from(">h", d, i)[0] / 10
             elif bit == 2:  self.v["imot"] = struct.unpack_from(">i", d, i)[0] / 100
             elif bit == 3:  self.v["iin"]  = struct.unpack_from(">i", d, i)[0] / 100
@@ -187,7 +131,7 @@ class Vesc:
         self.last_value = time.time()
 
 
-# ------------------------------------------------------------------ Oberflaeche
+# -------------------------------------------------------------- user interface
 def run(stdscr, vesc, poles):
     curses.curs_set(0)
     stdscr.nodelay(True)
@@ -205,7 +149,7 @@ def run(stdscr, vesc, poles):
         now = time.time()
         vesc.service()
 
-        # ---- Tasten ----
+        # ---- keys ----
         try:
             ch = stdscr.getch()
         except curses.error:
@@ -217,18 +161,18 @@ def run(stdscr, vesc, poles):
             elif ch == ord(" "):
                 want, driving = 0, False
                 vesc.release()
-                msg = "STOP — Antrieb stromlos, Trommel laeuft aus"
+                msg = "STOP — drive unpowered, drum coasting down"
             elif ch == ord("0"):
                 want, driving = 0, False
                 vesc.release()
-                msg = "Sollwert 0"
+                msg = "setpoint 0"
             else:
                 step = {curses.KEY_UP: STEP_SMALL, curses.KEY_DOWN: -STEP_SMALL,
                         curses.KEY_RIGHT: STEP_LARGE, curses.KEY_LEFT: -STEP_LARGE}.get(ch)
                 if step:
                     fault = vesc.v.get("fault", 0)
                     if want == 0 and step > 0 and fault:
-                        msg = f"Start verweigert: Regler meldet Fehler {fault}"
+                        msg = f"start refused: controller reports fault {fault}"
                     else:
                         want = max(-ERPM_MAX, min(ERPM_MAX, want + step))
                         driving = want != 0
@@ -236,13 +180,13 @@ def run(stdscr, vesc, poles):
                             vesc.release()
                         msg = ""
 
-        # ---- Totmann ----
+        # ---- dead man ----
         if driving and now - last_key > DEADMAN_S:
             want, driving = 0, False
             vesc.release()
-            msg = f"TOTMANN: {DEADMAN_S:.0f} s ohne Tastendruck — Sollwert auf null"
+            msg = f"DEAD MAN: {DEADMAN_S:.0f} s without a key press — setpoint to zero"
 
-        # ---- Senden ----
+        # ---- send ----
         if driving and (now - last_send) * 1000 >= SEND_MS:
             last_send = now
             vesc.set_rpm(want)
@@ -252,7 +196,7 @@ def run(stdscr, vesc, poles):
             if vesc.fw is None:
                 vesc.ask_fw()
 
-        # ---- Anzeige ----
+        # ---- display ----
         if now - last_draw > 0.1:
             last_draw = now
             draw(stdscr, vesc, want, driving, now - last_key, msg, poles)
@@ -266,9 +210,9 @@ def draw(stdscr, vesc, want, driving, idle, msg, poles):
     stdscr.erase()
     w = stdscr.getmaxyx()[1]
 
-    stdscr.addstr(0, 0, " Pruefstand — Regler von Hand ".ljust(w), curses.A_REVERSE)
-    stdscr.addstr(1, 0, f" Regler: {vesc.fw or '—'}    "
-                        f"{'verbunden' if alive else 'KEINE ANTWORT'}")
+    stdscr.addstr(0, 0, " Test stand — controller by hand ".ljust(w), curses.A_REVERSE)
+    stdscr.addstr(1, 0, f" Controller: {vesc.fw or '—'}    "
+                        f"{'connected' if alive else 'NO REPLY'}")
 
     def row(y, label, value, unit=""):
         stdscr.addstr(y, 2, f"{label:<22}")
@@ -276,30 +220,30 @@ def draw(stdscr, vesc, want, driving, idle, msg, poles):
         stdscr.addstr(y, 37, f" {unit}")
 
     erpm = v.get("erpm")
-    row(3, "Drehzahl ist", f"{erpm}" if alive and erpm is not None else "—", "ERPM")
+    row(3, "Speed actual", f"{erpm}" if alive and erpm is not None else "—", "ERPM")
     if poles and alive and erpm is not None:
-        row(4, f"  mechanisch ({poles} PP)", f"{erpm / poles:.0f}", "1/min")
-    row(5, "Sollwert", f"{want}", "ERPM" + ("   FAEHRT" if driving else ""))
-    row(6, "Busspannung", f"{v['vin']:.1f}" if alive and "vin" in v else "—", "V")
-    row(7, "Motorstrom", f"{v['imot']:.2f}" if alive and "imot" in v else "—", "A")
-    row(8, "Eingangsstrom", f"{v['iin']:.2f}" if alive and "iin" in v else "—", "A")
-    row(9, "Aussteuerung", f"{v['duty']:.3f}" if alive and "duty" in v else "—", "")
-    row(10, "FET-Temperatur", f"{v['tfet']:.1f}" if alive and "tfet" in v else "—", "°C")
+        row(4, f"  mechanical ({poles} PP)", f"{erpm / poles:.0f}", "1/min")
+    row(5, "Setpoint", f"{want}", "ERPM" + ("   DRIVING" if driving else ""))
+    row(6, "Bus voltage", f"{v['vin']:.1f}" if alive and "vin" in v else "—", "V")
+    row(7, "Motor current", f"{v['imot']:.2f}" if alive and "imot" in v else "—", "A")
+    row(8, "Input current", f"{v['iin']:.2f}" if alive and "iin" in v else "—", "A")
+    row(9, "Duty cycle", f"{v['duty']:.3f}" if alive and "duty" in v else "—", "")
+    row(10, "FET temperature", f"{v['tfet']:.1f}" if alive and "tfet" in v else "—", "°C")
 
     fault = v.get("fault", 0)
-    txt = FAULT.get(fault, f"unbekannt ({fault})")
-    stdscr.addstr(11, 2, f"{'Fehler':<22}")
+    txt = FAULT.get(fault, f"unknown ({fault})")
+    stdscr.addstr(11, 2, f"{'Fault':<22}")
     stdscr.addstr(11, 24, f"{txt:>12}" if len(txt) <= 12 else txt,
                   curses.A_BOLD | (curses.A_REVERSE if fault else 0))
 
     if driving:
         left = max(0.0, DEADMAN_S - idle)
-        stdscr.addstr(13, 2, f"Totmann: {left:4.0f} s bis Selbstabschaltung",
+        stdscr.addstr(13, 2, f"Dead man: {left:4.0f} s until auto shut-off",
                       curses.A_REVERSE if left < 10 else 0)
 
-    stdscr.addstr(15, 2, f"hoch/runter ±{STEP_SMALL}   rechts/links ±{STEP_LARGE}"
-                         f"   Leertaste STOP   0 Null   q Ende")
-    stdscr.addstr(16, 2, "Dies ist KEIN Not-Aus. Der Not-Aus trennt in Hardware.",
+    stdscr.addstr(15, 2, f"up/down ±{STEP_SMALL}   right/left ±{STEP_LARGE}"
+                         f"   Space STOP   0 zero   q quit")
+    stdscr.addstr(16, 2, "This is NOT an emergency stop. The e-stop disconnects in hardware.",
                   curses.A_DIM)
     if msg:
         stdscr.addstr(18, 2, msg[:w - 4], curses.A_BOLD)
@@ -309,18 +253,18 @@ def draw(stdscr, vesc, want, driving, idle, msg, poles):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("port", help="z. B. /dev/cu.usbmodem3041")
+    ap.add_argument("port", help="e.g. /dev/cu.usbmodem3041")
     ap.add_argument("--poles", type=int, default=0,
-                    help="Polpaarzahl, nur fuer die Umrechnung auf 1/min. "
-                         "Ohne Angabe wird nicht umgerechnet — eine geratene "
-                         "Polzahl ergaebe eine erfundene Drehzahl.")
+                    help="number of pole pairs, only for the conversion to 1/min. "
+                         "Without it nothing is converted — a guessed "
+                         "pole count would give an invented speed.")
     args = ap.parse_args()
 
     vesc = Vesc(args.port)
     try:
         curses.wrapper(run, vesc, args.poles)
     finally:
-        # Auch bei Strg-C oder einem Fehler: Antrieb freigeben.
+        # Also on Ctrl-C or an error: release the drive.
         try:
             for _ in range(3):
                 vesc.release()
@@ -328,7 +272,7 @@ def main():
         except Exception:
             pass
         vesc.s.close()
-        print("Antrieb freigegeben.")
+        print("Drive released.")
 
 
 if __name__ == "__main__":

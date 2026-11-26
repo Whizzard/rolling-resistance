@@ -1,38 +1,41 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#eef1f4">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Prüfstand">
-<title>Prüfstand · Testlauf</title>
+<meta name="apple-mobile-web-app-title" content="Test stand">
+<title>Test stand · Run</title>
+<!-- vmrr logo E3 (logo/, 2026-11-26): SVG favicon, PNG for the iPad home screen -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 -2 64 64%22 width=%2264%22 height=%2264%22%3E%3Cstyle%3E.i{fill:none;stroke:#16202a;stroke-linecap:round}.f{fill:#16202a}.a{fill:#2f6f99}%40media (prefers-color-scheme:dark){.i{stroke:#fff}.f{fill:#fff}.a{fill:#ffd23f}}%3C/style%3E%3Cpath class=%22a%22 d=%22M38 28V14A14 14 0 0 1 52 28Z%22/%3E%3Ccircle class=%22i%22 cx=%2238%22 cy=%2228%22 r=%2220%22 stroke-width=%224%22/%3E%3Cpath class=%22i%22 d=%22M4 20H11M2 30H9M5 40H12%22 stroke-width=%223%22/%3E%3Cpath class=%22i%22 d=%22M14 52H60%22 stroke-width=%224%22/%3E%3Ccircle class=%22f%22 cx=%2238%22 cy=%2228%22 r=%223%22/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
 <style>
-/* Altmodisch gehalten: Ziel ist auch ein iPad 3 (iOS 9.3 / Safari 9).
-   Kein Grid, kein gap, keine Custom Properties, kein clamp — alles davon kam
-   erst nach Safari 9. Abstände über Margins, Spalten über inline-block. */
-/* KEIN height:100% am body — das deckelt die Hoehe, und der Inhalt unter
-   dem festen STOP-Balken waere nicht mehr erreichbar. */
+/* Old-fashioned on purpose: the target includes an iPad 3 (iOS 9.3 / Safari 9).
+   No grid, no gap, no custom properties, no clamp -- all of that came after
+   Safari 9. Spacing via margins, columns via inline-block. */
+/* NO height:100% on body -- that caps the height, and the content below the
+   fixed STOP bar would no longer be reachable. */
 html, body { margin: 0; }
 * { -webkit-box-sizing: border-box; box-sizing: border-box; }
 body {
   background: #eef1f4; color: #16202a;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 15px; -webkit-text-size-adjust: 100%;
-  padding: 58px 10px 120px;  /* oben die festen Reiter, unten der STOP-Balken */
+  padding: 58px 10px 120px;  /* top: the fixed tabs, bottom: the STOP bar */
 }
 [hidden] { display: none !important; }
 .wrap { max-width: 980px; margin: 0 auto; }
 
-/* ---- Kopf ---- */
-/* ---- Reiter: bleiben oben stehen ----
-   position: sticky kann Safari 9 nicht, also fest positioniert und dafuer
-   oben am body Platz gelassen. */
+/* ---- Header ---- */
+/* ---- Tabs: stay at the top ----
+   Safari 9 cannot do position: sticky, so fixed, with room left at the top
+   of the body. */
 .tabs { position: fixed; top: 0; left: 0; right: 0; z-index: 20;
         background: #eef1f4; padding: 8px 10px 9px;
         box-shadow: 0 2px 6px rgba(22,32,42,.16); }
 
-/* Punkt rechts neben den Reitern: rot, solange keine Verbindung steht. */
+/* Dot to the right of the tabs: red as long as there is no link. */
 .dot { float: right; width: 15px; height: 15px; border-radius: 50%;
        background: #e23c22; margin-top: 10px;
        box-shadow: inset 0 0 0 2px rgba(0,0,0,.14); }
@@ -42,34 +45,40 @@ body {
   font-family: inherit; font-size: 14px; font-weight: 700;
   letter-spacing: .1em; text-transform: uppercase;
   background: #d7dde3; color: #51606d; border-radius: 6px;
-  padding: 11px 0; width: 45%; margin-right: 2%; }
-.tabs button + button { margin-right: 0; }
+  padding: 11px 0; width: 26%; margin-right: 2%; }
+.tabs button#tabSetup { margin-right: 0; }
+/* Logo top left (vmrr mark E3, logo/vmrr-mark.svg) */
+.tabs .logo { float: left; width: 8%; height: 40px; margin-right: 2%; }
+.tabs .logo svg { display: block; width: 40px; height: 40px; margin: 0 auto; }
+.logo .li { fill: none; stroke: #16202a; stroke-linecap: round; }
+.logo .lf { fill: #16202a; }
+.logo .la { fill: #2f6f99; }
 .tabs button.on { background: #16202a; color: #fff; }
 
-/* ---- Angepinnt: Ist und Soll bleiben beim Scrollen unter den Reitern stehen.
-   position: sticky kann Safari 9 nicht, also fest; die Hoehe wird per Skript
-   gemessen und als Abstand oben an den Inhalt gegeben. ---- */
+/* ---- Pinned: target and actual stay below the tabs while scrolling.
+   Safari 9 cannot do position: sticky, so fixed; the height is measured by
+   script and applied as top padding to the content. ---- */
 .pin { position: fixed; left: 0; right: 0; z-index: 19; background: #eef1f4;
        padding: 0 10px 6px; box-shadow: 0 2px 6px rgba(22,32,42,.10); }
 .pin .wrap { max-width: 980px; margin: 0 auto; }
 
-/* ---- Meldungen ---- */
+/* ---- Messages ---- */
 .note { border-radius: 4px; padding: 8px 12px; font-size: 13px; margin: 2px 0 6px;
         background: #e4ecf2; border-left: 6px solid #2f6f99; color: #28475c; }
 .note.bad { background: #c0392b; border-left-color: #8e2117; color: #fff;
             font-size: 17px; font-weight: 700; padding: 12px 14px; }
 .pin .runhint { margin: 0 0 6px; }
 
-/* ---- Kacheln ---- */
+/* ---- Tiles ---- */
 .tiles { margin: -4px -4px 4px; }
 .tiles:after { content: ""; display: table; clear: both; }
-/* float statt inline-block: zwischen inline-block-Elementen zaehlt der Leerraum
-   im Quelltext als Breite mit, und vier 25%-Kacheln passen dann nicht mehr in
-   eine Zeile. */
+/* float instead of inline-block: between inline-block elements the whitespace
+   in the source counts as width, and four 25% tiles no longer fit in one
+   row. */
 .tile { float: left; width: 25%; padding: 4px; }
 .tile > div { background: #fff; border-left: 6px solid #2f6f99;
               border-radius: 4px; padding: 7px 11px 9px; }
-/* Ampel: good gruen = bestanden, warn orange = geht so, entscheiden; bad rot = Fehler */
+/* Traffic light: good green = passed, warn orange = borderline, decide; bad red = error */
 .tile.good > div { border-left-color: #1f8a5c; }
 .tile.warn > div { border-left-color: #d98b00; }
 .tile.bad > div  { border-left-color: #c0392b; }
@@ -89,11 +98,11 @@ body {
 .tile.big .val { font-size: 50px; }
 .sub { font-size: 15px; color: #7d8a95; margin-top: 2px; white-space: nowrap; }
 
-/* ---- Abschnittsüberschrift (nicht klickbar) ---- */
+/* ---- Section heading (not clickable) ---- */
 h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
      color: #64737f; margin: 16px 0 6px; font-weight: 700; }
 
-/* ---- Geschwindigkeitsraster ---- */
+/* ---- Speed grid ---- */
 .grid { margin: -3px; }
 .grid button { -webkit-appearance: none; border: 0; cursor: pointer;
   font-family: inherit; font-size: 19px; font-weight: 700;
@@ -101,7 +110,18 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
   background: #fff; color: #16202a; border-radius: 6px;
   margin: 3px; padding: 16px 0; width: calc(16.666% - 6px);
   float: left; border-bottom: 3px solid #c3ccd4; }
+.checklist { margin: 6px 0 0; padding-left: 1.3em; }
+.wiz .checklist li { list-style: disc; padding: 2px 0; margin: 0; background: none; border: 0; color: inherit; font-size: inherit; font-weight: inherit; }
+.dial { display: block; width: 180px; height: 180px; margin: 4px auto 8px; }
+.tracewrap { position: relative; margin-top: 6px; }
+.trace { display: block; width: 100%; height: 120px; background: #fff; border-radius: 6px; }
+.tracelab span { position: absolute; right: 6px; -webkit-transform: translateY(-50%); transform: translateY(-50%); font-size: 11px; color: #64737f;
+                 background: rgba(255,255,255,.8); padding: 0 3px; font-variant-numeric: tabular-nums; }
+.warnsign { width: 1.4em; height: 1.4em; vertical-align: -0.3em; margin-right: 8px; }
 .grid button:active { background: #2f6f99; color: #fff; }
+.grid button.coast { background: #c3ccd4; font-size: 15px; letter-spacing: .04em; }
+/* Trend next to the actual speed: up accelerating, down slowing, = steady. */
+.trend { display: inline-block; min-width: 1em; margin-left: 8px; font-size: 26px; color: #2f6f99; }
 .grid button.on { background: #2f6f99; color: #fff; border-bottom-color: #1d4b69; }
 .grid:after { content: ""; display: table; clear: both; }
 
@@ -114,7 +134,7 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .row button:active { background: #16202a; color: #fff; }
 .row:after { content: ""; display: table; clear: both; }
 
-/* ---- Einrichtung ---- */
+/* ---- Setup ---- */
 .field { background: #fff; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
 .field label { display: block; font-size: 11px; letter-spacing: .13em;
                text-transform: uppercase; color: #64737f; margin-bottom: 5px; }
@@ -129,7 +149,7 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .field:after { content: ""; display: table; clear: both; }
 .field .hint { font-size: 15px; color: #7d8a95; margin-top: 6px; clear: both;
                padding-top: 6px; line-height: 1.45; }
-/* ---- kleines Symbol in einer Kachelbeschriftung, hier: Nullen ---- */
+/* ---- small icon in a tile label, here: zero ---- */
 .lab .ico { -webkit-appearance: none; border: 0; cursor: pointer; float: right;
   font-family: inherit; font-size: 22px; font-weight: 700; line-height: 1; background: #d6dde3;
   color: #2b3a46; border-radius: 7px; padding: 8px 16px; margin: -9px 0 0;
@@ -137,7 +157,7 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .lab .ico:active { background: #2f6f99; color: #fff; }
 .lab .ico.busy { background: #2f6f99; color: #fff; }
 
-/* ---- Einstellwerte: fest angezeigt, Aendern oeffnet den Editor ---- */
+/* ---- Settings: shown as fixed values, Edit opens the editor ---- */
 .view { font-size: 25px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .view small { font-size: 14px; color: #8795a1; font-weight: 400; margin-left: 4px; }
 .view button { -webkit-appearance: none; border: 0; cursor: pointer; float: right;
@@ -148,14 +168,14 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .editor input { width: 44%; }
 .editor button { width: 26%; margin-left: 2%; }
 
-/* ---- Assistent: Vollbild ueber allem ---- */
+/* ---- Wizard: full screen above everything ---- */
 .wiz { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 40;
        background: #eef1f4; padding: 24px 16px; overflow: auto; }
 .wiz h1 { font-size: 16px; letter-spacing: .16em; text-transform: uppercase;
           color: #64737f; margin: 0 0 14px; }
-/* Kopf mit Soll und Ist klebt beim Scrollen oben am Assistenten (der Assistent ist
-   selbst der Scrollrahmen, darum funktioniert sticky hier). Negative Raender, damit
-   der Hintergrund ueber die ganze Breite deckt. */
+/* Header with target and actual sticks to the top of the wizard while scrolling
+   (the wizard is itself the scroll container, so sticky works here). Negative
+   margins so the background covers the full width. */
 .wiz .wizhead { position: -webkit-sticky; position: sticky; top: 0; z-index: 5; background: #eef1f4;
                 margin: -24px -16px 10px; padding: 16px 16px 6px; box-shadow: 0 2px 6px rgba(22,32,42,.10); }
 .wiz .wizhead h1 { margin-bottom: 8px; }
@@ -181,12 +201,39 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
   margin-top: 10px; background: #2f6f99; color: #fff; }
 .wiz button.plain { background: #c3ccd4; color: #16202a; }
 
-/* ---- Gefuehrter Messlauf: liegt wie der Assistent ueber allem ---- */
+/* ---- Guided test run: overlays everything, like the wizard ---- */
 .wiz table { width: 100%; border-collapse: collapse; font-size: 17px;
              font-variant-numeric: tabular-nums; margin: 4px 0 8px; }
 .wiz th, .wiz td { text-align: right; padding: 7px 8px; border-bottom: 1px solid #e3e8ec; white-space: nowrap; }
 .wiz th { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: #64737f; }
 .wiz th:first-child, .wiz td:first-child { text-align: left; }
+.seg { display: -webkit-flex; display: flex; }
+.seg button { -webkit-flex: 1; flex: 1; float: none; margin: 0; border-radius: 0; background: #e4e9ed; color: #1e1e1e; font-weight: 700; }
+.seg button:first-child { border-radius: 6px 0 0 6px; } .seg button:last-child { border-radius: 0 6px 6px 0; }
+.seg button.on { background: #2f6f99; color: #fff; }
+.pcard { border: 2px solid #d4dbe1; border-radius: 8px; padding: 10px 12px; margin: 0 0 8px 0; line-height: 1.4; cursor: pointer; }
+.pcard.on { border-color: #2f6f99; background: #eaf2f8; }
+.pcard.off { opacity: .55; cursor: default; }
+.pdrop .pcard { position: relative; padding-right: 34px; margin-bottom: 6px; }
+.pdrop .pcard:after { content: "\25BE"; position: absolute; right: 12px; top: 50%; -webkit-transform: translateY(-50%); transform: translateY(-50%); color: #64737f; font-size: 18px; }
+.plist { border-left: 3px solid #d4dbe1; padding-left: 8px; }
+a.link { display: inline-block; margin-top: 6px; color: #2f6f99; font-weight: 700; text-decoration: none; }
+/* Wheel profile form: dropdowns as large as the inputs, the "New..." field below them,
+   Save/Cancel always in view at the bottom while the form is open. */
+#profForm select, .field select { -webkit-appearance: none; appearance: none; border: 1px solid #c3ccd4; border-radius: 5px;
+  padding: 11px 34px 11px 10px; font-family: inherit; font-size: 21px; width: 100%; color: #16202a;
+  background: #fbfcfd url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0h12L6 8z' fill='%2364737f'/%3E%3C/svg%3E") no-repeat right 12px center; }
+#profForm .field input { width: 100%; box-sizing: border-box; }
+#profForm .pbar { position: -webkit-sticky; position: sticky; bottom: 0; background: #fff; padding: 8px 0; border-top: 1px solid #e4e9ed; display: -webkit-flex; display: flex; }
+#profForm .pbar button { -webkit-flex: 1; flex: 1; float: none; margin: 0 4px; }
+svg.bi { width: 15px; height: 15px; margin: 0 6px -2px 0; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.pgroup > label svg.bi { width: 20px; height: 20px; margin: 0 8px -5px 0; stroke: #2f6f99; stroke-width: 1.4; }
+.pgroup .prow { border-bottom: 1px solid #e4e9ed; padding: 10px 0; line-height: 1.4; }
+.pgroup .prow:last-of-type { border-bottom: 0; }
+.pgroup .prow.on { background: #eaf2f8; margin: 0 -12px; padding: 10px 12px; }
+.pgroup .pbtns { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin-top: 8px; }
+.field .pbtns button { float: none; width: auto; margin: 0 6px 6px 0; padding: 9px 12px; }
+.field button:disabled { opacity: .45; cursor: default; }
 .wiz td.ok { color: #1f8a5c; font-weight: 700; }
 .wiz td.miss { color: #c0392b; font-weight: 700; }
 .wiz td.due { color: #b57a00; font-weight: 700; }
@@ -195,13 +242,14 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
               padding: 10px 12px 12px; margin-bottom: 14px; }
 .wiz .bar { height: 14px; background: #e3e8ec; border-radius: 5px; margin: 8px 0 4px; overflow: hidden; }
 .wiz .bar div { height: 100%; width: 0; background: #2f6f99; }
-/* Knoepfe nebeneinander: Zurueck links schmal, Haupt-Knopf rechts; versteckte zaehlen nicht. */
+/* Buttons side by side: Back narrow on the left, main button on the right; hidden ones don't count. */
 .wiz .btns { display: flex; margin: 10px -4px 0; }
 .wiz .btns button { flex: 1 1 0; width: auto; margin: 0 4px; padding: 11px 6px; font-size: 17px; }
 .wiz .btns button[hidden] { display: none; }
-.wiz .btns #runBack { flex: 0 0 auto; order: -1; padding: 11px 16px; }
+.wiz .btns #runBack { flex: 0 0 auto; order: -1; padding: 11px 16px;
+  background: #4a5560; color: #fff; border-color: #333c44; }   /* Back: own colour, dark grey */
 .wiz .btns #runOk { order: 9; }
-/* Das Arbeitsfeld wandert in die Schrittliste, direkt unter den aktuellen Schritt. */
+/* The work panel moves into the step list, directly below the current step. */
 .wiz li.slot { padding: 0; background: transparent; margin: 6px 0 10px; }
 .wiz li.slot .panel { margin: 0; }
 .wiz li.skip { color: #6b4b00; background: #f6e7c3; }
@@ -214,7 +262,7 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .wiz .cols:after { content: ""; display: table; clear: both; }
 .wiz .cols .field { float: left; width: 50%; padding: 4px; }
 
-/* ---- Waage: Rohwert mit Skala ---- */
+/* ---- Load cell: raw value with scale ---- */
 .rawline { font-size: 25px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .rawline span { font-size: 14px; color: #7d8a95; font-weight: 400; margin-left: 8px; }
 .scale { position: relative; height: 14px; margin: 8px 0 2px; border-radius: 7px;
@@ -233,7 +281,7 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .pair input { width: 100%; margin-top: 3px; }
 .pair .sub { display: block; }
 
-/* ---- Messgeschwindigkeiten: Chips mit Entfernen-Knopf ---- */
+/* ---- Test speeds: chips with a remove button ---- */
 .chips { margin: -3px; }
 .chips:after { content: ""; display: table; clear: both; }
 .chips span { float: left; margin: 3px; background: #eef1f4; border-radius: 6px;
@@ -247,7 +295,7 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .runhint { font-size: 13px; color: #51606d; margin-top: 8px; }
 .runhint b { color: #16202a; }
 
-/* ---- Geber: Verdrahtungstest ---- */
+/* ---- Sensors: wiring test ---- */
 table.geber { width: 100%; border-collapse: collapse; margin-top: 4px;
               font-variant-numeric: tabular-nums; }
 table.geber td { padding: 7px 4px; border-top: 1px solid #e3e8ec; font-size: 15px; }
@@ -259,6 +307,14 @@ table.geber td.s { font-weight: 700; text-align: right; width: 30%; }
 table.geber tr.ok td.s  { color: #1f8a5c; }
 table.geber tr.no td.s  { color: #c0392b; }
 table.geber tr.idle td.s { color: #7d8a95; font-weight: 400; }
+/* ---- Storage: usage as a bar ---- */
+table.geber td.bar { width: 40%; }
+table.geber td.bar div { height: 8px; border-radius: 4px; background: #e3e8ec; overflow: hidden; }
+table.geber td.bar i { display: block; height: 100%; background: #2f6f99; }
+table.geber tr.warn td.s { color: #b57a00; }
+.chg { font-size: 12px; font-weight: 400; color: #7d8a95; text-transform: none; letter-spacing: 0; margin-left: 6px; white-space: nowrap; }
+table.geber td.s button { -webkit-appearance: none; border: 0; cursor: pointer; font: inherit;
+  font-size: 14px; font-weight: 700; background: #c0392b; color: #fff; border-radius: 5px; padding: 6px 10px; }
 code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px;
        background: #eef1f4; padding: 2px 5px; border-radius: 3px;
        word-break: break-all; }
@@ -275,8 +331,8 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px;
 .stopbar p { margin: 5px 0 0; font-size: 11px; color: #64737f; text-align: center; }
 footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 
-/* Telefon. Zwei Kacheln je Reihe, kleinere Zahlen, Eingabefeld und Knopf
-   untereinander statt nebeneinander — nebeneinander wird beides zu schmal. */
+/* Phone. Two tiles per row, smaller numbers, input field and button stacked
+   instead of side by side -- side by side both get too narrow. */
 @media (max-width: 620px) {
   body { font-size: 14px; padding: 0 8px 118px; }
   .tile { width: 50%; padding: 3px; }
@@ -307,33 +363,35 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 <div class="wrap">
 
   <div class="tabs">
-    <button type="button" id="tabMess" class="on">Messung</button>
-    <button type="button" id="tabSetup">Einrichtung</button>
+    <div class="logo" aria-hidden="true"><svg viewBox="0 -2 64 64"><path class="la" d="M38 28V14A14 14 0 0 1 52 28Z"/><circle class="li" cx="38" cy="28" r="20" stroke-width="4"/><path class="li" d="M4 20H11M2 30H9M5 40H12" stroke-width="3"/><path class="li" d="M14 52H60" stroke-width="4"/><circle class="lf" cx="38" cy="28" r="3"/></svg></div>
+    <button type="button" id="tabMess" class="on"><svg class="bi" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 11a6 6 0 0 1 12 0M8 11l3-4M2 13.5h12"/></svg>Manual</button>
+    <button type="button" id="tabRun"><svg class="bi" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>Measure</button>
+    <button type="button" id="tabSetup"><svg class="bi" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 5.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 1 0 0-5M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/></svg>Setup</button>
     <span class="dot" id="st"></span>
   </div>
 
   <div class="pin" id="pin"><div class="wrap">
     <div class="tiles">
       <div class="tile half big"><div>
-        <div class="lab">Soll</div>
+        <div class="lab">Target</div>
         <div class="val"><span id="soll">—</span><small>km/h</small></div>
       </div></div>
       <div class="tile half big"><div>
-        <div class="lab">Ist</div>
-        <div class="val"><span id="kmh">—</span><small>km/h</small></div>
+        <div class="lab">Actual</div>
+        <div class="val"><span id="kmh">—</span><small>km/h</small><span class="trend" id="trend"></span></div>
       </div></div>
     </div>
     <div class="note" id="note" hidden></div>
     <div class="runhint" id="runHint" hidden>—</div>
   </div></div>
 
-  <!-- ===================== MESSUNG ===================== -->
+  <!-- ===================== MEASURE ===================== -->
   <div id="pageMess">
 
-    <h2>Reifen</h2>
+    <h2>Tire</h2>
     <div class="tiles">
       <div class="tile half big"><div>
-        <div class="lab">Verlustleistung</div>
+        <div class="lab">Power loss</div>
         <div class="val"><span id="pw">—</span><small>W</small></div>
       </div></div>
       <div class="tile half big"><div>
@@ -341,260 +399,233 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         <div class="val"><span id="crr">—</span></div>
       </div></div>
       <div class="tile half" id="tileBar"><div>
-        <div class="lab">Druck <button type="button" class="ico" id="bAir" title="Sensor">i</button></div>
+        <div class="lab">Pressure <button type="button" class="ico" id="bAir" title="Sensor">i</button></div>
         <div class="val"><span id="bar">—</span><small>bar</small></div>
         <div class="sub" id="barSub">—</div>
       </div></div>
       <div class="tile half"><div>
-        <div class="lab">Reifen</div>
+        <div class="lab">Tire</div>
         <div class="val"><span id="tTire">—</span><small>°C</small></div>
         <div class="sub" id="tTireSub">—</div>
       </div></div>
     </div>
     <div class="note" id="airInfo" hidden></div>
 
-    <h2>Zelle</h2>
+    <h2>Load cell</h2>
     <div class="tiles">
       <div class="tile half big"><div>
-        <div class="lab">Last <button type="button" class="ico" id="bTare" title="Nullen">&#8960;</button></div>
+        <div class="lab">Load <button type="button" class="ico" id="bTare" title="Zero">&#8960;</button></div>
         <div class="val"><span id="kg">—</span><small>kg</small></div>
         <div class="sub" id="ppSub">—</div>
       </div></div>
       <div class="tile half big"><div>
-        <div class="lab">Auslastung</div>
+        <div class="lab">Utilization</div>
         <div class="val"><span id="pct">—</span><small>%</small></div>
         <div class="sub" id="pctSub">—</div>
       </div></div>
     </div>
 
-    <h2>Antrieb</h2>
+    <h2>Drive</h2>
     <div class="tiles">
       <div class="tile"><div>
         <div class="lab">Motor</div>
         <div class="val"><span id="imot">—</span><small>A</small></div>
       </div></div>
       <div class="tile"><div>
-        <div class="lab">Eingang</div>
+        <div class="lab">Input</div>
         <div class="val"><span id="iin">—</span><small>A</small></div>
       </div></div>
       <div class="tile"><div>
-        <div class="lab">Leistung</div>
+        <div class="lab">Power</div>
         <div class="val"><span id="watt">—</span><small>W</small></div>
       </div></div>
       <div class="tile"><div>
-        <div class="lab">Spannung</div>
+        <div class="lab">Voltage</div>
         <div class="val"><span id="vin">—</span><small>V</small></div>
       </div></div>
     </div>
 
-    <h2>Temperatur</h2>
+    <h2>Temperature</h2>
     <div class="tiles">
       <div class="tile half" id="tileMot"><div>
         <div class="lab">Motor</div>
         <div class="val"><span id="tmot">—</span><small>°C</small></div>
       </div></div>
       <div class="tile half" id="tileFet"><div>
-        <div class="lab">Regler</div>
+        <div class="lab">Controller</div>
         <div class="val"><span id="tfet">—</span><small>°C</small></div>
       </div></div>
     </div>
 
-    <h2>Laufrad</h2>
+    <h2>Wheel</h2>
     <div class="tiles">
       <div class="tile"><div>
-        <div class="lab">Trommel</div>
-        <div class="val"><span id="nTrommel">—</span><small>1/min</small></div>
+        <div class="lab">Drum</div>
+        <div class="val"><span id="nTrommel">—</span><small>rpm</small></div>
       </div></div>
       <div class="tile"><div>
-        <div class="lab">Laufrad</div>
-        <div class="val"><span id="nRad">—</span><small>1/min</small></div>
+        <div class="lab">Wheel</div>
+        <div class="val"><span id="nRad">—</span><small>rpm</small></div>
       </div></div>
       <div class="tile half"><div>
-        <div class="lab">Laufradumfang</div>
+        <div class="lab">Wheel circumference</div>
         <div class="val"><span id="uRad">—</span><small>mm</small></div>
       </div></div>
     </div>
 
-    <h2>Messgeschwindigkeiten</h2>
+    <h2>Test speeds</h2>
     <div class="grid" id="grid"></div>
-    <div class="row" style="margin-top:7px">
-      <button type="button" class="go" id="bMess">Messung</button>
-      <button type="button" id="bLeer">Leerlauf</button>
-      <button type="button" id="coast">Auslaufen</button>
-    </div>
 
 
     <footer id="foot"></footer>
   </div>
 
-  <!-- ===================== EINRICHTUNG ===================== -->
+  <!-- ===================== SETUP ===================== -->
   <div id="pageSetup" hidden>
 
-    <h2>Trommel</h2>
+    <h2>Drum</h2>
     <div class="field">
-      <label>Trommelumfang</label>
+      <label>Drum circumference</label>
       <div class="view"><span id="vDrum">—</span><small>mm</small>
-        <button type="button" id="eDrum">Ändern</button></div>
+        <button type="button" id="eDrum">Edit</button></div>
       <div class="editor" id="edDrum" hidden>
         <input type="text" id="fDrum" inputmode="decimal">
         <button type="button" id="bDrum">OK</button>
-        <button type="button" class="plain" id="xDrum">Abbruch</button>
+        <button type="button" class="plain" id="xDrum">Cancel</button>
       </div>
       <div class="hint">Ø <b id="dia">—</b> mm</div>
     </div>
 
-    <h2>Waage</h2>
+    <h2>Load cell</h2>
     <div class="field">
-      <label>Trommelachse – Waage</label>
+      <label>Drum axis – load cell</label>
       <div class="view"><span id="vArm">—</span><small>mm</small>
-        <button type="button" id="eArm">Ändern</button></div>
+        <button type="button" id="eArm">Edit</button></div>
       <div class="editor" id="edArm" hidden>
         <input type="text" id="fArm" inputmode="decimal">
         <button type="button" id="bArm">OK</button>
-        <button type="button" class="plain" id="xArm">Abbruch</button>
+        <button type="button" class="plain" id="xArm">Cancel</button>
       </div>
     </div>
     <div class="field">
-      <label>Rohwert</label>
-      <div class="rawline"><b id="raw">—</b> <span id="rawPct">—</span></div>
-      <div class="scale"><div class="mid"></div><div class="dot" id="rawDot"></div></div>
-      <div class="scalelab"><span>−100 %</span><span>0</span><span>+100 %</span></div>
-      <div class="hint">Null <b id="tare">—</b> · Spitze-Spitze <b id="ripple">—</b></div>
-    </div>
-    <div class="field">
-      <label>Kalibrieren</label>
-      <div class="pair">
-        <div><span class="sub">Abstand von der Achse (mm)</span>
-          <input type="text" id="fCal" inputmode="decimal"></div>
-        <div><span class="sub">Gewicht (g)</span>
-          <input type="text" id="fG" inputmode="decimal" value="1000"></div>
+      <label>Drum axis – check weight</label>
+      <div class="view"><span id="vCal">—</span><small>mm</small>
+        <button type="button" id="eCal">Edit</button></div>
+      <div class="editor" id="edCal" hidden>
+        <input type="text" id="fCal" inputmode="decimal">
+        <button type="button" id="bCal">OK</button>
+        <button type="button" class="plain" id="xCal">Cancel</button>
       </div>
-      <button type="button" id="bCalib"
-              style="float:none;width:100%;margin:8px 0 0 0">Kalibrieren</button>
-      <div class="hint" id="calHint">—</div>
+    </div>
+    <div class="field">
+      <label>Check weight</label>
+      <div class="view"><span id="vG">—</span><small>g</small>
+        <button type="button" id="eG">Edit</button></div>
+      <div class="editor" id="edG" hidden>
+        <input type="text" id="fG" inputmode="decimal">
+        <button type="button" id="bG">OK</button>
+        <button type="button" class="plain" id="xG">Cancel</button>
+      </div>
     </div>
 
-    <h2>Antrieb einmessen</h2>
+    <h2>Drive direction</h2>
     <div class="field">
-      <label>Drehrichtung anlernen</label>
-      <div class="hint" style="padding-top:0;margin-top:0">Antrieb wird
-        freigegeben. Trommel dann <b>von Hand in Messrichtung</b> drehen,
-        mindestens 2 km/h.</div>
-      <button type="button" class="plain" id="bLearn"
-              style="float:none;width:100%;margin:8px 0 0 0">Anlernen</button>
-      <div class="hint" id="learnHint">Vorzeichen jetzt <b>&mdash;</b></div>
-    </div>
-    <div class="field">
-      <label>Losbrechmoment messen</label>
-      <div class="hint" style="padding-top:0;margin-top:0">Tastverh&auml;ltnis
-        steigt mit 0,01/s, Abbruch sobald sich die Trommel regt oder bei 0,15.
-        <b>Trommel nicht anfassen.</b></div>
-      <button type="button" class="plain" id="bBreak"
-              style="float:none;width:100%;margin:8px 0 0 0">Messen</button>
-      <div class="hint" id="brkHint">&mdash;</div>
+      <label>Direction</label>
+      <div class="hint" style="padding-top:0;margin-top:0" id="dirNow">—</div>
+      <button type="button" class="plain" id="bDirDet"
+              style="float:none;width:100%;margin:8px 0 0 0">Detect drive direction</button>
+      <div class="hint" id="dirHint">Starts slowly; in measuring direction the load cell counts positive, otherwise the sign is reversed. <b>Keep clear.</b></div>
     </div>
 
-    <h2>Messung</h2>
+    <h2>Measurement</h2>
     <div class="field">
-      <label>Messgeschwindigkeiten (km/h)</label>
+      <label>Test speeds (km/h)</label>
       <div class="chips" id="chips"></div>
-      <div class="hint">Leerlauf und Messlauf fahren genau diese Punkte der Reihe
-        nach ab, aufsteigend. Dieselbe Liste für beide, sonst kann die Auswertung
-        nicht punktweise subtrahieren. 28,8 km/h ist die Referenz der
-        veröffentlichten Crr-Datenbank.</div>
+      <div class="hint">No-load and test run step through exactly these points,
+        ascending. Same list for both, otherwise the evaluation cannot subtract
+        point by point. 28.8 km/h is the reference of the published Crr
+        database.</div>
       <input type="text" id="fAdd" inputmode="decimal" placeholder="km/h"
              style="margin-top:8px">
-      <button type="button" id="bAdd" style="margin-top:8px">Hinzufügen</button>
+      <button type="button" id="bAdd" style="margin-top:8px">Add</button>
     </div>
     <div class="field">
-      <label>Auflast</label>
+      <label>Wheel load</label>
       <div class="view"><span id="vLoad">—</span><small>N</small>
-        <button type="button" id="eLoad">Ändern</button></div>
+        <button type="button" id="eLoad">Edit</button></div>
       <div class="editor" id="edLoad" hidden>
         <input type="text" id="fLoad" inputmode="decimal">
         <button type="button" id="bLoad">OK</button>
-        <button type="button" class="plain" id="xLoad">Abbruch</button>
+        <button type="button" class="plain" id="xLoad">Cancel</button>
       </div>
     </div>
 
-    <h2>Verlustmodelle</h2>
+    <h2>Loss models</h2>
     <div class="field">
-      <label>Leerlauf</label>
+      <label>No-load</label>
       <div class="hint" style="padding-top:0;margin-top:0">A0 <b id="a0">—</b> Nm ·
-        B0 <b id="b0">—</b> Nm/(rad/s)² — Leerlauf mit abgehobenem Rad fahren.</div>
+        B0 <b id="b0">—</b> Nm/(rad/s)² — run no-load with the wheel lifted.</div>
     </div>
     <div class="field">
-      <label>Laufradmasse mit Reifen</label>
-      <div class="view"><span id="vMRad">—</span><small>g</small>
-        <button type="button" id="eMRad">Ändern</button></div>
-      <div class="editor" id="edMRad" hidden>
-        <input type="text" id="fMRad" inputmode="decimal">
-        <button type="button" id="bMRad">OK</button>
-        <button type="button" class="plain" id="xMRad">Abbruch</button>
-      </div>
-      <div class="hint">J <b id="jRad">—</b> kg·m² <span id="jSrc"></span> · A1 <b id="a1">—</b> · B1 <b id="b1">—</b></div>
-    </div>
-    <div class="field">
-      <label>J_Rad gemessen (Bifilarpendel)</label>
-      <div class="view"><span id="vJRad">—</span><small>kg·m²</small>
-        <button type="button" id="eJRad">Ändern</button></div>
-      <div class="editor" id="edJRad" hidden>
-        <input type="text" id="fJRad" inputmode="decimal">
-        <button type="button" id="bJRad">OK</button>
-        <button type="button" class="plain" id="xJRad">Abbruch</button>
-      </div>
-      <div class="hint">Leer oder 0: Schätzung 0,85·m·r² mit ±10 %, Unsicherheit des
-        Radmodells dann ±3,5 % statt ±0,5 %. Verfahren: 09-messtheorie §9.2.</div>
+      <label>Wheel</label>
+      <div class="hint" style="padding-top:0;margin-top:0">Mass, J and the wheel model belong to the wheel profile (Setup → Wheels) since 2026-11-26.</div>
       <button type="button" class="plain" id="bAuslauf"
-              style="float:none;width:100%;margin:8px 0 0 0">Assistent Auslauf + Leerlauf</button>
+              style="float:none;width:100%;margin:8px 0 0 0">Wizard coast-down + no-load</button>
     </div>
 
-    <h2>Hall-Geber</h2>
+    <h2>Wheels</h2>
+    <div class="hint" style="margin-top:0">Lists from step 1 of the runs. A profile is one tire + tube + rim + hub
+      and keeps its own wheel model, mass and J. Entries a profile uses cannot be deleted.</div>
+    <div id="profEd">—</div>
+
+    <h2>Hall sensors</h2>
     <div class="field">
-      <div class="hint" style="padding-top:0;margin-top:0">Trommel und Laufrad
-        <b>von Hand drehen</b>: jeder Zähler muss mitlaufen. Pegel <b>low</b> heißt
-        Magnet vor dem Geber, die LED im Gehäuse leuchtet dann. Ein Geber ohne
-        Impulse ist nicht verdrahtet oder sieht keinen Magneten.</div>
+      <div class="hint" style="padding-top:0;margin-top:0">Turn drum and wheel
+        <b>by hand</b>: every counter must follow. Level <b>low</b> means
+        magnet at the sensor; its LED then lights up. A sensor without
+        pulses is not wired or sees no magnet.</div>
       <table class="geber" id="geber"></table>
       <div class="hint" id="markHint">—</div>
       <button type="button" class="plain" id="bGeber"
-              style="float:none;width:100%;margin:8px 0 0 0">Zähler nullen</button>
+              style="float:none;width:100%;margin:8px 0 0 0">Reset counters</button>
     </div>
 
-    <h2>Stand</h2>
+    <h2>Storage</h2>
     <div class="field">
-      <div class="hint" style="padding-top:0" id="npcHint">—</div>
-      <button type="button" class="plain" id="bReset"
-              style="float:none;width:100%;margin:9px 0 0 0">Zurücksetzen</button>
+      <table class="geber" id="sto"></table>
+      <div class="hint" id="recHint">—</div>
+      <button type="button" class="plain" id="bRec"
+              style="float:none;width:100%;margin:8px 0 0 0">Record raw data</button>
     </div>
+
   </div>
 
 </div>
 
 <div class="wiz" id="wiz" hidden>
-  <h1>Auslauf + Leerlauf</h1>
+  <h1>Coast-down + no-load</h1>
   <div class="tiles" style="margin-bottom:12px">
-    <div class="tile half big"><div><div class="lab">Soll</div>
+    <div class="tile half big"><div><div class="lab">Target</div>
       <div class="val"><span id="wizSoll">—</span><small>km/h</small></div></div></div>
-    <div class="tile half big"><div><div class="lab">Ist</div>
+    <div class="tile half big"><div><div class="lab">Actual</div>
       <div class="val"><span id="wizIst">—</span><small>km/h</small></div></div></div>
   </div>
   <div class="note bad" id="wizErr" hidden></div>
   <ol id="wizList"></ol>
   <div class="txt" id="wizTxt" hidden>—</div>
   <div class="big" id="wizBig" hidden>—</div>
-  <button type="button" id="wizGo" hidden>Starten</button>
-  <button type="button" class="plain" id="wizCancel" hidden>Abbrechen</button>
-  <button type="button" id="wizOk" hidden>Schließen</button>
+  <button type="button" id="wizGo" hidden>Start</button>
+  <button type="button" class="plain" id="wizCancel" hidden>Cancel</button>
+  <button type="button" id="wizOk" hidden>Close</button>
 </div>
 
 <div class="wiz" id="run" hidden>
   <div class="wizhead">
-  <h1>Messlauf <span id="runId"></span></h1>
+  <h1>Test run <span id="runId"></span></h1>
   <div class="tiles">
-    <div class="tile half big"><div><div class="lab">Soll</div>
+    <div class="tile half big"><div><div class="lab">Target</div>
       <div class="val"><span id="runSoll">—</span><small>km/h</small></div></div></div>
-    <div class="tile half big"><div><div class="lab">Ist</div>
+    <div class="tile half big"><div><div class="lab">Actual</div>
       <div class="val"><span id="runIst">—</span><small>km/h</small></div></div></div>
   </div>
   </div>
@@ -605,16 +636,16 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     <div class="txt" id="runTxt" hidden></div>
     <div id="runBody"></div>
     <div class="btns">
-      <button type="button" id="runOk" hidden>Weiter</button>
+      <button type="button" id="runOk" hidden>Next &rarr;</button>
       <button type="button" class="plain" id="runAlt" hidden>—</button>
-      <button type="button" class="plain" id="runRedo" hidden>Nochmal</button>
-      <button type="button" class="plain" id="runBack" hidden>Zur&uuml;ck</button>
+      <button type="button" class="plain" id="runRedo" hidden>Repeat</button>
+      <button type="button" class="plain" id="runBack" hidden>&larr; Back</button>
     </div>
   </div>
-  <h2>A · Vorbereitung</h2><ol id="runA"></ol>
-  <h2>B · Messfahrt</h2><ol id="runB"></ol>
-  <h2>C · Abschluss</h2><ol id="runC"></ol>
-  <button type="button" class="plain" id="runCancel">Abbrechen</button>
+  <h2>A · Preparation</h2><ol id="runA"></ol>
+  <h2>B · Measurement</h2><ol id="runB"></ol>
+  <h2>C · Completion</h2><ol id="runC"></ol>
+  <button type="button" class="plain" id="runCancel">Cancel</button>
 </div>
 
 <div class="stopbar">
@@ -622,38 +653,75 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
 </div>
 
 <script>
-/* Altmodisch: XMLHttpRequest statt fetch, var statt let, keine Pfeilfunktionen —
-   Safari 9 kann das alles nicht. Diese Seite wird nur vom Gerät ausgeliefert. */
+/* Old-fashioned: XMLHttpRequest instead of fetch, var instead of let, no arrow
+   functions -- Safari 9 can do none of that. This page is served only by the device. */
 (function () {
   "use strict";
-  var UI_HZ = 5, LINK_TIMEOUT_MS = 2000;
+  var UI_HZ = 5, LINK_TIMEOUT_MS = 10000;   /* = config.h LINK_TIMEOUT_MS; was 2000 until 2026-11-25 */
   var lastOk = 0, busy = false, soll = 0, vmax = 60, vmin = 10, step = 5;
-  var lastUp = 0;   /* Laufzeit des Geräts aus der letzten Abfrage */
-  var gridKey = ""; /* Liste, aus der das Raster zuletzt gebaut wurde */
-  var PHASE_TXT = { IDLE: "bereit", TARE: "Tara", SPINUP: "anfahren",
-                    SETTLE: "einschwingen", POINT: "messen",
-                    COAST: "läuft aus", FAULT: "FEHLER" };
+  var lastUp = 0;   /* device uptime from the last poll */
+  var gridKey = ""; /* list the grid was last built from */
+  var PHASE_TXT = { IDLE: "ready", TARE: "tare", SPINUP: "spin-up",
+                    SETTLE: "settling", POINT: "measuring",
+                    COAST: "coasting", FAULT: "FAULT",
+                    WIZ_SPINUP: "spin-up, wheel down", WIZ_LIFT: "lift wheel", HOLD: "holding" };
+  var MOTOR_KT_NM_PER_A = 0.389;   /* = config.h MOTOR_KT_NM_PER_A (1.5 · 15 · 17.287 mWb) */
 
   function $(id) { return document.getElementById(id); }
-  function de(v, d) { return v.toFixed(d).replace(".", ","); }
+  /* Number display with a decimal point (until 2026-11-26 a German decimal comma).
+     Inputs still accept both "," and "." (numOf and the Rm fields). */
+  /* Yellow warning sign in front of every "hands off" / "do not touch" (2026-11-26):
+     the reading in progress must not be disturbed. Yellow disc without border,
+     black exclamation mark. SVG rather than the character U+26A0: that one is drawn
+     as a monochrome outline or as a colour emoji depending on the device. */
+  var WARN_SIGN = '<svg class="warnsign" viewBox="0 0 24 24" aria-label="warning"><circle cx="12" cy="12" r="12" fill="#f5c518"/><path d="M12 5.5v8" stroke="#1e1e1e" stroke-width="2.8" stroke-linecap="round"/><circle cx="12" cy="18" r="1.7" fill="#1e1e1e"/></svg>';
+  function handsOff(t) { return /hands off|do not touch/i.test(t) ? WARN_SIGN + t : t; }
+  /* ---------- Keep the current thing in view (2026-11-26) ----------
+     A new step or tab: scroll so it is fully visible (if it is taller than the
+     window: its top edge). New rows appended at the bottom (points, minutes): scroll
+     them into view. box = the scroll container (an overlay), or null for the page.
+     The sticky header of an overlay covers its top part and is subtracted.
+     scrollTop by hand, because Safari 9 knows no scrollIntoView options. */
+  function fitIn(el, box, bottomFirst) {
+    if (!el) return;
+    var vh = box ? box.clientHeight : window.innerHeight;
+    var head = box ? box.querySelector(".wizhead") : $("pin") && !$("pin").hidden ? $("pin") : null;
+    var top0 = (box ? box.getBoundingClientRect().top : 0) + (head ? head.offsetHeight : 0) + 8;
+    var bot0 = (box ? box.getBoundingClientRect().top : 0) + vh - 8;
+    var r = el.getBoundingClientRect(), d = 0;
+    if (r.bottom - r.top > bot0 - top0) d = bottomFirst ? r.bottom - bot0 : r.top - top0;
+    else if (r.top < top0) d = r.top - top0;
+    else if (r.bottom > bot0) d = r.bottom - bot0;
+    if (!d) return;
+    if (box) box.scrollTop += d; else window.scrollBy(0, d);
+  }
+  function de(v, d) { return Number(v).toFixed(d); }   /* Number(): a value arriving as text must not break the page */
   function show(id, v, d) {
     $(id).innerHTML = (v === null || v === undefined) ? "—" : de(v, d);
   }
 
-  /* POST, nicht GET: ein GET gilt als wiederholbar, und iOS schickt ihn nach
-     einem Verbindungsabriss von selbst nochmal. Am 2026-11-18 kam dadurch beim
-     Seitenaufbau ein alter "v20" erneut an und setzte den Antrieb in Gang.
-     Dazu der Zeitstempel: das Gerät verwirft Befehle, die älter sind als
-     CMD_MAX_AGE_MS. STOP ist davon ausgenommen. */
+  /* POST, not GET: a GET counts as repeatable, and iOS resends it on its own
+     after a connection drop. On 2026-11-18 an old "v20" arrived again this way
+     during page load and started the drive. Plus the timestamp: the device
+     discards commands older than CMD_MAX_AGE_MS. STOP is exempt. */
+  var localErr = "", localErrUntil = 0;   /* device reply to a rejected command */
   function send(cmd) {
     var x = new XMLHttpRequest();
     x.open("POST", "/api/cmd?c=" + encodeURIComponent(cmd)
                  + "&t=" + encodeURIComponent(lastUp), true);
-    x.onload = poll;
+    x.onload = function () {
+      /* 409 (command too old, also before the first poll) and 503 (queue full)
+         were silent until 2026-11-25 -- the button simply did nothing. */
+      if (x.status >= 400) {
+        localErr = (x.responseText || "").trim() || ("Command rejected (" + x.status + ")");
+        localErrUntil = Date.now() + 4000;
+      }
+      poll();
+    };
     x.send();
   }
 
-  /* ---------- Angepinnte Kacheln: Lage und Platz oben ---------- */
+  /* ---------- Pinned tiles: position and room at the top ---------- */
   function layoutPin() {
     var tabs = document.getElementsByClassName("tabs")[0], pin = $("pin");
     var top = tabs.offsetHeight;
@@ -663,7 +731,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   }
   window.onresize = layoutPin;
 
-  /* ---------- Reiter ---------- */
+  /* ---------- Tabs ---------- */
   var onMess = true;
   function tab(mess) {
     onMess = mess;
@@ -673,25 +741,29 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("tabMess").className = mess ? "on" : "";
     $("tabSetup").className = mess ? "" : "on";
     layoutPin();
+    window.scrollTo(0, 0);   /* a new tab starts at its top */
   }
   $("tabMess").onclick  = function () { tab(true); };
-  $("tabSetup").onclick = function () { tab(false); };
+  $("tabSetup").onclick = function () { tab(false); profLoad(profEdit); };
 
-  /* ---------- Geschwindigkeitsraster: nur die Messgeschwindigkeiten ----------
-     Die Liste kommt sortiert vom Gerät (Einstellungen, NVS). Ein Knopf fährt
-     den Punkt von Hand an; "Messung" und "Leerlauf" fahren alle der Reihe
-     nach ab. */
+  /* ---------- Speed grid: only the test speeds ----------
+     The list comes sorted from the device (settings, NVS). A button drives to
+     the point manually; "Measure" starts the guided run;
+     the no-load run is step 6 there (own button removed 2026-11-25). */
   function buildGrid(list) {
-    var html = "", i;
+    /* Coast first, left of the lowest speed (2026-11-26). */
+    var html = '<button type="button" class="coast" id="coast">Coast</button>', i;
     for (i = 0; i < list.length; i++) {
       html += '<button type="button" data-v="' + list[i] + '">'
             + de(list[i], list[i] % 1 ? 1 : 0) + "</button>";
     }
-    if (!list.length) html = '<div class="runhint">Keine Messgeschwindigkeiten '
-                           + '— unter Einrichtung eintragen.</div>';
+    if (!list.length) html += '<div class="runhint">No test speeds '
+                            + '— add under Setup.</div>';
     $("grid").innerHTML = html;
+    $("coast").onclick = function () { send("c"); };
     var bs = $("grid").getElementsByTagName("button");
     for (i = 0; i < bs.length; i++) {
+      if (bs[i].id === "coast") continue;
       bs[i].onclick = (function (b) {
         return function () { send("v" + b.getAttribute("data-v")); };
       })(bs[i]);
@@ -703,9 +775,9 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     for (i = 0; i < list.length; i++) {
       html += "<span>" + de(list[i], list[i] % 1 ? 1 : 0)
             + '<button type="button" data-v="' + list[i]
-            + '" title="entfernen">\u00d7</button></span>';
+            + '" title="remove">×</button></span>';
     }
-    if (!list.length) html = '<span class="leer">leer</span>';
+    if (!list.length) html = '<span class="leer">empty</span>';
     $("chips").innerHTML = html;
     var bs = $("chips").getElementsByTagName("button");
     for (i = 0; i < bs.length; i++) {
@@ -718,27 +790,36 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   function paintGrid(istSoll) {
     var bs = $("grid").getElementsByTagName("button"), i, v;
     for (i = 0; i < bs.length; i++) {
+      if (bs[i].id === "coast") continue;
       v = parseFloat(bs[i].getAttribute("data-v"));
       bs[i].className = (Math.abs(v - istSoll) < 0.05) ? "on" : "";
     }
   }
 
-  $("bMess").onclick = function () { runOpen = true; $("run").hidden = false; send("R"); pollRun(); };
-  $("bLeer").onclick = function () { send("m0"); };
-  $("coast").onclick = function () { send("c"); };
+  /* runParked: the run overlay was put aside for Setup ("Edit wheels in Setup"); the
+     state poll must not bring it back by itself. Measure brings it back -- and starts a
+     run only if none is active (otherwise the stand answers "Run already active"). */
+  var runParked = false;
+  $("tabRun").onclick = function () {
+    var active = lastJ && lastJ.rs > 0;
+    runParked = false; runOpen = true; runShown = null; $("run").hidden = false;
+    if (!active) send("R");
+    pollRun();
+  };
   $("bAdd").onclick  = function () {
     var v = numOf("fAdd");
     if (!isNaN(v)) { send("h" + v); $("fAdd").value = ""; }
   };
   $("stop").onclick  = function () { send("s"); };
 
-  /* ---------- Einrichtung ---------- */
+  /* ---------- Setup ---------- */
+  /* Accepts a decimal comma as well as a decimal point. */
   function numOf(id) {
     return parseFloat(($(id).value || "").replace(",", "."));
   }
-  /* Einstellwerte stehen fest; Aendern oeffnet den Editor mit dem aktuellen Wert,
-     OK schickt, Abbruch schliesst. Laengen in mm, Gewicht in g -- die Firmware
-     rechnet in m und kg (SI, CLAUDE.md), umgerechnet wird nur hier. */
+  /* Settings are shown as fixed values; Edit opens the editor with the current
+     value, OK sends, Cancel closes. Lengths in mm, weight in g -- the firmware
+     works in m and kg (SI, CLAUDE.md), conversion happens only here. */
   var editing = {};
   function editor(key, prefix, scale) {
     $("e" + key).onclick = function () {
@@ -754,52 +835,47 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   }
   editor("Drum", "d", 1000);
   editor("Arm",  "a", 1000);
-  editor("MRad", "y", 1000);
-  editor("JRad", "Y", 1);
+  editor("Cal",  "b", 1000);
+  editor("G",    "K", 1000);
   editor("Load", "l", 1);
   function view(key, v, d) { if (!editing[key]) $("v" + key).innerHTML = de(v, d); }
 
   $("bTare").onclick  = function () { send("t"); };
   var airOpen = false;
   $("bAir").onclick = function () { airOpen = !airOpen; $("airInfo").hidden = !airOpen; if (lastJ) paintAir(lastJ); };
-  /* Details zum Drucksensor (SKS AirSpy ueber BLE): was die Firmware ueber ihn weiss. */
+  /* Details on the pressure sensor (SKS AirSpy via BLE): what the firmware knows about it. */
   function paintAir(j) {
     $("bAir").className = "ico" + (j.pSrc === "ble" && j.pFresh ? " busy" : "");
     if (!airOpen) return;
     var rows = [], age = (j.pAge === null || j.pAge === undefined) ? null : j.pAge;
-    rows.push(["Sensor", j.pName ? j.pName : "keiner gefunden, wird gesucht"]);
-    rows.push(["Verbindung", j.pConn ? "verbunden" : "getrennt \u2014 Rad drehen, der Sensor schl\u00e4ft nach ~10 min Stillstand"]);
-    rows.push(["Letzter Wert", age === null ? "noch keiner" : ("vor " + (age < 60000 ? de(age / 1000, 0) + " s" : de(age / 60000, 0) + " min") + (age >= 60000 ? " \u2014 <b>zu alt</b>" : ""))]);
-    rows.push(["Batterie", j.pBatt === null ? "\u2014" : (de(j.pBatt, 0) + " %" + (j.pBatt < 25 ? " \u2014 bald wechseln" : ""))]);
+    rows.push(["Sensor", j.pName ? j.pName : "none found, searching"]);
+    rows.push(["Link", j.pConn ? "connected" : "disconnected — spin wheel, sensor sleeps after ~10 min idle"]);
+    rows.push(["Last value", age === null ? "none yet" : ((age < 60000 ? de(age / 1000, 0) + " s" : de(age / 60000, 0) + " min") + " ago" + (age >= 60000 ? " — <b>too old</b>" : ""))]);
+    rows.push(["Battery", j.pBatt === null ? "—" : (de(j.pBatt, 0) + " %" + (j.pBatt < 25 ? " — replace soon" : ""))]);
     var h = "<table style=\"border-collapse:collapse;font-size:17px;line-height:1.5\">";
     for (var i = 0; i < rows.length; i++) h += "<tr><td style=\"color:#64737f;padding:2px 14px 2px 0\">" + rows[i][0] + "</td><td>" + rows[i][1] + "</td></tr>";
     $("airInfo").innerHTML = h + "</table>";
   }
   $("bAuslauf").onclick = function () { wizOpen = true; paintWiz(lastJ); };
-  $("bCalib").onclick = function () {
-    /* Abstand erst setzen, dann kalibrieren; die Warteschlange haelt die Reihenfolge. */
-    send("b" + (numOf("fCal") / 1000));
-    send("k" + (numOf("fG") / 1000));
-  };
-  /* z war r, e war l: 'r' und 'l' sind nach der Zusammenlegung der Varianten
-     anders belegt (Abrollradius bzw. Auflast). docs/04-hardware.md §14.1. */
-  $("bReset").onclick = function () { send("z"); };
-  $("bLearn").onclick = function () { send("e"); };
-  $("bBreak").onclick = function () { send("x"); };
+  /* z was r, e was l: 'r' and 'l' are assigned differently since the variants
+     were merged (rolling radius and wheel load). docs/04-hardware.md §14.1. */
+  /* Drive direction (2026-11-26): detected, not chosen -- slow start, the load cell must
+     count positive (speedctl::detectDirection). Only state and result are shown. */
+  $("bDirDet").onclick = function () { send("ed"); };
   $("bGeber").onclick = function () { send("g"); };
 
-  /* ---------- Geber: Verdrahtungstest ----------
-     Je Kanal [Impulse, ms seit dem letzten, Pegel low]. "erkannt" heißt nur:
-     seit dem letzten Nullen kam mindestens ein Impuls. */
-  var GEBER = ["Trommelmarken", "Indexmarke", "Laufrad", "Motor-Hall"];
+  /* ---------- Sensors: wiring test ----------
+     Per channel [pulses, ms since the last one, level low]. "detected" only
+     means: at least one pulse since the last reset. */
+  var GEBER = ["Drum marks", "Index mark", "Wheel", "Motor Hall"];
   function paintGeber(g) {
     if (!g || g.length !== GEBER.length) return;
     var html = "", i, c, ms, low, st, cls;
     for (i = 0; i < GEBER.length; i++) {
       c = g[i][0]; ms = g[i][1]; low = g[i][2];
-      if (c === 0)         { cls = "no";   st = "keine Impulse"; }
-      else if (ms < 1500)  { cls = "ok";   st = "erkannt \u00b7 l\u00e4uft"; }
-      else                 { cls = "idle"; st = "erkannt \u00b7 vor " + de(ms / 1000, 0) + " s"; }
+      if (c === 0)         { cls = "no";   st = "no pulses"; }
+      else if (ms < 1500)  { cls = "ok";   st = "detected · running"; }
+      else                 { cls = "idle"; st = "detected · " + de(ms / 1000, 0) + " s ago"; }
       html += "<tr class=\"" + cls + "\"><td>" + GEBER[i] + "</td>"
             + "<td class=\"n\">" + c + "</td>"
             + "<td class=\"p\">" + (low ? "low" : "high") + "</td>"
@@ -808,15 +884,78 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("geber").innerHTML = html;
   }
 
-  /* Eingabefelder nur dann überschreiben, wenn gerade nicht darin getippt wird —
-     sonst springt der Wert dem Daumen davon. */
+  /* ---------- When each setting was last changed (settings::stampsJson) ----------
+     j.chg maps the NVS key to the browser's local time in s. Missing key = default
+     from config.h, 0 = set, time unknown. "label": into the field's label, "after":
+     right behind the element (for a second value in the same field). */
+  var CHG = { drum_u: ["vDrum", "label"], arm: ["vArm", "label"], calib_arm: ["vCal", "label"],
+    ctrl_kg: ["vG", "label"], load_n: ["vLoad", "label"],
+    plateaus: ["chips", "label"], dir_sign: ["dirNow", "label"], a0: ["b0", "after"] };
+  function chgText(t) {
+    if (t === undefined) return "default";
+    if (!t) return "time unknown";
+    var d = new Date(t * 1000), p = function (n) { return (n < 10 ? "0" : "") + n; };
+    return d.getUTCFullYear() + "-" + p(d.getUTCMonth() + 1) + "-" + p(d.getUTCDate()) + " " + p(d.getUTCHours()) + ":" + p(d.getUTCMinutes());
+  }
+  function paintChg(c) {
+    if (!c) return;
+    for (var k in CHG) {
+      var el = $(CHG[k][0]); if (!el) continue;
+      var sp = document.getElementById("chg_" + k);
+      if (!sp) {
+        sp = document.createElement("span"); sp.className = "chg"; sp.id = "chg_" + k;
+        var f = el.closest ? el.closest(".field") : null, lab = f && f.querySelector("label");
+        if (CHG[k][1] === "label" && lab) lab.appendChild(sp);
+        else el.parentNode.insertBefore(sp, el.nextSibling);
+      }
+      sp.innerHTML = chgText(c[k]);
+    }
+  }
+
+  /* ---------- Storage: SD and flash, usage, raw data ----------
+     State 0 missing, 1 ready, 2 read-only, 3 unreadable (storage.h). Formatting
+     is offered only for "unreadable" and only after confirmation; the firmware
+     refuses it for a readable file system anyway. */
+  var stoRec = false;
+  function stoRow(name, st, pct, fmt, key) {
+    var cls = st === 1 ? "ok" : st === 0 ? "idle" : st === 2 ? "warn" : "no";
+    var txt = fmt ? "formatting …"
+      : st === 0 ? "missing" : st === 3 ? '<button type="button" data-fmt="' + key + '">Format</button>'
+      : (pct === null ? "—" : pct + " %") + (st === 2 ? " · read-only" : "");
+    var bar = (st === 1 || st === 2) && pct !== null
+      ? '<div><i style="width:' + pct + '%"></i></div>' : "";
+    return '<tr class="' + cls + '"><td>' + name + (st === 3 && !fmt ? " · unreadable" : "")
+         + '</td><td class="bar">' + bar + '</td><td class="s">' + txt + "</td></tr>";
+  }
+  function paintSto(s) {
+    if (!s) return;
+    $("sto").innerHTML = stoRow("SD", s.sd, s.sdPct, s.sdFmt, "s") + stoRow("Flash", s.fl, s.flPct, s.flFmt, "f");
+    stoRec = s.rec;
+    $("bRec").innerHTML = s.rec ? "Stop raw data" : "Record raw data";
+    $("recHint").innerHTML = (s.rec
+        ? "● " + (s.recOn === "sd" ? "SD" : "Flash") + " · " + s.recKB + " kB"
+          + (s.recPend > 64 ? " · buffer " + s.recPend + " kB" : "")
+          + (s.recDrop ? ' · <span style="color:#c0392b">' + s.recDrop + " B lost</span>" : "")
+          + (s.recMan ? "" : " · test run") + " · "
+        : "") + '<a href="/raw">Files</a>';
+  }
+  $("sto").onclick = function (ev) {
+    var k = ev.target && ev.target.getAttribute && ev.target.getAttribute("data-fmt");
+    if (!k) return;
+    if (confirm("Format " + (k === "s" ? "SD card" : "flash") + "?\n\nEverything on it will be erased."))
+      send("F" + k);
+  };
+  $("bRec").onclick = function () { send(stoRec ? "L0" : "L1"); };
+
+  /* Overwrite input fields only while nobody is typing in them --
+     otherwise the value runs away from the thumb. */
   function fill(id, v, d) {
     if (document.activeElement !== $(id)) $(id).value = de(v, d);
   }
 
-  /* ---------- Assistent Auslauf + Leerlauf ----------
-     Die Firmware fuehrt (wiz 1..4), die Seite zeigt nur den Schritt. */
-  var wizOpen = false, lastJ = null;
+  /* ---------- Wizard coast-down + no-load ----------
+     The firmware leads (wiz 1..4), the page only shows the step. */
+  var wizOpen = false, lastJ = null, wizFitStep = -1;
   function paintWiz(j) {
     if (!j) return;
     var w = j.wiz || 0;
@@ -827,29 +966,30 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("wizIst").innerHTML  = $("kmh").innerHTML;
     $("wizErr").innerHTML = j.err || "";
     $("wizErr").hidden = !j.err;
-    /* Alle Schritte als Liste; der aktuelle hervorgehoben, erledigte gruen,
-       bei Abbruch der laufende rot. Zahlen, sobald sie da sind. */
-    var fmt = function (v) { return (v === null || v === undefined) ? "\u2014" : v; };
+    /* All steps as a list; the current one highlighted, finished ones green,
+       on abort the running one red. Numbers as soon as they exist. */
+    var fmt = function (v) { return (v === null || v === undefined) ? "—" : v; };
     var steps = [
-      ["Vorbereiten", "Rad aufgelegt, Auflast dran, Raum frei"],
-      ["Hochfahren, Umfang messen", "auf " + de(j.wizKmh, 0) + " km/h \u00b7 Umfang " + fmt(j.uRadMem) + " mm"],
-      ["Rad abheben", "Hebel ziehen, sobald es hier steht"],
-      ["Auslauf und Leerlauf", "Rad l\u00e4uft frei aus, Trommel f\u00e4hrt die Plateaus \u00b7 " + fmt(j.auslaufN) + " Radumdrehungen"],
-      ["Ergebnis", "Leerlauf A0 " + fmt(j.a0) + " \u00b7 B0 " + fmt(j.b0) + "<br>Rad A1 " + fmt(j.a1) + " \u00b7 B1 " + fmt(j.b1)]
+      ["Prepare", "wheel down, load on, area clear"],
+      ["Spin up, measure circumference", "to " + de(j.wizKmh, 0) + " km/h · circumference " + fmt(j.uWheelMem) + " mm"],
+      ["Lift wheel", "pull lever once shown here"],
+      ["Coast-down and no-load", "wheel coasts freely, drum runs the plateaus · " + fmt(j.spindownN) + " wheel revs"],
+      ["Result", "No-load A0 " + fmt(j.a0) + " · B0 " + fmt(j.b0) + "<br>Wheel A1 " + fmt(j.a1) + " · B1 " + fmt(j.b1)]
     ];
-    /* Index des laufenden Schritts: wiz 0 -> 0, 1 -> 1, 2 -> 2, 3 -> 3, 4 -> 4, 9 -> Abbruch */
+    /* Index of the running step: wiz 0 -> 0, 1 -> 1, 2 -> 2, 3 -> 3, 4 -> 4, 9 -> abort */
     var now = (w === 9) ? -1 : w, html = "", i;
     if (w === 9) now = (lastGood === null) ? 1 : lastGood;
     else lastGood = w;
     for (i = 0; i < steps.length; i++) {
       var cls = (i < now) ? "done" : (i === now ? (w === 9 ? "bad" : "now") : "");
-      html += '<li class="' + cls + '">' + (i + 1) + " \u00b7 " + steps[i][0]
-            + "<small>" + ((i === now && w === 9) ? ("abgebrochen: " + (j.err || "Fehler")) : steps[i][1]) + "</small></li>";
+      html += '<li class="' + cls + '">' + (i + 1) + " · " + steps[i][0]
+            + "<small>" + ((i === now && w === 9) ? ("aborted: " + (j.err || "error")) : steps[i][1]) + "</small></li>";
     }
     $("wizList").innerHTML = html;
+    if (w !== wizFitStep) { wizFitStep = w; fitIn(document.querySelector("#wizList li.now") || document.querySelector("#wizList li.bad"), $("wiz"), false); }
     $("wizGo").hidden = (w !== 0); $("wizCancel").hidden = (w === 0 || w === 4 || w === 9);
     $("wizOk").hidden = (w !== 4 && w !== 0 && w !== 9);
-    $("wizOk").innerHTML = (w === 0) ? "Zur\u00fcck" : "Schlie\u00dfen";
+    $("wizOk").innerHTML = (w === 0) ? "Back" : "Close";
   }
   var lastGood = null;
   $("wizGo").onclick = function () { send("u"); };
@@ -857,19 +997,19 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   $("wizCancel").onclick = function () { send("c"); send("uq"); lastGood = null; wizClose(); };
   $("wizOk").onclick = function () { if (lastJ && lastJ.wiz >= 4) send("uq"); lastGood = null; wizClose(); };
 
-  /* ---------- Gefuehrter Messlauf (run.h) ----------
-     Eigener Abruf /api/run, solange die Ueberlagerung offen ist. Die Firmware
-     liefert Titel, Text und Knopfbeschriftungen je Schritt; hier stehen nur die
-     Tabellen. Schritt 1 ist ein Formular, dessen Felder als Rm-Befehle gehen. */
+  /* ---------- Guided test run (run.h) ----------
+     Own poll of /api/run while the overlay is open. The firmware supplies title,
+     text and button labels per step; only the tables live here. Step 1 is a
+     form whose fields are sent as Rm commands. */
   var runOpen = false, runBusy = false, runStep = -1, runSub = -1, runShown = null;
   var RUN_STEPS = [
-    ["A", "Lauf anlegen"], ["A", "Sichtpr\u00fcfung, Not-Aus"], ["A", "Systempr\u00fcfung"],
-    ["A", "Nullen, Rad abgehoben"], ["A", "Anschlag, Kontrollgewicht"], ["A", "Leerlaufmodell"], ["A", "Radmodell"],
-    ["A", "Rad aufgelegt, Auflast"], ["B", "Warmlauf"], ["B", "Referenz + Plateaus"],
-    ["B", "Referenz danach"], ["B", "Anhalten"], ["C", "Nullpunkt, Nachlauf"], ["C", "Protokoll"]
+    ["A", "Create run"], ["A", "Visual check, e-stop"], ["A", "System check"],
+    ["A", "Zero, wheel lifted"], ["A", "Check weight, end stop"], ["A", "No-load + wheel coast-down"], ["A", "Wheel model"],
+    ["A", "Wheel down, load"], ["B", "Warm-up"], ["B", "Reference + plateaus"],
+    ["B", "Reference after"], ["B", "Stop"], ["C", "Zero, after-run"], ["C", "Report"]
   ];
-  function fm(v, d) { return (v === null || v === undefined) ? "\u2014" : de(v, d); }
-  /* Ampelstufe eines Betrags: unter ok gruen, unter bad orange (entscheiden), sonst rot. bad null: nur gruen/orange. */
+  function fm(v, d) { return (v === null || v === undefined) ? "—" : de(v, d); }
+  /* Traffic-light level of a magnitude: up to ok green, below bad orange (decide), else red. bad null: green/orange only. */
   function lvl(v, ok, bad) { if (v === null || v === undefined) return ""; var a = Math.abs(v); return a <= ok ? "good" : ((bad === null || a < bad) ? "warn" : "bad"); }
   function mark(l) { return '<span class="ok-mark ' + l + '"></span>'; }
   function tbl(head, rows) {
@@ -887,44 +1027,398 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     }
     return h + "</table></div>";
   }
-  /* Formular Schritt 1. Vorbelegt mit den Kopfdaten des letzten Laufs aus dem NVS
-     (r.meta), damit nach Abbruch, Neustart oder Flashen nichts neu getippt werden
-     muss; der Druck kommt vom AirSpy, wenn er frisch ist. */
+  /* Form for step 1. Prefilled with the header data of the last run from NVS
+     (r.meta), so nothing has to be retyped after an abort, restart or flashing;
+     the pressure comes from the AirSpy when it is fresh. */
   function esc(s) { return String(s === null || s === undefined ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
-  function runForm(r) {
-    var m = (r && r.meta) || {};
-    var pos = $("vLoad").innerHTML;   /* Auflast aus der Einrichtung, N -> kg */
-    var kg = (m.l !== null && m.l !== undefined) ? m.l : parseFloat(pos.replace(",", ".")) / 9.80665;
-    var live = (lastJ && lastJ.pSrc === "ble" && lastJ.pFresh && lastJ.bar !== null);
-    var bar = live ? de(lastJ.bar, 2) : ((m.b !== null && m.b !== undefined) ? de(m.b, 2) : "");
-    return '<div class="cols">'
-      + '<div class="field"><label>Reifen</label><input id="rTire" value="' + esc(m.t) + '"></div>'
-      + '<div class="field"><label>Laufrad</label><input id="rWheel" value="' + esc(m.w) + '"></div>'
-      + '<div class="field"><label>Druck bar' + (live ? ' (AirSpy)' : '') + '</label><input id="rBar" inputmode="decimal" value="' + bar + '"></div>'
-      + '<div class="field"><label>Raum \u00b0C</label><input id="rTemp" inputmode="decimal" value="' + ((m.c !== null && m.c !== undefined) ? de(m.c, 1) : "") + '"></div>'
-      + '<div class="field"><label>Auflast kg</label><input id="rLoad" inputmode="decimal" value="' + (isNaN(kg) ? "" : de(kg, 1)) + '"></div>'
-      + '</div><div class="field"><label>Notiz</label><input id="rNote" value="' + esc(m.n) + '"></div>'
-      + '<div class="sub">Vorbelegt mit dem letzten Lauf; jede \u00c4nderung wird beim Weiter gespeichert.</div>';
+  /* ---------- Wheel profiles (2026-11-26, profiles.h) ----------
+     Everything about the wheel is entered beforehand under Setup -> Wheels: the four
+     parts (dropdowns of earlier entries plus "New..."), the hub details, the mass and
+     the bifilar pendulum. Step 1 of a run only chooses a complete profile; "Measure"
+     at a profile starts the run with it. iOS 12 has no datalist: select + text field. */
+  var profData = null, NEWV = "\u0001", profEditIdx = null;
+  var AXLES = ["12 mm thru-axle", "15 mm thru-axle", "19 mm thru-axle", "quick release", "nutted axle"];
+  var BRAKES = ["none", "drum", "drum with cooling fins", "disc"];
+  var MATERIALS = ["latex", "butyl", "TPU", "tubeless"];
+  /* Small line icons ahead of the button texts (2026-11-26), inline SVG in the text colour. */
+  function ico(d) { return '<svg class="bi" viewBox="0 0 16 16" aria-hidden="true"><path d="' + d + '"/></svg>'; }
+  var IC = {
+    edit:   ico("M2 14l1-4 8-8 3 3-8 8zM10 3l3 3"),
+    play:   ico("M4 2.5v11l9-5.5z"),
+    erase:  ico("M3 8a5 5 0 1 0 10 0a5 5 0 1 0-10 0M5.5 5.5l5 5M10.5 5.5l-5 5"),
+    trash:  ico("M2.5 4h11M6 4V2.5h4V4M4 4l1 10h6l1-10M7 7v4M9 7v4"),
+    rename: ico("M2 12.5h12M3 10l6-6 2 2-6 6H3zM10 3l2 2"),
+    plus:   ico("M8 3v10M3 8h10"),
+    /* group icons: wheel, tire with tread, tube with valve, rim with spokes */
+    wheel:  ico("M2 8a6 6 0 1 0 12 0a6 6 0 1 0-12 0M8 2v12M2 8h12M3.8 3.8l8.4 8.4M12.2 3.8l-8.4 8.4"),
+    tire:   ico("M1.5 8a6.5 6.5 0 1 0 13 0a6.5 6.5 0 1 0-13 0M4.5 8a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0-7 0M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M3.4 12.6l2.1-2.1M10.5 5.5l2.1-2.1"),
+    tube:   ico("M2 8a6 6 0 1 0 12 0a6 6 0 1 0-12 0M3.6 8a4.4 4.4 0 1 0 8.8 0a4.4 4.4 0 1 0-8.8 0M8 12.4v2.6"),
+    rim:    ico("M2 8a6 6 0 1 0 12 0a6 6 0 1 0-12 0M6.8 8a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0-2.4 0M8 2v4.8M8 9.2V14M2.8 5l4.2 2.4M9 8.6l4.2 2.4M2.8 11l4.2-2.4M9 7.4l4.2-2.4"),
+    check:  ico("M3 8.5l3.5 3.5L13 4.5"),
+    cross:  ico("M4 4l8 8M12 4l-8 8")
+  };
+  function itemA(list, n) { var it = findItem(list, n); return (it && it.a) || []; }
+  function profLoad(done) {
+    var x = new XMLHttpRequest();
+    x.open("GET", "/api/profiles", true);
+    x.onload = function () { try { profData = JSON.parse(x.responseText); } catch (e) {} if (done) done(); };
+    x.send();
   }
-  /* Felder nacheinander schicken, dann Weiter. Zeit als Ortszeit in Sekunden. */
-  function runSubmitMeta() {
-    var now = new Date();
-    var local = Math.round((now.getTime() - now.getTimezoneOffset() * 60000) / 1000);
-    var list = [
-      "Rmt=" + $("rTire").value, "Rmw=" + $("rWheel").value,
-      "Rmb=" + $("rBar").value.replace(",", "."), "Rmc=" + $("rTemp").value.replace(",", "."),
-      "Rml=" + $("rLoad").value.replace(",", "."),
-      "Rmn=" + $("rNote").value, "Rmd=" + local, "Rk"
-    ];
+  /* POST one or several edits one after the other; stops at the first refusal. */
+  function profOps(qs, done) {
     var i = 0;
     function next() {
-      if (i >= list.length) { pollRun(); return; }
+      if (i >= qs.length) { profEdit(); if (done) done(); return; }
+      var x = new XMLHttpRequest();
+      x.open("POST", "/api/profiles?" + qs[i++], true);
+      x.onload = function () {
+        var d = null; try { d = JSON.parse(x.responseText); } catch (e) {}
+        if (d && d.err) { profEdit(); $("profErr").innerHTML = esc(d.err); $("profErr").hidden = false; return; }
+        if (d) profData = d; next();
+      };
+      x.send();
+    }
+    next();
+  }
+  /* Commands to the stand one after another (keeps the order), then done. */
+  function cmdSeq(list, done) {
+    var i = 0;
+    function next() {
+      if (i >= list.length) { if (done) done(); return; }
       var x = new XMLHttpRequest();
       x.open("POST", "/api/cmd?c=" + encodeURIComponent(list[i++]) + "&t=" + encodeURIComponent(lastUp), true);
       x.onload = next; x.onerror = next;
       x.send();
     }
     next();
+  }
+  function epTxt(ep) { return ep ? new Date(ep * 1000).toISOString().substr(0, 16).replace("T", " ") : "date unknown"; }
+  function profLabel(p) { return [p.t, p.s || "no tube", p.r || "?", p.h || "?"].join(" · "); }
+  function findItem(list, n) { var a = (profData && profData[list]) || [], i; for (i = 0; i < a.length; i++) if (a[i].n.toLowerCase() === String(n || "").toLowerCase()) return a[i]; return null; }
+  function opts(arr, val, empty) {
+    var h = empty ? '<option value="">' + empty + '</option>' : "", i;
+    for (i = 0; i < arr.length; i++) h += '<option' + (arr[i] === val ? ' selected' : '') + '>' + esc(arr[i]) + '</option>';
+    return h;
+  }
+  function pickField(id, label, list, val, ph) {
+    var items = (profData && profData[list]) || [], h = '<select id="' + id + 'S">', i, hit = false;
+    for (i = 0; i < items.length; i++) {
+      var sel = val && items[i].n.toLowerCase() === String(val).toLowerCase();
+      if (sel) hit = true;
+      h += '<option' + (sel ? ' selected' : '') + ' value="' + esc(items[i].n) + '">' + esc(items[i].n) + '</option>';
+    }
+    var nw = !hit;
+    h += '<option value="' + NEWV + '"' + (nw ? ' selected' : '') + '>New…</option></select>';
+    return '<div class="field"><label>' + label + '</label>' + h
+      + '<input id="' + id + '" placeholder="' + esc(ph || "new entry") + '" value="' + esc(nw ? (val || "") : "") + '"' + (nw ? '' : ' hidden') + ' style="margin-top:6px"></div>';
+  }
+  function fv(id) { var s = $(id + "S"); return (s && s.value !== NEWV) ? s.value : $(id).value; }
+  function fnum(id) { var v = parseFloat(String($(id).value).replace(",", ".")); return isNaN(v) ? "" : v; }
+  /* Profile form (Setup): parts, hub details, mass, bifilar pendulum. */
+  function profForm(p) {
+    p = p || {};
+    var tire = findItem("tire", p.t), hub = findItem("hub", p.h) || {};
+    var ta = itemA("tube", p.s), ra = itemA("rim", p.r);
+    var col = hub.co || "", colStd = col === "silver" || col === "black" || col === "";
+    return '<div class="panel" id="profForm"><div class="step">' + (profEditIdx < 0 ? "New profile" : "Edit profile") + '</div><div class="cols">'
+      + pickField("pTire", "Tire", "tire", p.t, "")
+      + '<div class="field"><label>ETRTO</label><input id="pEtrto" placeholder="42-406" value="' + esc(tire ? tire.e : "") + '"></div>'
+      + pickField("pTube", "Tube", "tube", p.s, "name, empty = maker + model")
+      + '<div class="field"><label>Tube maker</label><input id="pUa0" value="' + esc(ta[0] || "") + '"></div>'
+      + '<div class="field"><label>Tube model</label><input id="pUa1" value="' + esc(ta[1] || "") + '"></div>'
+      + '<div class="field"><label>Tube material</label><select id="pUa2">' + opts(MATERIALS, ta[2], "\u2014") + '</select></div>'
+      + pickField("pRim", "Rim", "rim", p.r, "name, empty = maker + model")
+      + '<div class="field"><label>Rim maker</label><input id="pRa0" value="' + esc(ra[0] || "") + '"></div>'
+      + '<div class="field"><label>Rim model</label><input id="pRa1" value="' + esc(ra[1] || "") + '"></div>'
+      + '<div class="field"><label>Rim inner width mm</label><input id="pRa2" inputmode="decimal" value="' + esc(ra[2] || "") + '"></div>'
+      + '<div class="field"><label>Rim diameter (BSD) mm</label><input id="pRa3" inputmode="numeric" placeholder="622" value="' + esc(ra[3] || "") + '"></div>'
+      + pickField("pHub", "Hub", "hub", p.h, "")
+      + '<div class="field"><label>Spokes</label><input id="pSp" inputmode="numeric" value="' + (hub.sp > 0 ? hub.sp : "") + '"></div>'
+      + '<div class="field"><label>Axle</label><select id="pAx">' + opts(AXLES, hub.ax, "—") + '</select></div>'
+      + '<div class="field"><label>Brake</label><select id="pBr">' + opts(BRAKES, hub.br, "—") + '</select></div>'
+      + '<div class="field"><label>Drive wheel</label><select id="pDr"><option value="">—</option><option value="1"' + (hub.dr === 1 ? " selected" : "") + '>yes</option><option value="0"' + (hub.dr === 0 ? " selected" : "") + '>no</option></select></div>'
+      + '<div class="field"><label>Colour</label><select id="pCoS">' + opts(["silver", "black"], colStd ? col : "", "—") + '<option value="' + NEWV + '"' + (colStd ? "" : " selected") + '>other…</option></select>'
+      + '<input id="pCo" value="' + esc(colStd ? "" : col) + '"' + (colStd ? " hidden" : "") + ' style="margin-top:6px"></div>'
+      + '<div class="field"><label>Wheel incl. tire g</label><input id="pM" inputmode="decimal" value="' + (p.m !== null && p.m !== undefined ? de(p.m * 1000, 0) : "") + '"></div>'
+      + '</div><h3>J_wheel · bifilar pendulum (optional)</h3><div class="cols">'
+      + '<div class="field"><label>Thread spacing 2·b mm</label><input id="pBD" inputmode="decimal" value="' + (p.bd !== null && p.bd !== undefined ? p.bd : "") + '"></div>'
+      + '<div class="field"><label>Thread length L mm</label><input id="pBL" inputmode="decimal" value="' + (p.bl !== null && p.bl !== undefined ? p.bl : "") + '"></div>'
+      + '<div class="field"><label>Oscillations n</label><input id="pBN" inputmode="numeric" value="' + (p.bn !== null && p.bn !== undefined ? p.bn : "20") + '"></div>'
+      + '<div class="field"><label>Time for n s</label><input id="pBT" inputmode="decimal" value="' + (p.bt !== null && p.bt !== undefined ? p.bt : "") + '"></div>'
+      + '</div><div class="hint" id="pBJ"></div>'
+      + '<div class="hint">Wheel horizontal on two threads of equal length, suspension points opposite each other on the rim, '
+      + 'same spacing at top and bottom. Twist about the vertical axis by less than 10°, release, time n full oscillations. '
+      + 'Without pendulum J is estimated from the mass (±3.5 %). Changing a part drops the stored wheel model.</div>'
+      + '<div class="pbar"><button type="button" class="plain" id="pCancel">' + IC.cross + 'Cancel</button><button type="button" id="pSave">' + IC.check + 'Save profile</button></div></div>';
+  }
+  /* J from the bifilar readings (docs/09-measurement-theory.md §9.2); null if incomplete. */
+  function bifJ() {
+    var m = fnum("pM") / 1000, d = fnum("pBD") / 1000, L = fnum("pBL") / 1000, n = fnum("pBN"), t = fnum("pBT");
+    var b = d / 2, T = t / n, J = m * 9.80665 * b * b * T * T / (4 * Math.PI * Math.PI * L);
+    var good = m > 0 && d > 0 && L > 0 && n >= 1 && t > 0 && J > 0.01 && J < 2;
+    $("pBJ").innerHTML = !(d > 0 && L > 0 && t > 0) ? "" : (good ? "T = " + de(T, 3) + " s · b = " + de(b * 1000, 1) + " mm → <b>J = " + de(J, 4) + " kg·m²</b>"
+      + (T < 0.5 || T > 10 ? " — unusual period, check time and n" : "") : "J outside 0.01 to 2 kg·m² — check inputs and mass");
+    return good ? J : null;
+  }
+  function profFormBind() {
+    var ids = ["pTire", "pTube", "pRim", "pHub"], i;
+    for (i = 0; i < ids.length; i++) (function (id) {
+      $(id + "S").onchange = function () {
+        $(id).hidden = this.value !== NEWV;
+        if (id === "pTire") { var t = findItem("tire", this.value); $("pEtrto").value = t ? (t.e || "") : ""; }
+        if (id === "pTube" || id === "pRim") {
+          var pre = id === "pTube" ? "pUa" : "pRa", a = this.value === NEWV ? [] : itemA(id === "pTube" ? "tube" : "rim", this.value), k;
+          for (k = 0; k < (id === "pTube" ? 3 : 4); k++) $(pre + k).value = a[k] || "";
+        }
+        if (id === "pHub") {
+          var h = findItem("hub", this.value) || {};
+          $("pSp").value = h.sp > 0 ? h.sp : ""; $("pAx").value = h.ax || ""; $("pBr").value = h.br || "";
+          $("pDr").value = (h.dr === 0 || h.dr === 1) ? String(h.dr) : "";
+          var c = h.co || ""; if (c === "" || c === "silver" || c === "black") { $("pCoS").value = c; $("pCo").hidden = true; } else { $("pCoS").value = NEWV; $("pCo").value = c; $("pCo").hidden = false; }
+        }
+      };
+    })(ids[i]);
+    $("pCoS").onchange = function () { $("pCo").hidden = this.value !== NEWV; };
+    var bi = ["pM", "pBD", "pBL", "pBN", "pBT"];
+    for (i = 0; i < bi.length; i++) $(bi[i]).oninput = bifJ;
+    bifJ();
+    $("pCancel").onclick = function () { profEditIdx = null; profEdit(); };
+    $("pSave").onclick = function () {
+      /* A new tube or rim without a name gets "maker model". */
+      var auto = function (id, pre) { if ($(id + "S").value === NEWV && !$(id).value.trim()) $(id).value = ($(pre + "0").value + " " + $(pre + "1").value).trim(); };
+      auto("pTube", "pUa"); auto("pRim", "pRa");
+      var hub = fv("pHub"), J = bifJ(), co = $("pCoS").value === NEWV ? $("pCo").value : $("pCoS").value, q = [];
+      var at = function (l, name, pre, n) { var s2 = "op=attr&l=" + l + "&n=" + encodeURIComponent(name), k; for (k = 0; k < n; k++) s2 += "&a" + k + "=" + encodeURIComponent(String($(pre + k).value).replace(",", ".")); return s2; };
+      if (fv("pTube")) q.push(at("s", fv("pTube"), "pUa", 3));
+      if (fv("pRim")) q.push(at("r", fv("pRim"), "pRa", 4));
+      if (hub) q.push("op=hub&n=" + encodeURIComponent(hub) + "&sp=" + encodeURIComponent($("pSp").value) + "&ax=" + encodeURIComponent($("pAx").value)
+        + "&br=" + encodeURIComponent($("pBr").value) + "&dr=" + $("pDr").value + "&co=" + encodeURIComponent(co));
+      var m = fnum("pM");
+      q.push("op=pset&i=" + profEditIdx + "&t=" + encodeURIComponent(fv("pTire")) + "&e=" + encodeURIComponent($("pEtrto").value)
+        + "&s=" + encodeURIComponent(fv("pTube")) + "&r=" + encodeURIComponent(fv("pRim")) + "&h=" + encodeURIComponent(hub)
+        + "&m=" + (m === "" ? "" : m / 1000) + "&bd=" + fnum("pBD") + "&bl=" + fnum("pBL") + "&bn=" + fnum("pBN") + "&bt=" + fnum("pBT") + "&j=" + (J === null ? "" : J));
+      profOps(q, function () { profEditIdx = null; profEdit(); });
+    };
+  }
+  /* Start a run with profile i (Setup -> Measure). */
+  function profMeasure(i) {
+    /* A run put aside for Setup (still in step 1) gets the profile; otherwise a new run. */
+    var active = lastJ && lastJ.rs > 0;
+    runParked = false; runOpen = true; $("run").hidden = false; runShown = "";
+    cmdSeq(active ? ["Rmq=" + i] : ["R", "Rmq=" + i], pollRun);
+  }
+  /* Setup -> Wheels: profiles (edit, measure, delete), then the four lists. */
+  function profEdit() {
+    if (!profData) { $("profEd").innerHTML = "—"; return; }
+    var L = [["tire", "t", "Tires", "tire"], ["tube", "s", "Tubes", "tube"], ["rim", "r", "Rims", "rim"]]   /* hubs: details are edited in the profile (2026-11-26) */, h = '<div class="txt bad" id="profErr" hidden></div>', k, i;
+    var ps = profData.prof || [];
+    /* Each group in a white box like the other Setup fields (2026-11-26); text on top,
+       the buttons in a row underneath. The open form follows below the profiles box. */
+    h += '<div class="field pgroup"><label>' + IC.wheel + 'Profiles</label>';
+    if (!ps.length) h += '<div class="sub">none yet</div>';
+    for (i = 0; i < ps.length; i++) {
+      var p = ps[i];
+      h += '<div class="prow' + (profEditIdx === i ? ' on' : '') + '"><div><b>' + esc(profLabel(p)) + '</b><div class="sub">'
+        + (p.miss ? '<span class="bad">missing: ' + esc(p.miss) + '</span> · ' : '')
+        + (p.a1 !== null ? "wheel model " + epTxt(p.ep) + (p.run ? ", run " + esc(p.run) : "") : "no wheel model")
+        + (p.m !== null ? " · " + de(p.m * 1000, 0) + " g" : "") + (p.j !== null ? " · J " + de(p.j, 4) + " kg·m²" : " · J estimated") + '</div></div><div class="pbtns">'
+        + '<button type="button" class="plain" data-edit="' + i + '">' + IC.edit + 'Edit</button>'
+        + '<button type="button" class="plain" data-meas="' + i + '"' + (p.miss ? ' disabled' : '') + '>' + IC.play + 'Measure</button>'
+        + (p.a1 !== null ? '<button type="button" class="plain" data-op="pclr&i=' + i + '" data-ask="Delete the wheel model of this profile?">' + IC.erase + 'Delete model</button>' : '')
+        + '<button type="button" class="plain" data-op="pdel&i=' + i + '" data-ask="Delete this profile?">' + IC.trash + 'Delete</button></div></div>';
+    }
+    if (profEditIdx !== -1) h += '<button type="button" class="plain" id="pNew" style="float:none;width:100%;margin:10px 0 0 0">' + IC.plus + 'New profile</button>';
+    h += '</div>';
+    if (profEditIdx !== null && profEditIdx >= 0) h += profForm(ps[profEditIdx]);
+    if (profEditIdx === -1) h += profForm(null);
+    for (k = 0; k < L.length; k++) {
+      var it = profData[L[k][0]] || [];
+      h += '<div class="field pgroup"><label>' + IC[L[k][3]] + L[k][2] + '</label>';
+      if (!it.length) h += '<div class="sub">none yet</div>';
+      for (i = 0; i < it.length; i++) {
+        var q = "l=" + L[k][1] + "&n=" + encodeURIComponent(it[i].n);
+        var det = k === 0 ? (it[i].e || "no ETRTO")
+          : k === 1 ? (it[i].a || []).filter(function (x) { return x; }).join(", ")
+          : k === 2 ? [(it[i].a || [])[0], (it[i].a || [])[1], (it[i].a || [])[2] ? it[i].a[2] + " mm inner" : "", (it[i].a || [])[3] ? "BSD " + it[i].a[3] : ""].filter(function (x) { return x; }).join(", ")
+          : k === 3 ? [it[i].sp > 0 ? it[i].sp + " spokes" : "", it[i].ax, it[i].br ? "brake " + it[i].br : "", it[i].dr === 1 ? "drive wheel" : "", it[i].co].filter(function (x) { return x; }).join(", ") : "";
+        h += '<div class="prow"><div><b>' + esc(it[i].n) + '</b>' + (det ? ' <span class="sub">' + esc(det) + '</span>' : '')
+          + '<div class="sub">' + (it[i].use ? "in " + it[i].use + " profile" + (it[i].use > 1 ? "s" : "") : "unused") + '</div></div><div class="pbtns">'
+          + '<button type="button" class="plain" data-ren="' + L[k][1] + '" data-n="' + esc(it[i].n) + '">' + IC.rename + 'Rename</button>'
+          + '<button type="button" class="plain" data-op="del&' + q + '" data-ask="Delete ' + esc(it[i].n) + '?"' + (it[i].use ? ' disabled' : '') + '>' + IC.trash + 'Delete</button></div></div>';
+      }
+      h += '</div>';
+    }
+    var ed = $("profEd"); ed.innerHTML = h;
+    var b = ed.getElementsByTagName("button");
+    for (i = 0; i < b.length; i++) b[i].onclick = function () {
+      var t = this;
+      if (t.getAttribute("data-op")) { if (confirm(t.getAttribute("data-ask"))) profOps(["op=" + t.getAttribute("data-op")]); }
+      else if (t.getAttribute("data-edit") !== null) { profEditIdx = +t.getAttribute("data-edit"); profEdit(); }
+      else if (t.getAttribute("data-meas") !== null) profMeasure(+t.getAttribute("data-meas"));
+      else if (t.getAttribute("data-ren")) {
+        var o = t.getAttribute("data-n"), n = prompt("New name", o);
+        if (n && n !== o) profOps(["op=ren&l=" + t.getAttribute("data-ren") + "&o=" + encodeURIComponent(o) + "&n=" + encodeURIComponent(n)]);
+      }
+    };
+    if ($("pNew")) $("pNew").onclick = function () { profEditIdx = -1; profEdit(); };
+    if ($("profForm")) { profFormBind(); fitIn($("profForm"), null, false); }
+  }
+  /* Step 1: choose the profile; pressure, load and note are per run. */
+  function runForm(r) {
+    var m = (r && r.meta) || {}, ps = (profData && profData.prof) || [], i;
+    var pos = $("vLoad").innerHTML;   /* wheel load from Setup, N -> kg */
+    var kg = (m.l !== null && m.l !== undefined) ? m.l : parseFloat(pos.replace(",", ".")) / 9.80665;
+    var live = (lastJ && lastJ.pSrc === "ble" && lastJ.pFresh && lastJ.bar !== null);
+    var bar = live ? de(lastJ.bar, 2) : ((m.b !== null && m.b !== undefined) ? de(m.b, 2) : "");
+    /* One card per profile, several lines (a native select shows only one short line). */
+    /* Dropdown of its own (2026-11-26): closed it shows the chosen wheel on several lines,
+       tapped it opens the list of cards; choosing one closes it again. */
+    var cur = (m.q >= 0 && m.q < ps.length && !ps[m.q].miss) ? m.q : -1;
+    var sel = '<input type="hidden" id="rProf" value="' + (cur >= 0 ? cur : "") + '">'
+      + '<div class="pdrop" id="rProfD">' + (cur >= 0 ? profCard(ps[cur], cur, false) : '<div class="pcard">Choose a wheel</div>') + '</div>'
+      + '<div class="plist" id="rProfL" hidden>';
+    for (i = 0; i < ps.length; i++) sel += profCard(ps[i], i, cur === i);
+    if (!ps.length) sel += '<div class="sub">No wheel profile yet.</div>';
+    sel += '</div>';
+    return '<div class="field"><label>Wheel profile</label>' + sel + '<div class="sub" id="profInfo"></div>'
+      + '<a href="#" class="link" id="rToSetup">Edit wheels in Setup \u2192</a></div>'
+      + '<div class="cols">'
+      + '<div class="field"><label>Pressure bar' + (live ? ' (AirSpy)' : '') + '</label><input id="rBar" inputmode="decimal" value="' + bar + '"></div>'
+      + '<div class="field"><label>Wheel load kg</label><input id="rLoad" inputmode="decimal" value="' + (isNaN(kg) ? "" : de(kg, 1)) + '"></div>'
+      + '<div class="field"><label>Tire thickness mm (optional)</label><input id="rTread" inputmode="decimal" placeholder="centre of tread" value="' + (m.k !== null && m.k !== undefined ? de(m.k, 2) : "") + '"></div>'
+      + '<div class="field"><label>Tire state</label><select id="rNew">'
+      + '<option value="-1"' + (m.u !== 1 && m.u !== 0 ? ' selected' : '') + '>unknown</option>'
+      + '<option value="1"' + (m.u === 1 ? ' selected' : '') + '>new</option>'
+      + '<option value="0"' + (m.u === 0 ? ' selected' : '') + '>ridden</option></select></div>'
+      + '</div>'
+      + '<div class="field"><label>Note</label><input id="rNote" value="' + esc(m.n) + '"></div>'
+      + '<div class="sub">Everything about the wheel comes from its profile; missing values are entered in Setup → Wheels.</div>';
+  }
+  /* Card text: tire (ETRTO) · tube / rim · hub with details / mass, J, wheel model. */
+  function profCard(p, i, on) {
+    var t = findItem("tire", p.t), h = findItem("hub", p.h) || {};
+    var hd = [h.sp > 0 ? h.sp + " spokes" : "", h.ax, h.br ? (h.br === "none" ? "no brake" : h.br + " brake") : "", h.dr === 1 ? "drive wheel" : "", h.co].filter(function (x) { return x; }).join(", ");
+    return '<div class="pcard' + (on ? ' on' : '') + (p.miss ? ' off' : '') + '" data-i="' + i + '">'
+      + '<b>' + esc(p.t) + (t && t.e ? ' <span class="sub">' + esc(t.e) + '</span>' : '') + '</b> \u00b7 ' + esc(p.s || "no tube") + (itemA("tube", p.s)[2] ? ' <span class="sub">(' + esc(itemA("tube", p.s)[2]) + ')</span>' : '')
+      + '<div>' + esc(p.r || "?") + (itemA("rim", p.r)[2] ? ' <span class="sub">(' + esc(itemA("rim", p.r)[2]) + ' mm, BSD ' + esc(itemA("rim", p.r)[3] || "?") + ')</span>' : '') + ' \u00b7 ' + esc(p.h || "?") + (hd ? ' <span class="sub">(' + esc(hd) + ')</span>' : '') + '</div>'
+      + '<div class="sub">' + (p.miss ? '<span class="bad">missing: ' + esc(p.miss) + '</span>'
+          : (p.m !== null ? de(p.m * 1000, 0) + " g \u00b7 " : "") + (p.j !== null ? "J " + de(p.j, 4) + " kg\u00b7m\u00b2" : "J estimated")
+            + " \u00b7 " + (p.a1 !== null ? "wheel model " + epTxt(p.ep) + (p.bar !== null ? ", " + de(p.bar, 2) + " bar" : "") : "no wheel model yet")) + '</div></div>';
+  }
+  function profInfo() {
+    var v = $("rProf").value, p = v === "" ? null : profData.prof[+v];
+    var ps = (profData && profData.prof) || [], any = false, i;
+    for (i = 0; i < ps.length; i++) if (!ps[i].miss) any = true;
+    $("profInfo").innerHTML = !p ? (any ? "Tap a wheel." : "No complete profile yet: create one in Setup \u2192 Wheels.")
+      : (p.a1 !== null ? "Stored wheel model from " + (p.run ? "run " + esc(p.run) : "spin-down wizard") + ": usable in a pressure series." : "Wheel model is measured in step 6.");
+  }
+  function profBind() {
+    var cs = $("rProfL").getElementsByTagName("div"), i;
+    for (i = 0; i < cs.length; i++) if (cs[i].className.indexOf("pcard") === 0) cs[i].onclick = function () {
+      if (this.className.indexOf(" off") >= 0) return;
+      var all = $("rProfL").getElementsByTagName("div"), k;
+      for (k = 0; k < all.length; k++) if (all[k].className.indexOf("pcard") === 0) all[k].className = all[k].className.replace(" on", "");
+      this.className += " on"; $("rProf").value = this.getAttribute("data-i");
+      $("rProfD").innerHTML = this.outerHTML.replace(" on", ""); $("rProfL").hidden = true; profInfo();
+    };
+    $("rProfD").onclick = function () { $("rProfL").hidden = !$("rProfL").hidden; };
+    $("rToSetup").onclick = function (ev) { if (ev && ev.preventDefault) ev.preventDefault(); runParked = true; runShown = null; runOpen = false; $("run").hidden = true; tab(false); profLoad(function () { profEdit(); fitIn($("profEd"), null, false); }); };
+    profInfo();
+  }
+  /* Send the fields one after another, then Next. Time as local time in seconds.
+     Decimal comma or point accepted; the firmware gets a point. */
+  function runSubmitMeta() {
+    var now = new Date();
+    var local = Math.round((now.getTime() - now.getTimezoneOffset() * 60000) / 1000);
+    cmdSeq([
+      "Rmq=" + $("rProf").value,
+      "Rmb=" + $("rBar").value.replace(",", "."),
+      "Rml=" + $("rLoad").value.replace(",", "."),
+      "Rmu=" + $("rNew").value, "Rmk=" + $("rTread").value.replace(",", "."),
+      "Rmn=" + $("rNote").value, "Rmd=" + local, "Rk"
+    ], pollRun);
+  }
+  /* Raw-value trace: r.trace = deviations from r.trMean in counts (oldest first),
+     r.trNpc = N on F_roll per count (null without calibration). */
+  /* Drum seen from the side: start at 12 o'clock, the quarter to turn shaded, a mark at
+     the target, the hand at the angle turned so far (clockwise; the controller
+     tachometer gives the amount, not the direction). */
+  function turnDial(deg, target) {
+    var C = 70, R = 60, pt = function (a, rr) { var t = (a - 90) * Math.PI / 180; return [C + rr * Math.cos(t), C + rr * Math.sin(t)]; };
+    var e = pt(target, R), h = pt(Math.min(deg, 359), R - 8), t1 = pt(target, R - 10), t2 = pt(target, R + 6);
+    var done = deg >= target;
+    return '<svg class="dial" viewBox="0 0 140 140">'
+      + '<circle cx="' + C + '" cy="' + C + '" r="' + R + '" fill="#fff" stroke="#c3ccd4" stroke-width="3"/>'
+      + '<path d="M' + C + ',' + C + ' L' + C + ',' + (C - R) + ' A' + R + ',' + R + ' 0 0 1 ' + e[0].toFixed(1) + ',' + e[1].toFixed(1) + ' Z" fill="' + (done ? "#cfe6d2" : "#dbe8f1") + '"/>'
+      + '<line x1="' + C + '" y1="' + (C - R - 6) + '" x2="' + C + '" y2="' + (C - R + 10) + '" stroke="#8795a1" stroke-width="2"/>'
+      + '<line x1="' + t1[0].toFixed(1) + '" y1="' + t1[1].toFixed(1) + '" x2="' + t2[0].toFixed(1) + '" y2="' + t2[1].toFixed(1) + '" stroke="#1f8a5c" stroke-width="4" stroke-linecap="round"/>'
+      + '<line x1="' + C + '" y1="' + C + '" x2="' + h[0].toFixed(1) + '" y2="' + h[1].toFixed(1) + '" stroke="#16202a" stroke-width="4" stroke-linecap="round"/>'
+      + '<circle cx="' + C + '" cy="' + C + '" r="5" fill="#16202a"/>'
+      + '<text x="' + C + '" y="' + (C + 30) + '" text-anchor="middle" font-size="16" font-weight="700" fill="#16202a">' + de(deg, 0) + '\u00b0</text>'
+      + '</svg>';
+  }
+  function niceRange(x) {
+    var e = Math.pow(10, Math.floor(Math.log(x) / Math.LN10)), m = x / e;
+    return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * e;
+  }
+  function traceHtml(r, graphOnly) {
+    var t = r.trace, n = t.length, i, lo = t[0], hi = t[0], ss = 0, mx = 0;
+    for (i = 0; i < n; i++) { lo = Math.min(lo, t[i]); hi = Math.max(hi, t[i]); ss += t[i] * t[i]; mx = Math.max(mx, Math.abs(t[i])); }
+    var sd = n > 1 ? Math.sqrt(ss / (n - 1)) : 0, pp = hi - lo, k = r.trNpc;
+    var inN = function (c, d) { return (k === null || k === undefined) ? "" : " \u00b7 " + de(c * k, d) + " N"; };
+    var R = niceRange(Math.max(mx * 1.15, 5));   /* at least \u00b15 counts, so a quiet cell looks quiet */
+    var W = 300, H = 120, y = function (v) { return H / 2 - v / R * (H / 2 - 4); };
+    var pts = [];
+    for (i = 0; i < n; i++) pts.push((i / Math.max(1, n - 1) * W).toFixed(1) + "," + y(t[i]).toFixed(1));
+    var grid = "", g, lab = "";
+    for (g = -1; g <= 1; g += 0.5) {
+      grid += '<line x1="0" x2="' + W + '" y1="' + y(g * R) + '" y2="' + y(g * R) + '" stroke="' + (g === 0 ? "#64737f" : "#d4dbe1") + '" stroke-width="' + (g === 0 ? 1 : 0.7) + '"/>';
+      lab += '<span style="top:' + (y(g * R) / H * 100).toFixed(1) + '%">' + (g > 0 ? "+" : "") + de(g * R, 0) + (k ? " \u00b7 " + de(g * R * k, 3) + " N" : "") + "</span>";
+    }
+    var dTare = r.trTare ? r.trNow - r.trTare : null;
+    var tiles = graphOnly ? "" : '<div class="tiles">'
+      + '<div class="tile half"><div><div class="lab">Raw live</div><div class="val">' + r.trNow + '</div><div class="sub">' + (dTare === null ? "counts" : "zero " + (dTare >= 0 ? "+" : "") + dTare + " counts" + inN(dTare, 3)) + '</div></div></div>'
+      + '<div class="tile half"><div><div class="lab">\u03c3 \u00b7 peak-peak, 2 s</div><div class="val">' + de(sd, 1) + '<small>\u00b7 ' + pp + '</small></div><div class="sub">counts' + inN(sd, 4) + inN(pp, 3) + '</div></div></div></div>';
+    return tiles + '<div class="tracewrap"><svg class="trace" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + grid
+      + '<polyline fill="none" stroke="#2f6f99" stroke-width="1.4" vector-effect="non-scaling-stroke" points="' + pts.join(" ") + '"/></svg>'
+      + '<div class="tracelab">' + lab + '</div></div>'
+      + '<div class="sub">last 2 s around the mean ' + r.trMean + ' counts \u00b7 scale \u00b1' + de(R, 0) + ' counts' + inN(R, 3) + ' on F_roll</div>';
+  }
+  /* Check weight hanging (step 5, sub 1 / 2 / 6), live (2026-11-26). With a reference --
+     the reading the stored calibration expects, or for the reread the first reading of
+     this run -- the live value as deviation from that mark: tiles, a bar 0..120 % with the
+     mark, and the last 2 s as a fine curve in %. Without one (not calibrated, first
+     reading): the raw counts above zero with their scale. */
+  function weightLive(r) {
+    var t = r.trace || [], n = t.length, i;
+    if (!n) return "";
+    var ref = r.sub === 6 ? r.ctrlRaw : r.ctrlExpect;
+    var refLab = r.sub === 6 ? "first reading" : "old calibration";
+    var now = r.trNow - r.trTare;
+    if (ref === null || ref === undefined || !ref) return traceHtml(r);
+    var dv = (now / ref - 1) * 100, pv = [], mx = 0;
+    for (i = 0; i < n; i++) { pv.push((t[i] + r.trMean - r.trTare) / ref * 100 - 100); mx = Math.max(mx, Math.abs(pv[i])); }
+    var sc = ref * 1.2, pb = function (v) { return Math.max(0, Math.min(100, v / sc * 100)); };
+    var Rg = niceRange(Math.max(Math.min(mx, 25) * 1.15, 0.5));   /* at least +-0.5 %, the ok band */
+    var W = 300, H = 120, y = function (v) { v = Math.max(-Rg, Math.min(Rg, v)); return H / 2 - v / Rg * (H / 2 - 4); };
+    var pts = [], grid = "", lab = "", g;
+    for (i = 0; i < n; i++) pts.push((i / Math.max(1, n - 1) * W).toFixed(1) + "," + y(pv[i]).toFixed(1));
+    for (g = -1; g <= 1; g += 0.5) {
+      grid += '<line x1="0" x2="' + W + '" y1="' + y(g * Rg) + '" y2="' + y(g * Rg) + '" stroke="' + (g === 0 ? "#1e1e1e" : "#d4dbe1") + '" stroke-width="' + (g === 0 ? 1.4 : 0.7) + '"/>';
+      lab += '<span style="top:' + (y(g * Rg) / H * 100).toFixed(1) + '%">' + (g === 0 ? refLab : (g > 0 ? "+" : "") + de(g * Rg, Rg < 2 ? 2 : 1) + " %") + "</span>";
+    }
+    var big = r.ctrlLive !== null && r.ctrlLive !== undefined && r.sub !== 6
+      ? fm(r.ctrlLive, 3) + '<small>Nm</small>' : de(now, 0) + '<small>counts</small>';
+    return '<div class="tiles"><div class="tile half"><div><div class="lab">Live</div><div class="val">' + big + '</div><div class="sub">' + de(now, 0) + ' counts above zero \u00b7 mark ' + de(ref, 0) + '</div></div></div>'
+      + '<div class="tile half ' + lvl(dv, 0.5, 1.0) + '"><div><div class="lab">Deviation from ' + refLab + '</div><div class="val">' + (dv >= 0 ? "+" : "") + de(dv, 2) + '<small>%</small></div><div class="sub">ok below 0.5 %</div></div></div></div>'
+      + '<div style="position:relative;height:22px;border-radius:5px;overflow:hidden;background:linear-gradient(to right,#e4e9ed 0 ' + pb(ref * 0.99) + '%,#cfe6d2 ' + pb(ref * 0.99) + '% ' + pb(ref * 1.01) + '%,#e4e9ed ' + pb(ref * 1.01) + '% 100%)">'
+      + '<div style="position:absolute;left:0;top:0;height:100%;width:' + pb(now) + '%;background:#2f6f99;opacity:.75"></div>'
+      + '<div style="position:absolute;left:' + pb(ref) + '%;top:0;height:100%;width:2px;background:#1e1e1e"></div></div>'
+      + '<div class="sub">0 \u2026 120 % of the mark \u00b7 line = ' + refLab + ' \u00b7 green \u00b11 %</div>'
+      + '<div class="tracewrap" style="margin-top:10px"><svg class="trace" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + grid
+      + '<polyline fill="none" stroke="#2f6f99" stroke-width="1.4" vector-effect="non-scaling-stroke" points="' + pts.join(" ") + '"/></svg>'
+      + '<div class="tracelab">' + lab + '</div></div>'
+      + '<div class="sub">last 2 s, deviation from the ' + refLab + ' \u00b7 scale \u00b1' + de(Rg, Rg < 2 ? 2 : 1) + ' %</div>';
   }
   function paintRun(r) {
     var s = r.step || 0, i;
@@ -933,104 +1427,133 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("runIst").innerHTML  = $("kmh").innerHTML;
     var err = (lastJ && lastJ.err) || "";
     $("runErr").innerHTML = err; $("runErr").hidden = !err;
-    $("runTitle").innerHTML = r.title || ""; $("runTitle").hidden = !r.title;
-    $("runTxt").innerHTML = r.txt || ""; $("runTxt").hidden = !r.txt;
-    /* Inhalt je Schritt. Das Formular (Schritt 1) nur einmal aufbauen. */
+    $("runTitle").innerHTML = (s === 2 && r.title ? WARN_SIGN : "") + (r.title || "");   /* step 2: safety check */ $("runTitle").hidden = !r.title;
+    /* A text with "; " is a checklist: one bullet per item. Step 2 carries the warning sign. */
+    var rt = r.txt || "";
+    if (rt.indexOf("; ") >= 0) rt = '<ul class="checklist"><li>' + rt.split("; ").join("</li><li>") + "</li></ul>";
+    /* Drum turning under power: "Keep clear" with the warning sign ahead of the hint,
+       always (2026-11-26). Not in step 4: there the drum is nudged and turned by hand. */
+    var spin = s !== 4 && lastJ && lastJ.link && (lastJ.driving || (lastJ.kmh !== null && lastJ.kmh > 0.3));
+    if (spin) rt = WARN_SIGN + "<b>Keep clear.</b>" + (rt ? " " + rt.replace(WARN_SIGN, "") : "");
+    $("runTxt").innerHTML = (s === 2 || spin) ? rt : handsOff(rt); $("runTxt").hidden = !rt;
+    /* Content per step. Build the form (step 1) only once. */
     var body = "", key = s + "/" + r.sub;
-    if (s === 1) { if (runShown !== "form") { $("runBody").innerHTML = runForm(r); runShown = "form"; } }
+    if (s === 1) {
+      if (runShown !== "form") {
+        $("runBody").innerHTML = runForm(r); runShown = "form"; profBind();
+        /* The profiles arrive after the first draw: draw again with them. */
+        profLoad(function () { $("runBody").innerHTML = runForm(r); profBind(); });
+      }
+    }
     else {
       if (s === 3 && r.checks) {
         var rows = [];
         for (i = 0; i < r.checks.length; i++) {
           var c = r.checks[i];
-          var lv = c[1] > 0 ? "good" : (c[1] === 0 ? "warn" : "bad");
-          rows.push([mark(lv) + c[0], { t: c[1] > 0 ? "ok" : (c[1] === 0 ? "f\u00e4llig" : "fehlt"), c: c[1] > 0 ? "ok" : (c[1] === 0 ? "due" : "miss") }, c[2]]);
+          /* 2 = recorded only: no limit yet (noise), neither green nor red */
+          var lv = c[1] === 2 ? "" : c[1] > 0 ? "good" : (c[1] === 0 ? "warn" : "bad");
+          rows.push([mark(lv) + c[0], { t: c[1] === 2 ? "recorded" : c[1] > 0 ? "ok" : (c[1] === 0 ? "note" : "missing"), c: c[1] === 2 ? "" : c[1] > 0 ? "ok" : (c[1] === 0 ? "due" : "miss") }, c[2]]);
         }
-        body = rows.length ? tbl(["Pr\u00fcfung", "", "Wert"], rows) : '';
+        body = rows.length ? tbl(["Check", "", "Value"], rows) : '';
       }
       if (s === 4) {
-        body = (r.tareSigma === null) ? '<div class="txt">\u2026</div>'
-             : (r.tareSigmaN === null ? '' : '<div class="txt">Genullt. Rauschen \u00b1' + de(r.tareSigmaN, 3) + ' N auf F_roll</div>');
-        if (r.sub >= 4) body += '<div class="tiles"><div class="tile half ' + lvl(r.tareChk, r.zeroLim, null) + '"><div><div class="lab">Nullpr\u00fcfung</div><div class="val" style="white-space:nowrap">' + (r.tareChk === null ? "\u2014" : ((r.tareChk >= 0 ? "+" : "") + de(r.tareChk, 2))) + '<small>N</small></div><div class="sub">auf F_roll \u00b7 Grenze ' + de(r.zeroLim, 2) + ' N \u00b7 bis 0,1 ist Rastmoment, normal</div></div></div></div>';
+        body = (r.tareSigma === null) ? '<div class="txt">…</div>'
+             : (r.tareSigmaN === null ? '' : '<div class="txt">Zeroed. Noise ±' + de(r.tareSigmaN, 3) + ' N on F_roll</div>');
+        if (r.sub >= 4) body += '<div class="tiles"><div class="tile half ' + lvl(r.tareChk, r.zeroLim, null) + '"><div><div class="lab">Zero check</div><div class="val" style="white-space:nowrap">' + (r.tareChk === null ? "—" : ((r.tareChk >= 0 ? "+" : "") + de(r.tareChk, 2))) + '<small>N</small></div><div class="sub">on F_roll · limit ' + de(r.zeroLim, 2) + ' N · up to 0.1 is cogging, normal</div></div></div></div>';
       }
-      if (s === 13 && r.sub === 0) body = '<div class="cols"><div class="field"><label>Raum \u00b0C jetzt</label><input id="rTempEnd" inputmode="decimal" value=""></div></div>';
-      if (s === 13 && r.sub >= 1 && r.zeroEnd !== null) body = '<div class="tiles"><div class="tile half ' + lvl(r.zeroEnd, r.zeroLim, null) + '"><div><div class="lab">Nullpunkt nach Lauf</div><div class="val" style="white-space:nowrap">' + ((r.zeroEnd >= 0 ? "+" : "") + de(r.zeroEnd, 2)) + '<small>N</small></div><div class="sub">auf F_roll \u00b7 Grenze ' + de(r.zeroLim, 2) + ' N</div></div></div></div>';
+      if (s === 13 && r.sub >= 1 && r.zeroEnd !== null) body = '<div class="tiles"><div class="tile half ' + lvl(r.zeroEnd, r.zeroLim, null) + '"><div><div class="lab">Zero after run</div><div class="val" style="white-space:nowrap">' + ((r.zeroEnd >= 0 ? "+" : "") + de(r.zeroEnd, 2)) + '<small>N</small></div><div class="sub">on F_roll · limit ' + de(r.zeroLim, 2) + ' N</div></div></div></div>';
       if (s === 5 && r.sub === 0) {
-        /* Anschlag: Live-Kraft als Balken in % vom Endwert mit Zielband, Spitze gehalten. */
+        /* End stop: live force as a bar in % of full scale with target band, peak held. */
         var sc = r.stopBar || 160, lv = r.stopLive === null ? 0 : r.stopLive, pk = r.stopPeak === null ? 0 : r.stopPeak;
         var pct = function (v) { return Math.max(0, Math.min(100, v / sc * 100)); };
-        var zone = pk < r.stopMin ? "noch unter dem Endwert" : (pk <= r.stopMax ? "im Zielband" : "ZU WEIT, Zelle in Gefahr");
+        var zone = pk < r.stopMin ? "below full scale" : (pk <= r.stopMax ? "in target band" : "TOO FAR, cell at risk");
         var zl = pk < r.stopMin ? (r.stopPeak === null ? "" : "warn") : (pk <= r.stopMax ? "good" : "bad");
         body = '<div class="tiles"><div class="tile half"><div><div class="lab">Live</div><div class="val">' + de(lv, 0) + '<small>% FS</small></div></div></div>'
-          + '<div class="tile half ' + zl + '"><div><div class="lab">Spitze</div><div class="val">' + de(pk, 0) + '<small>% FS</small></div><div class="sub">' + zone + '</div></div></div></div>'
+          + '<div class="tile half ' + zl + '"><div><div class="lab">Peak</div><div class="val">' + de(pk, 0) + '<small>% FS</small></div><div class="sub">' + zone + '</div></div></div></div>'
           + '<div style="position:relative;height:22px;border-radius:5px;overflow:hidden;background:linear-gradient(to right,#cfe6d2 0 ' + pct(r.stopMin) + '%,#f1dfa3 ' + pct(r.stopMin) + '% ' + pct(r.stopMax) + '%,#f0b8b2 ' + pct(r.stopMax) + '% 100%)">'
           + '<div style="position:absolute;left:0;top:0;height:100%;width:' + pct(lv) + '%;background:#2f6f99;opacity:.75"></div>'
           + '<div style="position:absolute;left:' + pct(pk) + '%;top:0;height:100%;width:2px;background:#1e1e1e"></div>'
           + '<div style="position:absolute;left:' + pct(100) + '%;top:0;height:100%;width:1px;background:#64737f"></div></div>'
-          + '<div class="sub">0 \u2026 ' + de(sc, 0) + ' % vom Zellenendwert \u00b7 gr\u00fcn Messbereich \u00b7 gelb Zielband ' + de(r.stopMin, 0) + '\u2013' + de(r.stopMax, 0) + ' % \u00b7 rot zu weit \u00b7 Strich = Spitze</div>';
+          + '<div class="sub">0 … ' + de(sc, 0) + ' % of cell full scale · green measuring range · yellow target band ' + de(r.stopMin, 0) + '–' + de(r.stopMax, 0) + ' % · red too far · line = peak</div>';
       }
-      else if (s === 5 && r.sub >= 2) body = '<div class="tiles"><div class="tile half"><div><div class="lab">Gemessen an ' + de(r.calArmMm, 0) + ' mm</div><div class="val">' + fm(r.ctrlKg, 3) + '<small>kg</small></div><div class="sub">Soll ' + fm(r.ctrlSollKg, 3) + ' kg \u00b7 ' + fm(r.ctrlNm, 3) + ' / ' + fm(r.ctrlSoll, 3) + ' Nm</div></div></div>'
-        + '<div class="tile half ' + lvl(r.ctrlDev, 0.5, 1.0) + '"><div><div class="lab">Abweichung</div><div class="val">' + (r.ctrlDev === null ? "\u2014" : ((r.ctrlDev >= 0 ? "+" : "") + de(r.ctrlDev, 2))) + '<small>%</small></div><div class="sub">ok unter 0,5 %, Warnung bis 1 %</div></div></div></div>'
-        + (r.ctrlAdopted ? '<div class="txt good">' + mark("good") + 'Als Kalibrierung \u00fcbernommen</div>' : '')
-        + (r.ctrlDev !== null && r.ctrlOn ? '<div class="txt warn">' + mark("warn") + 'Gewicht h\u00e4ngt noch</div>' : (r.ctrlDev !== null ? '<div class="txt good">' + mark("good") + 'Gewicht ist ab</div>' : ''));
+      else if (s === 5 && (r.sub === 1 || r.sub === 2 || r.sub === 6)) body = weightLive(r);
+      else if (s === 5 && r.sub === 7) body = '<div class="tiles"><div class="tile half"><div><div class="lab">Before the press</div><div class="val">' + fm(r.ctrlKg, 3) + '<small>kg</small></div></div></div>'
+        + '<div class="tile half ' + lvl(r.ctrlRep, 0.5, 1.0) + '"><div><div class="lab">After the press</div><div class="val">' + (r.ctrlRep === null ? "\u2014" : ((r.ctrlRep >= 0 ? "+" : "") + de(r.ctrlRep, 2))) + '<small>%</small></div><div class="sub">change \u00b7 ok under 0.5 %</div></div></div></div>';
+      else if (s === 5 && r.sub === 5) body = '<div class="tiles"><div class="tile half ' + lvl(r.stopZero, r.zeroLim, null) + '"><div><div class="lab">Zero after end stop</div><div class="val" style="white-space:nowrap">' + (r.stopZero === null ? "\u2014" : ((r.stopZero >= 0 ? "+" : "") + de(r.stopZero, 3))) + '<small>N</small></div><div class="sub">on F_roll \u00b7 limit ' + de(r.zeroLim, 2) + ' N</div></div></div></div>';
+      else if (s === 5 && r.sub === 3) body = '<div class="tiles"><div class="tile half"><div><div class="lab">Measured at ' + de(r.calArmMm, 0) + ' mm</div><div class="val">' + fm(r.ctrlKg, 3) + '<small>kg</small></div><div class="sub">target ' + fm(r.ctrlTargetKg, 3) + ' kg · ' + fm(r.ctrlNm, 3) + ' / ' + fm(r.ctrlTarget, 3) + ' Nm</div></div></div>'
+        + '<div class="tile half ' + lvl(r.ctrlDev, 0.5, 1.0) + '"><div><div class="lab">Deviation</div><div class="val">' + (r.ctrlDev === null ? "—" : ((r.ctrlDev >= 0 ? "+" : "") + de(r.ctrlDev, 2))) + '<small>%</small></div><div class="sub">ok below 0.5 %, warning up to 1 %</div></div></div></div>'
+        + (r.ctrlAdopted ? '<div class="txt good">' + mark("good") + 'Adopted as calibration</div>' : '')
+        + (r.sub === 3 && r.ctrlDev !== null ? (r.ctrlOn ? '<div class="txt good">' + mark("good") + 'Weight on, end stop next</div>' : '<div class="txt warn">' + mark("warn") + 'Weight off</div>') : '');
       if ((s === 6 && r.sub >= 2) || (s === 13 && r.sub >= 2)) {
         var pts = (s === 6) ? (r.pre || []) : (r.post || []), rr = [];
         for (i = 0; i < pts.length; i++) rr.push(s === 6 ? [fm(pts[i][0], 1), fm(pts[i][2], 4), fm(pts[i][3], 4), fm(pts[i][5], 3)] : [fm(pts[i][0], 1), fm(pts[i][1], 4), fm(pts[i][2], 3) + " N"]);
-        if (rr.length) body += tbl(s === 6 ? ["km/h", "M Nm", "\u03c3", "J\u00b7d\u03c9/dt"] : ["km/h", "M Nm", "\u0394 F_roll"], rr);
-        if (s === 6 && r.a0 !== null && r.sub >= 3) body += '<div class="txt">A\u2080 ' + fm(r.a0, 4) + ' \u00b7 B\u2080 ' + (r.b0 === null ? "\u2014" : r.b0.toExponential(2).replace(".", ",")) + '</div>';
+        if (rr.length) body += tbl(s === 6 ? ["km/h", "M Nm", "σ", "J·dω/dt"] : ["km/h", "M Nm", "Δ F_roll"], rr);
+        if (s === 6 && r.a0 !== null && r.sub >= 3) body += '<div class="txt">A₀ ' + fm(r.a0, 4) + ' · B₀ ' + (r.b0 === null ? "—" : r.b0.toExponential(2)) + '</div>';
       }
       if (s === 9) {
         var min = Math.floor(r.subMs / 60000), w = r.warm || [], last = w.length ? w[w.length - 1] : null;
         var live = (r.lvP !== null && r.lvP !== undefined);
         body = '<div class="bar"><div style="width:' + Math.min(100, r.subMs / r.warmMs * 100) + '%"></div></div>'
-          + '<div class="txt">' + min + ' von ' + Math.round(r.warmMs / 60000) + ' min</div>'
-          + '<div class="tiles"><div class="tile half ' + (live ? '' : 'warn') + '"><div><div class="lab">P live</div><div class="val">' + fm(r.lvP, 1) + '<small>W</small></div><div class="sub">' + (live ? 'konstante Fahrt' : 'wartet auf konstante Fahrt') + '</div></div></div>'
-          + '<div class="tile half ' + (live ? '' : 'warn') + '"><div><div class="lab">Crr live</div><div class="val">' + fm(r.lvCrr, 5) + '</div><div class="sub">' + (last ? 'Minute ' + last[0] + ': ' + fm(last[1], 1) + ' W \u00b7 ' + fm(last[2], 5) : 'erster Minutenpunkt folgt') + '</div></div></div></div>';
+          + '<div class="txt">' + min + ' of ' + Math.round(r.warmMs / 60000) + ' min</div>'
+          + '<div class="tiles"><div class="tile half ' + (live ? '' : 'warn') + '"><div><div class="lab">P live</div><div class="val">' + fm(r.lvP, 1) + '<small>W</small></div><div class="sub">' + (live ? 'steady speed' : 'waiting for steady speed') + '</div></div></div>'
+          + '<div class="tile half ' + (live ? '' : 'warn') + '"><div><div class="lab">Crr live</div><div class="val">' + fm(r.lvCrr, 5) + '</div><div class="sub">' + (last ? 'minute ' + last[0] + ': ' + fm(last[1], 1) + ' W · ' + fm(last[2], 5) : 'first minute point pending') + '</div></div></div></div>';
       }
       if (s === 10 || s === 11 || s === 12 || s === 14 || s === 99) {
-        var prow = function (q) { return [fm(q[0], 1), q[1], fm(q[2], 4), fm(q[7], 4), fm(q[3], 4), fm(q[4], 5), fm(q[5], 5), { t: q[6] ? "ja" : "nein", c: q[6] ? "ok" : "miss" }]; };
-        var hd = ["km/h", "#", "M Nm", "J\u00b7d\u03c9/dt", "\u03c3", "Crr roh", "Crr korr.", "g\u00fcltig"];
+        var prow = function (q) { return [fm(q[0], 1), q[1], fm(q[2], 4), fm(q[7], 4), fm(q[3], 4), fm(q[4], 5), fm(q[5], 5), { t: q[6] ? "yes" : "no", c: q[6] ? "ok" : "miss" }]; };
+        var hd = ["km/h", "#", "M Nm", "J·dω/dt", "σ", "Crr raw", "Crr corr.", "valid"];
         var ap = r.anchorPre || [], rap = [];
         for (i = 0; i < ap.length; i++) rap.push(prow(ap[i]));
-        if (rap.length && s < 14) body = "<h2>Referenz vor</h2>" + tbl(hd, rap);
+        if (rap.length && s < 14) body = "<h2>Reference before</h2>" + tbl(hd, rap);
         var p = r.pts || [], rows2 = [];
         for (i = 0; i < p.length; i++) rows2.push(prow(p[i]));
         if (rows2.length && s < 14) body += "<h2>Plateaus</h2>" + tbl(hd, rows2);
         if (s === 11 || s === 12) { var a = r.anchor || [], ra = [];
           for (i = 0; i < a.length; i++) ra.push(prow(a[i]));
-          if (ra.length) body += "<h2>Referenz nach</h2>" + tbl(hd, ra);
-          if (r.anchorDN !== null && r.anchorDN !== undefined) body += '<div class="txt">Drift ' + (r.anchorDN >= 0 ? "+" : "") + de(r.anchorDN, 3) + ' N auf F_roll</div>'; }
+          if (ra.length) body += "<h2>Reference after</h2>" + tbl(hd, ra);
+          if (r.anchorDN !== null && r.anchorDN !== undefined) body += '<div class="txt">Drift ' + (r.anchorDN >= 0 ? "+" : "") + de(r.anchorDN, 3) + ' N on F_roll</div>'; }
       }
       if (s === 14 || s === 99) {
         var st = r.stat || [], rs = [];
-        for (i = 0; i < st.length; i++) rs.push([fm(st[i][0], 1), st[i][1] + "/" + st[i][2], fm(st[i][3], 4), fm(st[i][4], 4), fm(st[i][5], 5), fm(st[i][6], 5), "\u00b1 " + fm(st[i][7], 5), st[i][8]]);
-        if (rs.length) body += tbl(["km/h", "n", "M Nm", "\u03c3", "Crr roh", "Crr korr.", "u (k=1)", "\u03bd"], rs);
-        if (r.anchorDN !== null && r.anchorDN !== undefined) body += '<div class="txt">Ankerdrift ' + (r.anchorDN >= 0 ? "+" : "") + de(r.anchorDN, 3) + ' N auf F_roll</div>';
-        if (r.zeroEnd !== null && r.zeroEnd !== undefined) body += '<div class="txt">Nullpunkt nach Lauf ' + (r.zeroEnd >= 0 ? "+" : "") + de(r.zeroEnd, 3) + ' N auf F_roll</div>';
+        for (i = 0; i < st.length; i++) rs.push([fm(st[i][0], 1), st[i][1] + "/" + st[i][2], fm(st[i][3], 4), fm(st[i][4], 4), fm(st[i][5], 5), fm(st[i][6], 5), "± " + fm(st[i][7], 5), st[i][8]]);
+        if (rs.length) body += tbl(["km/h", "n", "M Nm", "σ", "Crr raw", "Crr corr.", "u (k=1)", "ν"], rs);
+        if (r.anchorDN !== null && r.anchorDN !== undefined) body += '<div class="txt">Anchor drift ' + (r.anchorDN >= 0 ? "+" : "") + de(r.anchorDN, 3) + ' N on F_roll</div>';
+        if (r.zeroEnd !== null && r.zeroEnd !== undefined) body += '<div class="txt">Zero after run ' + (r.zeroEnd >= 0 ? "+" : "") + de(r.zeroEnd, 3) + ' N on F_roll</div>';
         var wn = r.warn || [];
-        if (wn.length) { body += "<h2>Warnungen</h2><ul>"; for (i = 0; i < wn.length; i++) body += '<li class="txt ' + (wn[i].indexOf("W06") === 0 ? "bad" : "warn") + '">' + mark(wn[i].indexOf("W06") === 0 ? "bad" : "warn") + wn[i] + "</li>"; body += "</ul>"; }
-        else body += '<div class="txt good">' + mark("good") + 'keine Warnungen</div>';
-        if (r.md) body += '<a class="dl" href="' + r.md + '">Protokoll .md</a>';
-        if (r.csv) body += '<a class="dl" href="' + r.csv + '">Daten .csv</a>';
-        if (r.md) body += '<div class="sub">herunterladen, zum Weitergeben per AirDrop oder Mail \u00b7 <a href="' + r.md + '?view">Protokoll ansehen</a>' + (r.csv ? ' \u00b7 <a href="' + r.csv + '?view">Daten ansehen</a>' : '') + '</div>';
-        body += '<div class="sub"><a href="/runs">alle Messl\u00e4ufe</a></div>';
+        if (wn.length) { body += "<h2>Warnings</h2><ul>"; for (i = 0; i < wn.length; i++) body += '<li class="txt ' + (wn[i].indexOf("W06") === 0 ? "bad" : "warn") + '">' + mark(wn[i].indexOf("W06") === 0 ? "bad" : "warn") + wn[i] + "</li>"; body += "</ul>"; }
+        else body += '<div class="txt good">' + mark("good") + 'no warnings</div>';
+        if (r.md) body += '<a class="dl" href="' + r.md.replace(/\.md$/, ".zip") + '">Report + data .zip</a>';
+        if (r.md) body += '<a class="dl" href="' + r.md + '">Report .md</a>';
+        if (r.csv) body += '<a class="dl" href="' + r.csv + '">Data .csv</a>';
+        if (r.md) body += '<div class="sub">download, share via AirDrop or mail · <a href="' + r.md + '?view">view report</a>' + (r.csv ? ' · <a href="' + r.csv + '?view">view data</a>' : '') + '</div>';
+        body += '<div class="sub"><a href="/runs">all test runs</a></div>';
       }
-      /* Fortschritt, wo gemessen wird: Balken plus eine Zeile, vor den Inhalt. */
+      /* Age of zero point and calibration at zeroing and check weight. */
+      if ((s === 4 || s === 5) && r.sub <= 1) {
+        var ago = function (sec) { return sec < 120 ? Math.round(sec) + " s" : (sec < 7200 ? Math.round(sec / 60) + " min" : (sec < 172800 ? de(sec / 3600, 1) + " h" : Math.round(sec / 86400) + " days")); };
+        var calTxt = !r.calEpoch ? "unknown" : (r.nowEpoch && r.nowEpoch >= r.calEpoch ? ago(r.nowEpoch - r.calEpoch) + " ago" : "stored");
+        body += '<div class="sub">zeroed ' + (r.tareAgeS === null ? "not yet" : ago(r.tareAgeS) + " ago") + ' · calibrated ' + calTxt + '</div>';
+      }
+      /* Progress where measuring: bar plus one line, ahead of the content. */
+      /* Live raw values while zeroing (2026-11-26): what is being judged, as tiles and
+         as a curve of the last 2 s with a scale fine enough to see flutter. */
+      /* Quarter turn by hand (step 4, sub 2): the drum as a dial, live (2026-11-26). */
+      if (s === 4 && r.sub === 2 && r.turnDeg !== null && r.turnDeg !== undefined) body = turnDial(r.turnDeg, r.turnTarget || 90) + body;
+      if (r.trace && r.trace.length && !(s === 5 && (r.sub === 1 || r.sub === 2 || r.sub === 6))) body = traceHtml(r) + body;
       if (r.prog !== null && r.prog !== undefined)
         body = '<div class="bar"><div style="width:' + (r.prog * 100) + '%"></div></div><div class="txt" style="margin-bottom:10px">' + (r.progTxt || '') + '</div>' + body;
-      /* Eingabefelder (Schritt 13, Raumtemperatur) nicht bei jedem Abruf neu aufbauen. */
-      if (runShown !== key || (s >= 3 && !(s === 13 && r.sub === 0))) { $("runBody").innerHTML = body; runShown = key; }
+      if (runShown !== key || s >= 3) { $("runBody").innerHTML = body; runShown = key; }
     }
-    /* Knoepfe */
-    $("runOk").innerHTML = r.ok || ""; $("runOk").hidden = !r.ok;
+    /* Buttons */
+    /* Forward buttons carry an arrow, Back one to the left (2026-11-26); Close none. */
+    $("runOk").innerHTML = r.ok ? r.ok + (r.ok === "Close" ? "" : " \u2192") : ""; $("runOk").hidden = !r.ok;
     $("runAlt").innerHTML = r.alt || ""; $("runAlt").hidden = !r.alt;
     $("runRedo").innerHTML = r.redo || ""; $("runRedo").hidden = !r.redo;
     $("runBack").hidden = !r.back;
     $("runCancel").hidden = (s === 14 || s === 99 || s === 0);
-    /* Schrittliste */
+    /* Step list */
     var html = { A: "", B: "", C: "" }, now = (s === 99) ? -1 : s;
-    /* Warnungen den Schritten zuordnen: ein erledigter Schritt mit Warnung wird orange. */
-    var WSTEP = { W07: 1, W13: 4, W01: 5, W10: 5, W16: 5, W17: 5, W02: 6, W12: 6, W08: 6, W09: 7, W11: 9, W03: 10, W04: 11, W05: 13, W14: 13 };
+    /* Map warnings to steps: a finished step with a warning turns orange. */
+    var WSTEP = { W07: 1, W13: 4, W01: 5, W10: 5, W16: 5, W17: 5, W21: 5, W22: 5, W02: 6, W12: 6, W08: 6, W09: 7, W11: 9, W03: 10, W04: 11, W05: 13, W14: 13 };
     var wsteps = {}, wl = r.warn || [];
     for (i = 0; i < wl.length; i++) { var ws = WSTEP[wl[i].substr(0, 3)]; if (ws) wsteps[ws] = true; }
     for (i = 0; i < RUN_STEPS.length; i++) {
@@ -1038,14 +1561,14 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       if (s === 99) cls = (n < runAbortStep) ? "done" : (n === runAbortStep ? "bad" : "");
       else cls = (n < now) ? "done" : (n === now ? "now" : "");
       if (cls === "done" && wsteps[n]) cls = "done warn";
-      html[RUN_STEPS[i][0]] += '<li class="' + cls + '">' + n + " \u00b7 " + RUN_STEPS[i][1] + "</li>";
+      html[RUN_STEPS[i][0]] += '<li class="' + cls + '">' + n + " · " + RUN_STEPS[i][1] + "</li>";
     }
-    /* Listen nur neu bauen, wenn sich der Schritt aendert -- innerHTML wuerde das
-       darin steckende Arbeitsfeld samt Eingaben und Tastaturfokus wegwerfen. Danach
-       das Feld unter den aktuellen Schritt haengen (bei Abbruch unter den roten). */
+    /* Rebuild the lists only when the step changes -- innerHTML would throw away
+       the work panel inside them along with inputs and keyboard focus. Then hang
+       the panel below the current step (on abort below the red one). */
     var wkey = s + "/" + wl.length;
     if (listStep !== wkey) {
-      $("runHome").appendChild($("runPanel"));   /* erst retten, sonst loescht innerHTML das Feld mit */
+      $("runHome").appendChild($("runPanel"));   /* rescue it first, otherwise innerHTML deletes the panel too */
       $("runA").innerHTML = html.A; $("runB").innerHTML = html.B; $("runC").innerHTML = html.C;
       listStep = wkey;
       var cur = document.querySelector("#run li.now") || document.querySelector("#run li.bad");
@@ -1054,9 +1577,17 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       else $("runHome").appendChild($("runPanel"));
     }
     if (s !== 99) runAbortStep = s;
+    /* Into view: the panel when the step changes, the newest row when one is added. */
+    var nRows = $("runBody").getElementsByTagName("tr").length;
+    if (s + "/" + r.sub !== runFitKey) { runFitKey = s + "/" + r.sub; runRows = nRows; setTimeout(function () { fitIn($("runPanel"), $("run"), false); }, 0); }
+    else if (nRows > runRows) {
+      runRows = nRows;
+      var trs = $("runBody").getElementsByTagName("tr");
+      setTimeout(function () { fitIn(trs[trs.length - 1], $("run"), true); }, 0);
+    } else runRows = nRows;
     runStep = s; runSub = r.sub;
   }
-  var runAbortStep = 0, listStep = "";
+  var runAbortStep = 0, listStep = "", runFitKey = "", runRows = 0;
   function pollRun() {
     if (!runOpen || runBusy) return;
     runBusy = true;
@@ -1066,82 +1597,86 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     x.onload = function () {
       runBusy = false;
       try { paintRun(JSON.parse(x.responseText)); }
-      catch (e) { $("runErr").innerHTML = "Anzeigefehler: " + e; $("runErr").hidden = false; }
+      catch (e) { $("runErr").innerHTML = "Display error: " + e; $("runErr").hidden = false; }
     };
     x.onerror = x.ontimeout = function () { runBusy = false; };
     x.send();
   }
-  function runClose() { runOpen = false; runShown = null; listStep = ""; $("runHome").appendChild($("runPanel")); $("run").hidden = true; }
-  function sendTempEnd() {
-    var f = document.getElementById("rTempEnd");
-    if (f && f.value) send("Rme=" + f.value.replace(",", "."));
-  }
+  function runClose() { runOpen = false; runShown = null; listStep = ""; runFitKey = ""; $("runHome").appendChild($("runPanel")); $("run").hidden = true; }
   $("runOk").onclick = function () {
     if (runStep === 1) { runSubmitMeta(); return; }
     if (runStep === 14 || runStep === 99) { send("Rk"); runClose(); return; }
-    if (runStep === 13 && runSub === 0) sendTempEnd();
     send("Rk"); setTimeout(pollRun, 300);
   };
-  $("runAlt").onclick  = function () { if (runStep === 13 && runSub === 0) sendTempEnd(); send("Rs"); setTimeout(pollRun, 300); };
+  $("runAlt").onclick  = function () { send("Rs"); setTimeout(pollRun, 300); };
   $("runRedo").onclick = function () { send("Rn"); setTimeout(pollRun, 300); };
   $("runBack").onclick = function () { send("Rb"); runShown = null; setTimeout(pollRun, 300); };
   $("runCancel").onclick = function () { send("Rx"); setTimeout(pollRun, 300); };
   setInterval(pollRun, 500);
 
-  /* ---------- Anzeige ---------- */
-  var build = null;   /* Kennung der Firmware; aendert sie sich, ist diese Seite alt */
+  /* ---------- Display ---------- */
+  var build = null;   /* firmware build id; if it changes, this page is stale */
 
   function paint(j) {
     if (j.build) {
       if (build === null) build = j.build;
       else if (build !== j.build) { location.reload(); return; }
     }
-    vmax = j.vmax; vmin = j.vmin; step = j.step; soll = j.soll;
+    vmax = j.vmax; vmin = j.vmin; step = j.step; soll = j.target;
     var list = j.plateaus || [], key = list.join(",");
     if (key !== gridKey) { buildGrid(list); buildChips(list); gridKey = key; }
 
-    /* Fortschritt des Laufs */
+    /* Run progress */
     var ph = PHASE_TXT[j.phase] || j.phase, rh;
     if (j.run) {
-      rh = "<b>" + (j.run === 1 ? "Leerlauf" : "Messlauf") + "</b> \u00b7 Punkt "
-         + (j.plateau + 1) + " von " + list.length + " \u00b7 "
-         + de(list[j.plateau] || 0, 1) + " km/h \u00b7 " + ph;
+      rh = "<b>" + (j.run === 1 ? "No-load" : "Test run") + "</b> · point "
+         + (j.plateau + 1) + " of " + list.length + " · "
+         + de(list[j.plateau] || 0, 1) + " km/h · " + ph;
     } else {
-      rh = "";                        /* Normalbetrieb: kein Text */
+      rh = "";                        /* normal operation: no text */
     }
     $("runHint").innerHTML = rh;
     $("runHint").hidden = (rh === "");
 
     $("st").className = j.link ? "dot ok" : "dot";
-    $("st").title = j.link ? "Regler verbunden" : "kein Regler";
+    $("st").title = j.link ? "Controller connected" : "No controller";
 
     show("kmh", j.link ? j.kmh : null, 1);
-    /* Soll: beim Fahren der Sollwert; 0 beim Bremsen und nach jedem Stopp durch
-       einen Fehler (Not-Aus, FAULT); nur beim freien Auslaufen ein Strich. */
-    var gestoppt = (j.bremst && !j.abstieg) || j.motorOffen || j.notaus || j.phase === "FAULT";
-    $("soll").innerHTML = j.faehrt ? de(j.soll, 1) : (gestoppt ? "0" : "—");
-    $("soll").className  = "val" + ((j.faehrt || gestoppt) ? "" : " dim");
-    paintGrid(j.faehrt ? j.soll : -1);
+    /* Trend: = within 0.3 km/h of the target while driving, otherwise towards it;
+       slowing whenever the drive is off and the drum still turns. */
+    var tr = "";
+    if (j.link && j.kmh > 0.3) {
+      if (!j.driving || j.braking) tr = "\u2193";
+      else if (Math.abs(j.target - j.kmh) < 0.3) tr = "=";
+      else tr = j.target > j.kmh ? "\u2191" : "\u2193";
+    }
+    $("trend").innerHTML = tr;
+    /* Target: the setpoint while driving; 0 while braking and after every stop by
+       a fault (e-stop, FAULT); a dash only while coasting freely. */
+    var gestoppt = (j.braking && !j.descending) || j.motorOpen || j.estop || j.phase === "FAULT";
+    $("soll").innerHTML = j.driving ? de(j.target, 1) : (gestoppt ? "0" : "—");
+    $("soll").className  = "val" + ((j.driving || gestoppt) ? "" : " dim");
+    paintGrid(j.driving ? j.target : -1);
 
-    /* Wägezelle */
-    var kal = j.kal;
+    /* Load cell */
+    var kal = j.cal;
     $("kg").className  = "val" + (kal ? "" : " dim");
     $("pct").className = "val" + (kal ? "" : " dim");
-    show("kg",  j.tara ? null : j.kg,  3);
+    show("kg",  j.taring ? null : j.kg,  3);
     show("pct", j.pct, 1);
     show("pw",  j.pw,  1);
     show("crr", j.crr, 4);
-    $("crrLab").innerHTML = j.korr ? "Crr" : "Crr roh";
-    /* Spitze-Spitze im selben 0,5-s-Fenster, in dem auch gemittelt wird. Sagt, wie
-       ruhig der Mittelwert wirklich ist — ein sauberer Wert und ein Mittel über
-       wildes Zappeln sehen sonst gleich aus. */
+    $("crrLab").innerHTML = j.corr ? "Crr" : "Crr raw";
+    /* Peak-to-peak in the same 0.5 s window that is averaged. Tells how calm the
+       mean really is -- a clean value and a mean over wild jitter would
+       otherwise look the same. */
     $("ppSub").innerHTML = kal
-      ? ("± " + de(j.ripple * j.npc / 9.80665 * 1000 / 2, 0) + " g · Mittel 0,5 s")
-      : (j.counts + " counts roh");
-    $("pctSub").innerHTML = kal ? ("von " + de(j.fsN / 9.80665, 2) + " kg")
-                                : "nicht kalibriert";
+      ? ("± " + de(j.ripple * j.npc / 9.80665 * 1000 / 2, 0) + " g · mean 0.5 s")
+      : (j.counts + " counts raw");
+    $("pctSub").innerHTML = kal ? ("of " + de(j.fsN / 9.80665, 2) + " kg")
+                                : "not calibrated";
 
-    /* Antrieb */
+    /* Drive */
     show("imot", j.link ? j.imot : null, 2);
     show("iin",  j.link ? j.iin  : null, 2);
     show("watt", j.link ? j.watt : null, 0);
@@ -1152,122 +1687,101 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("tileFet").className = "tile half" + (j.tfet > 80 ? " warn" : "");
 
     if (typeof j.up === "number") lastUp = j.up;
-    paintGeber(j.geber);
-    /* Woher die Umdrehung kommt: 0 jede 8. Flanke, 1 Zwischenmagnet, 2 Index-Hall. */
-    $("markHint").innerHTML = (j.mSrc === 2) ? "Umdrehung vom <b>Index-Hall</b>"
-      : (j.mSrc === 1) ? ("<b>Zwischenmagnet erkannt</b>: " + j.mPpr + " Impulse je Umdrehung, fester Nullpunkt \u00b7 "
-                          + j.mRes + " neu eingerastet \u00b7 " + j.mMiss + " verschluckt \u00b7 " + j.mGl + " St\u00f6rimpulse")
-      : ("Umdrehung = jede " + j.mPpr + ". Flanke, Nullpunkt = erste Marke; kein Zwischenmagnet erkannt \u00b7 " + j.mMiss + " verschluckt");
+    paintGeber(j.sensors);
+    paintSto(j.sto);
+    paintChg(j.chg);
+    /* Where the revolution comes from: 0 every 8th edge, 1 intermediate magnet, 2 index Hall. */
+    $("markHint").innerHTML = (j.mSrc === 2) ? "Revolution from <b>index Hall</b>"
+      : (j.mSrc === 1) ? ("<b>Intermediate magnet detected</b>: " + j.mPpr + " pulses per rev, fixed zero · "
+                          + j.mRes + " re-locked · " + j.mMiss + " missed · " + j.mGl + " glitches")
+      : ("Revolution = " + j.mPpr + " edges, zero = first mark; no intermediate magnet · " + j.mMiss + " missed");
 
-    /* Laufrad: wirksamer Abrolldurchmesser aus dem Drehzahlverhältnis.
-       null, solange nicht beides dreht. */
-    show("nTrommel", j.nTrommel, 1);
-    show("nRad",     j.nRad,     1);
-    /* Umfang: gleitendes Fenster der letzten Radumdrehungen, bei jedem Impuls
-       neu; erscheint, sobald das Fenster voll ist. */
-    show("uRad",     j.uRad,     0);
+    /* Wheel: effective rolling diameter from the speed ratio.
+       null as long as not both are turning. */
+    show("nTrommel", j.nDrum, 1);
+    show("nRad",     j.nWheel,     1);
+    /* Circumference: sliding window over the last wheel revolutions, updated on
+       every pulse; appears once the window is full. */
+    show("uRad",     j.uWheel,     0);
 
-    /* Antrieb einmessen. learnHint wird komplett neu geschrieben -- KEIN Zugriff
-       auf ein Element darin: genau das liess die Seite nach dem ersten Poll
-       einfrieren (2026-11-23, $("dirSign") war nach dem Ueberschreiben weg). */
-    $("learnHint").innerHTML = j.lernt
-      ? "<b>Jetzt drehen</b> \u2014 Trommel in Messrichtung"
-      : ("Vorzeichen jetzt <b>" + (j.dir > 0 ? "+1" : "\u22121") + "</b>");
-    $("brkHint").innerHTML = j.brk
-      ? ("l\u00e4uft \u2014 Stellwert <b>" + de(j.duty, 3) + "</b>, "
-         + de(j.imot, 1) + " A")
-      : (j.brkDuty > 0
-         ? ("Losbruch bei <b>" + de(j.brkDuty, 4) + "</b> \u00b7 "
-            + de(j.brkAmps, 1) + " A \u00b7 "
-            + de(j.brkAmps * 0.389, 2) + " Nm")
-         : "\u2014");
+    /* Drive direction (A/B) and the slow test. Hints are rewritten completely -- NO access to an
+       element inside it: exactly that froze the page after the first poll
+       (2026-11-23, $("dirSign") was gone after the overwrite). */
+    $("dirNow").innerHTML = "Sign now <b>" + (j.dir > 0 ? "+1" : "\u22121") + "</b>";
+    $("dirHint").innerHTML = j.dirDet ? WARN_SIGN + "<b>Keep clear.</b> Starting \u2014 duty " + de(j.duty, 3) + " \u00b7 cell " + (j.dirDN >= 0 ? "+" : "") + de(j.dirDN, 2) + " N"
+      : j.dirRes === 1 ? "Right direction: cell " + "+" + de(j.dirDN, 2) + " N. Unchanged."
+      : j.dirRes === -1 ? "Was reversed: cell " + de(j.dirDN, 2) + " N. Sign changed and stored."
+      : j.dirRes === 0 ? "Unclear (cell " + de(j.dirDN, 2) + " N): unchanged. Zero the cell and try again."
+      : "Starts slowly; in measuring direction the load cell counts positive, otherwise the sign is reversed. <b>Keep clear.</b>";
 
-    /* Einrichtung */
+    /* Setup */
     if (j.load !== null && j.load !== undefined) view("Load", j.load, 1);
     view("Drum", j.drumU * 1000, 1);
     view("Arm",  j.arm * 1000,   1);
-    fill("fCal", j.calArm * 1000, 1);
+    view("Cal",  j.calArm * 1000, 1);
+    if (j.ctrlKg !== null && j.ctrlKg !== undefined) view("G", j.ctrlKg * 1000, 0);
     $("dia").innerHTML = de(j.drumU / Math.PI * 1000, 1);
-    /* Rohwert absolut und als Anteil des 24-Bit-Bereichs (+-8 388 607) */
-    var FS = 8388607, pct = j.raw / FS * 100;
-    /* gross: genullt; klein: der absolute Rohwert und seine Lage im Bereich */
-    $("raw").innerHTML = j.tara ? "\u2014" : j.counts;
-    $("bTare").className = "ico" + (j.tara ? " busy" : "");
-    $("rawPct").innerHTML = j.raw + " \u00b7 " + de(pct, 2) + " %";
-    $("rawDot").style.left = (50 + Math.max(-50, Math.min(50, pct / 2))) + "%";
-    $("tare").innerHTML = j.tare;
-    $("ripple").innerHTML = j.ripple;
-    $("a0").innerHTML = (j.a0 === null) ? "\u2014" : j.a0;
-    $("b0").innerHTML = (j.b0 === null) ? "\u2014" : j.b0;
-    $("a1").innerHTML = (j.a1 === null) ? "\u2014" : j.a1;
-    $("b1").innerHTML = (j.b1 === null) ? "\u2014" : j.b1;
-    $("jRad").innerHTML = (j.jRad === null) ? "\u2014" : j.jRad;
-    $("jSrc").innerHTML = (j.jRad === null) ? "" : (j.jMeas === null ? "(gesch\u00e4tzt)" : "(gemessen)");
-    if (j.mRad !== null && j.mRad !== undefined) view("MRad", j.mRad * 1000, 0);
-    if (!editing.JRad) $("vJRad").innerHTML = (j.jMeas === null || j.jMeas === undefined) ? "\u2014" : de(j.jMeas, 4);
+    $("bTare").className = "ico" + (j.taring ? " busy" : "");
+    $("a0").innerHTML = (j.a0 === null) ? "—" : j.a0;
+    $("b0").innerHTML = (j.b0 === null) ? "—" : j.b0;
 
-    /* Reifendruck und -temperatur: AirSpy ueber BLE, sonst Handeingabe.
-       Gefunden ohne Daten: Strich. Daten aelter als eine Minute: Warnung. */
+    /* Tire pressure and temperature: AirSpy via BLE, otherwise manual entry.
+       Found without data: dash. Data older than one minute: warning. */
     var found = !!j.pName, noData = found && (j.pAge === null || j.pAge === undefined);
     var stale = found && !noData && j.pAge >= 60000;
     show("bar", noData ? null : j.bar, 2);
     show("tTire", noData ? null : j.tTire, 1);
     $("tileBar").className = "tile half" + (stale ? " warn" : "");
-    $("barSub").innerHTML = stale ? ("<b>Sensor stumm seit " + de(j.pAge / 60000, 0) + " min</b> \u2014 Rad drehen")
-      : noData ? ((j.pName) + " \u00b7 wartet auf Daten")
-      : found ? ((j.pName) + (j.pBatt !== null ? " \u00b7 Batterie " + de(j.pBatt, 0) + " %" : ""))
-      : (j.pSrc === "manual" ? "Handeingabe" : "kein Sensor \u2014 Rad drehen");
-    $("tTireSub").innerHTML = (found && !noData) ? ("vor " + (j.pAge < 60000 ? de(j.pAge / 1000, 0) + " s" : de(j.pAge / 60000, 0) + " min")) : "\u2014";
+    $("barSub").innerHTML = stale ? ("<b>Sensor silent for " + de(j.pAge / 60000, 0) + " min</b> — spin wheel")
+      : noData ? ((j.pName) + " · waiting for data")
+      : found ? ((j.pName) + (j.pBatt !== null ? " · battery " + de(j.pBatt, 0) + " %" : ""))
+      : (j.pSrc === "manual" ? "manual entry" : "no sensor — spin wheel");
+    $("tTireSub").innerHTML = (found && !noData) ? ((j.pAge < 60000 ? de(j.pAge / 1000, 0) + " s" : de(j.pAge / 60000, 0) + " min") + " ago") : "—";
     paintAir(j);
     lastJ = j;
     paintWiz(j);
-    if (j.rs > 0 && !runOpen) { runOpen = true; $("run").hidden = false; pollRun(); }
+    if (j.rs > 0 && !runOpen && !runParked) { runOpen = true; $("run").hidden = false; pollRun(); }
+    if (j.rs === 0) runParked = false;
     if (j.rs === 0 && runOpen && runStep > 0 && runStep !== 14 && runStep !== 99) runClose();
-    $("calHint").innerHTML = kal
-      ? "Erneutes Kalibrieren überschreibt den Faktor. Vorher nullen."
-      : "Noch nicht kalibriert — bis dahin gibt es nur Rohwerte, keine Kräfte.";
-    $("npcHint").innerHTML = kal
-      ? ("Kalibrierfaktor <b>" + j.npc.toFixed(8) + "</b> N/count."
-         + " In <code>config.h</code> eintragen:<br><code>constexpr float "
-         + "LOADCELL_N_PER_COUNT = " + j.npc.toFixed(8) + "f;</code>"
-         + "<br>Dazu die Zeile in <code>docs/03-parameters.md</code> §2.")
-      : "Wägezelle nicht kalibriert.";
 
-    /* Fehler: die Firmware liefert EINEN Text oder nichts (currentError). */
-    $("note").innerHTML = j.err || "";
+    /* Error: the firmware supplies ONE text or nothing (currentError). */
+    var errTxt = j.err || (Date.now() < localErrUntil ? localErr : "");
+    $("note").innerHTML = handsOff(errTxt);
     $("note").className = "note bad";
-    $("note").hidden = !j.err;
+    $("note").hidden = !errTxt;
     layoutPin();
 
     $("foot").innerHTML =
       "FW " + (j.fw || "?") + " · max " + de(j.vmax, 0) + " km/h · "
-      + de(j.rpm, 0) + " 1/min · " + j.age + " ms";
+      + de(j.rpm, 0) + " rpm · " + j.age + " ms";
   }
 
   function poll() {
     if (busy) return;
     busy = true;
     var x = new XMLHttpRequest();
-    x.open("GET", "/api/state", true);
+    /* Send local time along: the stand has no clock of its own (wallclock.h). */
+    var nw = new Date();
+    x.open("GET", "/api/state?now=" + Math.round((nw.getTime() - nw.getTimezoneOffset() * 60000) / 1000), true);
     x.timeout = 900;
     x.onload = function () {
       busy = false;
       try { paint(JSON.parse(x.responseText)); lastOk = Date.now(); }
       catch (e) {
-        /* Nicht schlucken: ein Fehler in paint() liesse die Seite stumm
-           einfrieren, und genau so saehe ein fehlender Not-Aus-Hinweis aus. */
-        $("note").innerHTML = "Anzeigefehler: " + e;
+        /* Don't swallow: an error in paint() would freeze the page silently,
+           and a missing e-stop message would look exactly like that. */
+        $("note").innerHTML = "Display error: " + e;
         $("note").className = "note bad";
         $("note").hidden = false;
       }
     };
     x.onerror = x.ontimeout = function () {
       busy = false;
-      /* Einzelne Aussetzer sind normal; verloren ist die Verbindung erst nach
-         derselben Grenze, mit der die Firmware den Antrieb freigibt. */
+      /* Single dropouts are normal; the link counts as lost only after the
+         same limit at which the firmware releases the drive. */
       if (Date.now() - lastOk > LINK_TIMEOUT_MS) {
         $("st").className = "dot";
-        $("st").title = "Verbindung weg";
+        $("st").title = "Link lost";
       }
     };
     x.send();

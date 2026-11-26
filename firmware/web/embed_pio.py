@@ -1,4 +1,4 @@
-# PlatformIO-Haken: backt die Oberflaeche der HAUPTFIRMWARE vor jedem Build.
+# PlatformIO hook: bakes the UI of the MAIN FIRMWARE before every build.
 import subprocess, sys, os
 Import("env")  # noqa: F821
 web = os.path.join(env.subst("$PROJECT_DIR"), "web")  # noqa: F821

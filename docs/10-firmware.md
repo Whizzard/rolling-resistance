@@ -57,7 +57,8 @@ joystick breakouts: they output a voltage, not five contacts.
 | N3 | M | Relays dropped = phases shorted = braked. Measured 2026-11-01: about **25 s** from over 400 rpm. |
 | N4 | M | The state holds until the drum stands still and then clears itself (since 2026-11-23; previously latching with acknowledgement). |
 | N5 | M | The same state is reached by the shutdown criteria in [07-safety](07-safety.md) §4. |
-| N6 | M | On reset and on boot the relays are dropped, so the stand is braked. |
+| N6 | M | On reset the relays are dropped, so the stand is braked (R2 at the gate, hardware). Since 2026-11-25 the firmware energizes them in `setup()` and keeps them energized; it drops them only for a stop, at any speed since the evening of 2026-11-25 ([04-hardware](04-hardware.md) §9.4). |
+| N7 | M | **Since 2026-11-25 (`brake.cpp`):** the firmware drops the relays itself for every stop (until the evening of 2026-11-25 only above 40 km/h) (not for descents within a run: tried on 2026-11-25 and dropped, the weighing arm rattled), in the order of N2 (`RELAY_DRIVER_OFF_MS` after releasing the controller), and pulls them in again after `RELAY_RELEASE_STILL_MS` of standstill. While it has dropped them, the criterion "no motor on the controller" is muted and drive commands are refused; the hand emergency stop stays detected. Only with `RELAY_BRAKE_WIRED`. Circuit [04-hardware](04-hardware.md) §9.1, behaviour §9.4. |
 
 ## 3.1 Web UI over Wi-Fi
 
@@ -92,6 +93,48 @@ once more; it replaces nothing and nothing depends on it.
 
 Constants in [03-parameters](03-parameters.md) §8; the pin question v1.0/v1.1 is listed
 there as TBD.
+
+## 4.2 Structure and Host Tests
+
+**Modules, as of 2026-11-25.** `main.cpp` holds `setup()` and `loop()` and nothing
+else; the console (parser, help, status line, telemetry, the error text for the UI)
+is `console.cpp`, the `/api/state` JSON is `statejson.cpp`, the steady-state live
+values are `live.cpp`. The drum speed from the controller is computed in exactly one
+place, `drivespeed.cpp`; `revsrc` (marks or controller) and `speedctl` both read it,
+and everything above `revsrc` asks only `revsrc`. Refusals and faults go through
+`logger::fail()`, so the UI colours by that flag and no longer by the first word of the
+text. The end of a sequence is delivered to `run.cpp` on the next `state::service()`
+tick, never from inside the state machine's own call.
+
+### Host tests
+
+Since 2026-11-25 the pure arithmetic lives in Arduino-free headers under
+`firmware/src/calc/` — least-squares line and standard deviation (`linfit.h`), the
+loss-model correction (`loss.h`), the spin-down normal equations (`spindown.h`), the
+time format (`timefmt.h`) and the JSON string escape (`json.h`). Until then the same
+regression stood five times in the firmware with five different degeneracy guards.
+The firmware calls these headers; so do the tests:
+
+```sh
+cd firmware && pio test -e native          # Unity, 13 cases + the VESC frame test
+.venv/bin/python -m pytest analysis -q     # crr.py: header, loss model, plateau statistics, drift
+```
+
+The expected values in the tests are computed independently (an exact line, a
+spin-down integrated from known A₁/B₁/J, calendar dates, a power balance for the
+wheel loss), not with the function under test. `pio run -e esp32s3` remains the
+compile check; both belong before a commit.
+
+**Keys, since 2026-11-25.** The JSON of `/api/state` and `/api/run`, the NVS keys and
+the header keys of the run CSV are English throughout (`target`, `driving`, `sensors`,
+`cal`, `taring`, `mWheel`, `uWheel`, `estop`, `relayBrake`, `ctrlTarget`, `U_wheel`,
+`J_wheel_src` = `meas`/`est`, NVS namespace `teststand`). The NVS namespace change
+drops the values stored before: calibration factor, circumference, models and wheel
+mass have to be entered again once — accepted during development.
+
+**Run files as one archive.** `/runs/<id>.zip` delivers `<id>.md` and `<id>.csv` as a
+stored (uncompressed) ZIP built on the fly (`calc/zip.h`, `calc/crc32.h`); the report
+step and the `/runs` listing link to it.
 
 ## 5 Diagnostic Pages
 
@@ -179,12 +222,12 @@ Values from the motor controller via UART. Turns the motor controller into a sec
 
 ## 6 Load Cell Calibration Mode
 
-Hang a test weight on the lever arm, derive `LOADCELL_N_PER_COUNT` from it.
+Hang the calibration weight on the lever arm, derive `LOADCELL_N_PER_COUNT` from it.
 
 | | P | Requirement |
 |---|---|---|
 | W1 | M | Record the zero point (arm unloaded), mean over ≥ 200 values. |
-| W2 | M | Enter the mass of the test weight. The **lever arms** are separate fields on the same page (cell arm 80 mm, calibration arm 160 mm), measured on the assembly, not typed in per weighing. |
+| W2 | M | Enter the mass of the calibration weight. The **lever arms** are separate fields on the same page (cell arm 80 mm, calibration arm 160 mm), measured on the assembly, not typed in per weighing. |
 | W3 | M | Measure with weight, mean over ≥ 200 values, compute and display the factor. |
 | W4 | M | The factor is **displayed, not adopted automatically**; it goes by hand into `config.h` and [03-parameters](03-parameters.md). |
 | W5 | S | **Several masses** in sequence, check linearity over the range and display the deviation. |
@@ -209,7 +252,7 @@ The page on which everything that matters is shown during a run.
 | L6 | M | Crr, as soon as `LOADCELL_N_PER_COUNT` is set. |
 | L7 | S | Remaining hold time on the plateau. |
 | L8 | S | Tire pressure and wheel load, as entered before the run. |
-| L12 | M | Compute and display the **rolling radius `r_Rad` from the speed ratio** `r_Trommel · n_Trommel / n_Rad` instead of having it entered. Averaging over ≥ 30 s on a plateau. |
+| L12 | M | Compute and display the **rolling radius `r_wheel` from the speed ratio** `r_drum · n_drum / n_wheel` instead of having it entered. Averaging over ≥ 30 s on a plateau. |
 | L13 | S | The ratio as **slip monitoring**: a deviation from the settled value by more than 1 % reports a slipping tire. |
 
 ### 7.1 When the Speed Is "Steady"
@@ -244,12 +287,44 @@ Via the serial console, single-line, and included in the CSV header.
 | `h<kmh>` / `h-<kmh>` | Add / remove measurement speed | `h28.8` | List in NVS, always sorted; the Measurement page shows exactly these points, *Measurement*/*Idle* run through them in order |
 | `p<bar>` | Tire pressure | `p4.0` | report only |
 | `r<m>` | Tire radius | `r0.339` | **fallback only**; normally measured from the speed ratio, L12 |
-| `u` | **Spin-down + idle wizard** | `u` | The drum runs with the wheel resting on it to `WIZ_KMH` = 40 km/h; then lift the wheel off. If it turns slower than it would have to via the drum (`WIZ_SLIP_RATIO`), it is lifted off, and at the same time the wheel spin-down (A₁, B₁ from the pulses, J_Rad from mass and circumference) and the drum idle run over all plateaus (A₀, B₀ from the cell) begin. Both are stored. `uq` acknowledges the last step. In the web UI as a wizard under *Setup → Loss models*. Since 2026-11-23 |
-| `y<kg>` | Wheel mass including tire | `y2.4` | J_Rad = `WHEEL_J_FACTOR` · m · r_Rad² |
+| `u` | **Spin-down + idle wizard** | `u` | The drum runs with the wheel resting on it to `WIZ_KMH` = 40 km/h; then lift the wheel off. If it turns slower than it would have to via the drum (`WIZ_SLIP_RATIO`), it is lifted off, and at the same time the wheel spin-down (A₁, B₁ from the pulses, J_wheel from mass and circumference) and the drum idle run over all plateaus (A₀, B₀ from the cell) begin. Both are stored. `uq` acknowledges the last step. In the web UI as a wizard under *Setup → Loss models*. Since 2026-11-23 |
+| `y<kg>` | Wheel mass including tire | `y2.4` | J_wheel = `WHEEL_J_FACTOR` · m · r_wheel² |
 | `w<A₁> <B₁>` | Wheel-loss model by hand | `w0.012 0.000071` | from the wheel spin-down |
 | `n<A₀> <B₀>` | Idle-loss model by hand | `n0.004 0.000209` | the idle run `m0` fits and stores it itself since 2026-11-23; from the baseline run |
 | `t` | static tare | | offset |
-| `R` | **Guided measurement run** | `R`, then `Rk`/`Rs`/`Rn`/`Rx`, `Rm<k>=<v>` | Fourteen steps ([11-review](11-review.md) §3): create run, visual check, system check, zeroing, control weight, idle-loss model (adopt or pre-run with wheel lifted), wheel model, wheel resting; then on its own warm-up (`WARMUP_MS` at `WARMUP_KMH`, live point every minute), plateaus with `RUN_POINTS_PER_PLATEAU` points, anchor point, stop; optional idle post-run; report `.md` and data `.csv` in LittleFS under `/runs/<id>`, retrievable via `/runs`. Warnings W01…W12 in the report. In the web UI behind *Measurement*. Since 2026-11-23 |
+| `R` | **Guided measurement run** | `R`, then `Rk`/`Rs`/`Rn`/`Rx`, `Rm<k>=<v>` | Fourteen steps ([11-review](11-review.md) §3): create run, visual check, system check, zeroing, control weight, idle-loss model (adopt, or since 2026-11-25 the spin-down wizard inside the run: wheel resting to 40 km/h, lift, wheel spin-down and idle pre-run together), wheel model, wheel resting; then on its own warm-up (`WARMUP_MS` at `WARMUP_KMH`, live point every minute), plateaus with `RUN_POINTS_PER_PLATEAU` points, anchor point, stop; optional idle post-run; report `.md` and data `.csv` in LittleFS under `/runs/<id>`, retrievable via `/runs`. Warnings W01…W12 in the report. In the web UI behind *Measurement*. Since 2026-11-23 |
+
+### 8.1 Wheel profiles (since 2026-11-26)
+
+As of 2026-11-26. `profiles.h`. Four lists — **tires** (with ETRTO), **tubes**, **rims**,
+**hubs** — and the **profiles**, each one combination tire + tube + rim + hub. A profile
+holds what belongs to exactly that wheel: the wheel model A₁, B₁ with its origin (run id,
+pressure, date), the wheel circumference, the mass and the measured J_wheel. The wheel
+model depends on all four parts (the hub bearings carry most of it), so it is never
+carried over to another combination.
+
+- **Setup → Wheels** (everything is entered here, beforehand): per profile the four
+  parts (dropdowns of earlier entries plus "New…"), the ETRTO with the tire, for the tube
+  maker, model and material (latex, butyl, TPU, tubeless), for the rim maker, model, inner
+  width and bead seat diameter (BSD, must match the tire's ETRTO), for the hub
+  spokes, axle (12 / 15 / 19 mm thru-axle, quick release, nutted axle), brake (none, drum,
+  drum with cooling fins, disc), drive wheel yes/no and colour (silver, black, free
+  text), the wheel mass and the bifilar pendulum readings (J computed and stored with
+  them). Required: parts, ETRTO, tube material, rim inner width and BSD, hub details except
+  colour, mass; the pendulum is
+  optional (J then estimated). Changing a part drops the profile's wheel model. A
+  *Measure* button per complete profile starts the run with it.
+- **Step 1 of the run:** only the profile (incomplete ones cannot be chosen; a button
+  leads to Setup → Wheels), plus pressure, wheel load and note. Mass and J of the profile
+  go into use; without a measured J none (estimated), never the J of the wheel before.
+- **Step 6:** the wheel model is measured in every run. "Use stored" only if this
+  profile has a model (pressure series on the same wheel); see [11-review](11-review.md) §3.
+- **Setup → Wheels, lists:** rename and delete entries (refused while a profile uses
+  them), delete a profile or only its wheel model.
+- **Storage:** `/profiles.tsv` in the flash (LittleFS), text, one record per line;
+  written only at standstill (`storage::flashWritable()`), via a temporary file. No fixed
+  number of entries. HTTP: `GET /api/profiles`, edits as `POST /api/profiles?op=…`
+  (`pset`, `hub`, `ren`, `del`, `pdel`, `pclr`); the run takes a profile with `Rmq=<index>`.
 
 | | P | Requirement |
 |---|---|---|
@@ -279,12 +354,155 @@ MEASURE  rev 7/10  ok
 
 | | Question |
 |---|---|
-| ? | **Mass of the test weight.** Presumed 500 g, which at the 80 mm hole gives only **10 % of the cell's full scale**, while measurement takes place at 13 to 64 %. See note below. |
+| ? | **Mass of the calibration weight.** Presumed 500 g, which at the 80 mm hole gives only **10 % of the cell's full scale**, while measurement takes place at 13 to 64 %. See note below. |
 | ? | **Pin assignment** is in [04-hardware](04-hardware.md) §4 and goes into `config.h` as soon as firmware work resumes. |
 | ? | **Bypass switch for the brake relays.** N6 keeps the stand braked when unpowered; for turning by hand (D1, balancing, mark mounting) this must be switchable off. |
 
-> **On the test weight.** 500 g at the 80 mm hole is 9.81 N at the cell, i.e. 10 % of
+> **On the calibration weight.** 500 g at the 80 mm hole is 9.81 N at the cell, i.e. 10 % of
 > full scale; measurement operation lies at 12 to 63 N. Extrapolating a calibration at 10 % to 64 %
 > relies entirely on linearity. Better: several masses up to
 > about **4 kg** at the 80 mm hole (= 90 % FS), but at least three points over the
 > range used.
+
+## 11 Storage and Raw Log
+
+As of 2026-11-26. Code: `storage.cpp`, `rawlog.cpp`, format in `calc/rawlog.h`, PC
+decoder `tools/rawlog.py`. Wiring of the card: [04-hardware](04-hardware.md) §15.
+Constants: [03-parameters](03-parameters.md) §10.
+
+### 11.1 Two media
+
+| Medium | File system | Size | Holds |
+|---|---|---|---|
+| microSD | FAT, mounted by ESP-IDF (`esp_vfs_fat_sdspi_mount`) at `/sd` | card | `/raw/*.rrl` (raw log, **only here**), `/runs/*` (run protocols) |
+| internal flash | NVS (settings, calibration) and LittleFS, partition `spiffs` | 3.4 MB | `/runs/*` only when no card is ready at the end of a run |
+
+**The flash holds only what is written rarely and at standstill** (decision
+2026-11-26): settings and calibration in NVS, and — without a card — the run protocols
+written at the end of a run. Running data never goes there (§11.5). Every persisted
+setting carries the local time of its last change (NVS key `t_<key>`), shown next to the
+value under Setup (`chg` in `/api/state`).
+
+One task on core 0 (`storage`) mounts both, polls the card every `STORAGE_CHECK_MS`
+(CMD13 while mounted, a mount attempt otherwise — there is no card-detect contact),
+recomputes the usage every `STORAGE_STATS_MS` and writes the raw log. The main loop
+never waits for a file system.
+
+State per medium, shown under **Setup > Storage** and by `i` on the console:
+
+| State | SD | Flash |
+|---|---|---|
+| absent | no card answers | — |
+| ready | mounted, write probe succeeded | mounted |
+| read-only | mounted, write probe failed | — |
+| unreadable | card answers, no FAT (unformatted, exFAT, damaged) | LittleFS does not mount |
+
+Next to it the usage in % as a bar. **Format** appears only for *unreadable*, and only
+after a confirmation dialog with a warning; the firmware refuses to format a readable
+file system or a medium being recorded to, and the flash only at standstill. Console:
+`Fs` / `Ff`, without a question.
+
+Until 2026-11-25 `run.cpp` called `LittleFS.begin(true)`, which formats silently when
+mounting fails. That is gone: an unreadable flash is reported and waits for the
+operator.
+
+### 11.2 Partition table
+
+`default_16MB.csv`, unchanged. A custom table with an 11.9 MB LittleFS was planned on
+2026-11-25 for raw data on the flash; it was dropped on 2026-11-26 together with the
+flash fallback of the raw log, before it was ever flashed. LittleFS (3.4 MB) is
+plenty for protocols.
+
+### 11.3 What is recorded
+
+Everything the sensors deliver, as raw values, with a timestamp in **µs** (`micros()`,
+the finest unit the ISRs and the main loop share; the ISR latency is of the same
+order):
+
+| Record | Source | Rate | Content |
+|---|---|---|---|
+| EDGE | Hall ISRs, `speed::rawEdges` | every edge | channel 0 marks, 1 index, 2 wheel, 3 motor Hall; bit 7 = rejected as echo |
+| HX711 | `torque::update` | 80 /s | raw count of cell 1 (24 bit) |
+| VESC | each values packet | 5 /s (`VESC_POLL_MS`) | ERPM, tachometer, duty, motor and input current, voltage, both temperatures, fault, status — in the controller's own resolution |
+| TIRE | AirSpy / manual entry | on each new value | pressure, temperature, battery |
+| CTRL | `speedctl`, `brake`, `state` | on change and with each SYNC | target speed, duty command, brake, phase |
+| TEXT | `logger` notes | on each note | text |
+| SYNC | — | every `RAWLOG_SYNC_MS` | absolute `micros()` and local Unix time |
+| GAP | — | after an overflow | bytes dropped |
+
+Derived quantities (speed, force, Crr) are **not** recorded; they come from the
+evaluation. The file header carries the constants needed for it (drum circumference,
+lever arm, N per count, tare offset, marks per revolution, ...).
+
+Volume, estimated from the rates above (not yet measured): about 2 kB/s while driving,
+roughly 7 MB per hour.
+
+### 11.4 Format `.rrl`
+
+```
+"RRL1" | u16 text length | header text (key=value lines)
+records: u8 type | time delta (zigzag varint, µs, signed) | payload of fixed length
+         SYNC: u8 type | u32 abs_us | u32 unix_s   (no delta)
+         TEXT: u8 type | delta | u8 length | text
+```
+
+Little endian. The delta is signed because the ISR edges reach the main loop only on its
+next round and can be older than a record already written. Record sizes: edge 3–7 B,
+load cell 5–9 B, controller packet 28–32 B (the delta takes 1–5 bytes). The decoder accumulates the deltas into a
+64-bit `t_us` from the start of the recording, so the 71-minute wrap of `micros()`
+does not matter (host test `test_rrl_roundtrip`). A file cut off by a power failure is
+valid up to the last complete record.
+
+### 11.5 Path of the data and the flash rule
+
+Main loop → encoder → ring in PSRAM (`RAWLOG_BUF_BYTES`) → storage task → file in
+`RAWLOG_CHUNK_BYTES` pieces, committed every `RAWLOG_FLUSH_MS`. If the ring is full,
+records are dropped and a GAP record notes how many bytes.
+
+**Raw data goes to the SD only.** While the ESP32 erases or writes its flash, cache and
+every interrupt not in IRAM are locked on *both* cores — including the Hall ISRs
+(`attachInterrupt` does not use `ESP_INTR_FLAG_IRAM`). A sector erase takes tens of
+milliseconds; edges would arrive late or merge, the main loop would stand. Until
+2026-11-26 the raw log fell back to the flash and wrote it only at standstill; that
+fallback is gone. Without a ready card there is no raw log, and the run checklist says
+so (row *Storage*, yellow). The SD hangs on SPI2 and locks nothing; it is written
+continuously. The ring (1 MB, about 8 minutes) only has to bridge the card's own
+pauses. Flash usage and formatting still wait for `RAWLOG_FLASH_IDLE_MS` of standstill.
+Requirement: [01-requirements](01-requirements.md) F8a.
+
+Reading from the flash (downloads, `/runs`) also briefly locks the cache per access —
+shorter, but large downloads belong to standstill as well.
+
+### 11.6 Operation
+
+- **Automatic** while a guided run is active (`run::active()`), on the SD. Without a
+  ready card: no raw log, the run still works.
+  The whole run is recorded continuously, waiting times between steps included. Every
+  step change writes a TEXT mark `run <step>.<sub>` into the file, and the results of
+  the standstill readings follow as TEXT next to their samples (`tare raw_counts=… sigma_counts=… pp_counts=…`, `check_weight raw_above_tare=…`,
+  `check_weight_after_stop …`, `zero_after_stop …`), so each window can be cut out of
+  `_loadcell.csv` by time. The protocol names the raw file.
+- **By hand:** Setup > Storage > *Record raw data*, console `L1` / `L0` (refused
+  without a ready card).
+- **Protocols** (`/runs/<id>.md`, `.csv`) go to the SD if it is ready at the end of the
+  run, otherwise to the flash. `/runs` lists both.
+- File name: local time of the browser, `/raw/YYYY-MM-DD-HHMMSS.rrl`; without a browser
+  clock `up<seconds since boot>.rrl`. An existing file is never overwritten.
+- **Download:** `/raw` lists both media (old files on the flash stay readable). Per
+  file *CSV (.zip)* and *raw*.
+  The zip is converted while sending: one CSV per record type
+  (`_loadcell.csv`, `_edges.csv`, `_vesc.csv`, `_control.csv`, `_tire.csv`,
+  `_events.csv`) plus `_info.txt` with the header constants and row counts. Streamed
+  zip with data descriptors over HTTP chunked — one read pass per CSV, no intermediate
+  file. If the file is not a readable `.rrl`, the zip contains it unchanged.
+  While a download streams, the web task serves nothing else.
+- **On the PC:** `python3 tools/rawlog.py <file>.rrl` gives the same CSVs (cross-checked
+  against the firmware decoder).
+
+### 11.7 Open
+
+| | Question |
+|---|---|
+| ? | **Deleting raw files** from the UI. Not yet. |
+| ? | **Second load cell** (wheel load) — gets its own record type once it is fitted. |
+| ? | **First test with a card.** Firmware builds and the format is host-tested; insert/remove detection, the write probe and formatting have not run on the stand. |

@@ -2,9 +2,9 @@
 
 namespace vesc {
 
-// CRC16-CCITT/XMODEM, bitweise statt per Tabelle: 512 Byte Tabelle sparen hier nichts
-// Nennenswertes (ein Paket hat selten mehr als 80 Byte), und bitweise ist nachprüfbar,
-// ohne dass man einer Tabelle glauben muss.
+// CRC16-CCITT/XMODEM, bitwise instead of by table: a 512-byte table saves nothing
+// worth mentioning here (a packet rarely has more than 80 bytes), and bitwise is
+// verifiable without having to trust a table.
 uint16_t crc16(const uint8_t* data, size_t len) {
   uint16_t crc = 0x0000;
   for (size_t i = 0; i < len; i++) {
@@ -21,7 +21,7 @@ size_t frame(const uint8_t* payload, size_t len, uint8_t* out, size_t outCap) {
   if (payload == nullptr || out == nullptr) return 0;
   if (len == 0 || len > PAYLOAD_MAX) return 0;
 
-  // Kurze Form, wo immer sie reicht — der Regler weist die lange Form sonst ab.
+  // Short form wherever it suffices -- otherwise the controller rejects the long form.
   const bool longForm = (len > 255);
   const size_t total = len + (longForm ? 6 : 5);
   if (outCap < total) return 0;
@@ -60,12 +60,12 @@ void Reader::dropFront(size_t k) {
   m_n -= k;
 }
 
-// Wertet den Puffer ab Position 0 aus, ohne ihn zu verändern.
+// Evaluates the buffer from position 0 without changing it.
 Reader::Try Reader::tryDecode(size_t& frameLen) const {
   if (m_n < 1) return Try::INCOMPLETE;
 
-  // Startbyte zuerst prüfen: sonst bliebe ein einzelnes Störbyte als
-  // vermeintlicher Rahmenanfang liegen, bis ein zweites dazukommt.
+  // Check the start byte first: otherwise a single noise byte would remain as a
+  // supposed frame start until a second one arrives.
   const bool longForm = (m_rx[0] == 0x03);
   if (m_rx[0] != 0x02 && !longForm) return Try::BAD;
 
@@ -77,9 +77,9 @@ Reader::Try Reader::tryDecode(size_t& frameLen) const {
       : m_rx[1];
 
   if (len == 0 || len > PAYLOAD_MAX) return Try::BAD;
-  if (longForm && len < 256) return Try::BAD;   // der Regler weist das ebenfalls ab
+  if (longForm && len < 256) return Try::BAD;   // the controller rejects that as well
 
-  const size_t total = hdr + len + 3;           // + crc[2] + Endebyte
+  const size_t total = hdr + len + 3;           // + crc[2] + end byte
   if (m_n < total) return Try::INCOMPLETE;
 
   if (m_rx[total - 1] != 0x03) return Try::BAD;
@@ -92,16 +92,16 @@ Reader::Try Reader::tryDecode(size_t& frameLen) const {
 }
 
 bool Reader::feed(uint8_t b) {
-  // Den zuletzt gemeldeten Rahmen erst jetzt wegwerfen — dadurch bleibt payload()
-  // zwischen zwei feed()-Aufrufen gültig und muss nicht kopiert werden.
+  // Discard the last reported frame only now -- this keeps payload() valid
+  // between two feed() calls and it does not have to be copied.
   if (m_pending) {
     dropFront(m_pending);
     m_pending = 0;
     m_plLen = 0;
   }
 
-  // Überlauf kann nur auftreten, wenn eine plausible, aber falsche Länge auf einen
-  // nie kommenden Rahmen wartet. Dann vorn ein Byte opfern statt stehenzubleiben.
+  // Overflow can only occur when a plausible but wrong length waits for a frame
+  // that never comes. Then sacrifice one byte at the front instead of getting stuck.
   if (m_n >= FRAME_MAX) {
     dropFront(1);
     m_dropped++;
@@ -118,7 +118,7 @@ bool Reader::feed(uint8_t b) {
         dropFront(1);
         m_dropped++;
         if (m_n == 0) return false;
-        continue;                       // ab der nächsten Position neu versuchen
+        continue;                       // retry from the next position
 
       case Try::GOOD:
         m_plOff   = (m_rx[0] == 0x03) ? 3 : 2;

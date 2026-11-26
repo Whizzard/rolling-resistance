@@ -1,35 +1,8 @@
 #!/usr/bin/env python3
-"""Sichert die vollstaendige Konfiguration des Reglers. NUR lesend."""
+"""Backs up the complete configuration of the motor controller. READ-ONLY."""
 import serial, struct, sys, time, pathlib, datetime
 
-def crc16(d):
-    c = 0
-    for b in d:
-        c ^= b << 8
-        for _ in range(8):
-            c = ((c << 1) ^ 0x1021) & 0xFFFF if c & 0x8000 else (c << 1) & 0xFFFF
-    return c
-
-def frame(p):
-    n = len(p)
-    head = bytes([2, n]) if n <= 255 else bytes([3, n >> 8, n & 0xFF])
-    return head + p + struct.pack('>H', crc16(p)) + b'\x03'
-
-def unframe(raw):
-    i = 0
-    while i < len(raw):
-        if raw[i] == 2 and i + 2 <= len(raw):
-            ln, start = raw[i+1], i + 2
-        elif raw[i] == 3 and i + 3 <= len(raw):
-            ln, start = (raw[i+1] << 8) | raw[i+2], i + 3
-        else:
-            i += 1; continue
-        end = start + ln
-        if end + 3 <= len(raw) and raw[end+2] == 3 and \
-           crc16(raw[start:end]) == struct.unpack('>H', raw[end:end+2])[0]:
-            return raw[start:end]
-        i += 1
-    return None
+from vescproto import frame, unframe_first
 
 def transact(s, payload, timeout=3.0):
     s.reset_input_buffer()
@@ -39,7 +12,7 @@ def transact(s, payload, timeout=3.0):
         chunk = s.read(512)
         if chunk:
             raw += chunk
-            r = unframe(raw)
+            r = unframe_first(raw)
             if r is not None:
                 return r
         else:
@@ -57,21 +30,21 @@ hw = bytes(fw[3:]).split(b'\x00')[0].decode('ascii', 'replace')
 uuid = fw[3+len(hw)+1 : 3+len(hw)+1+12].hex()
 print(f"Firmware {major}.{minor:02d}, Hardware {hw!r}, UUID {uuid}")
 
-summary = [f"# VESC-Konfiguration, gesichert {datetime.date.today().isoformat()}",
-           f"# Firmware {major}.{minor:02d}   Hardware {hw}   STM32-UUID {uuid}",
-           f"# Rohbytes wie vom Regler geliefert. Zum Zurueckspielen genau so",
-           f"# als Nutzlast von COMM_SET_MCCONF (13) bzw. COMM_SET_APPCONF (16)",
-           f"# senden — mit der Kennung an Position 0 ersetzt.", ""]
+summary = [f"# VESC configuration, backed up {datetime.date.today().isoformat()}",
+           f"# Firmware {major}.{minor:02d}   Hardware {hw}   STM32 UUID {uuid}",
+           f"# Raw bytes as delivered by the controller. To restore, send exactly these",
+           f"# as payload of COMM_SET_MCCONF (13) or COMM_SET_APPCONF (16)",
+           f"# — with the command ID at position 0 replaced.", ""]
 
 for name, cmd in (("mcconf", 14), ("appconf", 17)):
     r = transact(s, bytes([cmd]))
     if r is None:
-        print(f"{name}: KEINE ANTWORT"); summary.append(f"{name}: keine Antwort"); continue
+        print(f"{name}: NO REPLY"); summary.append(f"{name}: no reply"); continue
     f = outdir / f"vesc-{name}-fw{major}.{minor:02d}.bin"
     f.write_bytes(r)
     sig = struct.unpack_from('>I', r, 1)[0]
-    print(f"{name}: {len(r)} Bytes, Signatur {sig} -> {f.name}")
-    summary.append(f"{name}: {len(r)} Bytes, Signatur {sig}, Datei {f.name}")
+    print(f"{name}: {len(r)} bytes, signature {sig} -> {f.name}")
+    summary.append(f"{name}: {len(r)} bytes, signature {sig}, file {f.name}")
     summary.append("  " + r.hex())
     summary.append("")
 

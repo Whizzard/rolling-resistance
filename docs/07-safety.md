@@ -57,6 +57,19 @@ not count.
 > firmware detects the case from the **motor current** (§4): duty cycle present, current
 > gone, rotation gone.
 
+> **Firmware since 2026-11-25, hardware rebuilt the same day (`RELAY_BRAKE_WIRED` = true
+> since then):** the emergency stop moves into the relay coil
+> chain, and from it one wire runs to a transistor (2N5551) at the ESP32 (GPIO40). Hand and firmware
+> are then two switches in series; either one drops the relays. The firmware can thus
+> brake via the relays **above** `BRAKE_MAX_KMH`, where the controller must not
+> (§3.2d), instead of letting the drum coast. Circuit [04-hardware](04-hardware.md) §9.1,
+> sequence §9.4. Two conditions: driver off **before** the relays drop (N2, by software),
+> and the criterion "no motor on the controller" (§4) is **muted** while the firmware
+> itself has dropped the relays — otherwise every programmatic brake ends in a FAULT with
+> the wrong reason. The hand emergency stop stays detected as before. The relays are
+> energized whenever the firmware runs and drop only for such a stop; details in
+> [04-hardware](04-hardware.md) §9.4.
+
 **Braking is done by shorting the three phases** — circuit in
 [04-hardware](04-hardware.md) §9. Measured: **25 s** from above 400 rpm. Two paths,
 both in the same direction: bus gone → braked, GPIO low → braked, reset → braked.
@@ -305,9 +318,9 @@ keeps driving" it is effective, against "drum is still turning" it is not.
 | Load cell saturated or HX711 not responding | — | FAULT, drive off |
 | Drum speed above limit | `MAX_DRUM_RPM` = 370 rpm (63 km/h) | FAULT, drive off |
 | Motor temperature | **TBD**, see A5 | FAULT, drive off |
-| **Control link lost** | `LINK_TIMEOUT_MS` = 10 s (2 s until 2026-11-23; iOS holds the single-client web server for up to 5 s with empty preconnections while the page's requests wait) | FAULT, drive off |
-| **No motor on the controller** (emergency stop triggered or motor disconnected): duty cycle > `ESTOP_DUTY_MIN` = 0.05 (until the evening of 2026-11-23 `STALL_DUTY_MIN` = 0.20, hence blind below 30 km/h), motor current < `ESTOP_IMOT_MAX_A` = 0.3 A **and** (speed < `ESTOP_SPEED_RATIO` = 0.6 × no-load speed for the duty cycle **or** drum decelerates faster than `ESTOP_DECEL_KMH_S` = 0.5 km/h/s without the setpoint decreasing). Current alone gave a false alarm at no load (0.2 A at 28 km/h); standstill alone came 25 s too late because the Hall sensors report the coasting drum (both 2026-11-23). A connected motor cannot lag behind its voltage without drawing current | `ESTOP_DETECT_MS` = 1000 ms | Drive released, message in UI and console; FAULT during a run. Since 2026-11-23 |
-| **Emergency stop auxiliary contact** on `PIN_ESTOP_FB` | only if `ESTOP_FB_WIRED` | FAULT; **not yet wired (TBD)** |
+| **Control link lost** | `LINK_TIMEOUT_MS` = 10 s (2 s until 2026-11-23; iOS holds the single-client web server for up to 5 s with empty preconnections while the page's requests wait) | FAULT, drive **released, the drum coasts** — no brake. Until 2026-11-25 the fault was reported as "Regelung hat abgeschaltet" and braked with 20 A, because the main loop had already released the drive before the criterion ran; the link check now comes first |
+| **No motor on the controller** (emergency stop triggered or motor disconnected): duty cycle > `ESTOP_DUTY_MIN` = 0.05 (until the evening of 2026-11-23 `STALL_DUTY_MIN` = 0.20, hence blind below 30 km/h), motor current < `ESTOP_IMOT_MAX_A` = 0.3 A **and** (speed < `ESTOP_SPEED_RATIO` = 0.6 × no-load speed for the duty cycle **or** drum decelerates faster than `ESTOP_DECEL_KMH_S` = 0.5 km/h/s without the setpoint decreasing). Current alone gave a false alarm at no load (0.2 A at 28 km/h); standstill alone came 25 s too late because the Hall sensors report the coasting drum (both 2026-11-23). A connected motor cannot lag behind its voltage without drawing current | `ESTOP_DETECT_MS` = 1000 ms | Drive released, message in UI and console; FAULT during a run. Since 2026-11-23. **Must be muted while the firmware itself has dropped the relays** ([04-hardware](04-hardware.md) §9.4, proposal) |
+| **Emergency stop auxiliary contact** on `PIN_ESTOP_FB` | only if `ESTOP_FB_WIRED` | FAULT; **not yet wired (TBD)**. Option without an extra wire in [04-hardware](04-hardware.md) §9.1, meaningful only while the relays are dropped |
 | **Control loop switched itself off** while the state machine is still in a driving phase (dropout: no controller values for 1 s, breakaway failed) | immediate, debounced by `FAULT_SETTLE_MS` | FAULT, sequence ends, guided run aborts. Since 2026-11-24: before that the state machine stayed in POINT with the drum at rest and the run waited forever |
 
 FAULT holds as long as the drum turns and clears itself two seconds after standstill
@@ -352,10 +365,17 @@ panel. `q` on the console still acknowledges, likewise only at standstill.
 > controller terminal. A short uptime proves the restart; the fault list names the
 > reason. (No longer possible on 2026-11-17 — the firmware update erased the list.)
 >
+> **Since 2026-11-25 the firmware reports no speed at all (NAN) while the controller is
+> gone**, instead of the last value it sent. Without drum marks a FAULT therefore stays
+> until the controller reports again — a standstill nobody measured is not declared.
+>
 > **Regardless of the cause:** after the emergency stop the controller delivers no usable
 > information. The dedicated drum sensor on the ESP32 is therefore **not the second
 > source but the only one**, and the ESP32 needs its supply independent of the switched
-> power path — which it has via USB-C ([04-hardware](04-hardware.md) §5).
+> power path — which it had via USB-C ([04-hardware](04-hardware.md) §5). **Since
+> 2026-11-25 it is fed via the 5V pin from an XL7015 buck on the bus, so this
+> independence is gone** ([04-hardware](04-hardware.md) §5.1): bus off → logic off → no
+> drum sensor after a power cut. The relay brake stays unaffected.
 >
 > Two ways: evaluate the **8 markers on the drum** on the ESP32 (independent of
 > everything that happens in the power path), and/or raise `foc_sl_erpm` far enough that
@@ -398,6 +418,23 @@ Raising `V_MAX_KMH` requires:
 
 Without these points it stays at 60 km/h.
 
+**Entry 2026-11-25: `V_MAX_KMH` = 100 km/h, on the instruction of the builder.** Status
+of the six points at that moment, as recorded by the firmware session, not verified by
+measurement:
+
+| Point | Status 2026-11-25 |
+|---|---|
+| 1 Drum balanced, residual imbalance documented (§6) | TBD, not documented in this repository |
+| 2 Hub connection calculated | TBD |
+| 3 Runout measured | TBD |
+| 4 Braking path (§3) | **Available since 2026-11-25:** relay brake under firmware control for every stop (`RELAY_BRAKE_WIRED`), triggered from 35.9 km/h in the brake comparison: 2.8 km/h/s, same as the controller with 20 A ([04-hardware](04-hardware.md) §9.4). |
+| 5 Stepwise run-up in 5 km/h steps | **To be done**, with distance, listening for running noise, watching `vin` |
+| 6 Entry | this one |
+
+Consequences in the firmware: `MAX_DRUM_RPM` is now 604 rpm (103 km/h), `VESC_ERPM_MAX`
+9065; the default measurement speeds still end at 60 km/h, higher plateaus are added
+with `h<kmh>`. At 100 km/h the drum carries 3.7 kJ (§1), 2.8 times the energy at 60 km/h.
+
 ## 6 Balancing the drum
 
 L/D = 100/933 = 0.11, so **single-plane balancing** is sufficient.
@@ -417,7 +454,7 @@ washers in the plywood disc, note the radius — **not on the pitch circle of th
 magnets**, where steel disturbs the Hall sensors.
 
 **Demonstrate the resolution.** That the drum stays in every position only means that
-the friction is greater than the residual imbalance. Stick a 5 g test weight to the
+the friction is greater than the residual imbalance. Stick a 5 g trial weight to the
 circumference: if it turns, the resolution is below 5 g. If it does not move, the
 friction is too high and the result is worthless.
 
@@ -506,3 +543,13 @@ been incorporated into firmware and parameter list. Ordered by frequency of trou
   oscillates: loss power and Crr only at constant speed, averaged (`STEADY_*`,
   `LIVE_WINDOW_MS`).
 - Hall table and direction of rotation are properties of the wiring, not of the motor.
+
+## Breakaway and direction detection (2026-11-26)
+
+As of 2026-11-26. The slow start (`x`, and the direction detection `ed` / Setup →
+*Detect drive direction*) raises the duty cycle at `BREAKAWAY_RATE_PER_S` up to at most
+`BREAKAWAY_DUTY_MAX` and lets go as soon as the drum moves (`BREAKAWAY_DETECT_KMH`) or the
+cell changes by `DIRDETECT_MIN_N`. **Found and fixed on 2026-11-26:** STOP did not end
+this slow start — the duty cycle went on rising on the next cycle. `speedctl::stop()`
+and `coast()` now end it. Not yet tested on the stand.
+

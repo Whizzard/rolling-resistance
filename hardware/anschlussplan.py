@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
-"""Anschlussplan des Rollwiderstandspruefstands — Leitung fuer Leitung.
+"""Connection plan of the rolling-resistance test stand — lead by lead.
 
-Der Schaltplan (hardware/schaltplan.py) zeigt, WAS womit verbunden ist.
-Dieser Plan zeigt, WIE: jedes Bauteil mit seinen Anschluessen in der Reihenfolge,
-in der sie dort liegen, und jede Ader einzeln mit Signalnamen.
+The circuit diagram (hardware/schaltplan.py) shows WHAT is connected to what.
+This plan shows HOW: every part with its terminals in the order in which they
+sit there, and every wire individually with signal names.
 
-Quelle ist dieser Text, das PDF wird daraus erzeugt:
+The source is this text; the PDF is generated from it:
 
     .venv/bin/python hardware/anschlussplan.py
 
-Erzeugt hardware/anschlussplan.pdf und hardware/anschlussplan.png.
-Pinbelegung siehe docs/04-hardware.md §12; Aenderungen hier und dort gemeinsam.
+Produces hardware/anschlussplan.pdf and hardware/anschlussplan.png.
+Pin assignment see docs/04-hardware.md §12; change here and there together.
 
-GRUNDSATZ: Pinnummern stehen hier NUR, wo sie belegt sind. Wo die Zaehlrichtung am
-Bauteil nicht feststeht — Leiste COMM des Reglers, Bauform des Steuerkreuzes — steht
-ein Fragezeichen und daneben, wie sie zu bestimmen ist. Eine erfundene Pinnummer ist
-schlimmer als eine Luecke: nach ihr wird geloetet.
+PRINCIPLE: pin numbers appear here ONLY where they are confirmed. Where the counting
+direction on the part is not certain — COMM header of the controller, type of the
+D-pad — there is a question mark and, next to it, how to determine it. An invented
+pin number is worse than a gap: people solder by it.
 
-Das Layout laeuft mit einem Cursor von oben nach unten; jeder Abschnitt meldet seine
-Hoehe zurueck. Feste y-Werte gibt es nicht — sonst laufen die Boxen ineinander, sobald
-irgendwo ein Pin dazukommt.
+The layout runs with a cursor from top to bottom; every section reports its height
+back. There are no fixed y values — otherwise the boxes run into each other as soon
+as a pin is added somewhere.
 """
 import matplotlib
 matplotlib.use("Agg")
@@ -28,25 +28,25 @@ from matplotlib.patches import Rectangle, FancyBboxPatch
 
 INK  = "#1b2328"
 MUT  = "#6b7a85"
-SIG  = "#1f6f8b"   # Messsignale
-AUX  = "#4a7a2a"   # Versorgung Logik
-PWR  = "#9c3524"   # Leistungspfad / Warnung
+SIG  = "#1f6f8b"   # measurement signals
+AUX  = "#4a7a2a"   # logic supply
+PWR  = "#9c3524"   # power path / warning
 LINE = "#c9d2d8"
 
-PITCH   = 0.62        # Zeilenabstand der Pins
-HEAD    = 1.25        # Kopfhoehe einer Box (Titel + Untertitel)
-FOOT    = 0.35        # Luft unter dem letzten Pin
-W       = 16.0        # Zeichenbreite
+PITCH   = 0.62        # line spacing of the pins
+HEAD    = 1.25        # header height of a box (title + subtitle)
+FOOT    = 0.35        # space below the last pin
+W       = 16.0        # drawing width
 MONO    = {"family": "DejaVu Sans Mono"}
 
 fig, ax = plt.subplots(figsize=(13.5, 19))
 
 
 def modul(x, ytop, w, titel, untertitel, links=None, rechts=None, farbe=INK):
-    """Bauteil mit Anschluessen links und/oder rechts.
+    """Part with terminals on the left and/or right.
 
-    links/rechts: Liste von (nr, name, farbe); nr darf None sein.
-    Gibt (anker, hoehe) zurueck. anker: {name: (x, y)}.
+    links/rechts: list of (nr, name, colour); nr may be None.
+    Returns (anker, height). anker: {name: (x, y)}.
     """
     links  = links or []
     rechts = rechts or []
@@ -83,10 +83,10 @@ def modul(x, ytop, w, titel, untertitel, links=None, rechts=None, farbe=INK):
 
 
 def strang(paare, farbe_default=SIG):
-    """Mehrere Adern zwischen zwei Bauteilen.
+    """Several wires between two parts.
 
-    paare: Liste von (ankerA, ankerB, label, farbe). Die senkrechten Teilstuecke
-    werden gestaffelt, damit sich die Beschriftungen nicht stapeln.
+    paare: list of (anchorA, anchorB, label, colour). The vertical segments
+    are staggered so that the labels do not pile up.
     """
     n = len(paare)
     xs = [p[0][0] for p in paare] + [p[1][0] for p in paare]
@@ -102,14 +102,14 @@ def strang(paare, farbe_default=SIG):
                 bbox=dict(boxstyle="round,pad=0.14", fc="white", ec="none"))
 
 
-# Eine Textzeile bei 7,8 pt mit Zeilenabstand 1,5 ist rund 0,40 Zeicheneinheiten
-# hoch (die Achse laeuft mit etwa 30 pt je Einheit). Danach richten sich die
-# Vorschuebe — sonst laufen Fussnoten in die naechste Ueberschrift.
+# One text line at 7.8 pt with line spacing 1.5 is about 0.40 drawing units
+# high (the axis runs at roughly 30 pt per unit). The advances follow from that —
+# otherwise footnotes run into the next heading.
 ZEILE = 0.40
 
 
 def ueberschrift(y, nummer, titel, hinweis=None):
-    y -= 0.35                                    # Luft ueber dem Strich
+    y -= 0.35                                    # space above the rule
     ax.plot([0.2, W - 0.2], [y, y], color=LINE, linewidth=2.4, zorder=0)
     ax.text(0.2, y - 0.45, f"{nummer}  {titel}", fontsize=11.5, weight="bold",
             color=INK, va="center")
@@ -124,163 +124,163 @@ def fussnote(y, text, farbe=PWR):
     return y - ZEILE * (text.count("\n") + 1) - 0.30
 
 
-# ============================================================ Kopf
+# ============================================================ header
 y = 0.0
-ax.text(0.2, y, "Rollwiderstandsprüfstand — Anschlussplan MVP", fontsize=17, color=INK,
+ax.text(0.2, y, "Rolling-resistance test stand — connection plan MVP", fontsize=17, color=INK,
         va="top")
 y -= 0.70
-ax.text(0.2, y, "ESP32-S3-DevKitC-1 N16R8  ·  Stand 2026-11-16  ·  "
-                "Quelle: hardware/anschlussplan.py  ·  Pinbelegung docs/04-hardware.md §12",
+ax.text(0.2, y, "ESP32-S3-DevKitC-1 N16R8  ·  As of 2026-11-16  ·  "
+                "Source: hardware/anschlussplan.py  ·  Pin assignment docs/04-hardware.md §12",
         fontsize=8, color=MUT, va="top")
 y -= 0.45
-ax.text(0.2, y, "Die Zahlen am ESP32 sind GPIO-Nummern vom Aufdruck des Boards, "
-                "keine Steckerpositionen. „?​\" = Zählrichtung am Bauteil noch unbestimmt.",
+ax.text(0.2, y, "The numbers at the ESP32 are GPIO numbers from the board's silkscreen, "
+                "not connector positions. “?​\" = counting direction on the part not yet determined.",
         fontsize=8, color=MUT, va="top")
 y -= 1.1
 
-# ============================================================ 1 Wägezelle
-y = ueberschrift(y, "1", "Wägezelle → HX711 → ESP32",
-                 "Zellenleitung ohne Steckverbinder, max. 10 cm")
+# ============================================================ 1 load cell
+y = ueberschrift(y, "1", "Load cell → HX711 → ESP32",
+                 "cell lead without connectors, max. 10 cm")
 
 esp, h1 = modul(0.4, y, 3.4, "ESP32-S3", "DevKitC-1", rechts=[
     (None, "3V3", AUX), (None, "GND", AUX),
     (15, "GPIO15", SIG), (16, "GPIO16", SIG)])
 
-hx, h2 = modul(7.0, y, 4.2, "HX711", "Modul mit getrennten VCC/VDD",
+hx, h2 = modul(7.0, y, 4.2, "HX711", "module with separate VCC/VDD",
                links=[(1, "VDD", AUX), (2, "VCC", AUX), (3, "DAT", SIG),
                       (4, "CLK", SIG), (5, "GND", AUX)],
                rechts=[(None, "E+", PWR), (None, "E−", PWR),
                        (None, "A+", SIG), (None, "A−", SIG)])
 
-zelle, h3 = modul(13.0, y, 2.8, "Wägezelle", "5 kg Biegebalken", links=[
-    (None, "rot", PWR), (None, "schwarz", PWR), (None, "grün", SIG), (None, "weiß", SIG)])
+zelle, h3 = modul(13.0, y, 2.8, "Load cell", "5 kg bending beam", links=[
+    (None, "red", PWR), (None, "black", PWR), (None, "green", SIG), (None, "white", SIG)])
 
-strang([(esp["3V3"], hx["VDD"], "3,3 V", AUX),
-        (esp["3V3"], hx["VCC"], "3,3 V  MVP", AUX),
+strang([(esp["3V3"], hx["VDD"], "3.3 V", AUX),
+        (esp["3V3"], hx["VCC"], "3.3 V  MVP", AUX),
         (esp["GND"], hx["GND"], "GND", AUX),
         (esp["GPIO15"], hx["DAT"], "DOUT", SIG),
         (esp["GPIO16"], hx["CLK"], "SCK +100 Ω", SIG)])
 
-strang([(hx["E+"], zelle["rot"], "Erregung +", PWR),
-        (hx["E−"], zelle["schwarz"], "Erregung −", PWR),
-        (hx["A+"], zelle["grün"], "Signal +", SIG),
-        (hx["A−"], zelle["weiß"], "Signal −", SIG)])
+strang([(hx["E+"], zelle["red"], "exc. +", PWR),
+        (hx["E−"], zelle["black"], "exc. −", PWR),
+        (hx["A+"], zelle["green"], "sig. +", SIG),
+        (hx["A−"], zelle["white"], "sig. −", SIG)])
 
 y -= max(h1, h2, h3) + 0.35
-y = fussnote(y, "Aderfarben der Zelle sind die übliche Belegung — am Exemplar durchmessen.\n"
-                "VCC und VDD liegen im MVP beide auf 3,3 V; für den Messlauf VCC auf 5 V.\n"
-                "Die vier Zellenadern gehen direkt in die Schraubklemme, ohne Steckverbinder.")
+y = fussnote(y, "The cell's wire colours are the usual assignment — check on the actual part.\n"
+                "VCC and VDD are both on 3.3 V in the MVP; for the measurement run VCC goes to 5 V.\n"
+                "The four cell wires go straight into the screw terminal, without connectors.")
 
 # ============================================================ 2 LCD
-y = ueberschrift(y, "2", "LCD 4×20 über PCF8574-Backpack", "optional — das UI ersetzt es")
+y = ueberschrift(y, "2", "LCD 4×20 via PCF8574 backpack", "optional — the UI replaces it")
 
 esp, h1 = modul(0.4, y, 3.4, "ESP32-S3", "I²C", rechts=[
     (None, "3V3", AUX), (None, "GND", AUX), (8, "GPIO8", SIG), (9, "GPIO9", SIG)])
 
-lcd, h2 = modul(8.4, y, 4.0, "PCF8574", "Backpack am LCD", links=[
+lcd, h2 = modul(8.4, y, 4.0, "PCF8574", "backpack on the LCD", links=[
     (1, "GND", AUX), (2, "VCC", AUX), (3, "SDA", SIG), (4, "SCL", SIG)])
 
 strang([(esp["GND"], lcd["GND"], "GND", AUX),
-        (esp["3V3"], lcd["VCC"], "3,3 V", AUX),
-        (esp["GPIO8"], lcd["SDA"], "SDA + 3,3 kΩ→3V3", SIG),
-        (esp["GPIO9"], lcd["SCL"], "SCL + 3,3 kΩ→3V3", SIG)])
+        (esp["3V3"], lcd["VCC"], "3.3 V", AUX),
+        (esp["GPIO8"], lcd["SDA"], "SDA + 3.3 kΩ→3V3", SIG),
+        (esp["GPIO9"], lcd["SCL"], "SCL + 3.3 kΩ→3V3", SIG)])
 
 y -= max(h1, h2) + 0.35
-y = fussnote(y, "Reihenfolge GND·VCC·SDA·SCL ist am Backpack aufgedruckt — ablesen, nicht annehmen.\n"
-                "Zuerst mit 3,3 V versuchen: dann ziehen die 4k7 auf dem Backpack ebenfalls nach 3,3 V\n"
-                "und liegen innerhalb der Spezifikation. I²C-Adresse scannen (0x27 oder 0x3F).")
+y = fussnote(y, "The order GND·VCC·SDA·SCL is printed on the backpack — read it, do not assume it.\n"
+                "Try 3.3 V first: then the 4k7 on the backpack also pull to 3.3 V\n"
+                "and stay within the specification. Scan the I²C address (0x27 or 0x3F).")
 
-# ============================================================ 3 Steuerkreuz
-y = ueberschrift(y, "3", "Steuerkreuz, fünf Kontakte",
-                 "keine Widerstände, keine Kondensatoren")
+# ============================================================ 3 D-pad
+y = ueberschrift(y, "3", "D-pad, five contacts",
+                 "no resistors, no capacitors")
 
-esp, h1 = modul(0.4, y, 3.4, "ESP32-S3", "interner Pull-up", rechts=[
+esp, h1 = modul(0.4, y, 3.4, "ESP32-S3", "internal pull-up", rechts=[
     (11, "GPIO11", SIG), (12, "GPIO12", SIG), (13, "GPIO13", SIG),
     (14, "GPIO14", SIG), (39, "GPIO39", SIG), (None, "GND", AUX)])
 
-kr, h2 = modul(8.4, y, 4.4, "Fünfwege-Taster", "z. B. ALPS SKQU", links=[
-    ("?", "hoch", SIG), ("?", "runter", SIG), ("?", "rein", SIG),
-    ("?", "raus", SIG), ("?", "Mitte", SIG), ("?", "gemeinsam", AUX)])
+kr, h2 = modul(8.4, y, 4.4, "Five-way switch", "e.g. ALPS SKQU", links=[
+    ("?", "up", SIG), ("?", "down", SIG), ("?", "in", SIG),
+    ("?", "out", SIG), ("?", "centre", SIG), ("?", "common", AUX)])
 
-strang([(esp["GPIO11"], kr["hoch"], "UP", SIG),
-        (esp["GPIO12"], kr["runter"], "DOWN", SIG),
-        (esp["GPIO13"], kr["rein"], "IN — Schrittweite", SIG),
-        (esp["GPIO14"], kr["raus"], "OUT", SIG),
-        (esp["GPIO39"], kr["Mitte"], "OK", SIG),
-        (esp["GND"], kr["gemeinsam"], "GND", AUX)])
+strang([(esp["GPIO11"], kr["up"], "UP", SIG),
+        (esp["GPIO12"], kr["down"], "DOWN", SIG),
+        (esp["GPIO13"], kr["in"], "IN — step size", SIG),
+        (esp["GPIO14"], kr["out"], "OUT", SIG),
+        (esp["GPIO39"], kr["centre"], "OK", SIG),
+        (esp["GND"], kr["common"], "GND", AUX)])
 
 y -= max(h1, h2) + 0.35
-y = fussnote(y, "Die Kontaktnummern hängen an der Bauform und stehen noch nicht fest. Vor dem Löten mit\n"
-                "dem Durchgangsprüfer bestimmen: der gemeinsame Anschluss ist der, der gegen ALLE\n"
-                "übrigen schaltet. Die drei Hall-Adern am Motor sind untereinander beliebig, hier nicht.")
+y = fussnote(y, "The contact numbers depend on the type and are not fixed yet. Before soldering, determine them\n"
+                "with the continuity tester: the common terminal is the one that switches against ALL\n"
+                "others. The three Hall wires on the motor are interchangeable among themselves, these are not.")
 
-# ============================================================ 4 Regler
-y = ueberschrift(y, "4", "Motorregler FSESC 4.20, Leiste COMM",
-                 "COMM 5V NICHT anschließen")
+# ============================================================ 4 controller
+y = ueberschrift(y, "4", "Motor controller FSESC 4.20, COMM header",
+                 "do NOT connect COMM 5V")
 
 esp, h1 = modul(0.4, y, 3.4, "ESP32-S3", "UART1", rechts=[
     (18, "GPIO18", SIG), (21, "GPIO21", SIG), (None, "GND", AUX)])
 
-comm, h2 = modul(8.4, y, 4.4, "FSESC 4.20", "Stiftleiste COMM, 7-polig", links=[
+comm, h2 = modul(8.4, y, 4.4, "FSESC 4.20", "COMM pin header, 7 pins", links=[
     ("?", "5V", PWR), ("?", "3.3V", MUT), ("?", "−", AUX), ("?", "ADC", MUT),
     ("?", "TX", SIG), ("?", "RX", SIG), ("?", "ADC2", MUT)])
 
 strang([(esp["GPIO18"], comm["RX"], "TX → RX", SIG),
         (esp["GPIO21"], comm["TX"], "RX ← TX", SIG),
-        (esp["GND"], comm["−"], "GND — Sternpunkt", AUX)])
+        (esp["GND"], comm["−"], "GND — star point", AUX)])
 
-# 5V durchkreuzen
+# cross out 5V
 x5, y5 = comm["5V"]
 ax.plot([x5 - 0.55, x5 - 0.05], [y5 + 0.20, y5 - 0.20], color=PWR, linewidth=2.2, zorder=5)
 ax.plot([x5 - 0.55, x5 - 0.05], [y5 - 0.20, y5 + 0.20], color=PWR, linewidth=2.2, zorder=5)
-ax.text(x5 - 0.75, y5, "nicht belegen", fontsize=7.4, color=PWR, va="center", ha="right")
+ax.text(x5 - 0.75, y5, "leave unconnected", fontsize=7.4, color=PWR, va="center", ha="right")
 
 y -= max(h1, h2) + 0.35
-y = fussnote(y, "Welches Ende der Leiste Pin 1 ist, geht aus dem Handbuch NICHT hervor. Vor dem\n"
-                "Anschließen am Regler — über dessen Micro-USB versorgt — 5 V und Masse nachmessen,\n"
-                "sonst wird sauber spiegelverkehrt verdrahtet. Die Reihenfolge oben ist die des Handbuchs.\n"
-                "Die Masse am Regler ist die EINZIGE Verbindung zwischen Logik- und Leistungsmasse.")
+y = fussnote(y, "Which end of the header is pin 1 is NOT stated in the manual. Before connecting,\n"
+                "measure 5 V and ground on the controller — powered via its micro-USB —\n"
+                "otherwise it gets wired neatly mirror-inverted. The order above is the manual's.\n"
+                "The ground at the controller is the ONLY connection between logic and power ground.")
 
-# ============================================================ 5 Speisung
-y = ueberschrift(y, "5", "Speisung über USB-C", "beide Buchsen dürfen gleichzeitig speisen")
+# ============================================================ 5 supply
+y = ueberschrift(y, "5", "Supply via USB-C", "both sockets may supply at the same time")
 
-usb, h1 = modul(0.4, y, 4.2, "USB-C", "zwei Buchsen am Board", rechts=[
-    (None, "COM — CH343", AUX), (None, "USB — nativ", AUX)])
+usb, h1 = modul(0.4, y, 4.2, "USB-C", "two sockets on the board", rechts=[
+    (None, "COM — CH343", AUX), (None, "USB — native", AUX)])
 
-q, h2 = modul(9.4, y, 6.2, "Quellen", "", links=[
-    (None, "Notebook: Flashen + Konsole", AUX),
-    (None, "Netzteil 5 V / ≥ 1 A", AUX)])
+q, h2 = modul(9.4, y, 6.2, "Sources", "", links=[
+    (None, "Notebook: flashing + console", AUX),
+    (None, "Power supply 5 V / ≥ 1 A", AUX)])
 
-strang([(usb["COM — CH343"], q["Notebook: Flashen + Konsole"], "bei Bedarf", AUX),
-        (usb["USB — nativ"], q["Netzteil 5 V / ≥ 1 A"], "dauerhaft", AUX)])
+strang([(usb["COM — CH343"], q["Notebook: flashing + console"], "as needed", AUX),
+        (usb["USB — native"], q["Power supply 5 V / ≥ 1 A"], "permanent", AUX)])
 
 y -= max(h1, h2) + 0.35
-y = fussnote(y, "Nur an COM flasht esptool ohne Tastendruck, und nur dort kommt die serielle Konsole heraus\n"
-                "(Serial = UART0 auf GPIO 43/44, weil ARDUINO_USB_CDC_ON_BOOT nicht gesetzt ist).\n"
-                "Den 5V-Pin NICHT einspeisen — USB, 5V-Pin und 3V3-Pin schließen sich gegenseitig aus.\n"
-                "Bei USB-Speisung ist der 5V-Pin AUSGANG (VBUS), 3V3 kommt aus dem Onboard-LDO.", MUT)
+y = fussnote(y, "Only on COM does esptool flash without pressing a button, and only there does the serial console come out\n"
+                "(Serial = UART0 on GPIO 43/44, because ARDUINO_USB_CDC_ON_BOOT is not set).\n"
+                "Do NOT feed the 5V pin — USB, 5V pin and 3V3 pin are mutually exclusive.\n"
+                "With USB supply the 5V pin is an OUTPUT (VBUS), 3V3 comes from the onboard LDO.", MUT)
 
-# ============================================================ Nachspann
+# ============================================================ trailer
 y -= 0.35
 ax.plot([0.2, W - 0.2], [y, y], color=LINE, linewidth=2.4)
 y -= 0.80
-ax.text(0.2, y, "Was im MVP NICHT verdrahtet wird", fontsize=11.5, weight="bold",
+ax.text(0.2, y, "What is NOT wired in the MVP", fontsize=11.5, weight="bold",
         color=INK, va="top")
 y -= 0.85
 ax.text(0.2, y,
-        "Not-Aus, Sicherung und die drei Bremsrelais (§9) fehlen. Ohne sie gibt es nur freien Auslauf von\n"
-        "3 bis 6 Minuten — DER MOTOR DREHT IM MVP NICHT. Der Regler wird verkabelt und die UART-Strecke\n"
-        "geprüft, mehr nicht.\n\n"
-        "Ebenfalls noch nicht: Hall-Geber (GPIO 4 Marken, 5 Index, 6 Laufrad, 7 Motor-Hall), microSD\n"
-        "(GPIO 10 CS), zweite Wägezelle (GPIO 17), Bremsrelais (GPIO 40), Not-Aus-Rückmeldung (GPIO 2).\n"
-        "Die Drehzahl kommt im MVP über UART vom Regler.",
+        "E-stop, fuse and the three brake relays (§9) are missing. Without them there is only free coast-down of\n"
+        "3 to 6 minutes — THE MOTOR DOES NOT TURN IN THE MVP. The controller is cabled and the UART link\n"
+        "checked, nothing more.\n\n"
+        "Also not yet: Hall sensors (GPIO 4 marks, 5 index, 6 wheel, 7 motor Hall), microSD\n"
+        "(GPIO 10 CS), second load cell (GPIO 17), brake relays (GPIO 40), E-stop feedback (GPIO 2).\n"
+        "In the MVP the speed comes from the controller via UART.",
         fontsize=8.2, color=INK, va="top", linespacing=1.5)
 y -= ZEILE * 9 + 1.0
 ax.text(0.2, y,
-        "Leitungen:   1  Zelle→HX711, 4-adrig, 10 cm, ohne Stecker   ·   "
-        "2  HX711→ESP32, LiYCY 6×0,14 geschirmt, JST-XH 6-polig\n"
-        "3  ESP32→LCD, 4-adrig   ·   4  ESP32→Steuerkreuz, 6-adrig   ·   "
-        "5  ESP32→FSESC, 3-adrig verdrillt, getrennt von den Phasen",
+        "Leads:   1  cell→HX711, 4 wires, 10 cm, no connector   ·   "
+        "2  HX711→ESP32, LiYCY 6×0.14 shielded, JST-XH 6 pins\n"
+        "3  ESP32→LCD, 4 wires   ·   4  ESP32→D-pad, 6 wires   ·   "
+        "5  ESP32→FSESC, 3 wires twisted, separate from the phases",
         fontsize=7.8, color=MUT, va="top", linespacing=1.6)
 y -= ZEILE * 2 + 0.5
 
@@ -289,4 +289,4 @@ ax.set_ylim(y, 0.6)
 ax.axis("off")
 fig.savefig("hardware/anschlussplan.pdf", bbox_inches="tight")
 fig.savefig("hardware/anschlussplan.png", dpi=130, bbox_inches="tight")
-print(f"ok — Zeichenhoehe {abs(y):.1f} Einheiten")
+print(f"ok — drawing height {abs(y):.1f} units")

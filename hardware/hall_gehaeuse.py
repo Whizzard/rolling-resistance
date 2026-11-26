@@ -1,28 +1,28 @@
 # -*- coding: utf-8 -*-
 """
-Gehäuse für einen Hall-Geber (TLE4905L) an der Trommel.
+Housing for a Hall sensor (TLE4905L) at the drum.
 
-Erzeugt hall-gehaeuse.FCStd als **PartDesign-Body mit Featurebaum** plus ein
-Spreadsheet "Parameter". Alle Skizzen sind über Ausdrücke an das Spreadsheet
-gebunden — Maße ändert man im GUI in der Tabelle, nicht in den Skizzen.
+Produces hall-gehaeuse.FCStd as a **PartDesign body with a feature tree** plus a
+spreadsheet "Parameter". All sketches are bound to the spreadsheet through
+expressions — dimensions are changed in the GUI in the table, not in the sketches.
 
-Dieses Skript ist der Erzeuger, nicht die Wahrheit: wer im GUI arbeitet, pflegt
-die FCStd. Wer den Baum neu aufbauen will, läuft hier durch. Maße in mm.
+This script is the generator, not the truth: whoever works in the GUI maintains
+the FCStd. Whoever wants to rebuild the tree runs this. Dimensions in mm.
 
-Featurebaum:
-    Grundkoerper   Quader 37,2 x 20 x 12
-    Kavitaet       breiter Teil, z = 0...3,6  (Platinendurchgang)
-    Bauteilraum    schmaler Teil, z = 0...10  -> erzeugt den Absatz
-    Auflagefasen   Fase an der inneren Unterkante des Absatzes
-    Kabelrampe     Absatz steigt am Kabelende an, damit nichts klemmt
-    Rastnasen      zwei Keile, mittig, unter der Platine
-    Federfeld      Freistellung aussen, damit die Wand an den Nasen federt
-    Schraubloch    M6 durch
-    Kabelnut       Klemmstrecke, D-Profil (Rechteck + Rundung)
-    Kabelmulde     tiefer, vor der Platine, dort wird nicht geklemmt
-    LED_Loch       Ø3,2 im Deckel
+Feature tree (object names as in FreeCAD):
+    Grundkoerper   base block, cuboid 37.2 x 20 x 12
+    Kavitaet       cavity, wide part, z = 0...3.6  (board passage)
+    Bauteilraum    component space, narrow part, z = 0...10  -> creates the ledge
+    Auflagefasen   chamfer at the inner lower edge of the ledge
+    Kabelrampe     cable ramp: the ledge rises at the cable end so nothing jams
+    Rastnasen      snap lugs: two wedges, centred, below the board
+    Federfeld      spring relief outside, so the wall flexes at the lugs
+    Schraubloch    screw hole, M6 through
+    Kabelnut       cable groove, clamping section, D profile (rectangle + round)
+    Kabelmulde     cable recess, deeper, in front of the board, no clamping there
+    LED_Loch       LED hole, Ø3.2 in the lid
 
-Z = 0 ist die offene Unterseite, die auf dem Alublech liegt.
+Z = 0 is the open underside, which lies on the aluminium sheet.
 """
 
 import os
@@ -35,70 +35,70 @@ import Part
 import Sketcher
 from FreeCAD import Vector
 
-# --------------------------------------------------------------- Parameter
-# (Name, Wert oder Formel, Kommentar). Formeln beginnen mit '='.
+# -------------------------------------------------------------- Parameters
+# (name, value or formula, comment). Formulas start with '='.
 PARAMS = [
-    ('pcb_l',       18.0,  'Platine Laenge'),
-    ('pcb_w',       13.0,  'Platine Breite'),
-    ('pcb_t',        1.6,  'Platine Dicke'),
-    ('solder_gap',   2.0,  'Loetraum unter der Platine'),
-    ('headroom',     6.4,  'Bauteilraum ueber der Platine'),
+    ('pcb_l',       18.0,  'Board length'),
+    ('pcb_w',       13.0,  'Board width'),
+    ('pcb_t',        1.6,  'Board thickness'),
+    ('solder_gap',   2.0,  'Solder space below the board'),
+    ('headroom',     6.4,  'Component space above the board'),
 
-    ('wall',         3.0,  'Seitenwand'),
-    ('top',          2.0,  'Deckelwand'),
-    ('end_wall',     1.2,  'Stirnwand vor dem Geber'),
-    ('rib',          2.0,  'Steg zur Schraube'),
-    ('screw_blk',   14.0,  'Laenge des massiven Blocks'),
+    ('wall',         3.0,  'Side wall'),
+    ('top',          2.0,  'Lid wall'),
+    ('end_wall',     1.2,  'End wall in front of the sensor'),
+    ('rib',          2.0,  'Web to the screw'),
+    ('screw_blk',   14.0,  'Length of the solid block'),
 
-    ('cav_l',  '=pcb_l + 2',                     'Kavitaet Laenge'),
-    ('cav_w',  '=pcb_w + 1',                     'Kavitaet Breite'),
-    ('cav_h',  '=solder_gap + pcb_t + headroom', 'Kavitaet Hoehe'),
-    ('cav_x0', '=end_wall',                      'Kavitaet Anfang'),
-    ('cav_xm', '=cav_x0 + cav_l / 2',            'Kavitaet Mitte'),
+    ('cav_l',  '=pcb_l + 2',                     'Cavity length'),
+    ('cav_w',  '=pcb_w + 1',                     'Cavity width'),
+    ('cav_h',  '=solder_gap + pcb_t + headroom', 'Cavity height'),
+    ('cav_x0', '=end_wall',                      'Cavity start'),
+    ('cav_xm', '=cav_x0 + cav_l / 2',            'Cavity centre'),
 
-    ('l_out',  '=end_wall + cav_l + rib + screw_blk', 'Aussenlaenge'),
-    ('w_out',  '=cav_w + 2 * wall',                   'Aussenbreite'),
-    ('h_out',  '=cav_h + top',                        'Aussenhoehe'),
+    ('l_out',  '=end_wall + cav_l + rib + screw_blk', 'Outer length'),
+    ('w_out',  '=cav_w + 2 * wall',                   'Outer width'),
+    ('h_out',  '=cav_h + top',                        'Outer height'),
 
-    ('pcb_z0', '=solder_gap',          'Unterkante Platine'),
-    ('pcb_z1', '=pcb_z0 + pcb_t',      'Oberkante Platine = Absatz'),
+    ('pcb_z0', '=solder_gap',          'Board lower edge'),
+    ('pcb_z1', '=pcb_z0 + pcb_t',      'Board upper edge = ledge'),
 
-    ('ledge_w',      1.8,  'Absatz je Seite'),
-    ('ledge_chamfer', 0.4, 'Fase an der Unterkante des Absatzes, innen'),
-    ('ramp_l',       4.0,  'Laenge der Kabelrampe am Kabelende'),
-    ('ramp_h',       1.5,  'Hoehe der Kabelrampe ueber der Platinenoberkante'),
-    ('snap_w',       0.65, 'Rastnase Vorsprung je Seite'),
-    ('snap_l',       6.0,  'Rastnase Laenge'),
-    ('snap_h',       0.8,  'Rastnase halbe Hoehe'),
-    ('snap_z', '=pcb_z0',  'Scheitel der Rastnase'),
+    ('ledge_w',      1.8,  'Ledge per side'),
+    ('ledge_chamfer', 0.4, 'Chamfer at the lower edge of the ledge, inside'),
+    ('ramp_l',       4.0,  'Length of the cable ramp at the cable end'),
+    ('ramp_h',       1.5,  'Height of the cable ramp above the board upper edge'),
+    ('snap_w',       0.65, 'Snap lug protrusion per side'),
+    ('snap_l',       6.0,  'Snap lug length'),
+    ('snap_h',       0.8,  'Snap lug half height'),
+    ('snap_z', '=pcb_z0',  'Apex of the snap lug'),
 
-    ('relief_l',    12.0,  'Federfeld Laenge'),
-    ('relief_t',     0.8,  'Federfeld Restwand'),
-    ('relief_h', '=pcb_z1 + 2', 'Federfeld Hoehe'),
+    ('relief_l',    12.0,  'Spring relief length'),
+    ('relief_t',     0.8,  'Spring relief remaining wall'),
+    ('relief_h', '=pcb_z1 + 2', 'Spring relief height'),
 
-    ('m6_d',         6.6,  'M6 Durchgang'),
-    ('m6_y',        -4.5,  'M6 aus der Mitte versetzt'),
-    ('m6_x',  '=cav_x0 + cav_l + rib + screw_blk / 2', 'M6 Lage'),
+    ('m6_d',         6.6,  'M6 clearance'),
+    ('m6_y',        -4.5,  'M6 offset from the centre'),
+    ('m6_x',  '=cav_x0 + cav_l + rib + screw_blk / 2', 'M6 position'),
 
-    ('cab_d',        4.4,  'Kabelnut Breite'),
-    ('cab_depth',    3.4,  'Kabelnut Tiefe, Klemmstrecke'),
-    ('cab_y',        5.5,  'Kabelnut Lage'),
-    ('cab_x0', '=cav_x0 + cav_l - 3', 'Kabelnut Anfang'),
-    ('cab_len','=l_out - cab_x0 + 1', 'Kabelnut Laenge'),
-    ('cab_deep',     5.2,  'Mulde Tiefe, keine Klemmung'),
-    ('cab_deep_x0', 20.0,  'Mulde Anfang'),
-    ('cab_deep_l',   6.0,  'Mulde Laenge'),
+    ('cab_d',        4.4,  'Cable groove width'),
+    ('cab_depth',    3.4,  'Cable groove depth, clamping section'),
+    ('cab_y',        5.5,  'Cable groove position'),
+    ('cab_x0', '=cav_x0 + cav_l - 3', 'Cable groove start'),
+    ('cab_len','=l_out - cab_x0 + 1', 'Cable groove length'),
+    ('cab_deep',     5.2,  'Recess depth, no clamping'),
+    ('cab_deep_x0', 20.0,  'Recess start'),
+    ('cab_deep_l',   6.0,  'Recess length'),
 
-    ('led_d',        3.2,  'LED Durchsteckloch'),
-    ('led_x',       15.0,  'LED Lage'),
+    ('led_d',        3.2,  'LED through hole'),
+    ('led_x',       15.0,  'LED position'),
 ]
 
 
 def build_sheet(doc):
     sh = doc.addObject('Spreadsheet::Sheet', 'Parameter')
     sh.set('A1', 'Parameter')
-    sh.set('B1', 'Wert')
-    sh.set('C1', 'Bedeutung')
+    sh.set('B1', 'Value')
+    sh.set('C1', 'Meaning')
     for i, (name, val, note) in enumerate(PARAMS):
         r = i + 2
         sh.set('A%d' % r, name)
@@ -112,11 +112,11 @@ def build_sheet(doc):
 
 
 def P(sh, name):
-    """Zahlenwert eines Parameters."""
+    """Numeric value of a parameter."""
     return float(sh.get(name))
 
 
-# ------------------------------------------------------------ Skizzenhilfen
+# ----------------------------------------------------------- Sketch helpers
 
 def named(sk, con, name):
     i = sk.addConstraint(con)
@@ -125,7 +125,7 @@ def named(sk, con, name):
 
 
 def rect(sk, x0, y0, w, h, tag, expr_x0, expr_y0, expr_w, expr_h):
-    """Achsparalleles Rechteck, voll bestimmt und an Ausdrücke gebunden."""
+    """Axis-parallel rectangle, fully constrained and bound to expressions."""
     v = Vector
     g = [sk.addGeometry(Part.LineSegment(v(x0, y0, 0), v(x0 + w, y0, 0)), False),
          sk.addGeometry(Part.LineSegment(v(x0 + w, y0, 0), v(x0 + w, y0 + h, 0)), False),
@@ -160,7 +160,7 @@ def circle(sk, cx, cy, r, tag, expr_x, expr_y, expr_r):
 
 
 def wedge(sk, sign, yw, zc, dw, dh, tag):
-    """Symmetrischer Keil an einer Wand. Skizze in YZ: lokal x = global y."""
+    """Symmetric wedge on a wall. Sketch in YZ: local x = global y."""
     v = Vector
     x_wall = sign * yw
     x_tip = x_wall - sign * dw
@@ -187,7 +187,7 @@ def wedge(sk, sign, yw, zc, dw, dh, tag):
     return g
 
 
-# ------------------------------------------------------------------- Modell
+# -------------------------------------------------------------------- Model
 
 def sketch_on(body, plane, name, x_off=0.0):
     sk = body.newObject('Sketcher::SketchObject', name)
@@ -222,19 +222,19 @@ def build(doc, sh):
         doc.recompute()
         return f
 
-    # 1 Grundkörper
+    # 1 Base block
     sk = sketch_on(body, xy, 'Sk_Aussen')
     rect(sk, 0.0, -P(sh, 'w_out') / 2, P(sh, 'l_out'), P(sh, 'w_out'), 'aussen',
          '0', '-Parameter.w_out / 2', 'Parameter.l_out', 'Parameter.w_out')
     pad(sk, 'Grundkoerper', 'Parameter.h_out')
 
-    # 2 Kavität, breiter Teil bis Platinenoberkante
+    # 2 Cavity, wide part up to the board upper edge
     sk = sketch_on(body, xy, 'Sk_Kavitaet')
     rect(sk, P(sh, 'cav_x0'), -P(sh, 'cav_w') / 2, P(sh, 'cav_l'), P(sh, 'cav_w'), 'kav',
          'Parameter.cav_x0', '-Parameter.cav_w / 2', 'Parameter.cav_l', 'Parameter.cav_w')
     pocket(sk, 'Kavitaet', 'Parameter.pcb_z1')
 
-    # 3 Bauteilraum, schmaler Teil durch die volle Höhe → erzeugt den Absatz
+    # 3 Component space, narrow part through the full height → creates the ledge
     inner = P(sh, 'cav_w') - 2 * P(sh, 'ledge_w')
     sk = sketch_on(body, xy, 'Sk_Bauteilraum')
     rect(sk, P(sh, 'cav_x0'), -inner / 2, P(sh, 'cav_l'), inner, 'btr',
@@ -242,12 +242,12 @@ def build(doc, sh):
          'Parameter.cav_l', 'Parameter.cav_w - 2 * Parameter.ledge_w')
     pocket(sk, 'Bauteilraum', 'Parameter.cav_h')
 
-    # 3b Fase an der Unterkante des Absatzes, innen umlaufend.
+    # 3b Chamfer at the lower edge of the ledge, all round on the inside.
     #
-    #    Dort treffen Platinenoberkante und Absatz aufeinander, beide bei z =
-    #    pcb_z1, und zwar als 90-Grad-Kante. Eine Ader, die sich dorthin verirrt,
-    #    wird beim Einschieben der Platine abgeschert. Die Fase macht daraus
-    #    einen Keil: die Ader wird nach innen geschoben, statt gequetscht.
+    #    There the board upper edge and the ledge meet, both at z = pcb_z1, as a
+    #    90-degree edge. A wire that strays there is sheared off when the board
+    #    is pushed in. The chamfer turns this into a wedge: the wire is pushed
+    #    inwards instead of being squashed.
     tip = body.Tip
     namen = []
     yg = P(sh, 'cav_w') / 2 - 0.01
@@ -264,20 +264,20 @@ def build(doc, sh):
             continue
         namen.append('Edge%d' % (i + 1))
     if len(namen) < 2:
-        raise RuntimeError('Absatzkanten nicht gefunden: %s' % namen)
+        raise RuntimeError('Ledge edges not found: %s' % namen)
     f = body.newObject('PartDesign::Chamfer', 'Auflagefasen')
     f.Base = (tip, namen)
     f.setExpression('Size', 'Parameter.ledge_chamfer')
     doc.recompute()
 
-    # 3c Kabelrampe: am Kabelende steigt die Unterseite des Absatzes an.
+    # 3c Cable ramp: at the cable end the underside of the ledge rises.
     #
-    #    Hier verlaesst die Ader die Platine und taucht in die Kabelnut ab --
-    #    und die Nut beginnt schon 3 mm INNERHALB der Kavitaet, laeuft also
-    #    unter dem Absatz hindurch. Ohne die Rampe klemmt die Platine beim
-    #    Einschieben genau hier. Mit ihr oeffnet sich der Spalt keilfoermig.
+    #    Here the wire leaves the board and dips into the cable groove -- and
+    #    the groove already starts 3 mm INSIDE the cavity, i.e. it runs under
+    #    the ledge. Without the ramp the board jams exactly here when pushed
+    #    in. With it the gap opens like a wedge.
     #
-    #    Skizze in XZ: lokal x = global x, lokal y = global z, Normale -Y.
+    #    Sketch in XZ: local x = global x, local y = global z, normal -Y.
     x1 = P(sh, 'cav_x0') + P(sh, 'cav_l')
     z0 = P(sh, 'pcb_z1')
     sk = body.newObject('Sketcher::SketchObject', 'Sk_Kabelrampe')
@@ -309,7 +309,7 @@ def build(doc, sh):
     fr.setExpression('Length', 'Parameter.cav_w')
     doc.recompute()
 
-    # 4 Rastnasen
+    # 4 Snap lugs
     sk = sketch_on(body, yz, 'Sk_Rastnasen',
                    P(sh, 'cav_xm') - P(sh, 'snap_l') / 2)
     sk.setExpression('AttachmentOffset.Base.z',
@@ -320,7 +320,7 @@ def build(doc, sh):
               'nase_p' if sign > 0 else 'nase_m')
     pad(sk, 'Rastnasen', 'Parameter.snap_l')
 
-    # 5 Federfeld
+    # 5 Spring relief
     depth = P(sh, 'w_out') / 2 - P(sh, 'cav_w') / 2 - P(sh, 'relief_t')
     e_depth = 'Parameter.w_out / 2 - Parameter.cav_w / 2 - Parameter.relief_t'
     e_in = 'Parameter.cav_w / 2 + Parameter.relief_t'
@@ -334,13 +334,13 @@ def build(doc, sh):
          e_x0, '-Parameter.w_out / 2', 'Parameter.relief_l', e_depth)
     pocket(sk, 'Federfeld', 'Parameter.relief_h')
 
-    # 6 Schraubloch
+    # 6 Screw hole
     sk = sketch_on(body, xy, 'Sk_Schraubloch')
     circle(sk, P(sh, 'm6_x'), P(sh, 'm6_y'), P(sh, 'm6_d') / 2, 'm6',
            'Parameter.m6_x', 'Parameter.m6_y', 'Parameter.m6_d / 2')
     pocket(sk, 'Schraubloch', 'Parameter.h_out + 1')
 
-    # 7+8 Kabelnut: Rechteck + Rundung, Klemmstrecke
+    # 7+8 Cable groove: rectangle + round, clamping section
     r = P(sh, 'cab_d') / 2
     e_r = 'Parameter.cab_d / 2'
     sk = sketch_on(body, yz, 'Sk_Kabelnut', P(sh, 'cab_x0'))
@@ -356,7 +356,7 @@ def build(doc, sh):
            'Parameter.cab_y', 'Parameter.cab_depth - Parameter.cab_d / 2', e_r)
     pocket(sk, 'Kabelnut_rund', 'Parameter.cab_len')
 
-    # 9+10 Kabelmulde, tiefer
+    # 9+10 Cable recess, deeper
     sk = sketch_on(body, yz, 'Sk_Kabelmulde', P(sh, 'cab_deep_x0'))
     sk.setExpression('AttachmentOffset.Base.z', 'Parameter.cab_deep_x0')
     rect(sk, P(sh, 'cab_y') - r, 0.0, P(sh, 'cab_d'), P(sh, 'cab_deep') - r, 'mul',
@@ -370,7 +370,7 @@ def build(doc, sh):
            'Parameter.cab_y', 'Parameter.cab_deep - Parameter.cab_d / 2', e_r)
     pocket(sk, 'Kabelmulde_rund', 'Parameter.cab_deep_l')
 
-    # 11 LED-Loch
+    # 11 LED hole
     sk = sketch_on(body, xy, 'Sk_LED')
     circle(sk, P(sh, 'led_x'), 0.0, P(sh, 'led_d') / 2, 'led',
            'Parameter.led_x', '0', 'Parameter.led_d / 2')
@@ -379,10 +379,10 @@ def build(doc, sh):
     return body
 
 
-# FreeCAD speichert die Sichtbarkeit fuer das GUI NICHT in Document.xml, sondern in
-# einer GuiDocument.xml mit je einem ViewProvider pro Objekt. Headless entsteht die
-# nicht — deshalb oeffnet sich eine so erzeugte Datei mit Default-Sichtbarkeiten:
-# Skizzen an, Koerper aus. Die schreiben wir nach dem Speichern selbst ins Archiv.
+# FreeCAD does NOT store the GUI visibility in Document.xml but in a
+# GuiDocument.xml with one ViewProvider per object. Headless, that file is not
+# created -- so a file produced this way opens with default visibilities:
+# sketches on, bodies off. We write it into the archive ourselves after saving.
 
 _GUI_HEAD = """<?xml version='1.0' encoding='utf-8'?>
 <!--
@@ -405,7 +405,7 @@ _GUI_TAIL = """    </ViewProviderData>
 
 
 def write_gui_visibility(fcstd, visible):
-    """GuiDocument.xml ins FCStd-Archiv schreiben."""
+    """Write GuiDocument.xml into the FCStd archive."""
     import re
     import shutil
     import zipfile
@@ -433,11 +433,11 @@ def write_gui_visibility(fcstd, visible):
 
 
 def set_visibility(doc, body):
-    """Körper sichtbar, Skizzen und Zwischenschritte aus.
+    """Body visible, sketches and intermediate steps hidden.
 
-    Ohne GUI macht FreeCAD das nicht von selbst: beim Erzeugen im GUI blendet
-    PartDesign das jeweils vorige Feature aus und die Skizze gleich mit. Im
-    Skript bleibt alles so stehen, wie es angelegt wurde — also von Hand.
+    Without the GUI FreeCAD does not do this by itself: when creating in the GUI,
+    PartDesign hides the previous feature and its sketch along with it. In a
+    script everything stays as it was created -- so it is done by hand.
     """
     for o in doc.Objects:
         if hasattr(o, 'Visibility'):
@@ -457,8 +457,8 @@ def main():
 
     fcstd = os.path.join(here, 'hall-gehaeuse.FCStd')
     doc.saveAs(fcstd)
-    # Origin-Kinder bleiben auf true; versteckt werden sie ueber die Origin-Gruppe,
-    # genau wie FreeCAD es selbst schreibt.
+    # Origin children stay true; they are hidden through the Origin group,
+    # exactly as FreeCAD writes it itself.
     write_gui_visibility(fcstd, {
         body.Name, body.Tip.Name,
         'X_Axis', 'Y_Axis', 'Z_Axis',
@@ -467,20 +467,20 @@ def main():
     body.Shape.exportStl(os.path.join(here, 'hall-gehaeuse.stl'))
 
     bb = body.Shape.BoundBox
-    print('Aussenmass  %.1f x %.1f x %.1f mm'
+    print('Outer size  %.1f x %.1f x %.1f mm'
           % (bb.XLength, bb.YLength, bb.ZLength))
-    print('Volumen     %.0f mm3' % body.Shape.Volume)
-    print('Gueltig     %s' % body.Shape.isValid())
+    print('Volume      %.0f mm3' % body.Shape.Volume)
+    print('Valid       %s' % body.Shape.isValid())
     bad = [o.Name for o in doc.Objects if getattr(o, 'State', None)
            and 'Invalid' in o.State]
-    print('Fehlerhaft  %s' % (bad if bad else 'keine'))
+    print('Invalid     %s' % (bad if bad else 'none'))
     offen = [o.Name for o in doc.Objects
              if o.isDerivedFrom('Sketcher::SketchObject')
              and not getattr(o, 'FullyConstrained', True)]
-    print('Skizzen     %d, davon nicht voll bestimmt: %s'
+    print('Sketches    %d, not fully constrained: %s'
           % (len([o for o in doc.Objects
                   if o.isDerivedFrom('Sketcher::SketchObject')]),
-             offen if offen else 'keine'))
+             offen if offen else 'none'))
 
 
 main()

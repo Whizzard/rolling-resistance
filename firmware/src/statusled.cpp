@@ -4,16 +4,16 @@
 
 namespace statusled {
 
-// Zustand der Bedienverbindung, mehr zeigt die LED nicht:
-//   gruen, stetig  — ein Bedienrechner meldet sich innerhalb LINK_TIMEOUT_MS
-//   rot, blinkend  — es wartet noch keiner, oder er ist weggeblieben
+// State of the operator connection, the LED shows nothing more:
+//   green, steady  -- an operator computer checks in within LINK_TIMEOUT_MS
+//   red, blinking  -- nobody is waiting yet, or it has gone away
 //
-// Frueher lief hier beim Booten ein Regenbogen als Lebenszeichen. Den braucht es
-// nicht mehr: die Verbindungsanzeige sagt dasselbe und noch etwas Nuetzliches dazu,
-// und sie steht schon wenige Millisekunden nach dem Start.
+// A rainbow used to run here at boot as a sign of life. It is no longer needed:
+// the connection indicator says the same and something useful besides, and it is
+// up a few milliseconds after the start.
 //
-// Geschrieben wird nur bei Zustandswechsel. neopixelWrite() belegt die RMT und
-// dauert rund 30 us; das bei jedem Schleifendurchlauf zu tun waere Verschwendung.
+// Written only on a state change. neopixelWrite() occupies the RMT and takes
+// about 30 us; doing that on every loop pass would be a waste.
 
 void begin() {
   neopixelWrite(PIN_STATUS_LED, 0, 0, 0);

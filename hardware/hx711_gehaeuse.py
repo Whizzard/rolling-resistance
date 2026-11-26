@@ -1,74 +1,73 @@
 # -*- coding: utf-8 -*-
 """
-Gehäuse für die Wägeplatine (SparkFun HX711 Load Cell Amp) am Pendelrahmen.
+Housing for the load-cell board (SparkFun HX711 Load Cell Amp) on the pendulum frame.
 
-Aufbau wie hall_gehaeuse.py: ein PartDesign-Body mit Featurebaum plus ein
-Spreadsheet "Parameter"; alle Skizzen über Ausdrücke an die Tabelle gebunden.
-Maße ändert man im GUI in der Tabelle, nicht in den Skizzen. Maße in mm.
+Structure as in hall_gehaeuse.py: a PartDesign body with a feature tree plus a
+spreadsheet "Parameter"; all sketches bound to the table through expressions.
+Dimensions are changed in the GUI in the table, not in the sketches. Dimensions in mm.
 
-Die Platine ist 30,6 x 23,0 mm und mit Bauteilen 4,3 mm dick, am Stand
-nachgemessen (Nennmass laut Eagle: 30,48 x 22,86 = 1,2 x 0,9 Zoll). Das Spiel
-steht als `fit_w` / `fit_l` / `fit_t` ausdruecklich in der Tabelle — nicht als
-Aufschlag in der Formel versteckt. `fit_t` ist neu: der Abstand zwischen dem
-Scheitel der Rastnasen und der Unterkante des Absatzes war vorher GENAU pcb_t,
-also null Luft. Eine reale 1,6er Platine mit ihrer Dickentoleranz liess sich
-deshalb nicht einrasten. Jetzt sitzt der Scheitel fit_t tiefer, die Platine
-darf also bis zu 0,3 mm tiefer stehen. Die Lötpads liegen an den beiden SCHMALSEITEN — links die fünf
-Anschlüsse der Wägezelle, rechts VDD/VCC/DAT/CLK/GND zum Rechner. Daraus
-folgen zwei Dinge:
+The board is 30.6 x 23.0 mm and 4.3 mm thick with components, measured at the stand
+(nominal per Eagle: 30.48 x 22.86 = 1.2 x 0.9 inch). The play is stated explicitly
+in the table as `fit_w` / `fit_l` / `fit_t` — not hidden as an allowance in the
+formula. `fit_t` is new: the distance between the apex of the snap lugs and the
+lower edge of the ledge used to be EXACTLY pcb_t, i.e. zero clearance. A real 1.6 mm
+board with its thickness tolerance therefore could not snap in. Now the apex sits
+fit_t lower, so the board may sit up to 0.3 mm lower. The solder pads are on the two
+SHORT SIDES — on the left the five connections of the load cell, on the right
+VDD/VCC/DAT/CLK/GND to the computer. Two things follow from this:
 
-  * Der tragende Absatz läuft an den LÄNGSSEITEN. An den Schmalseiten würde er
-    auf den Lötstellen sitzen.
-  * Der Absatz ist UNSYMMETRISCH, und das ist der Kern der Fassung vom
-    2026-11-21. Aus den Eagle-Daten von SparkFun (Repo sparkfun/HX711-Load-Cell-
-    Amplifier, hardware/SparkFun_HX711_Load_Cell.brd, Umriss 30,48 x 22,86 mm):
+  * The supporting ledge runs along the LONG SIDES. On the short sides it would
+    sit on the solder joints.
+  * The ledge is ASYMMETRIC, and that is the core of the version of
+    2026-11-21. From SparkFun's Eagle data (repo sparkfun/HX711-Load-Cell-
+    Amplifier, hardware/SparkFun_HX711_Load_Cell.brd, outline 30.48 x 22.86 mm):
 
-        Kondensatorseite   C6 und C7, zwei 10 uF in Bauform 1210, Mitte
-                           2,54 mm von der Kante, Gehaeuse bis 1,24 mm an die
-                           Kante. Dazwischen C3 und C5 (0603) bis 2,04 mm.
-        freie Seite        naechstes Bauteil erst bei 3,95 mm (R4, C1).
+        capacitor side     C6 and C7, two 10 uF in package 1210, centre
+                           2.54 mm from the edge, body up to 1.24 mm from the
+                           edge. Between them C3 and C5 (0603) up to 2.04 mm.
+        free side          next component only at 3.95 mm (R4, C1).
 
-    Der alte, umlaufende Absatz von 1,8 mm griff also 1,8 mm weit auf die
-    Platine und traf die beiden 1210er -- beim ersten Zusammenbau sind sie
-    abgebrochen. Jetzt: ledge_cap = 0,8 mm auf der Kondensatorseite (+y),
-    ledge_free = 2,8 mm auf der freien Seite (-y).
+    The old all-round ledge of 1.8 mm therefore reached 1.8 mm onto the
+    board and hit the two 1210s -- they broke off at the first assembly.
+    Now: ledge_cap = 0.8 mm on the capacitor side (+y),
+    ledge_free = 2.8 mm on the free side (-y).
 
-    In den ECKEN der Kondensatorseite ist der Absatz wieder voll breit: entlang
-    dieser Kante sitzt das erste Kupfer bei x = 6,22 mm (Pad von C3) und das
-    letzte endet bei 24,68 mm (Pad von C6), die Ecken sind also frei. Der
-    Schmalstreifen laeuft nur dazwischen.
+    In the CORNERS of the capacitor side the ledge is full width again: along
+    this edge the first copper sits at x = 6.22 mm (pad of C3) and the last
+    ends at 24.68 mm (pad of C6), so the corners are free. The narrow strip
+    runs only in between.
 
-    Die Platine passt damit nur noch in EINER Lage hinein. Das ist Absicht:
-    verkehrt herum stossen die Kondensatoren an die breiten Eckauflagen, und man
-    merkt es, bevor etwas bricht.
-  * Über der Platine bleibt Platz (cable_h), weil die Adern von beiden
-    Pad-Reihen nach oben gehen, sich über die Platine legen und gemeinsam zu
-    EINER Seite hinauslaufen. Deshalb liegen beide Kabelkanäle am selben Ende.
+    The board therefore fits in only ONE orientation. That is intentional:
+    the wrong way round the capacitors hit the wide corner supports, and one
+    notices before anything breaks.
+  * Above the board there is room (cable_h), because the wires from both
+    pad rows go upwards, lie across the board and leave together on ONE
+    side. That is why both cable channels are at the same end.
 
-Featurebaum:
-    Grundkoerper      Quader 50,6 x 28,9 x 12,3
-    Kavitaet          breiter Teil, z = 0...3,6  (Platinendurchgang)
-    Bauteilraum       schmaler Teil, volle Höhe  -> erzeugt den Absatz
-    Eckauflagen       Absatz in den vier Ecken wieder voll breit
-    Rastnasen         zwei Keile, mittig, unter der Platine
-    Federfeld         Freistellung aussen, damit die Wand an den Nasen federt
-    Schraubloch       M6 durch, mittig zwischen den Kanälen
-    Kabelhals_p/_m    enger Hals an der offenen Seite — die Kralle
-    Kabelnut_p/_m     Kreis darueber, steht ueber den Hals hinaus
-    Maulfasen         vier kleine Fasen an den Maulkanten
-    Kabelmulde_p/_m   tiefer, am Übergang, dort wird nicht geklemmt
+Feature tree (object names as in FreeCAD):
+    Grundkoerper      base block, cuboid 50.6 x 28.9 x 12.3
+    Kavitaet          cavity, wide part, z = 0...3.6  (board passage)
+    Bauteilraum       component space, narrow part, full height  -> creates the ledge
+    Eckauflagen       corner supports: ledge full width again in the four corners
+    Rastnasen         snap lugs: two wedges, centred, below the board
+    Federfeld         spring relief outside, so the wall flexes at the lugs
+    Schraubloch       screw hole, M6 through, centred between the channels
+    Kabelhals_p/_m    cable neck: narrow neck at the open side — the claw
+    Kabelnut_p/_m     cable groove: circle above it, protrudes beyond the neck
+    Maulfasen         four small chamfers at the mouth edges
+    Kabelmulde_p/_m   cable recess, deeper, at the transition, no clamping there
 
-Die Klemmstrecke ist 1 mm enger als das Kabel: der Mantel wird zwischen Nut und
-Montagefläche eingeklemmt, und DAS ist die Zugentlastung (docs/04-hardware.md §7).
-Die Mulde am Übergang ist absichtlich tiefer, damit der Mantel dort, wo das Kabel
-nach unten abbiegt, nicht gequetscht wird.
+The clamping section is 1 mm narrower than the cable: the jacket is clamped between
+groove and mounting surface, and THAT is the strain relief (docs/04-hardware.md §7).
+The recess at the transition is deliberately deeper, so the jacket is not squashed
+where the cable bends downwards.
 
-Seitenwand 2,4 mm statt 3,0: bei einer 0,4er Düse sind das genau sechs Bahnen,
-also keine dünne Füllnaht in der Mitte. Der **Deckel bleibt bei 2,0 mm** — er
-überbrückt die Kavität freitragend und hängt dünner durch. Die Restwand am
-Federfeld bleibt 0,8 mm, die Rastnasen federn also unverändert.
+Side wall 2.4 mm instead of 3.0: with a 0.4 mm nozzle that is exactly six lines,
+so no thin infill seam in the middle. The **lid stays at 2.0 mm** — it spans the
+cavity unsupported and sags more when thinner. The remaining wall at the spring
+relief stays 0.8 mm, so the snap lugs flex unchanged.
 
-Z = 0 ist die offene Unterseite, die auf der Montagefläche liegt.
+Z = 0 is the open underside, which lies on the mounting surface.
 """
 
 import os
@@ -82,100 +81,100 @@ import Part
 import Sketcher
 from FreeCAD import Vector
 
-# --------------------------------------------------------------- Parameter
-# (Name, Wert oder Formel, Kommentar). Formeln beginnen mit '='.
+# -------------------------------------------------------------- Parameters
+# (name, value or formula, comment). Formulas start with '='.
 PARAMS = [
-    ('pcb_l',       30.6,  'Platine Laenge, gemessen'),
-    ('pcb_w',       23.0,  'Platine Breite, gemessen'),
-    ('fit_w',        0.4,  'Spiel in der Breite, GESAMT -> 0,2 je Seite'),
-    ('fit_l',        0.6,  'Spiel in der Laenge, GESAMT -> 0,3 je Ende'),
-    ('pcb_t',        1.6,  'Platine Dicke'),
-    ('fit_t',        0.3,  'Spiel in der Dicke -> Platine darf tiefer sitzen'),
-    ('pcb_stack',    4.3,  'Platine mit Bauteilen'),
-    ('cable_h',      4.0,  'Platz ueber den Bauteilen fuer die Adern'),
-    ('solder_gap',   2.0,  'Loetraum unter der Platine'),
-    ('headroom', '=pcb_stack - pcb_t + cable_h', 'Bauteilraum ueber der Platine'),
+    ('pcb_l',       30.6,  'Board length, measured'),
+    ('pcb_w',       23.0,  'Board width, measured'),
+    ('fit_w',        0.4,  'Play in width, TOTAL -> 0.2 per side'),
+    ('fit_l',        0.6,  'Play in length, TOTAL -> 0.3 per end'),
+    ('pcb_t',        1.6,  'Board thickness'),
+    ('fit_t',        0.3,  'Play in thickness -> board may sit lower'),
+    ('pcb_stack',    4.3,  'Board with components'),
+    ('cable_h',      4.0,  'Room above the components for the wires'),
+    ('solder_gap',   2.0,  'Solder space below the board'),
+    ('headroom', '=pcb_stack - pcb_t + cable_h', 'Component space above the board'),
 
-    ('wall',         2.4,  'Seitenwand, 6 Bahnen bei 0,4er Duese'),
-    ('top',          2.0,  'Deckelwand, bleibt bei 2,0 (freie Spannweite)'),
-    ('end_wall',     2.0,  'Stirnwand am Zellenende'),
-    ('rib',          2.0,  'Steg zur Schraube'),
-    ('screw_blk',   14.0,  'Laenge des massiven Blocks'),
+    ('wall',         2.4,  'Side wall, 6 lines with a 0.4 mm nozzle'),
+    ('top',          2.0,  'Lid wall, stays at 2.0 (free span)'),
+    ('end_wall',     2.0,  'End wall at the load-cell end'),
+    ('rib',          2.0,  'Web to the screw'),
+    ('screw_blk',   14.0,  'Length of the solid block'),
 
-    ('cav_l',  '=pcb_l + fit_l',                 'Kavitaet Laenge'),
-    ('cav_w',  '=pcb_w + fit_w',                 'Kavitaet Breite'),
-    ('cav_h',  '=solder_gap + pcb_t + headroom', 'Kavitaet Hoehe'),
-    ('cav_x0', '=end_wall',                      'Kavitaet Anfang'),
-    ('cav_xm', '=cav_x0 + cav_l / 2',            'Kavitaet Mitte'),
+    ('cav_l',  '=pcb_l + fit_l',                 'Cavity length'),
+    ('cav_w',  '=pcb_w + fit_w',                 'Cavity width'),
+    ('cav_h',  '=solder_gap + pcb_t + headroom', 'Cavity height'),
+    ('cav_x0', '=end_wall',                      'Cavity start'),
+    ('cav_xm', '=cav_x0 + cav_l / 2',            'Cavity centre'),
 
-    ('l_out',  '=end_wall + cav_l + rib + screw_blk', 'Aussenlaenge'),
-    ('w_out',  '=cav_w + 2 * wall',                   'Aussenbreite'),
-    ('h_out',  '=cav_h + top',                        'Aussenhoehe'),
+    ('l_out',  '=end_wall + cav_l + rib + screw_blk', 'Outer length'),
+    ('w_out',  '=cav_w + 2 * wall',                   'Outer width'),
+    ('h_out',  '=cav_h + top',                        'Outer height'),
 
-    ('pcb_z0', '=solder_gap',          'Unterkante Platine'),
-    ('pcb_z1', '=pcb_z0 + pcb_t',      'Oberkante Platine = Absatz'),
+    ('pcb_z0', '=solder_gap',          'Board lower edge'),
+    ('pcb_z1', '=pcb_z0 + pcb_t',      'Board upper edge = ledge'),
 
-    ('ledge_cap',    0.8,  'Absatz KONDENSATORSEITE (+y) -- Bauteile bis 1,24 mm an die Kante'),
-    ('ledge_free',   2.8,  'Absatz freie Laengsseite (-y) -- dort 3,9 mm frei'),
-    ('ledge_corner', 2.8,  'Absatz in den ECKEN der Kondensatorseite'),
-    ('corner_l',     5.0,  'Laenge der Eckauflage je Ende'),
-    ('ledge_chamfer', 0.4, 'Fase an der Unterkante des Absatzes, innen'),
-    ('ramp_l',       4.0,  'Laenge der Kabelrampe am Kanalende'),
-    ('ramp_h',       1.5,  'Hoehe der Kabelrampe ueber der Platinenoberkante'),
-    ('snap_w',       0.65, 'Rastnase Vorsprung je Seite'),
-    ('snap_l',       6.0,  'Rastnase Laenge'),
-    ('snap_h',       0.8,  'Rastnase halbe Hoehe'),
-    ('snap_z', '=pcb_z1 - pcb_t - fit_t', 'Scheitel der Rastnase, fit_t unter der Nennlage'),
+    ('ledge_cap',    0.8,  'Ledge CAPACITOR SIDE (+y) -- components up to 1.24 mm from the edge'),
+    ('ledge_free',   2.8,  'Ledge free long side (-y) -- 3.9 mm free there'),
+    ('ledge_corner', 2.8,  'Ledge in the CORNERS of the capacitor side'),
+    ('corner_l',     5.0,  'Length of the corner support per end'),
+    ('ledge_chamfer', 0.4, 'Chamfer at the lower edge of the ledge, inside'),
+    ('ramp_l',       4.0,  'Length of the cable ramp at the channel end'),
+    ('ramp_h',       1.5,  'Height of the cable ramp above the board upper edge'),
+    ('snap_w',       0.65, 'Snap lug protrusion per side'),
+    ('snap_l',       6.0,  'Snap lug length'),
+    ('snap_h',       0.8,  'Snap lug half height'),
+    ('snap_z', '=pcb_z1 - pcb_t - fit_t', 'Apex of the snap lug, fit_t below the nominal position'),
 
-    ('relief_l',    14.0,  'Federfeld Laenge'),
-    ('relief_t',     0.8,  'Federfeld Restwand'),
-    ('relief_h', '=pcb_z1 + 2', 'Federfeld Hoehe'),
+    ('relief_l',    14.0,  'Spring relief length'),
+    ('relief_t',     0.8,  'Spring relief remaining wall'),
+    ('relief_h', '=pcb_z1 + 2', 'Spring relief height'),
 
-    ('screw_d',      6.6,  'M6 Durchgang, wie das Hall-Gehaeuse'),
-    ('screw_y',      0.0,  'Schraube mittig, zwischen den Kanaelen'),
-    ('screw_x', '=cav_x0 + cav_l + rib + screw_blk / 2', 'Schraube Lage'),
+    ('screw_d',      6.6,  'M6 clearance, like the Hall housing'),
+    ('screw_y',      0.0,  'Screw centred, between the channels'),
+    ('screw_x', '=cav_x0 + cav_l + rib + screw_blk / 2', 'Screw position'),
 
-    # Gemeinsam fuer beide Kanaele
-    ('cab_chamfer',  0.3,  'Fase am Nutmaul, Einfuehrhilfe fuers Kabel'),
-    ('cab_y',        8.6,  'Kanalmitte, Betrag — je einmal +y und -y'),
-    ('cab_x0', '=cav_x0 + cav_l', 'Kanalanfang, am Ende der Kavitaet'),
-    ('cab_len','=l_out - cab_x0 + 1', 'Kanallaenge'),
-    ('cab_deep_x0', '=cab_x0', 'Mulde Anfang'),
-    ('cab_deep_l',   5.0,  'Mulde Laenge'),
+    # Common to both channels
+    ('cab_chamfer',  0.3,  'Chamfer at the groove mouth, lead-in for the cable'),
+    ('cab_y',        8.6,  'Channel centre, magnitude — once each at +y and -y'),
+    ('cab_x0', '=cav_x0 + cav_l', 'Channel start, at the end of the cavity'),
+    ('cab_len','=l_out - cab_x0 + 1', 'Channel length'),
+    ('cab_deep_x0', '=cab_x0', 'Recess start'),
+    ('cab_deep_l',   5.0,  'Recess length'),
 
-    # Kanal +y — Leitung zum Rechner, fertiger Mantel
-    ('cab_cable_p',  4.0,  'Kabel-Durchmesser, GEMESSEN'),
-    ('cab_d_p',      3.9,  'Nutdurchmesser, 0,1 unter dem Kabel -> klemmt'),
-    ('cab_mouth_p',  3.2,  'Halsweite an der offenen Seite -> Kralle'),
-    ('cab_depth_p',  3.4,  'Nuttiefe, 0,6 unter dem Kabel -> Flaeche klemmt'),
-    ('cab_deep_d_p', 4.6,  'Mulde Breite, UEBER dem Kabel -> keine Klemmung'),
-    ('cab_deep_p',   5.2,  'Mulde Tiefe, keine Klemmung'),
-    ('cab_z_p', '=cab_depth_p - cab_d_p / 2', 'Kreismitte ueber der offenen Seite'),
-    ('cab_claw_p', '=(cab_d_p - cab_mouth_p) / 2', 'Hinterschnitt je Seite'),
+    # Channel +y — lead to the computer, finished jacket
+    ('cab_cable_p',  4.0,  'Cable diameter, MEASURED'),
+    ('cab_d_p',      3.9,  'Groove diameter, 0.1 below the cable -> clamps'),
+    ('cab_mouth_p',  3.2,  'Neck width at the open side -> claw'),
+    ('cab_depth_p',  3.4,  'Groove depth, 0.6 below the cable -> surface clamps'),
+    ('cab_deep_d_p', 4.6,  'Recess width, ABOVE the cable -> no clamping'),
+    ('cab_deep_p',   5.2,  'Recess depth, no clamping'),
+    ('cab_z_p', '=cab_depth_p - cab_d_p / 2', 'Circle centre above the open side'),
+    ('cab_claw_p', '=(cab_d_p - cab_mouth_p) / 2', 'Undercut per side'),
 
-    # Kanal -y — die vier duennen Litzen der Waegezelle plus Schrumpfschlauch.
-    # 3,0 mm ist GESCHAETZT, nicht gemessen: 4 Adern AWG 28...30 mit 0,7...1,0 mm
-    # Aussendurchmesser ergeben im Quadratbuendel (1+sqrt(2))*d = 1,7...2,4 mm,
-    # dazu duennwandiger 2:1-Schrumpfschlauch mit 0,4...0,5 mm je Seite.
-    # Macht 2,5...3,4 mm. Vor dem Druck mit dem Messschieber nachmessen.
-    # Die Klemmung ist hier SANFTER (0,4 statt 0,6 unter dem Buendel): duenne
-    # Litzen in Schrumpfschlauch sind weich, und 0,6 wuerden sie plattdruecken.
-    ('cab_cable_m',  3.0,  'Buendel aus 4 Litzen + Schrumpfschlauch, GESCHAETZT'),
-    ('cab_d_m',      2.9,  'Nutdurchmesser, 0,1 unter dem Buendel'),
-    ('cab_mouth_m',  2.4,  'Halsweite -> Kralle 0,25 je Seite'),
-    ('cab_depth_m',  2.6,  'Nuttiefe, 0,4 unter dem Buendel'),
-    ('cab_deep_d_m', 3.6,  'Mulde Breite, UEBER dem Buendel'),
-    ('cab_deep_m',   4.2,  'Mulde Tiefe, keine Klemmung'),
-    ('cab_z_m', '=cab_depth_m - cab_d_m / 2', 'Kreismitte ueber der offenen Seite'),
-    ('cab_claw_m', '=(cab_d_m - cab_mouth_m) / 2', 'Hinterschnitt je Seite'),
+    # Channel -y — the four thin strands of the load cell plus heat-shrink tubing.
+    # 3.0 mm is ESTIMATED, not measured: 4 wires AWG 28...30 with 0.7...1.0 mm
+    # outer diameter give (1+sqrt(2))*d = 1.7...2.4 mm in a square bundle,
+    # plus thin-walled 2:1 heat-shrink with 0.4...0.5 mm per side.
+    # Makes 2.5...3.4 mm. Measure with the calliper before printing.
+    # The clamping is GENTLER here (0.4 instead of 0.6 below the bundle): thin
+    # strands in heat-shrink are soft, and 0.6 would flatten them.
+    ('cab_cable_m',  3.0,  'Bundle of 4 strands + heat-shrink, ESTIMATED'),
+    ('cab_d_m',      2.9,  'Groove diameter, 0.1 below the bundle'),
+    ('cab_mouth_m',  2.4,  'Neck width -> claw 0.25 per side'),
+    ('cab_depth_m',  2.6,  'Groove depth, 0.4 below the bundle'),
+    ('cab_deep_d_m', 3.6,  'Recess width, ABOVE the bundle'),
+    ('cab_deep_m',   4.2,  'Recess depth, no clamping'),
+    ('cab_z_m', '=cab_depth_m - cab_d_m / 2', 'Circle centre above the open side'),
+    ('cab_claw_m', '=(cab_d_m - cab_mouth_m) / 2', 'Undercut per side'),
 ]
 
 
 def build_sheet(doc):
     sh = doc.addObject('Spreadsheet::Sheet', 'Parameter')
     sh.set('A1', 'Parameter')
-    sh.set('B1', 'Wert')
-    sh.set('C1', 'Bedeutung')
+    sh.set('B1', 'Value')
+    sh.set('C1', 'Meaning')
     for i, (name, val, note) in enumerate(PARAMS):
         r = i + 2
         sh.set('A%d' % r, name)
@@ -189,11 +188,11 @@ def build_sheet(doc):
 
 
 def P(sh, name):
-    """Zahlenwert eines Parameters."""
+    """Numeric value of a parameter."""
     return float(sh.get(name))
 
 
-# ------------------------------------------------------------ Skizzenhilfen
+# ----------------------------------------------------------- Sketch helpers
 
 def named(sk, con, name):
     i = sk.addConstraint(con)
@@ -202,7 +201,7 @@ def named(sk, con, name):
 
 
 def rect(sk, x0, y0, w, h, tag, expr_x0, expr_y0, expr_w, expr_h):
-    """Achsparalleles Rechteck, voll bestimmt und an Ausdrücke gebunden."""
+    """Axis-parallel rectangle, fully constrained and bound to expressions."""
     v = Vector
     g = [sk.addGeometry(Part.LineSegment(v(x0, y0, 0), v(x0 + w, y0, 0)), False),
          sk.addGeometry(Part.LineSegment(v(x0 + w, y0, 0), v(x0 + w, y0 + h, 0)), False),
@@ -237,7 +236,7 @@ def circle(sk, cx, cy, r, tag, expr_x, expr_y, expr_r):
 
 
 def wedge(sk, sign, yw, zc, dw, dh, tag):
-    """Symmetrischer Keil an einer Wand. Skizze in YZ: lokal x = global y."""
+    """Symmetric wedge on a wall. Sketch in YZ: local x = global y."""
     v = Vector
     x_wall = sign * yw
     x_tip = x_wall - sign * dw
@@ -264,7 +263,7 @@ def wedge(sk, sign, yw, zc, dw, dh, tag):
     return g
 
 
-# ------------------------------------------------------------------- Modell
+# -------------------------------------------------------------------- Model
 
 def sketch_on(body, plane, name, x_off=0.0):
     sk = body.newObject('Sketcher::SketchObject', name)
@@ -299,22 +298,22 @@ def build(doc, sh):
         doc.recompute()
         return f
 
-    # 1 Grundkörper
+    # 1 Base block
     sk = sketch_on(body, xy, 'Sk_Aussen')
     rect(sk, 0.0, -P(sh, 'w_out') / 2, P(sh, 'l_out'), P(sh, 'w_out'), 'aussen',
          '0', '-Parameter.w_out / 2', 'Parameter.l_out', 'Parameter.w_out')
     pad(sk, 'Grundkoerper', 'Parameter.h_out')
 
-    # 2 Kavität, breiter Teil bis Platinenoberkante
+    # 2 Cavity, wide part up to the board upper edge
     sk = sketch_on(body, xy, 'Sk_Kavitaet')
     rect(sk, P(sh, 'cav_x0'), -P(sh, 'cav_w') / 2, P(sh, 'cav_l'), P(sh, 'cav_w'), 'kav',
          'Parameter.cav_x0', '-Parameter.cav_w / 2', 'Parameter.cav_l', 'Parameter.cav_w')
     pocket(sk, 'Kavitaet', 'Parameter.pcb_z1')
 
-    # 3 Bauteilraum, schmaler Teil durch die volle Höhe → erzeugt den Absatz.
-    #   Schmaler nur in y: der Absatz liegt an den Längsseiten, weg von den Pads.
-    #   UNSYMMETRISCH, siehe Kopf: +y ist die Kondensatorseite und bekommt nur
-    #   ledge_cap, -y ist frei und trägt mit ledge_free den Hauptteil.
+    # 3 Component space, narrow part through the full height → creates the ledge.
+    #   Narrower only in y: the ledge lies along the long sides, away from the pads.
+    #   ASYMMETRIC, see header: +y is the capacitor side and gets only
+    #   ledge_cap, -y is free and carries the main part with ledge_free.
     y0 = -(P(sh, 'cav_w') / 2 - P(sh, 'ledge_free'))
     inner = P(sh, 'cav_w') - P(sh, 'ledge_free') - P(sh, 'ledge_cap')
     sk = sketch_on(body, xy, 'Sk_Bauteilraum')
@@ -324,12 +323,12 @@ def build(doc, sh):
          'Parameter.cav_w - Parameter.ledge_free - Parameter.ledge_cap')
     pocket(sk, 'Bauteilraum', 'Parameter.cav_h')
 
-    # 3a Eckauflagen: auf der Kondensatorseite ist der Absatz nur dort schmal,
-    #    wo wirklich Bauteile stehen. Entlang der Kante sitzt das erste Kupfer bei
-    #    x = 6,22 mm (Pad von C3) und das letzte endet bei x = 24,68 mm (Pad von
-    #    C6), bezogen auf die Platinenkante. In den Ecken ist also Platz, und dort
-    #    bekommt die Platine ihre Auflage zurueck -- vier Punkte halten sie besser
-    #    als ein durchgehender 0,8-mm-Streifen.
+    # 3a Corner supports: on the capacitor side the ledge is narrow only where
+    #    components really are. Along the edge the first copper sits at
+    #    x = 6.22 mm (pad of C3) and the last ends at x = 24.68 mm (pad of
+    #    C6), relative to the board edge. So there is room in the corners, and
+    #    there the board gets its support back -- four points hold it better
+    #    than a continuous 0.8 mm strip.
     ycorner = P(sh, 'cav_w') / 2 - P(sh, 'ledge_corner')
     e_ycorner = 'Parameter.cav_w / 2 - Parameter.ledge_corner'
     sk = sketch_on(body, xy, 'Sk_Eckauflagen', P(sh, 'pcb_z1'))
@@ -342,12 +341,12 @@ def build(doc, sh):
          'Parameter.corner_l', 'Parameter.ledge_corner')
     pad(sk, 'Eckauflagen', 'Parameter.headroom')
 
-    # 3b Fase an der Unterkante des Absatzes, innen umlaufend.
+    # 3b Chamfer at the lower edge of the ledge, all round on the inside.
     #
-    #    Dort treffen Platinenoberkante und Absatz aufeinander, beide bei z =
-    #    pcb_z1, und zwar als 90-Grad-Kante. Eine Ader, die sich dorthin verirrt,
-    #    wird beim Einschieben der Platine abgeschert. Die Fase macht daraus
-    #    einen Keil: die Ader wird nach innen geschoben, statt gequetscht.
+    #    There the board upper edge and the ledge meet, both at z = pcb_z1, as a
+    #    90-degree edge. A wire that strays there is sheared off when the board
+    #    is pushed in. The chamfer turns this into a wedge: the wire is pushed
+    #    inwards instead of being squashed.
     tip = body.Tip
     namen = []
     yg = P(sh, 'cav_w') / 2 - 0.01
@@ -364,23 +363,23 @@ def build(doc, sh):
             continue
         namen.append('Edge%d' % (i + 1))
     if len(namen) < 3:
-        raise RuntimeError('Absatzkanten nicht gefunden: %s' % namen)
+        raise RuntimeError('Ledge edges not found: %s' % namen)
     f = body.newObject('PartDesign::Chamfer', 'Auflagefasen')
     f.Base = (tip, namen)
     f.setExpression('Size', 'Parameter.ledge_chamfer')
     doc.recompute()
 
-    # 3c Kabelrampe: am Kanalende steigt die Unterseite des Absatzes an.
+    # 3c Cable ramp: at the channel end the underside of the ledge rises.
     #
-    #    Hier verlassen die Adern die Platine und tauchen in die Kabelkanaele
-    #    ab -- und hier liegt seit den Eckauflagen Material ueber ihnen. Ohne
-    #    die Rampe klemmt die Platine beim Einschieben genau hier die Litzen
-    #    ein. Mit ihr oeffnet sich der Spalt keilfoermig auf ramp_h, und die
-    #    Adern laufen hinaus statt hinein.
+    #    Here the wires leave the board and dip into the cable channels --
+    #    and since the corner supports there is material above them here.
+    #    Without the ramp the board pinches the strands exactly here when it
+    #    is pushed in. With it the gap opens like a wedge to ramp_h, and the
+    #    wires run out instead of in.
     #
-    #    Skizze in XZ: lokal x = global x, lokal y = global z, Normale -Y.
-    #    Der Schnitt geht symmetrisch ueber die ganze Kavitaetsbreite, die
-    #    Seitenwaende bleiben stehen.
+    #    Sketch in XZ: local x = global x, local y = global z, normal -Y.
+    #    The cut is symmetric over the whole cavity width, the side walls
+    #    stay standing.
     x1 = P(sh, 'cav_x0') + P(sh, 'cav_l')
     z0 = P(sh, 'pcb_z1')
     sk = body.newObject('Sketcher::SketchObject', 'Sk_Kabelrampe')
@@ -412,7 +411,7 @@ def build(doc, sh):
     fr.setExpression('Length', 'Parameter.cav_w')
     doc.recompute()
 
-    # 4 Rastnasen
+    # 4 Snap lugs
     sk = sketch_on(body, yz, 'Sk_Rastnasen',
                    P(sh, 'cav_xm') - P(sh, 'snap_l') / 2)
     sk.setExpression('AttachmentOffset.Base.z',
@@ -423,7 +422,7 @@ def build(doc, sh):
               'nase_p' if sign > 0 else 'nase_m')
     pad(sk, 'Rastnasen', 'Parameter.snap_l')
 
-    # 5 Federfeld
+    # 5 Spring relief
     depth = P(sh, 'w_out') / 2 - P(sh, 'cav_w') / 2 - P(sh, 'relief_t')
     e_depth = 'Parameter.w_out / 2 - Parameter.cav_w / 2 - Parameter.relief_t'
     e_in = 'Parameter.cav_w / 2 + Parameter.relief_t'
@@ -437,19 +436,19 @@ def build(doc, sh):
          e_x0, '-Parameter.w_out / 2', 'Parameter.relief_l', e_depth)
     pocket(sk, 'Federfeld', 'Parameter.relief_h')
 
-    # 6 Schraubloch, mittig — die beiden Kanäle liegen rechts und links davon
+    # 6 Screw hole, centred — the two channels lie to the right and left of it
     sk = sketch_on(body, xy, 'Sk_Schraubloch')
     circle(sk, P(sh, 'screw_x'), P(sh, 'screw_y'), P(sh, 'screw_d') / 2, 'schr',
            'Parameter.screw_x', 'Parameter.screw_y', 'Parameter.screw_d / 2')
     pocket(sk, 'Schraubloch', 'Parameter.h_out + 1')
 
-    # 7...10 Die zwei Kabelkanäle, je D-Profil (Rechteck + Rundung).
-    #   Erst die Klemmstrecke über die ganze Länge, dann die tiefere Mulde am
-    #   Übergang, wo das Kabel aus dem Gehäuse nach unten abbiegt.
-    #   BEIDE KANAELE HABEN EIGENE MASSE: +y fuehrt die fertige Leitung zum
-    #   Rechner, -y nur die vier duennen Litzen der Waegezelle im
-    #   Schrumpfschlauch. Ein Kanal fuer beides waere fuer das Buendel zu weit,
-    #   und dann klemmt nichts.
+    # 7...10 The two cable channels, each a D profile (rectangle + round).
+    #   First the clamping section over the full length, then the deeper recess
+    #   at the transition, where the cable bends down out of the housing.
+    #   BOTH CHANNELS HAVE THEIR OWN DIMENSIONS: +y carries the finished lead to
+    #   the computer, -y only the four thin strands of the load cell in
+    #   heat-shrink. One channel for both would be too wide for the bundle,
+    #   and then nothing clamps.
     for sign, t in ((+1, 'p'), (-1, 'm')):
         rm = P(sh, 'cab_deep_d_' + t) / 2
         e_rm = 'Parameter.cab_deep_d_%s / 2' % t
@@ -457,12 +456,12 @@ def build(doc, sh):
         e_xm = '%d * Parameter.cab_y - Parameter.cab_deep_d_%s / 2' % (sign, t)
         y = sign * P(sh, 'cab_y')
 
-        # Klemmstrecke, Omega: ein HALS, der enger ist als der Kreis darueber.
-        # Der Kreis steht je Seite um cab_claw ueber den Hals hinaus — das ist
-        # der Hinterschnitt, der das Kabel haelt, bevor die Flaeche darunter ist.
-        # Ein blosser Anschnitt des Kreises koennte das nicht: ein enges Maul
-        # zoege zwangslaeufig eine tiefe Nut nach sich, und die Nut muss bei
-        # cab_depth bleiben, damit die Flaeche noch klemmt.
+        # Clamping section, omega: a NECK that is narrower than the circle above.
+        # The circle protrudes beyond the neck by cab_claw per side — that is
+        # the undercut that holds the cable before the surface is under it.
+        # A mere cut of the circle could not do that: a narrow mouth would
+        # inevitably entail a deep groove, and the groove must stay at
+        # cab_depth so that the surface still clamps.
         e_hals = '%d * Parameter.cab_y - Parameter.cab_mouth_%s / 2' % (sign, t)
         sk = sketch_on(body, yz, 'Sk_Kabelhals_' + t, P(sh, 'cab_x0'))
         sk.setExpression('AttachmentOffset.Base.z', 'Parameter.cab_x0')
@@ -477,8 +476,8 @@ def build(doc, sh):
                e_y, 'Parameter.cab_z_%s' % t, 'Parameter.cab_d_%s / 2' % t)
         pocket(sk, 'Kabelnut_' + t, 'Parameter.cab_len')
 
-        # Mulde: U, weiter als das Kabel. Hier wird absichtlich nicht geklemmt,
-        # hier biegt das Kabel ab.
+        # Recess: U, wider than the cable. Deliberately no clamping here,
+        # this is where the cable bends.
         sk = sketch_on(body, yz, 'Sk_Kabelmulde_' + t, P(sh, 'cab_deep_x0'))
         sk.setExpression('AttachmentOffset.Base.z', 'Parameter.cab_deep_x0')
         rect(sk, y - rm, 0.0, P(sh, 'cab_deep_d_' + t),
@@ -493,15 +492,15 @@ def build(doc, sh):
                e_y, 'Parameter.cab_deep_%s - Parameter.cab_deep_d_%s / 2' % (t, t), e_rm)
         pocket(sk, 'Kabelmulde_rund_' + t, 'Parameter.cab_deep_l')
 
-    # 11 Fase am Nutmaul, vier Kanten (zwei je Kanal).
+    # 11 Chamfer at the groove mouth, four edges (two per channel).
     #
-    #   Das Kabel muss durch den engeren Hals gedrueckt werden; ohne Fase fasst
-    #   die scharfe Kante in den Mantel. Die runde Form bleibt unberuehrt — die
-    #   Fase sitzt UNTER dem Hinterschnitt und nimmt von der Kralle nichts weg.
+    #   The cable has to be pressed through the narrower neck; without a chamfer
+    #   the sharp edge bites into the jacket. The round shape stays untouched —
+    #   the chamfer sits BELOW the undercut and takes nothing away from the claw.
     #
-    #   Dafuer gibt es eine harte Grenze: der Kreis tritt erst bei
-    #       z = cab_depth - R - sqrt(R² - (Hals/2)²)
-    #   aus dem Hals heraus. Bis dahin darf die Fase reichen, nicht weiter.
+    #   There is a hard limit for this: the circle only emerges from the neck at
+    #       z = cab_depth - R - sqrt(R² - (neck/2)²)
+    #   The chamfer may reach up to there, no further.
     tip = body.Tip
     kanten = []
     for sign, t in ((+1, 'p'), (-1, 'm')):
@@ -510,8 +509,8 @@ def build(doc, sh):
         einsatz = P(sh, 'cab_depth_' + t) - R - math.sqrt(R * R - halb * halb)
         if P(sh, 'cab_chamfer') >= einsatz:
             raise RuntimeError(
-                'Kanal %s: Fase %.2f reicht in den Hinterschnitt '
-                '(beginnt bei z = %.3f)'
+                'Channel %s: chamfer %.2f reaches into the undercut '
+                '(starts at z = %.3f)'
                 % (t, P(sh, 'cab_chamfer'), einsatz))
         kanten += [sign * P(sh, 'cab_y') + side * halb for side in (+1, -1)]
     namen = []
@@ -520,14 +519,14 @@ def build(doc, sh):
             continue
         d = e.Vertexes[-1].Point - e.Vertexes[0].Point
         if abs(d.y) > 1e-6 or abs(d.z) > 1e-6:
-            continue                                   # nicht laengs x
+            continue                                   # not along x
         q = e.Vertexes[0].Point
         if abs(q.z) > 1e-6:
-            continue                                   # nicht an der offenen Seite
+            continue                                   # not at the open side
         if any(abs(q.y - k) < 1e-6 for k in kanten):
             namen.append('Edge%d' % (i + 1))
     if len(namen) != 4:
-        raise RuntimeError('Maulkanten nicht eindeutig gefunden: %s' % namen)
+        raise RuntimeError('Mouth edges not found unambiguously: %s' % namen)
     f = body.newObject('PartDesign::Chamfer', 'Maulfasen')
     f.Base = (tip, namen)
     f.setExpression('Size', 'Parameter.cab_chamfer')
@@ -536,10 +535,10 @@ def build(doc, sh):
     return body
 
 
-# FreeCAD speichert die Sichtbarkeit fuer das GUI NICHT in Document.xml, sondern in
-# einer GuiDocument.xml mit je einem ViewProvider pro Objekt. Headless entsteht die
-# nicht — deshalb oeffnet sich eine so erzeugte Datei mit Default-Sichtbarkeiten:
-# Skizzen an, Koerper aus. Die schreiben wir nach dem Speichern selbst ins Archiv.
+# FreeCAD does NOT store the GUI visibility in Document.xml but in a
+# GuiDocument.xml with one ViewProvider per object. Headless, that file is not
+# created -- so a file produced this way opens with default visibilities:
+# sketches on, bodies off. We write it into the archive ourselves after saving.
 
 _GUI_HEAD = """<?xml version='1.0' encoding='utf-8'?>
 <!--
@@ -562,7 +561,7 @@ _GUI_TAIL = """    </ViewProviderData>
 
 
 def write_gui_visibility(fcstd, visible):
-    """GuiDocument.xml ins FCStd-Archiv schreiben."""
+    """Write GuiDocument.xml into the FCStd archive."""
     import re
     import shutil
     import zipfile
@@ -590,7 +589,7 @@ def write_gui_visibility(fcstd, visible):
 
 
 def set_visibility(doc, body):
-    """Körper sichtbar, Skizzen und Zwischenschritte aus."""
+    """Body visible, sketches and intermediate steps hidden."""
     for o in doc.Objects:
         if hasattr(o, 'Visibility'):
             o.Visibility = False
@@ -617,20 +616,20 @@ def main():
     body.Shape.exportStl(os.path.join(here, 'hx711-gehaeuse.stl'))
 
     bb = body.Shape.BoundBox
-    print('Aussenmass  %.1f x %.1f x %.1f mm'
+    print('Outer size  %.1f x %.1f x %.1f mm'
           % (bb.XLength, bb.YLength, bb.ZLength))
-    print('Volumen     %.0f mm3' % body.Shape.Volume)
-    print('Gueltig     %s' % body.Shape.isValid())
+    print('Volume      %.0f mm3' % body.Shape.Volume)
+    print('Valid       %s' % body.Shape.isValid())
     bad = [o.Name for o in doc.Objects if getattr(o, 'State', None)
            and 'Invalid' in o.State]
-    print('Fehlerhaft  %s' % (bad if bad else 'keine'))
+    print('Invalid     %s' % (bad if bad else 'none'))
     offen = [o.Name for o in doc.Objects
              if o.isDerivedFrom('Sketcher::SketchObject')
              and not getattr(o, 'FullyConstrained', True)]
-    print('Skizzen     %d, davon nicht voll bestimmt: %s'
+    print('Sketches    %d, not fully constrained: %s'
           % (len([o for o in doc.Objects
                   if o.isDerivedFrom('Sketcher::SketchObject')]),
-             offen if offen else 'keine'))
+             offen if offen else 'none'))
 
 
 main()

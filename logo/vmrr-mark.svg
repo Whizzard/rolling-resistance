@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -2 64 64" width="64" height="64">
+<!-- vmrr mark E3 "Rolling" (2026-11-26): wheel with the elapsed time as a sector, speed lines, road. Dark scheme: white and yellow. -->
+<style>
+.i{fill:none;stroke:#16202a;stroke-linecap:round}.f{fill:#16202a}.a{fill:#2f6f99}
+@media (prefers-color-scheme:dark){.i{stroke:#fff}.f{fill:#fff}.a{fill:#ffd23f}}
+</style>
+<path class="a" d="M38 28V14A14 14 0 0 1 52 28Z"/>
+<circle class="i" cx="38" cy="28" r="20" stroke-width="4"/>
+<path class="i" d="M4 20H11M2 30H9M5 40H12" stroke-width="3"/>
+<path class="i" d="M14 52H60" stroke-width="4"/>
+<circle class="f" cx="38" cy="28" r="3"/>
+</svg>

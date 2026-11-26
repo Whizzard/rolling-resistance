@@ -1,4 +1,5 @@
 #include "wheel.h"
+#include "calc/spindown.h"
 #include "config.h"
 #include "settings.h"
 #include "speed.h"
@@ -7,16 +8,17 @@
 namespace wheel {
 namespace {
 
-double   g_drumInt = 0.0;    // Trommelumdrehungen, aufintegriert seit begin()
+float    g_circRaw = NAN;    // last computed circumference before the plausibility check (diagnostics)
+double   g_drumInt = 0.0;    // drum revolutions, integrated since begin()
 uint32_t g_lastUs = 0;
 
-// Gleitendes Fenster: das Trommelintegral an den letzten WHEEL_CIRC_WINDOW_REVS + 1
-// Radimpulsen (bei einem Magneten je Umdrehung ist ein Impuls eine Umdrehung).
+// Sliding window: the drum integral at the last WHEEL_CIRC_WINDOW_REVS + 1
+// wheel pulses (with one magnet per revolution one pulse is one revolution).
 constexpr uint8_t N = WHEEL_CIRC_WINDOW_REVS * WHEEL_MARKS_PER_REV;
 double   g_hist[N + 1];
-uint8_t  g_head = 0;         // juengster Eintrag
-uint32_t g_filled = 0;       // Eintraege seit dem letzten Stillstand
-uint32_t g_lastPulse = 0;    // zuletzt gesehener Impulszaehler
+uint8_t  g_head = 0;         // newest entry
+uint32_t g_filled = 0;       // entries since the last standstill
+uint32_t g_lastPulse = 0;    // last seen pulse counter
 uint32_t g_lastPulseMs = 0;
 float    g_circ = NAN;
 
@@ -27,59 +29,46 @@ void clear() {
 
 }  // namespace
 
-// ---- Auslauf
-// INTEGRALMETHODE statt punktweiser Differenz (docs/11-review.md W8):
-// aus J dw/dt = -(A1 + B1 w^2) folgt durch Integration ueber die Zeit
+// ---- Spin-down
+// INTEGRAL METHOD instead of a point-wise difference (docs/11-review.md W8):
+// from J dw/dt = -(A1 + B1 w^2), integrating over time gives
 //     w(t) = w0 - (A1/J) t - (B1/J) * Int_0^t w^2 dt .
-// Das ist LINEAR in den drei Unbekannten w0, a = A1/J, b = B1/J, mit den Regressoren
-// t und I(t) = Int w^2 dt (Trapez ueber die Impulsabstaende). Keine Differenz zweier
-// Perioden, also kein Rauschen aus der Zeitstempelaufloesung; der Fit nutzt jeden
-// Impuls gleichwertig. Geloest werden die Normalgleichungen 3x3 (Cramer).
+// That is LINEAR in the three unknowns w0, a = A1/J, b = B1/J, with the regressors
+// t and I(t) = Int w^2 dt (trapezoid over the pulse intervals). No difference of two
+// periods, so no noise from the timestamp resolution; the fit uses every pulse
+// equally. The 3x3 normal equations are solved (Cramer).
 bool     g_sdActive = false;
 uint32_t g_sdRevs = 0;
-uint32_t g_sdPrevUs = 0;       // Zeitstempel des letzten Impulses
+uint32_t g_sdPrevUs = 0;       // timestamp of the last pulse
 uint32_t g_sdStartUs = 0;
-double   g_sdPrevW = 0.0;      // w aus dem letzten Intervall
-double   g_sdI = 0.0;          // Int w^2 dt bisher
-// Normalgleichungen: Summen ueber x = (1, t, I), y = w
-double   g_sN = 0, g_sT = 0, g_sI = 0, g_sTT = 0, g_sTI = 0, g_sII = 0, g_sY = 0, g_sYT = 0, g_sYI = 0, g_sYY = 0;
+double   g_sdPrevW = 0.0;      // w from the last interval
+double   g_sdI = 0.0;          // Int w^2 dt so far
+// Normal equations: sums over x = (1, t, I), y = w
+calc::SpindownSums g_sd;       // normal equations, solved in calc/spindown.h
 uint32_t g_sdLastPulseMs = 0;
 float    g_sdJ = NAN;
-float    g_sdResidRms = NAN;   // Residuum des letzten Fits, rad/s
+float    g_sdResidRms = NAN;   // residual of the last fit, rad/s
 uint32_t g_sdFitN = 0;
-
-static double det3(double a, double b, double c, double d, double e, double f, double g, double h, double i) {
-  return a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
-}
 
 void spindownFinish() {
   g_sdActive = false;
-  if (g_sdRevs < SPINDOWN_MIN_REVS || g_sN < 4) {
-    Serial.print("# Auslauf verworfen: "); Serial.print(g_sdRevs);
-    Serial.println(" Umdrehungen, zu wenige fuer einen Fit");
+  if (g_sdRevs < SPINDOWN_MIN_REVS || g_sd.n < 4) {
+    Serial.print("# Spin-down rejected: "); Serial.print(g_sdRevs);
+    Serial.println(" revolutions, too few for a fit");
     return;
   }
-  // [N sT sI; sT sTT sTI; sI sTI sII] * [w0 -a -b]^T = [sY sYT sYI]
-  const double D = det3(g_sN, g_sT, g_sI, g_sT, g_sTT, g_sTI, g_sI, g_sTI, g_sII);
-  if (fabs(D) < 1e-18) { Serial.println("# Auslauf verworfen: Normalgleichungen singulaer"); return; }
-  const double w0 = det3(g_sY, g_sT, g_sI, g_sYT, g_sTT, g_sTI, g_sYI, g_sTI, g_sII) / D;
-  const double ca = det3(g_sN, g_sY, g_sI, g_sT, g_sYT, g_sTI, g_sI, g_sYI, g_sII) / D;   // = -a
-  const double cb = det3(g_sN, g_sT, g_sY, g_sT, g_sTT, g_sYT, g_sI, g_sTI, g_sYI) / D;   // = -b
-  // Residuum aus den Summen: RSS = sYY - w0 sY - ca sYT - cb sYI
-  const double rss = g_sYY - w0 * g_sY - ca * g_sYT - cb * g_sYI;
-  g_sdResidRms = rss > 0 ? static_cast<float>(sqrt(rss / g_sN)) : 0.0f;
-  g_sdFitN = static_cast<uint32_t>(g_sN);
-  const float a1 = static_cast<float>(-ca * g_sdJ);
-  const float b1 = static_cast<float>(-cb * g_sdJ);
+  float a1, b1; double w0;
+  if (!g_sd.solve(g_sdJ, a1, b1, w0, g_sdResidRms)) { Serial.println("# Spin-down rejected: normal equations singular"); return; }
+  g_sdFitN = static_cast<uint32_t>(g_sd.n);
   if (settings::setWheelModel(a1, b1)) {
-    Serial.print("# Radverlustmodell gespeichert: A1="); Serial.print(a1, 5);
-    Serial.print(" Nm  B1="); Serial.print(b1, 8); Serial.print(" Nm/(rad/s)^2  aus ");
-    Serial.print(g_sdRevs); Serial.print(" Umdrehungen, Residuum ");
+    Serial.print("# Wheel loss model saved: A1="); Serial.print(a1, 5);
+    Serial.print(" Nm  B1="); Serial.print(b1, 8); Serial.print(" Nm/(rad/s)^2  from ");
+    Serial.print(g_sdRevs); Serial.print(" revolutions, residual ");
     Serial.print(g_sdResidRms, 3); Serial.print(" rad/s, w0="); Serial.print(w0, 2);
-    Serial.print(", J_Rad="); Serial.print(g_sdJ, 4);
-    Serial.println(isnan(settings::wheelJKgm2()) ? " kg m^2 (GESCHAETZT, WHEEL_J_FACTOR)" : " kg m^2 (gemessen)");
+    Serial.print(", J_wheel="); Serial.print(g_sdJ, 4);
+    Serial.println(isnan(settings::wheelJKgm2()) ? " kg m^2 (ESTIMATED, WHEEL_J_FACTOR)" : " kg m^2 (measured)");
   } else {
-    Serial.println("# Radverlustmodell unplausibel, nicht gespeichert");
+    Serial.println("# Wheel loss model implausible, not saved");
   }
 }
 
@@ -92,39 +81,41 @@ void begin() {
 }
 
 void service() {
-  // Trommel integrieren, jede Runde.
+  // Integrate the drum, every round.
   const uint32_t nowUs = micros();
+  // Unknown (NAN, controller not answering yet) counts as 0: a single NAN made the
+  // integral NAN until the next restart, and with it every circumference (2026-11-25).
   const float rps = revsrc::revPerSec();
-  g_drumInt += static_cast<double>(rps) * static_cast<double>(nowUs - g_lastUs) * 1e-6;
+  if (isfinite(rps)) g_drumInt += static_cast<double>(rps) * static_cast<double>(nowUs - g_lastUs) * 1e-6;
   g_lastUs = nowUs;
 
   uint32_t pulses, lastUs;
   speed::wheelPulses(pulses, lastUs);
 
   if (pulses == g_lastPulse) {
-    // Kein neuer Impuls. Steht das Rad, verfaellt das Fenster -- und ein
-    // laufender Auslauf ist zu Ende.
+    // No new pulse. If the wheel stands, the window expires -- and a running
+    // spin-down is over.
     if (g_filled && millis() - g_lastPulseMs > WHEEL_CIRC_GAP_MS) clear();
     if (g_sdActive && millis() - g_sdLastPulseMs > WHEEL_CIRC_GAP_MS) spindownFinish();
     return;
   }
-  // Mehrere Impulse seit der letzten Runde (kommt bei 1 kHz Schleife nicht vor,
-  // waere aber nicht trennbar) -- dann zaehlt nur der juengste.
+  // Several pulses since the last round (does not happen with a 1 kHz loop,
+  // but could not be separated) -- then only the newest counts.
   const uint32_t prevPulseUs = g_sdPrevUs;
   g_lastPulse = pulses;
   g_lastPulseMs = millis();
 
-  // Auslauf: w aus dem Impulsabstand; je Impuls ein Punkt (t, I, w) fuer den Fit.
+  // Spin-down: w from the pulse interval; one point (t, I, w) per pulse for the fit.
   if (g_sdActive) {
     g_sdLastPulseMs = millis();
     if (prevPulseUs) {
       const double dt = (lastUs - prevPulseUs) * 1e-6;
       if (dt > 1e-3) {
-        const double w = 2.0 * PI / WHEEL_MARKS_PER_REV / dt;   // mittleres w dieses Intervalls
-        // Unter SPINDOWN_MIN_KMH am Rad ist Schluss -- bis zum Stillstand dauert es
-        // Minuten, und die langsamen Umdrehungen tragen kaum noch bei.
-        const double uRad = isnan(g_circ) ? settings::wheelCircM() : g_circ;
-        if (!isnan(uRad) && w * uRad / (2.0 * PI) * 3.6 < SPINDOWN_MIN_KMH) {
+        const double w = 2.0 * PI / WHEEL_MARKS_PER_REV / dt;   // mean w of this interval
+        // Below SPINDOWN_MIN_KMH at the wheel it ends -- reaching standstill takes
+        // minutes, and the slow revolutions hardly contribute.
+        const double uWheel = isnan(g_circ) ? settings::wheelCircM() : g_circ;
+        if (!isnan(uWheel) && w * uWheel / (2.0 * PI) * 3.6 < SPINDOWN_MIN_KMH) {
           spindownFinish();
           g_sdPrevUs = lastUs;
           g_head = (g_head + 1) % (N + 1); g_hist[g_head] = g_drumInt;
@@ -132,11 +123,10 @@ void service() {
           return;
         }
         if (g_sdStartUs == 0) g_sdStartUs = prevPulseUs;
-        // w gilt in der Intervallmitte; I = Int w^2 dt per Trapez bis dorthin.
+        // w applies at the interval centre; I = Int w^2 dt by trapezoid up to there.
         if (g_sdPrevW > 0.0) g_sdI += 0.5 * (g_sdPrevW * g_sdPrevW + w * w) * dt;
         const double t = (static_cast<double>(lastUs - g_sdStartUs) - 0.5e6 * dt) * 1e-6;
-        g_sN++; g_sT += t; g_sI += g_sdI; g_sTT += t * t; g_sTI += t * g_sdI; g_sII += g_sdI * g_sdI;
-        g_sY += w; g_sYT += w * t; g_sYI += w * g_sdI; g_sYY += w * w;
+        g_sd.add(t, g_sdI, w);
         g_sdPrevW = w;
         g_sdRevs++;
       }
@@ -149,39 +139,43 @@ void service() {
   if (g_filled < N + 1) g_filled++;
 
   if (g_filled < N + 1) { g_circ = NAN; return; }
-  const double drumRevs = g_hist[g_head] - g_hist[(g_head + 1) % (N + 1)];   // aeltester
+  const double drumRevs = g_hist[g_head] - g_hist[(g_head + 1) % (N + 1)];   // oldest
   g_circ = settings::drumCircumferenceM()
          * static_cast<float>(drumRevs / static_cast<double>(WHEEL_CIRC_WINDOW_REVS));
-  // Merken, hoechstens alle 10 s und nur bei mehr als 1 mm Aenderung -- der NVS
-  // soll nicht bei jeder Umdrehung beschrieben werden.
-  // ... und nur auf stetiger Fahrt: in der Rampe hinkt das Trommelintegral den
-  // Impulsen nach, und 1428 statt 1540 mm landeten so im Speicher (2026-11-23).
+  // Plausible as in settings::setWheelCircM: 0.5 to 3 m. Turning the wheel by hand with
+  // the drum standing gives 0 m -- and 0 as radius divides by zero later (2026-11-25).
+  g_circRaw = g_circ;
+  if (!(g_circ > 0.5f && g_circ < 3.0f)) { g_circ = NAN; return; }
+  // Store, at most every 10 s and only on a change of more than 1 mm -- the NVS
+  // should not be written on every revolution.
+  // ... and only at steady speed: during the ramp the drum integral lags the
+  // pulses, and 1428 instead of 1540 mm ended up in storage that way (2026-11-23).
   static uint32_t lastStoreMs = 0;
   const float dvdt = revsrc::dvdtKmhS();
-  if (!isnan(dvdt) && fabsf(dvdt) < 0.3f && millis() - lastStoreMs > 10000 &&
+  if (!isnan(dvdt) && fabsf(dvdt) < STEADY_DVDT_KMH_S && millis() - lastStoreMs > 10000 &&
       (isnan(settings::wheelCircM()) || fabsf(settings::wheelCircM() - g_circ) > 0.001f)) {
     settings::setWheelCircM(g_circ);
     lastStoreMs = millis();
   }
 }
 
-float jRadKgm2() {
-  // Gemessen (Bifilarpendel, settings) schlaegt geschaetzt.
+float jWheelKgm2() {
+  // Measured (bifilar pendulum, settings) beats estimated.
   if (!isnan(settings::wheelJKgm2())) return settings::wheelJKgm2();
   const float m = settings::wheelMassKg();
-  // Der GEMERKTE Umfang stammt aus konstanter Fahrt; der Livewert ist beim
-  // Abheben vom Schlupf verfaelscht (1,70 statt 1,54 m am 2026-11-23).
+  // The STORED circumference comes from steady speed; the live value is distorted by
+  // slip when lifting off (1.70 instead of 1.54 m on 2026-11-23).
   const float u = isnan(settings::wheelCircM()) ? g_circ : settings::wheelCircM();
   if (isnan(m) || isnan(u)) return NAN;
   const float r = u / (2.0f * PI);
   return WHEEL_J_FACTOR * m * r * r;
 }
-bool jRadMeasured() { return !isnan(settings::wheelJKgm2()); }
+bool jWheelMeasured() { return !isnan(settings::wheelJKgm2()); }
 float spindownResidRadS() { return g_sdResidRms; }
 uint32_t spindownFitN() { return g_sdFitN; }
 
 bool spindownBegin() {
-  g_sdJ = jRadKgm2();
+  g_sdJ = jWheelKgm2();
   if (isnan(g_sdJ)) return false;
   g_sdActive = true;
   g_sdRevs = 0;
@@ -189,7 +183,7 @@ bool spindownBegin() {
   g_sdPrevUs = 0;
   g_sdStartUs = 0;
   g_sdI = 0.0;
-  g_sN = g_sT = g_sI = g_sTT = g_sTI = g_sII = g_sY = g_sYT = g_sYI = g_sYY = 0;
+  g_sd.reset();
   g_sdResidRms = NAN; g_sdFitN = 0;
   g_sdLastPulseMs = millis();
   return true;
@@ -199,6 +193,7 @@ uint32_t spindownRevs()   { return g_sdRevs; }
 
 bool     valid()          { return !isnan(g_circ); }
 float    circumferenceM() { return g_circ; }
+float    circumferenceRawM() { return g_circRaw; }
 uint32_t revsUsed()       { return g_filled ? (g_filled - 1) / WHEEL_MARKS_PER_REV : 0; }
 
 }  // namespace wheel

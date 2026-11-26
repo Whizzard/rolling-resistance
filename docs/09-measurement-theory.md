@@ -37,37 +37,37 @@ measurement, only on force and geometry.
 Everything that draws torque **outside** the cradle is measured. Three shares:
 
 ```
-(7)  M_ges(v) = M_Reifen(v) + M_leer(v) + M_Rad(v) + M_Lager(N)
+(7)  M_tot(v) = M_tire(v) + M_idle(v) + M_wheel(v) + M_bearing(N)
 ```
 
 | Share | origin | treatment |
 |---|---|---|
-| `M_leer` | drum aerodynamics **and drum bearings** (pillow-block bearings on the stand, outside the cradle) | **idle-loss curve**, wheel lifted, before and after the series |
-| `M_Rad` | hub bearings + aerodynamics of the test wheel | **wheel spin-down test**, [08-stand](08-stand.md) §6 |
-| `M_Lager` | load-dependent **increase** of the drum bearings under wheel load | reference run with a rigid roller (A11), otherwise residual error `UNC_BEARING_REL` |
-| `M_Reifen` | **the signal** | what remains |
+| `M_idle` | drum aerodynamics **and drum bearings** (pillow-block bearings on the stand, outside the cradle) | **idle-loss curve**, wheel lifted, before and after the series |
+| `M_wheel` | hub bearings + aerodynamics of the test wheel | **wheel spin-down test**, [08-stand](08-stand.md) §6 |
+| `M_bearing` | load-dependent **increase** of the drum bearings under wheel load | reference run with a rigid roller (A11), otherwise residual error `UNC_BEARING_REL` |
+| `M_tire` | **the signal** | what remains |
 
 ```
-(8)  F_roll,Reifen = (M_ges − M_leer − M_Rad − M_Lager) / r
-(9)  Crr  = F_roll,Reifen / N
-(10) P_Reifen = Crr · N · v
+(8)  F_roll,tire = (M_tot − M_idle − M_wheel − M_bearing) / r
+(9)  Crr  = F_roll,tire / N
+(10) P_tire = Crr · N · v
 ```
 
 Both correction curves are kept as a model, not as a table:
 
 ```
-(11) M_leer(ω) = A₀ + B₀ · ω²          fitted from the baseline run
-(12) M_Rad(ω)  = (A₁ + B₁ · ω_Rad²) · r / r_Rad    from the wheel spin-down, converted to the drum
+(11) M_idle(ω) = A₀ + B₀ · ω²          fitted from the baseline run
+(12) M_wheel(ω)  = (A₁ + B₁ · ω_wheel²) · r / r_wheel    from the wheel spin-down, converted to the drum
 ```
 
-`ω_Rad = ω · r / r_Rad`, because drum and wheel share the same circumferential speed.
+`ω_wheel = ω · r / r_wheel`, because drum and wheel share the same circumferential speed.
 
 ### 1.3 The Wheel Load
 
 Swing arm balanced with a counterweight, pivot at wheel-axle height:
 
 ```
-(13) N = m_Rad · g + W · b / a            a = 200 mm, W = sliding weight, b = scale reading
+(13) N = m_wheel · g + W · b / a            a = 200 mm, W = sliding weight, b = scale reading
 ```
 
 Because the pivot lies at wheel-axle height, the tangential force has no lever — the
@@ -81,8 +81,8 @@ Continental Contact Urban, 18.4 W at 4 bar, 42.5 kg, 28.8 km/h (published):
 Crr      = 18.4 W / (8.0 m/s · 416.9 N)   = 0.00552
 F_roll   = 0.00552 · 416.9 N              = 2.301 N
 M        = 2.301 N · 0.4523 m             = 1.0408 Nm
-F_Zelle  = 1.0408 Nm / 0.084 m            = 12.39 N      (25 % of cell full scale)
-P_Reifen = 0.00552 · 416.9 · 8.0          = 18.41 W      ✓ matches the source
+F_cell  = 1.0408 Nm / 0.084 m            = 12.39 N      (25 % of cell full scale)
+P_tire = 0.00552 · 416.9 · 8.0          = 18.41 W      ✓ matches the source
 ```
 
 This backwards calculation is the best functional test of the whole chain: whoever runs
@@ -136,7 +136,7 @@ the largest error source there; the cradle does not need it.
 During a speed change the cell additionally measures the inertial torque:
 
 ```
-(14) M_beschl = J · dω/dt
+(14) M_accel = J · dω/dt
 ```
 
 With J = 1.94 kg·m² and the configured ramp of 0.5 km/h/s that is **0.60 Nm** — almost
@@ -145,12 +145,12 @@ measurement happens only on plateaus, never during the ramp.**
 
 On the plateau the acceleration is not zero, only small: the control loop oscillates by
 ±0.2 km/h. What remains in the mean over a window of duration T is the
-**net change**: `J·(ω_Ende − ω_Anfang)/T`. At 0.2 km/h net over 10 revolutions
+**net change**: `J·(ω_end − ω_start)/T`. At 0.2 km/h net over 10 revolutions
 that is 0.035 Nm at 15 km/h (5 % of the signal), 0.067 Nm at 28.8 km/h (10 %) and
 0.140 Nm at 60 km/h (20 %). **That is why each point is corrected, not merely gated**
 (since 2026-11-24, [11-review](11-review.md) K1): the firmware
 fits a regression line v(t) over the whole point, takes its slope as the
-net acceleration and subtracts `J_eff·dω/dt`, with `J_eff = J + J_Rad·(r/r_Rad)²` in the
+net acceleration and subtracts `J_eff·dω/dt`, with `J_eff = J + J_wheel·(r/r_wheel)²` in the
 measurement run. What remains is `UNC_J_REL` (5 %) of that; a point counts as valid as long as the
 net acceleration stays below `POINT_DVDT_NET_MAX_KMH_S` = 0.2 km/h/s, then the
 residual is below 1 %.
@@ -224,35 +224,35 @@ Change only on rebuild. Belong in `firmware/src/config.h` **and**
 | Cell characteristic | `N_PER_COUNT` | §5.1, at least 3 weights | ±0.2 % |
 | Lever of the wheel load | `a` | pivot axis → wheel axle, horizontal | ±0.5 mm (0.25 %) |
 | Marks per revolution | `MARKS_PER_REV` | by definition, 6 + index | exact |
-| Drum inertia | `J_Trommel` | spin-down test, §9.1 | ±5 % (inertia correction per point, §1.7) |
+| Drum inertia | `J_drum` | spin-down test, §9.1 | ±5 % (inertia correction per point, §1.7) |
 | Idle-loss model | `A₀, B₀` | baseline run, fitted | see §3 |
 
 ### 2.2 Per Wheel — Once per Wheel, Not per Tire
 
 | Quantity | Determination | Target accuracy |
 |---|---|---|
-| Moment of inertia `J_Rad` | bifilar pendulum, [08-stand](08-stand.md) §6.2 | ±1.5 % |
+| Moment of inertia `J_wheel` | bifilar pendulum, [08-stand](08-stand.md) §6.2 | ±1.5 % |
 | Wheel loss model `A₁, B₁` | wheel spin-down test | ±2 % |
-| Wheel mass `m_Rad` | scale | ±20 g |
-| Reference tire mass `m_Reifen,ref` | scale, belongs to `J_Rad` | ±1 g |
+| Wheel mass `m_wheel` | scale | ±20 g |
+| Reference tire mass `m_tire,ref` | scale, belongs to `J_wheel` | ±1 g |
 
 ### 2.2a Rolling Radius from the Speed Ratio
 
-`r_Rad` is **not entered but measured**. Drum and wheel roll on each other,
+`r_wheel` is **not entered but measured**. Drum and wheel roll on each other,
 so both surfaces cover the same distance:
 
 ```
-U_Rad = U_Trommel · n_Trommel / n_Rad        r_Rad = r_Trommel · n_Trommel / n_Rad
+U_wheel = U_drum · n_drum / n_wheel        r_wheel = r_drum · n_drum / n_wheel
 ```
 
 | Contribution | Size |
 |---|---|
-| Uncertainty of `U_Trommel` | 0.035 % (1 mm tape measure) |
+| Uncertainty of `U_drum` | 0.035 % (1 mm tape measure) |
 | Slip in the contact patch, estimated | ≈ 0.01 % |
 | Count quantization over 30 s | negligible |
 | **total** | **≈ 0.05 %** |
 
-On slip: only the wheel's own loss torque is transmitted, `F_t = M_Rad/r =
+On slip: only the wheel's own loss torque is transmitted, `F_t = M_wheel/r =
 0.55 N` against 417 N wheel load, so µ = 0.0013. With µ_max ≈ 0.8 and 5 to 10 % slip at
 the maximum, roughly 0.01 % of that remains.
 
@@ -266,11 +266,11 @@ gives 2 to 4 % too much.
 
 | Quantity | Determination | Note |
 |---|---|---|
-| Tire mass `m_Reifen` | scale | corrects `J_Rad`: `ΔJ = Δm · r_Reifen²` |
-| Tire radius `r_Rad` | circumference with tape measure, measured loaded | enters (12) |
+| Tire mass `m_tire` | scale | corrects `J_wheel`: `ΔJ = Δm · r_tire²` |
+| Tire radius `r_wheel` | circumference with tape measure, measured loaded | enters (12) |
 | Boom height at the mast | set to wheel-axle height, clamp lever | spirit level on the fork leg |
-| Tire pressure `p` | gauge, directly before the run | console `p<wert>` |
-| Wheel load `N` | from `b` on the scale, formula (13) | console `l<wert>` |
+| Tire pressure `p` | gauge, directly before the run | console `p<value>` |
+| Wheel load `N` | from `b` on the scale, formula (13) | console `l<value>` |
 | Static tare `offset` | console `t`, drum stationary | **after every intervention** |
 | Idle-loss curve | baseline before **and** after the series | rejection criterion §3.3 |
 | Ambient temperature | thermometer, start and end | into the log |
@@ -304,7 +304,7 @@ requires **1 to 2 % per measurement point**.
 The reference is the target from [01-requirements](01-requirements.md) M1:
 **ΔCrr = 0.0005 ⇒ ΔF_roll = 0.208 N.**
 
-| Signal size | Crr | F_roll | M | F_Zelle |
+| Signal size | Crr | F_roll | M | F_cell |
 |---|---|---|---|---|
 | best racing tire | 0.0025 | 1.042 N | 0.471 Nm | 5.6 N |
 | good racing tire | 0.0037 | 1.543 N | 0.698 Nm | 8.3 N |
@@ -317,13 +317,13 @@ The reference is the target from [01-requirements](01-requirements.md) M1:
 | Cell noise, single sample | 0.0017 N | 0.8 % | 0.11 % | Type A |
 | Cell noise after 10 revolutions | 0.0001 N | 0.1 % | 0.01 % | Type A |
 | Cell, FS error 0.02 % (creep, repeatability) | 0.0017 N | 0.8 % | 0.11 % | `UNC_K_REL` |
-| Calibration arm L_kal to ±0.1 mm plus plumb (0.1 %) | 0.0015 N | 0.7 % | 0.10 % | `UNC_LCAL_REL` |
+| Calibration arm L_cal to ±0.1 mm plus plumb (0.1 %) | 0.0015 N | 0.7 % | 0.10 % | `UNC_LCAL_REL` |
 | ~~Lever arm L~~ — *cancels out, §5.1* | 0 | 0 | 0 | — |
 | Circumference U to ±1 mm | 0.0005 N | 0.3 % | 0.03 % | — |
 | Wheel load ±0.5 % | 0.0077 N | 3.7 % | 0.50 % | `UNC_N_REL` |
 | **Tire pressure ±1 %** (gauge, AirSpy offset) | 0.0154 N | 7.4 % | 1.00 % | `UNC_P_REL` |
-| **J_Rad measured, ±1.5 %** | 0.0080 N | 3.9 % | 0.52 % | `UNC_RAD_REL` |
-| J_Rad estimated, ±10 % *(as long as there is no bifilar pendulum)* | 0.0540 N | 26 % | 3.5 % | `UNC_RAD_EST_REL` |
+| **J_wheel measured, ±1.5 %** | 0.0080 N | 3.9 % | 0.52 % | `UNC_WHEEL_REL` |
+| J_wheel estimated, ±10 % *(as long as there is no bifilar pendulum)* | 0.0540 N | 26 % | 3.5 % | `UNC_WHEEL_EST_REL` |
 | **Drum bearings, load-dependent (4.7 mNm)** | 0.0104 N | 5.0 % | 0.67 % | `UNC_BEARING_REL` |
 | **Baseline drift, criterion 0.02 N** | 0.0200 N | 9.6 % | 1.30 % | drift pre/post, otherwise criterion |
 | Inertia correction, residual 5 % of J·Δω/T (0.2 km/h over 10 rev at 28.8) | 0.0074 N | 3.6 % | 0.48 % | `UNC_J_REL`·M_inert |
@@ -334,7 +334,7 @@ The reference is the target from [01-requirements](01-requirements.md) M1:
 \* relative to a good racing tire (1.543 N)
 
 Summed in quadrature, the bold rows give roughly **0.029 N = 14 % of the target**
-(with index mark; without it 0.033 N = 16 %). With only an estimated J_Rad it is
+(with index mark; without it 0.033 N = 16 %). With only an estimated J_wheel it is
 **0.063 N = 30 %**. Thus two tires differing by ΔCrr = 0.0005 are
 separable — but only with bifilar pendulum, index mark and both zero-point checks. The
 firmware computes the same sum per plateau as u(Crr) with k = 1 into the log
@@ -371,7 +371,7 @@ Lever arm, tension link and load cell form a spring-mass system with the mass of
 Stiffness as seen from the rotation axis:
 
 ```
-k_rot = k_Zelle · L²  =  327 N/mm · (0.080 m)²  =  2092 Nm/rad   [TBD: k of the 5 kg cell]
+k_rot = k_cell · L²  =  327 N/mm · (0.080 m)²  =  2092 Nm/rad   [TBD: k of the 5 kg cell]
 ```
 
 The tension link (shift cable, 1272 N/mm) contributes only 0.4 % to this and is negligible.
@@ -483,8 +483,8 @@ Two things that decide during assembly whether the measurement is any good:
 
 Calibration covers **not the cell alone but the whole chain** up to the torque. That
 saves the separate uncertainty of cell and lever arm — more precisely: **the cell arm L
-cancels out.** Calibrated is `k = m·g·L_kal / (L·Δcounts)`, computed is
-`M = counts·k·L`, so `M = counts · m·g·L_kal / Δcounts`. L_kal has to be correct (the
+cancels out.** Calibrated is `k = m·g·L_cal / (L·Δcounts)`, computed is
+`M = counts·k·L`, so `M = counts · m·g·L_cal / Δcounts`. L_cal has to be correct (the
 mark on the arm, 330 mm) and the weight must hang plumb; L only determines how far the cell
 is utilized. Because k applies to exactly the arm with which it was calibrated, the
 firmware remembers the arm at calibration and the measurement run blocks if it was changed.
@@ -531,7 +531,7 @@ on the drum in measuring operation, including wheel, tire and arm. Three things 
   measuring position and the lever ratio does not tip;
 - check the hanging scale beforehand with a known weight (the 1 kg check weight).
 
-The value goes into the firmware as `l<kg>` or, in the measurement run, as the mandatory field "Auflast".
+The value goes into the firmware as `l<kg>` or, in the measurement run, as the mandatory field "Auflast" (wheel load).
 Uncertainty `UNC_N_REL` = 0.5 %: scale, pull direction, residual clearance.
 
 **Way b, later:** two load cells directly at the wheel axle, displayed live
@@ -578,19 +578,19 @@ per revolution, index-triggered, averaged over AVG_REVS_PER_POINT:
              ω   = 2π·n              v = U·n
              M_roh = F_Z,mittel · L
              dω/dt = slope of the regression line ω(t) over the point
-             J_eff = J_Trommel + J_Rad·(r/r_Rad)²        (measurement run; idle only J_Trommel)
+             J_eff = J_drum + J_wheel·(r/r_wheel)²        (measurement run; idle only J_drum)
              M   = M_roh − J_eff · dω/dt                  inertia correction, §1.7
-             M_leer    = A₀ + B₀·ω²
-             ω_Rad     = ω · r / r_Rad
-             M_Rad     = (A₁ + B₁·ω_Rad²) · r / r_Rad
-             M_Reifen  = M − M_leer − M_Rad
-             F_roll    = M_Reifen / r
+             M_idle    = A₀ + B₀·ω²
+             ω_wheel     = ω · r / r_wheel
+             M_wheel     = (A₁ + B₁·ω_wheel²) · r / r_wheel
+             M_tire  = M − M_idle − M_wheel
+             F_roll    = M_tire / r
              Crr       = F_roll / N
-             P_Reifen  = M_Reifen · ω        (= Crr · N · v)
+             P_tire  = M_tire · ω        (= Crr · N · v)
 ```
 
-**The wattage that counts is `P_Reifen`**, not `P_ges = M·ω`. The published values
-are tire powers at 28.8 km/h and 42.5 kg; `P_ges` additionally contains drum and
+**The wattage that counts is `P_tire`**, not `P_tot = M·ω`. The published values
+are tire powers at 28.8 km/h and 42.5 kg; `P_tot` additionally contains drum and
 wheel and would be about 2 W too high at 28.8 km/h (1.05 W drum, 0.99 W wheel).
 
 ## 7 The Measurement Matrix
@@ -620,7 +620,7 @@ Full factorial would be 11 × 4 × 3 = 132 points per tire — unrealistic. Prac
 
 ### 7.2 What May Change Between the Axes
 
-| | Wheel | Tire | J_Rad | Baseline | Warm-up |
+| | Wheel | Tire | J_wheel | Baseline | Warm-up |
 |---|---|---|---|---|---|
 | different speed | same | same | same | valid | once |
 | different pressure | same | same | same | valid | 5 min re-warm |
@@ -646,7 +646,7 @@ checkable there. Here only why the order is as it is and what the numbers mean.
 |---|---|
 | B0 visual inspection, emergency stop | [07-safety](07-safety.md) |
 | B1 insert wheel, pivot at wheel-axle height | determines the geometry of all following steps |
-| B2 weigh tire, set pressure, correct `J_Rad` | before the tare, because it does not touch the cradle |
+| B2 weigh tire, set pressure, correct `J_wheel` | before the tare, because it does not touch the cradle |
 | B3 static tare `t` | after every mechanical intervention |
 | B4 baseline pre-run `b`, wheel lifted | cold → lower corner value of the drift |
 | B5 warm-up | Crr falls with tire temperature; pressure and tire temperature (AirSpy) are logged alongside |
@@ -693,12 +693,12 @@ of it touches the cradle. The standard wheel load `STANDARD_LOAD_N` = **416.9 N
 
 ### 8.4 Baseline Pre-Run
 
-**Wheel lifted** (eccentric lever), *Leerlauf* on the measurement page or `m0` on
+**Wheel lifted** (eccentric lever), *Leerlauf* (idle) on the measurement page or `m0` on
 the console. The firmware runs through all measurement speeds from the settings
 (default `PLATEAUS_KMH`), waits `SETTLE_MS` each and averages over
 `AVG_REVS_PER_POINT` **whole revolutions**, triggered on the index mark.
 
-Result: `M_leer(ω)`, from it the fit `A₀ + B₀·ω²`. Do not skip — without this curve
+Result: `M_idle(ω)`, from it the fit `A₀ + B₀·ω²`. Do not skip — without this curve
 the absolute values are worthless.
 
 ### 8.5 Warm-Up
@@ -778,7 +778,7 @@ is not, something fundamental is wrong.
 python3 analysis/crr.py data/<datei>.csv
 ```
 
-Reads the run set of the guided measurement run (`/runs/<kennung>.csv`) and computes
+Reads the run set of the guided measurement run (`/runs/<id>.csv`) and computes
 **the same way as the firmware**: idle-loss model A₀/B₀ from the pre-run fit, wheel model
 A₁/B₁ from the header, Crr per plateau with pooled scatter and u(Crr), plus anchor drift,
 pre-/post-run drift and zero points. One run, two computers, one number. The old serial
@@ -801,13 +801,13 @@ Once and after every change to the drum:
 J itself follows from the same test with a known added mass, or from the
 geometry (2.07 kg·m² calculated).
 
-### 9.2 Bifilar Pendulum — Yields J_Rad
+### 9.2 Bifilar Pendulum — Yields J_wheel
 
 Once per wheel. Hang the wheel horizontally on two threads of equal length, at two
 opposite points of the rim:
 
 ```
-(16) J_Rad = m · g · b² · T² / (4 π² · L)
+(16) J_wheel = m · g · b² · T² / (4 π² · L)
 ```
 
 b = half the distance between the suspension points, L = thread length, T = period over
@@ -821,13 +821,13 @@ Once per wheel:
 1. Bring the drum with the wheel resting on it to 60 km/h.
 2. Lift the wheel **while running** (eccentric lever).
 3. Record the wheel speed via the Hall sensor, 60 → 10 km/h takes 4.5 min.
-4. Fit `M_Rad(ω) = −J_Rad · dω/dt` as the model `A₁ + B₁·ω²` over the whole spin-down —
+4. Fit `M_wheel(ω) = −J_wheel · dω/dt` as the model `A₁ + B₁·ω²` over the whole spin-down —
    do not differentiate pointwise. The firmware uses the **integral method** for this:
    `ω(t) = ω₀ − (A₁/J)·t − (B₁/J)·∫ω²dt` is linear in ω₀, A₁/J, B₁/J, the fit runs
    over all pulses without forming differences, residual and number of support points are shown in the
    console (`wheel.cpp`, [11-review](11-review.md) W8).
 5. The assistant stores A₁/B₁ itself; `w<A₁> <B₁>` only for adopting external values.
-   Enter **J_Rad measured** (bifilar, §9.2) beforehand with `Y<kgm2>`, otherwise the
+   Enter **J_wheel measured** (bifilar, §9.2) beforehand with `Y<kgm2>`, otherwise the
    firmware computes with 0.85·m·r² and ±10 %.
 
 Without this run the wheel loss sits unseparated in the result: 0.25 Nm corresponds to

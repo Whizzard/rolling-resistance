@@ -40,7 +40,7 @@ because the wheel-loss model and the check weight (N5) are not settled yet.
 
 **Still for the human, in this order:** explain the +24 % check-weight deviation (N5),
 linearity with two more masses (W4), weigh the wheel load (D4), wire the Hall sensor to
-the eight marks (K4), bifilar pendulum for J_Rad (K3), then the first reference
+the eight marks (K4), bifilar pendulum for J_wheel (K3), then the first reference
 measurement against a published value (C2 in [06-open-questions](06-open-questions.md)).
 
 ## 1 What a run does today
@@ -50,7 +50,7 @@ Everything that needs hands comes first; from the warm-up on the stand runs alon
 
 | | 2026-11-23, before | now |
 |---|---|---|
-| Start | immediately if load and plateaus exist | system check first: controller, motor, cell, noise, factor, lever arm against the arm at calibration, revolution source, pressure, plateaus, load; only what must be present at this point |
+| Start | immediately if load and plateaus exist | system check first: controller, motor, cell, factor, lever arm against the arm at calibration, revolution source, pressure, plateaus, load; only what must be present at this point |
 | Zero | tare whenever, wheel maybe on the drum | tare only with the wheel lifted, 80 values, then a quarter turn by hand (watched through the controller tachometer) and a second reading; deviation > 0.25 N on F_roll is W13 |
 | Calibration | assumed | end stop checked live (100 to 140 % FS), then the 1 kg check weight at 330 mm; deviation warns (W10), today's reading can be adopted as the calibration (W18) |
 | Sequence | one point per plateau, 15 s settling by the clock | reference point 28.8 km/h first and last, three points per plateau, settling by state (0.3 km/h for 5 s, at most 60 s) |
@@ -96,19 +96,20 @@ and again after the plateaus (anchor drift W04); post-run baseline as optional l
 course in the report. The convergence criterion is still to be derived from data (E3).
 
 **R8 Everything into the report.** Done. Header with build, controller firmware,
-U, L, L_kal, factor and arm at calibration, tare, models with age and origin of J_Rad,
-load, tire, pressure cold and warm, room temperature at start and end.
+U, L, L_cal, factor and arm at calibration, tare, models with age and origin of J_wheel,
+load, tire, pressure cold and warm, AirSpy temperature at start and end (room temperature entry dropped 2026-11-25).
 
 **R9 Uncertainty per point.** Done. Pooled Type A over all plateaus of the run plus the
 Type B items `UNC_K/LCAL/N/P/BEARING/RAD(_EST)/J`, stated with k = 1 and ν.
 
 **R10 Numbered warnings.** Done. W01 check weight skipped, W02 idle-loss model older than
 the session, W03 point invalid, W04 anchor drift above threshold, W05 post-run baseline
-skipped, W06 run aborted (step and reason), W07 room temperature not entered, W08
-baseline drift above limit, W09 without wheel model, W10 check weight off by ≥ 0.5 % and
+skipped, W06 run aborted (step and reason), W07 room temperature not entered (dropped 2026-11-25: temperature from the AirSpy), W08
+baseline drift above limit, W09 without wheel model (no longer possible since 2026-11-26), W10 check weight off by ≥ 0.5 % and
 the stored factor kept, W11 warm-up cut short, W12 baseline not fittable, W13 zero
 depends on angle, W14 zero drifted during the run, W16 end stop outside 100 to 140 % FS,
-W17 end-stop check skipped, W18 calibration factor adopted from the check weight.
+W17 end-stop check skipped, W18 calibration factor adopted from the check weight, W20 zeroing skipped, existing zero point taken (since 2026-11-25), W19 wheel
+model not fittable from the spin-down in step 6 (too few revolutions; since 2026-11-25); W21 zero shifted after the end-stop press, W22 check weight changed by the end-stop press (both since 2026-11-26).
 
 **R11 Evaluation from the run record.** Done. `analysis/crr.py` reads the run record
 (column `kind`) and the legacy CSV, calculates like the ESP; a synthetic data set hits
@@ -137,7 +138,7 @@ only possible with the wheel lifted and is re-read after a quarter turn; the lim
 friction holds of the cogging torque at standstill (0.05 to 0.10 N seen on the bench,
 normal). SOP B3 and A2 updated.
 
-**K3 J_Rad estimated, budget assumed measured.** Partial. A measured J can be entered
+**K3 J_wheel estimated, budget assumed measured.** Partial. A measured J can be entered
 (`Y<kgm2>`), the budget distinguishes 0.5 % (measured) from 3.5 % (estimated), the report
 names the origin, the spin-down uses the integral method (W8). **Open: run the bifilar
 pendulum** ([05-test-procedure](05-test-procedure.md) A5.4), or two spin-downs with and
@@ -191,7 +192,7 @@ post-run only for the drift criterion), `crr.py` on the run record.
 
 **D1 Drum radius.** Done. All documents on r = 0.4523 m, J = 1.94 kg·m²; A14 closed.
 
-**D2 L versus L_kal.** Done. The torque chain depends only on L_kal; `UNC_LCAL_REL`
+**D2 L versus L_cal.** Done. The torque chain depends only on L_cal; `UNC_LCAL_REL`
 replaces `UNC_L_REL`, the arm at calibration is stored and checked.
 
 **D3 Error budget.** Done. All items in `plateauStat` and in
@@ -212,19 +213,19 @@ document updated, knowledge-base rule removed from CLAUDE.md.
 
 | # | Step | Type | Result in the report |
 |---|---|---|---|
-| 1 | Create run: tire, wheel, pressure, room temperature, wheel load in kg, note; fields prefilled from the last run | E | header data |
+| 1 | Create run: profile (since 2026-11-26, [10-firmware](10-firmware.md) §8.1) or tire, ETRTO size, inner tube (both since 2026-11-25; the tube changes Crr by up to 14 % in Schermer's pendulum data), rim and hub (until 2026-11-26 one field "wheel"), pressure, wheel mass, wheel load in kg, note; bifilar pendulum optional and collapsed (without it J is estimated from the mass, since 2026-11-25); fields prefilled from the last run | E | header data |
 | 2 | Visual inspection per SOP B0, emergency stop within reach | H | confirmed |
-| 3 | System check: controller, motor, cell, noise, factor, arm, revolutions, pressure, plateaus, load | A | table ok / due / missing |
-| 4 | Zeroing with the wheel lifted, 80 values; quarter turn by hand watched through the controller tachometer (bar in degrees), second reading by itself once still | H+A | offset, noise σ, zero after the turn or W13 |
-| 5 | End stop of the load cell (live bar, peak 100 to 140 % FS), then check weight 1 kg at 330 mm; deviation never blocks: continue (W10), adopt as calibration (W18) or again; continue only once the live torque shows the weight is off | H, skippable | peak % FS or W17; deviation % or W01; W10 / W18 |
-| 6 | Idle-loss model: adopt (W02 if of unknown age) or drive new: lift wheel, pre-run baseline, lower wheel | H+A | A₀, B₀, points, drift relative to stored (W08) |
-| 7 | Wheel-loss model for this wheel: adopt or without (W09) | H | A₁, B₁, J_Rad with origin, circumference |
+| 3 | System check: controller, motor, cell, factor, arm, revolutions, pressure, plateaus, load, storage. The separate 5 s noise window was dropped on 2026-11-26: it saw the same noise as the tare and had no limit; the noise is now recorded at zeroing (σ and peak-to-peak of the tare values, step 4) | A | table ok / due / missing |
+| 4 | Zeroing with the wheel lifted, 80 values; quarter turn by hand watched through the controller tachometer (bar in degrees), second reading on the *Measure* button, which appears only once the quarter turn is done and the drum still (automatic start removed 2026-11-26: it fired while the drum was still creeping); with a zero point already set since boot the step can be skipped (W20) | H+A, skippable | offset, noise σ, zero after the turn or W13 |
+| 5 | Order since 2026-11-26: check weight 1 kg at 330 mm first; deviation never blocks: next (W10), adopt as calibration (W18) or again. The weight stays on: end stop of the load cell (live bar, peak 100 to 140 % FS, judged with the factor just confirmed), then the weight is read again (change ≥ 0.5 % → W22: the overload changed the sensitivity), then the weight comes off and the zero is read again (beyond `RUN_ZERO_LIMIT_N` → W21: the overload left an offset; zero again or continue). Both comparisons use raw counts, so an adopted factor does not distort them | H, skippable | deviation % or W01; W10 / W18; peak % FS or W17; W22; W21 |
+| 6 | Idle-loss model: adopt (W02 if of unknown age) or drive new — **since 2026-11-25 together with the wheel spin-down**: wheel resting, drum to 40 km/h, lift the wheel while running (detected from the speed ratio), the wheel coasts in the air (A₁, B₁) while the drum runs the idle plateaus (A₀, B₀); brake, wait for the wheel, lower it | H+A | A₀, B₀, points, drift relative to stored (W08); A₁, B₁ or W19 |
+| 7 | Wheel-loss model for this wheel. **Part of every run since 2026-11-26** (it depends on tire, tube and rim): fresh from step 6. Exception, a pressure series on the same wheel: step 6 offers "Use stored" only if the stored model comes from the same tire, tube, wheel and ETRTO (pressure may differ). The model stores the inputs of its run (`wm_org` in NVS). No "without model" any more; without a fresh model (W19) only Back to step 6 | H | A₁, B₁, J_wheel with origin (run, tire, tube, wheel, pressure), previous model of the same wheel for comparison, circumference |
 | 8 | Wheel placed, load confirmed | H | confirmed |
 | 9 | Warm-up 28.8 km/h, 30 min, live P and Crr, one point per minute, can be cut short (W11) | A | P(t), pressure and tire temperature warm |
 | 10 | Reference point 28.8, then plateaus, 3 × 10 revolutions each | A | per plateau M, σ, F_roll, Crr raw and corrected, u, ν, valid |
 | 11 | Reference point 28.8 again | A | anchor drift ΔM or W04 |
 | 12 | Stop: brake below 45 km/h, coast above | A | duration |
-| 13 | Lift wheel: zero check (W14), room temperature, post-run baseline | H+A, skippable (W05) | zero after run, drift pre/post per plateau |
+| 13 | Lift wheel: zero check (W14), post-run baseline | H+A, skippable (W05) | zero after run, drift pre/post per plateau |
 | 14 | Report: summary, warnings, .md and .csv | A | files |
 
 About 50 min with warm-up, of which 40 without operator.
@@ -235,7 +236,7 @@ Rendered by the ESP from the run record, reproducible with `crr.py`:
 
 ```
 # Measurement run <id>
-Tire · Wheel · Pressure cold / warm · Load · Room temperature start / end · Build
+Tire · ETRTO · Tube · Wheel · Pressure cold / warm · Load · AirSpy temperature start / end · Build
 
 ## Checks                table: Check | Result | Value   (incl. zero, end stop, check weight)
 ## Calibration state     table: Quantity | Value | Origin | As of
@@ -262,9 +263,9 @@ longest loop section, so the next blocker is found by reading, not guessing
 ([07-safety](07-safety.md) §10).
 
 **N2 The state machine hung in POINT after the dropout.** Fixed. Nothing told the state
-machine that the control loop had switched itself off; stillstand detection only looks
+machine that the control loop had switched itself off; standstill detection only looks
 while the loop runs. A stopped control loop in a driving phase is now a FAULT
-("Regelung hat abgeschaltet"), and `abortRun` always stops the state machine
+("Regelung hat abgeschaltet", control loop switched off), and `abortRun` always stops the state machine
 ([07-safety](07-safety.md) §4).
 
 **N3 Dead ends in the guided run.** Fixed. Several places offered no way on: a missing
@@ -310,7 +311,7 @@ it from the 1 to 2 % per point that the curve Crr(v) needs:
 
 | Item | today | after the open work |
 |---|---|---|
-| J_Rad estimated (K3) | 3.5 % | 0.5 % with the pendulum |
+| J_wheel estimated (K3) | 3.5 % | 0.5 % with the pendulum |
 | Pseudo-revolutions (K4) | ripple/2/N, measured per point | 0 with the mark sensor |
 | Calibration factor (W4, N5) | unverified | 0.2 % after linearity |
 | Wheel load (D4) | `calc`, 0.5 % assumed | `meas` |

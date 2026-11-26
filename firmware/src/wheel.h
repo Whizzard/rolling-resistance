@@ -1,49 +1,50 @@
 #pragma once
 //
-// Laufradumfang aus dem Drehzahlverhältnis — integriert, nicht momentan.
+// Wheel circumference from the speed ratio -- integrated, not instantaneous.
 //
-// Am Latsch sind die Umfangsgeschwindigkeiten gleich, also
-//     U_Rad = U_Trommel · (Trommelumdrehungen / Radumdrehungen)
-// über DASSELBE Zeitfenster. Die Radumdrehungen sind exakt: der Geber liefert
-// WHEEL_MARKS_PER_REV Impulse je Umdrehung, und das Fenster beginnt und endet
-// auf einem Impuls. Die Trommelumdrehungen werden über die Zeit aufintegriert
-// (revsrc::revPerSec, aus Regler oder Marken).
+// At the contact patch the surface speeds are equal, so
+//     U_wheel = U_drum · (drum revolutions / wheel revolutions)
+// over THE SAME time window. The wheel revolutions are exact: the sensor delivers
+// WHEEL_MARKS_PER_REV pulses per revolution, and the window starts and ends
+// on a pulse. The drum revolutions are integrated over time
+// (revsrc::revPerSec, from the controller or the marks).
 //
-// GLEITENDES FENSTER der letzten WHEEL_CIRC_WINDOW_REVS Radumdrehungen, bei jedem
-// Impuls neu gerechnet: fortlaufend, aber geglättet. Ein Momentanwert aus zwei
-// Drehzahlen flatterte mit jedem Impuls (Stand 2026-11-22); ein wachsendes
-// Fenster mit Stetigkeitsbedingung wurde nie voll, weil die Regelung auf dem
-// Plateau pendelt. Seit 2026-11-23 so. Beim Stillstand des Rads verfällt es.
+// SLIDING WINDOW of the last WHEEL_CIRC_WINDOW_REVS wheel revolutions, recomputed on
+// every pulse: continuous, but smoothed. An instantaneous value from two speeds
+// fluttered with every pulse (as of 2026-11-22); a growing window with a steadiness
+// condition never filled, because the control oscillates on the plateau.
+// Like this since 2026-11-23. At wheel standstill it expires.
 //
-// Das Ergebnis ist der WIRKSAME Abrollumfang unter Last, nicht das Nennmaß.
+// The result is the EFFECTIVE rolling circumference under load, not the nominal size.
 //
 #include <Arduino.h>
 
 namespace wheel {
 
 void begin();
-void service();           // zyklisch aus der Hauptschleife
+void service();           // cyclically from the main loop
 
-bool     valid();         // genug Umdrehungen auf stetiger Fahrt
-float    circumferenceM();// NAN, solange nicht valid()
-uint32_t revsUsed();      // Radumdrehungen im Fenster, hoechstens WHEEL_CIRC_WINDOW_REVS
+bool     valid();         // enough revolutions at steady speed
+float    circumferenceRawM();  // before the plausibility check, diagnostics
+float    circumferenceM();// NAN as long as not valid()
+uint32_t revsUsed();      // wheel revolutions in the window, at most WHEEL_CIRC_WINDOW_REVS
 
-// LAUFRAD-AUSLAUF (docs/08-stand.md §6, 09-messtheorie Gl. 12): Rad abgehoben,
-// von Hand oder vom Antrieb angeworfen, dann frei auslaufen lassen. Aus den
-// Impulsabstaenden kommt w_Rad(t), aus J_Rad die Verzoegerung als Moment:
+// WHEEL SPIN-DOWN (docs/08-stand.md §6, 09-measurement-theory eq. 12): wheel lifted,
+// spun up by hand or by the drive, then left to coast freely. The pulse intervals
+// give w_wheel(t), J_wheel turns the deceleration into a torque:
 //     -J dw/dt = A1 + B1 w^2
-// Gefittet wird mit der INTEGRALMETHODE (w(t) = w0 - a t - b Int w^2 dt, linear in
-// w0, a, b) ueber Regressionssummen, waehrend das Rad auslaeuft; steht es, wird
-// gespeichert (settings::setWheelModel). J_Rad kommt gemessen aus den Einstellungen
-// (Bifilarpendel, settings::wheelJKgm2) oder geschaetzt als WHEEL_J_FACTOR m r_Rad^2
-// mit der Radmasse aus den Einstellungen und r_Rad aus dem gemessenen Umfang -- der
-// muss also schon einmal bestimmt worden sein, und die Masse eingetragen.
-bool  spindownBegin();     // false: Masse oder Umfang fehlen
+// Fitted with the INTEGRAL METHOD (w(t) = w0 - a t - b Int w^2 dt, linear in
+// w0, a, b) via regression sums while the wheel coasts; once it stands, the result is
+// saved (settings::setWheelModel). J_wheel comes measured from the settings
+// (bifilar pendulum, settings::wheelJKgm2) or estimated as WHEEL_J_FACTOR m r_wheel^2
+// with the wheel mass from the settings and r_wheel from the measured circumference --
+// so that must have been determined once, and the mass entered.
+bool  spindownBegin();     // false: mass or circumference missing
 bool  spindownActive();
 uint32_t spindownRevs();
-float jRadKgm2();          // NAN, wenn Masse oder Umfang fehlen
-bool  jRadMeasured();      // true: aus dem Bifilarpendel, sonst geschaetzt
-float spindownResidRadS(); // Residuum des letzten Fits, rad/s; NAN ohne Fit
-uint32_t spindownFitN();   // Stuetzstellen des letzten Fits
+float jWheelKgm2();          // NAN if mass or circumference missing
+bool  jWheelMeasured();      // true: from the bifilar pendulum, otherwise estimated
+float spindownResidRadS(); // residual of the last fit, rad/s; NAN without a fit
+uint32_t spindownFitN();   // support points of the last fit
 
 }  // namespace wheel

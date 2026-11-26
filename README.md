@@ -79,9 +79,10 @@ masses, weigh the wheel load. The list with status is
 | [docs/09-measurement-theory.md](docs/09-measurement-theory.md) | Formulas, error budget, sensors, calibration, measurement matrix, procedure |
 | [docs/10-firmware.md](docs/10-firmware.md) | Firmware requirements |
 | [docs/11-review.md](docs/11-review.md) | Consolidated review of setup, run and methodology: status of every finding, target sequence, report format, bench-day findings; clickable prototype [11-run-prototype.html](docs/11-run-prototype.html) |
+| [docs/12-logbook.md](docs/12-logbook.md) | Logbook: what happened at the stand, day by day |
 
-There is no 02: the earlier measurement concept was merged into 09. Firmware comments
-and the web UI are in German; the documentation is in English.
+There is no 02: the earlier measurement concept was merged into 09. Everything in the
+repository is in English, including firmware comments and the web UI (since 2026-11-26).
 
 ## Repository layout
 
@@ -90,6 +91,7 @@ and the web UI are in German; the documentation is in English.
 | `firmware/` | PlatformIO project for the ESP32-S3: state machine, guided run, VESC driver, load cell, speed sources, BLE pressure sensor, web UI (`web/index.html` is baked into the binary) |
 | `analysis/` | `crr.py` evaluates a run record the same way the firmware does; `check_params.py` and `check_links.py` keep docs and code consistent |
 | `hardware/` | FreeCAD generators and exports of the printed parts, wiring and schematic generators, VESC configuration backups |
+| `logo/` | The vmrr logo (mark, favicon, app icons) |
 | `tools/` | Host-side tools: test-stand console over USB, manual VESC console, VESC backup |
 | `data/` | Averaged measurement points as CSV, unchanged (raw 80 SPS streams stay on the stand) |
 

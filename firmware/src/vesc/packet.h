@@ -1,56 +1,56 @@
 #pragma once
 //
-// Paketrahmen des VESC-Protokolls.
+// Packet framing of the VESC protocol.
 //
-//   1…255 Byte Nutzlast:    0x02  len[1]          Nutzlast  crc_hi crc_lo  0x03
-//   256…65535 Byte:         0x03  len_hi len_lo   Nutzlast  crc_hi crc_lo  0x03
+//   1…255 byte payload:     0x02  len[1]          payload  crc_hi crc_lo  0x03
+//   256…65535 bytes:        0x03  len_hi len_lo   payload  crc_hi crc_lo  0x03
 //
-// CRC16-CCITT/XMODEM: Polynom 0x1021, Startwert 0x0000, MSB zuerst, kein End-XOR,
-// gebildet AUSSCHLIESSLICH über die Nutzlast (nicht über Start- und Längenbytes),
-// übertragen big-endian. Alle Mehrbytezahlen im Protokoll sind big-endian.
+// CRC16-CCITT/XMODEM: polynomial 0x1021, initial value 0x0000, MSB first, no final XOR,
+// computed EXCLUSIVELY over the payload (not over start and length bytes),
+// transmitted big-endian. All multi-byte numbers in the protocol are big-endian.
 //
-// Das erste Nutzlastbyte ist immer die Befehlskennung; Antworten spiegeln sie.
+// The first payload byte is always the command id; answers echo it.
 //
-// Der Regler lehnt die lange Form ab, wenn die Nutzlast in die kurze passt
-// ("A shorter packet should use less length bytes") — frame() wählt deshalb selbst,
-// und Reader weist die lange Form mit kurzer Länge ebenfalls ab. Beide Seiten müssen
-// dieselbe Vorstellung davon haben, was ein gültiger Rahmen ist.
+// The controller rejects the long form if the payload fits into the short one
+// ("A shorter packet should use less length bytes") -- so frame() chooses itself,
+// and Reader rejects the long form with a short length as well. Both sides must
+// share the same idea of what a valid frame is.
 //
-// BEWUSST OHNE Arduino.h: so lässt sich dieser Teil auf dem Rechner übersetzen und
-// gegen bekannte Bytefolgen prüfen, bevor irgendetwas angeschlossen wird.
-// Siehe firmware/test/test_packet.cpp.
+// DELIBERATELY WITHOUT Arduino.h: this way this part can be compiled on the host and
+// checked against known byte sequences before anything is connected.
+// See firmware/test/test_packet/test_packet.cpp.
 //
 #include <cstddef>
 #include <cstdint>
 
 namespace vesc {
 
-// Größte Nutzlast, die der Regler annimmt (PACKET_MAX_PL_LEN der Firmware).
+// Largest payload the controller accepts (PACKET_MAX_PL_LEN of the firmware).
 constexpr size_t PAYLOAD_MAX = 512;
 
-// Größter vollständiger Rahmen: lange Form (3) + Nutzlast + Prüfsumme (2) + Ende (1).
+// Largest complete frame: long form (3) + payload + checksum (2) + end (1).
 constexpr size_t FRAME_MAX = PAYLOAD_MAX + 6;
 
-// Prüfsumme über die Nutzlast. Prüfwert für "123456789" ist 0x31C3 — das ist der
-// Katalogwert von CRC-16/XMODEM und damit eine vom Projekt unabhängige Gegenprobe.
+// Checksum over the payload. The check value for "123456789" is 0x31C3 -- that is the
+// catalogue value of CRC-16/XMODEM and thus a cross-check independent of the project.
 uint16_t crc16(const uint8_t* data, size_t len);
 
-// Rahmt payload nach out. Gibt die Gesamtlänge zurück oder 0, wenn out zu klein ist
-// oder die Nutzlast 0 bzw. größer als PAYLOAD_MAX wäre.
+// Frames payload into out. Returns the total length, or 0 if out is too small
+// or the payload would be 0 or larger than PAYLOAD_MAX.
 size_t frame(const uint8_t* payload, size_t len, uint8_t* out, size_t outCap);
 
-// Empfänger. Bytes einzeln einfüttern, nie blockierend — der ESP32 bedient nebenher
-// den Webserver.
+// Receiver. Feed bytes one at a time, never blocking -- the ESP32 serves the
+// web server alongside.
 //
-// Gepuffert und bei Bedarf NEU AUSGEWERTET, nicht als reine Zustandsmaschine: Eine
-// Zustandsmaschine, die auf ein gestörtes Längenbyte hereinfällt, verbraucht das
-// folgende echte Paket als vermeintliche Nutzlast und kann es nicht zurückholen.
-// Hier wird bei einem Fehler das vorderste Byte verworfen und ab der nächsten
-// Position erneut ausgewertet — damit kostet ein Störbyte höchstens ein Paket.
+// Buffered and RE-EVALUATED as needed, not as a pure state machine: a state
+// machine that falls for a corrupted length byte consumes the following real
+// packet as supposed payload and cannot get it back.
+// Here, on an error the front byte is discarded and evaluation restarts from the
+// next position -- so a noise byte costs at most one packet.
 class Reader {
  public:
-  // true, sobald ein vollständiges, prüfsummengeprüftes Paket vorliegt.
-  // payload() bleibt bis zum nächsten feed() gültig.
+  // true as soon as a complete, checksum-verified packet is available.
+  // payload() stays valid until the next feed().
   bool feed(uint8_t b);
 
   const uint8_t* payload() const { return m_rx + m_plOff; }
@@ -58,7 +58,7 @@ class Reader {
 
   void reset();
 
-  // Verworfene Bytes seit dem Start — Maß für die Leitungsqualität, fürs Protokoll.
+  // Discarded bytes since start -- a measure of line quality, for the log.
   uint32_t dropped() const { return m_dropped; }
 
  private:
@@ -68,10 +68,10 @@ class Reader {
   void dropFront(size_t k);
 
   uint8_t  m_rx[FRAME_MAX] = {0};
-  size_t   m_n = 0;          // Bytes im Puffer
-  size_t   m_plOff = 0;      // Beginn der Nutzlast im Puffer
-  size_t   m_plLen = 0;      // Länge der Nutzlast
-  size_t   m_pending = 0;    // nach Erfolg zu verwerfende Rahmenlänge
+  size_t   m_n = 0;          // bytes in the buffer
+  size_t   m_plOff = 0;      // start of the payload in the buffer
+  size_t   m_plLen = 0;      // length of the payload
+  size_t   m_pending = 0;    // frame length to discard after success
   uint32_t m_dropped = 0;
 };
 

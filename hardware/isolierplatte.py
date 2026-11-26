@@ -1,53 +1,52 @@
 # -*- coding: utf-8 -*-
 """
-Isolierplatten unter den beiden offenen Gehäusen: Wägeplatine (HX711) und
-Hall-Geber. 0,5 mm dünn, in der Kontur des jeweiligen Gehäuses, mit dem
-M6-Loch an derselben Stelle, und mit einem flachen Rand aussen herum, in dem
-das Gehäuse sitzt.
+Insulating plates under the two open housings: load-cell board (HX711) and
+Hall sensor. 0.5 mm thin, in the outline of the respective housing, with the
+M6 hole in the same place, and with a low rim around the outside in which
+the housing sits.
 
-Aufruf (nur das FreeCAD-eigene Python kann FreeCAD importieren):
+Invocation (only FreeCAD's own Python can import FreeCAD):
 
     /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/isolierplatte.py
 
-Erzeugt je Gehäuse hardware/isolierplatte-hx711.* und hardware/isolierplatte-hall.*
+Produces per housing hardware/isolierplatte-hx711.* and hardware/isolierplatte-hall.*
 (FCStd, STEP, STL).
 
-WARUM: Beide Gehäuse sind unten offen, die Platine liegt mit der Lötseite
-nach unten und nur solder_gap = 2 mm über der Montagefläche. Die ist
-Aluminium. Die Platte schließt die offene Seite und legt Kunststoff
-dazwischen.
+WHY: Both housings are open at the bottom, the board lies with the solder side
+down and only solder_gap = 2 mm above the mounting surface. That surface is
+aluminium. The plate closes the open side and puts plastic in between.
 
-KEINE EIGENEN MASSE: Kontur, Lochlage und Kanallage werden beim Bauen aus den
-PARAMS-Listen von hx711_gehaeuse.py und hall_gehaeuse.py gelesen (per ast,
-ohne die Skripte auszuführen). Ändert sich ein Gehäuse, läuft dieses Skript
-noch einmal und die Platte folgt. Dieselbe Zahl soll nicht an zwei Stellen
-stehen — das war im Projekt die Quelle fast aller Fehler.
+NO DIMENSIONS OF ITS OWN: outline, hole position and channel position are read
+at build time from the PARAMS lists of hx711_gehaeuse.py and hall_gehaeuse.py
+(via ast, without executing the scripts). If a housing changes, this script is
+run again and the plate follows. The same number should not stand in two
+places — in this project that was the source of almost all errors.
 
-KABELKANÄLE: Die Gehäuse klemmen das Kabel zwischen Kabelnut und
-Montagefläche; die Klemmstrecke ist absichtlich wenige Zehntel enger als das
-Kabel. 0,5 mm Platte darunter machten daraus das Doppelte und quetschten die
-dünnen Zellenlitzen. Deshalb ist die Platte unter den Kanälen ausgeschnitten,
-vom Ende der Kavität bis zum Plattenende, mit channel_clear Luft je Seite.
-Das Kabel liegt dort direkt auf dem Aluminium — es ist isoliert, die Platine
-nicht. Die Kavität selbst bleibt vollständig abgedeckt.
+CABLE CHANNELS: The housings clamp the cable between cable groove and mounting
+surface; the clamping section is deliberately a few tenths narrower than the
+cable. A 0.5 mm plate underneath would double that and squash the thin
+load-cell strands. That is why the plate is cut out under the channels, from
+the end of the cavity to the end of the plate, with channel_clear clearance per
+side. The cable lies directly on the aluminium there — it is insulated, the
+board is not. The cavity itself stays completely covered.
 
-RAND: Die Platte steht rim_w = 1 mm über die Gehäusekontur hinaus und trägt
-dort einen rim_h = 1 mm hohen Rand; innen bleibt die Gehäusegrundfläche plus
-fit_rim Luft als flache Wanne. Das Gehäuse sitzt darin und kann beim Anziehen
-der M6 nicht seitlich wandern. An den Kabelausgängen ist der Rand mit den
-Kanalschlitzen durchbrochen, damit er das Kabel nicht abknickt.
+RIM: The plate protrudes rim_w = 1 mm beyond the housing outline and carries a
+rim_h = 1 mm high rim there; inside, the housing footprint plus fit_rim
+clearance remains as a shallow tray. The housing sits in it and cannot move
+sideways when the M6 is tightened. At the cable exits the rim is interrupted by
+the channel slots so that it does not kink the cable.
 
-Beim HALL-GEHÄUSE fehlt der Rand an der Geberseite (x = 0): die Stirnwand dort
-ist nur 1,2 mm dick und steht mit dem Luftspalt vor den Magneten — ein
-Millimeter Rand davor ginge in den Luftspalt. Die Platte endet vorn bündig
-mit dem Gehäuse, die Wanne ist nach vorn offen; das Gehäuse wird von hinten
-eingeschoben und sitzt an drei Seiten.
+On the HALL HOUSING the rim is missing on the sensor side (x = 0): the end wall
+there is only 1.2 mm thick and faces the magnets across the air gap — a
+millimetre of rim in front of it would eat into the air gap. The plate ends
+flush with the housing at the front, the tray is open to the front; the housing
+is slid in from behind and is located on three sides.
 
-Featurebaum je Platte:
-    Platte        Rechteck um rim_w groesser als das Gehaeuse, plate_t + rim_h dick
-    Sitz          Gehaeusegrundflaeche + fit_rim, rim_h tief von oben -> die Wanne
-    M6_Loch       Ø m6_d, durch
-    Kanal...      je Kabelkanal ein Schlitz, durch Platte und Rand, zum Ende offen
+Feature tree per plate (object names as in FreeCAD):
+    Platte        plate, rectangle rim_w larger than the housing, plate_t + rim_h thick
+    Sitz          seat, housing footprint + fit_rim, rim_h deep from above -> the tray
+    M6_Loch       M6 hole, Ø m6_d, through
+    Kanal...      one slot per cable channel, through plate and rim, open to the end
 """
 
 import ast
@@ -63,20 +62,20 @@ from FreeCAD import Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-# Eigene Parameter der Platte. Alles andere kommt aus dem Gehäuse.
+# The plate's own parameters. Everything else comes from the housing.
 PLATE_PARAMS = [
-    ('plate_t',        0.5, 'Plattendicke unter dem Gehaeuse'),
-    ('rim_w',          1.0, 'Rand: Ueberstand ueber die Gehaeusekontur'),
-    ('rim_h',          1.0, 'Rand: Hoehe ueber der Platte'),
-    ('fit_rim',        0.2, 'Luft in der Wanne, GESAMT -> 0,1 je Seite'),
-    ('channel_clear',  0.5, 'Luft je Seite am Kanalschlitz'),
+    ('plate_t',        0.5, 'Plate thickness under the housing'),
+    ('rim_w',          1.0, 'Rim: overhang beyond the housing outline'),
+    ('rim_h',          1.0, 'Rim: height above the plate'),
+    ('fit_rim',        0.2, 'Clearance in the tray, TOTAL -> 0.1 per side'),
+    ('channel_clear',  0.5, 'Clearance per side at the channel slot'),
 ]
 
-# Welches Gehäuse liefert was. Die rechte Seite sind Namen aus dessen PARAMS.
+# Which housing supplies what. The right-hand side are names from its PARAMS.
 #   hole_x/hole_y/hole_d  M6
-#   chan_x0               Anfang der Kanalschlitze (Ende der Kavität)
-#   channels              Liste (Lage y als Ausdruck, Breite als Ausdruck)
-#   rim_front             Rand auch an der Stirnseite x = 0?
+#   chan_x0               start of the channel slots (end of the cavity)
+#   channels              list (position y as expression, width as expression)
+#   rim_front             rim also on the front side x = 0?
 PLATES = {
     'hx711': {
         'source': 'hx711_gehaeuse.py',
@@ -88,7 +87,7 @@ PLATES = {
     },
     'hall': {
         'source': 'hall_gehaeuse.py',
-        'rim_front': False,   # Geberseite: nichts vor die Stirnwand
+        'rim_front': False,   # sensor side: nothing in front of the end wall
         'hole_x': 'm6_x', 'hole_y': 'm6_y', 'hole_d': 'm6_d',
         'chan_x0': '=cav_x0 + cav_l',
         'channels': [('=cab_y', '=cab_d')],
@@ -97,21 +96,21 @@ PLATES = {
 
 
 def read_params(filename):
-    """PARAMS-Liste eines Gehäuseskripts lesen, ohne es auszuführen."""
+    """Read the PARAMS list of a housing script without executing it."""
     src = open(os.path.join(HERE, filename), encoding='utf-8').read()
     tree = ast.parse(src, filename)
     for node in tree.body:
         if isinstance(node, ast.Assign) and len(node.targets) == 1 \
                 and getattr(node.targets[0], 'id', None) == 'PARAMS':
             return ast.literal_eval(node.value)
-    raise RuntimeError('%s: keine PARAMS gefunden' % filename)
+    raise RuntimeError('%s: no PARAMS found' % filename)
 
 
 def build_sheet(doc, params):
     sh = doc.addObject('Spreadsheet::Sheet', 'Parameter')
     sh.set('A1', 'Parameter')
-    sh.set('B1', 'Wert')
-    sh.set('C1', 'Bedeutung')
+    sh.set('B1', 'Value')
+    sh.set('C1', 'Meaning')
     for i, (name, val, note) in enumerate(params):
         r = i + 2
         sh.set('A%d' % r, name)
@@ -129,21 +128,21 @@ def P(sh, name):
 
 
 def expr(e):
-    """'=a + b' -> 'Parameter.a + Parameter.b'; ein Name -> 'Parameter.name'."""
+    """'=a + b' -> 'Parameter.a + Parameter.b'; a name -> 'Parameter.name'."""
     import re
     s = e[1:] if e.startswith('=') else e
     return re.sub(r'\b([A-Za-z_]\w*)\b', r'Parameter.\1', s)
 
 
 def value(sh, e):
-    """Zahlenwert eines Ausdrucks ueber die Tabelle."""
+    """Numeric value of an expression via the table."""
     import re
     s = e[1:] if e.startswith('=') else e
     s = re.sub(r'\b([A-Za-z_]\w*)\b', lambda m: repr(P(sh, m.group(1))), s)
     return float(eval(s, {'__builtins__': {}}, {}))
 
 
-# ------------------------------------------------------------ Skizzenhilfen
+# ----------------------------------------------------------- Sketch helpers
 
 def named(sk, con, name):
     i = sk.addConstraint(con)
@@ -198,7 +197,7 @@ def sketch_on(body, plane, name, expr_off=None):
     return sk
 
 
-# ------------------------------------------------------------------- Modell
+# -------------------------------------------------------------------- Model
 
 def build(doc, sh, spec):
     body = doc.addObject('PartDesign::Body', 'Platte')
@@ -213,10 +212,10 @@ def build(doc, sh, spec):
         doc.recompute()
         return f
 
-    # 1 Platte, um rim_w groesser als das Gehaeuse, in voller Hoehe plate_t +
-    #   rim_h. Gleiches Koordinatensystem wie das Gehaeuse: x = 0 an der
-    #   Stirnwand, y = 0 in der Mitte, z = 0 ist die Auflage auf dem Profil.
-    over = P(sh, 'rim_w') + P(sh, 'fit_rim') / 2        # Ueberstand je Seite
+    # 1 Plate, rim_w larger than the housing, at the full height plate_t +
+    #   rim_h. Same coordinate system as the housing: x = 0 at the end wall,
+    #   y = 0 in the middle, z = 0 is the contact face on the profile.
+    over = P(sh, 'rim_w') + P(sh, 'fit_rim') / 2        # overhang per side
     e_over = '(Parameter.rim_w + Parameter.fit_rim / 2)'
     x0 = -over if spec['rim_front'] else 0.0
     e_x0 = '-' + e_over if spec['rim_front'] else '0'
@@ -231,9 +230,9 @@ def build(doc, sh, spec):
     f.setExpression('Length', 'Parameter.plate_t + Parameter.rim_h')
     doc.recompute()
 
-    # 1a Sitz: die Gehaeusegrundflaeche plus Luft, rim_h tief von oben. Ohne
-    #    Rand an der Stirnseite reicht das Rechteck ueber die Kante hinaus, die
-    #    Wanne ist dort offen.
+    # 1a Seat: the housing footprint plus clearance, rim_h deep from above.
+    #    Without a rim on the front side the rectangle extends beyond the edge,
+    #    the tray is open there.
     fit = P(sh, 'fit_rim') / 2
     sx0 = -fit if spec['rim_front'] else -1.0
     e_sx0 = '-Parameter.fit_rim / 2' if spec['rim_front'] else '-1'
@@ -248,14 +247,14 @@ def build(doc, sh, spec):
     f.setExpression('Length', 'Parameter.rim_h')
     doc.recompute()
 
-    # 2 M6-Loch, dieselbe Lage wie im Gehäuse.
+    # 2 M6 hole, same position as in the housing.
     hx, hy, hd = spec['hole_x'], spec['hole_y'], spec['hole_d']
     sk = sketch_on(body, xy, 'Sk_M6')
     circle(sk, P(sh, hx), P(sh, hy), P(sh, hd) / 2, 'm6',
            expr(hx), expr(hy), expr(hd) + ' / 2')
     pocket_through(sk, 'M6_Loch')
 
-    # 3 Kanalschlitze: vom Ende der Kavität bis über das Plattenende hinaus.
+    # 3 Channel slots: from the end of the cavity to beyond the end of the plate.
     x0 = value(sh, spec['chan_x0'])
     for i, (e_y, e_w) in enumerate(spec['channels']):
         y, w = value(sh, e_y), value(sh, e_w) + 2 * P(sh, 'channel_clear')
@@ -270,10 +269,10 @@ def build(doc, sh, spec):
     return body
 
 
-# FreeCAD speichert die Sichtbarkeit fuer das GUI NICHT in Document.xml, sondern in
-# einer GuiDocument.xml mit je einem ViewProvider pro Objekt. Headless entsteht die
-# nicht — deshalb oeffnet sich eine so erzeugte Datei mit Default-Sichtbarkeiten:
-# Skizzen an, Koerper aus. Die schreiben wir nach dem Speichern selbst ins Archiv.
+# FreeCAD does NOT store the GUI visibility in Document.xml but in a
+# GuiDocument.xml with one ViewProvider per object. Headless, that file is not
+# created -- so a file produced this way opens with default visibilities:
+# sketches on, bodies off. We write it into the archive ourselves after saving.
 
 _GUI_HEAD = """<?xml version='1.0' encoding='utf-8'?>
 <!--
@@ -335,34 +334,34 @@ def check(body, sh, spec):
     ok = True
     hx, hy = P(sh, spec['hole_x']), P(sh, spec['hole_y'])
     if s.isInside(Vector(hx, hy, P(sh, 'plate_t') / 2), 1e-6, True):
-        print('FEHLER M6-Loch fehlt'); ok = False
+        print('ERROR M6 hole missing'); ok = False
     x0 = value(sh, spec['chan_x0'])
     for e_y, e_w in spec['channels']:
         y = value(sh, e_y)
         if s.isInside(Vector(x0 + 1.0, y, P(sh, 'plate_t') / 2), 1e-6, True):
-            print('FEHLER Kanalschlitz fehlt bei y = %.1f' % y); ok = False
-        # Kavitaet bleibt zu: Material kurz vor dem Schlitzanfang
+            print('ERROR channel slot missing at y = %.1f' % y); ok = False
+        # cavity stays closed: material just before the slot start
         if not s.isInside(Vector(x0 - 0.5, y, P(sh, 'plate_t') / 2), 1e-6, True):
-            print('FEHLER Schlitz reicht in die Kavitaet'); ok = False
-    # Wanne: Gehaeuseecke liegt auf plate_t, der Rand daneben steht rim_h hoeher
+            print('ERROR slot reaches into the cavity'); ok = False
+    # tray: housing corner lies on plate_t, the rim beside it stands rim_h higher
     t, h = P(sh, 'plate_t'), P(sh, 'rim_h')
     yc = P(sh, 'w_out') / 2
     if s.isInside(Vector(x0 - 2.0, yc - 0.5, t + h / 2), 1e-6, True):
-        print('FEHLER Wanne fehlt (Material ueber der Gehaeuseflaeche)'); ok = False
+        print('ERROR tray missing (material above the housing footprint)'); ok = False
     if not s.isInside(Vector(x0 - 2.0, yc + P(sh, 'fit_rim') / 2 + P(sh, 'rim_w') / 2,
                              t + h / 2), 1e-6, True):
-        print('FEHLER Rand fehlt an der Laengsseite'); ok = False
+        print('ERROR rim missing on the long side'); ok = False
     front = s.isInside(Vector(-P(sh, 'rim_w') / 2, 0.0, t + h / 2), 1e-6, True)
     if front != bool(spec['rim_front']):
-        print('FEHLER Rand an der Stirnseite: %s, erwartet %s'
+        print('ERROR rim on the front side: %s, expected %s'
               % (front, spec['rim_front'])); ok = False
-    # Steg zwischen Loch und Schlitzen
+    # web between hole and slots
     for e_y, e_w in spec['channels']:
         y, w = value(sh, e_y), value(sh, e_w) + 2 * P(sh, 'channel_clear')
         web = abs(y - hy) - w / 2 - P(sh, spec['hole_d']) / 2
-        print('Steg Loch-Kanal %.1f mm' % web)
+        print('Web hole-channel %.1f mm' % web)
         if web < 1.5:
-            print('FEHLER Steg zwischen Loch und Kanal unter 1,5 mm'); ok = False
+            print('ERROR web between hole and channel below 1.5 mm'); ok = False
     return ok
 
 
@@ -386,20 +385,20 @@ def main():
         body.Shape.exportStl(os.path.join(HERE, name + '.stl'))
 
         bb = body.Shape.BoundBox
-        print('== %s  aus %s' % (name, spec['source']))
-        print('Aussenmass  %.1f x %.1f x %.1f mm'
+        print('== %s  from %s' % (name, spec['source']))
+        print('Outer size  %.1f x %.1f x %.1f mm'
               % (bb.XLength, bb.YLength, bb.ZLength))
         print('M6          x = %.1f, y = %.1f, Ø %.1f'
               % (P(sh, spec['hole_x']), P(sh, spec['hole_y']), P(sh, spec['hole_d'])))
-        print('Gueltig     %s' % body.Shape.isValid())
-        print('Plausibel   %s' % check(body, sh, spec))
+        print('Valid       %s' % body.Shape.isValid())
+        print('Plausible   %s' % check(body, sh, spec))
         bad = [o.Name for o in doc.Objects if getattr(o, 'State', None)
                and 'Invalid' in o.State]
-        print('Fehlerhaft  %s' % (bad if bad else 'keine'))
+        print('Invalid     %s' % (bad if bad else 'none'))
         offen = [o.Name for o in doc.Objects
                  if o.isDerivedFrom('Sketcher::SketchObject')
                  and not getattr(o, 'FullyConstrained', True)]
-        print('Skizzen     nicht voll bestimmt: %s' % (offen if offen else 'keine'))
+        print('Sketches    not fully constrained: %s' % (offen if offen else 'none'))
         App.closeDocument(doc.Name)
 
 

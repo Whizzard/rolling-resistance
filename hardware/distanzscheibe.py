@@ -1,42 +1,41 @@
 # -*- coding: utf-8 -*-
 """
-Distanzscheibe mit Rastnase fuer das Aluminiumprofil, zum Drucken.
+Spacer disc with a locating key for the aluminium profile, for printing.
 
-Scheibe 40 mm aussen, 5 mm dick, Loch 8,5 mm (M8 Durchgang), auf der einen
-Stirnseite eine Rastnase 8 mm breit und 3 mm hoch, als Steg quer ueber die ganze
-Flaeche -- die Scheibe liegt flach auf dem Aluprofil, der Steg greift in die Nut und
-verdrehsichert sie, die M8 geht durch die Scheibe in die Nut. Um die Bohrung ist der
-Steg auf nose_gap = 9 mm ausgespart (zwei Stegstuecke mit geraden Innenkanten, kein
-Rundungsrest um das Loch). Alle senkrechten Kanten der Stegstuecke, innen an der
-Aussparung und aussen am Umfang, sind mit nose_r = 1 mm verrundet -- die Enden
-werden damit oval.
+Disc 40 mm outside, 5 mm thick, hole 8.5 mm (M8 clearance), on one face a locating
+key 8 mm wide and 3 mm high, as a rib across the whole face -- the disc lies flat on
+the aluminium profile, the rib engages the slot and keeps the disc from turning, the
+M8 goes through the disc into the slot. Around the bore the rib is cut away to
+nose_gap = 9 mm (two rib pieces with straight inner edges, no leftover rounding around
+the hole). All vertical edges of the rib pieces, inside at the cut-out and outside at
+the circumference, are filleted with nose_r = 1 mm -- this makes the ends oval.
 
-Aufbau wie libellen_clip.py: ein PartDesign-Body mit Featurebaum plus Spreadsheet
-"Parameter"; alle Skizzen ueber Ausdruecke an die Tabelle gebunden. Masse aendert man
-im GUI in der Tabelle, nicht in den Skizzen. Masse in mm.
+Structure as in libellen_clip.py: one PartDesign body with a feature tree plus a
+spreadsheet "Parameter"; all sketches are bound to the table through expressions.
+Change dimensions in the GUI in the table, not in the sketches. Dimensions in mm.
 
-Aufruf (nur das FreeCAD-eigene Python kann FreeCAD importieren):
+Invocation (only FreeCAD's own Python can import FreeCAD):
 
     /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/distanzscheibe.py
 
-Erzeugt hardware/distanzscheibe.FCStd, .step und .stl.
+Produces hardware/distanzscheibe.FCStd, .step and .stl.
 
-LAGE: Scheibe in der XY-Ebene, Lochachse = z, z = 0 ist die Flachseite, die vom
-Profil weg zeigt. Der Steg sitzt auf der Stirnseite z = disc_t, laeuft entlang x
-(= Nutrichtung), ist nose_b breit (y) und nose_h hoch (z). Seine Laenge ist so
-gewaehlt, dass die Ecken gerade auf dem Umfang liegen: nose_l = 2 sqrt(r^2 -
-(nose_b/2)^2), nichts steht ueber die Scheibe hinaus. Die Flanken laufen parallel
-(kein Keil), damit der Steg in der Nut spielfrei anliegt: Breite = nose_w - nose_fit.
+POSITION: disc in the XY plane, hole axis = z, z = 0 is the flat side facing away
+from the profile. The rib sits on the face z = disc_t, runs along x (= slot
+direction), is nose_b wide (y) and nose_h high (z). Its length is chosen so that the
+corners lie exactly on the circumference: nose_l = 2 sqrt(r^2 - (nose_b/2)^2),
+nothing protrudes beyond the disc. The flanks are parallel (no wedge) so that the rib
+sits in the slot without play: width = nose_w - nose_fit.
 
-Featurebaum:
-    Scheibe     Kreis Ø disc_d, Pad disc_t
-    Nase        zwei Rechtecke je (nose_l - nose_gap)/2 x nose_b auf der Stirnseite,
-                beidseits der Aussparung nose_gap um die Bohrung, Pad nose_h
-    Rundung     Fillet nose_r an den acht senkrechten Stegkanten
-    Loch        Ø hole_d durch die Scheibe
+Feature tree:
+    Scheibe     circle Ø disc_d, pad disc_t
+    Nase        two rectangles of (nose_l - nose_gap)/2 x nose_b each on the face,
+                either side of the cut-out nose_gap around the bore, pad nose_h
+    Rundung     fillet nose_r on the eight vertical rib edges
+    Loch        Ø hole_d through the disc
 
-Druck: Scheibe mit der stegfreien Seite aufs Bett, der Steg steht oben -- keine
-Stuetze, keine Ueberhaenge.
+Printing: disc with the rib-free side on the bed, the rib on top -- no supports, no
+overhangs.
 """
 
 import os
@@ -51,26 +50,26 @@ from FreeCAD import Vector
 
 # --------------------------------------------------------------- Parameter
 PARAMS = [
-    ('disc_d',    40.0, 'Scheibe Aussendurchmesser'),
-    ('disc_t',     5.0, 'Scheibe dick'),
-    ('hole_d',     8.5, 'Loch, M8 Durchgang'),
-    ('nose_w',     8.0, 'Rastnase breit, Nennmass der Profilnut'),
-    ('nose_fit',   0.2, 'Spiel in der Nutbreite, GESAMT -- Druckaufmass'),
-    ('nose_h',     3.0, 'Rastnase hoch, axial ueber die Stirnseite'),
-    ('nose_gap',   9.0, 'Aussparung des Stegs um die Bohrung, Gesamtbreite'),
-    ('nose_r',     1.0, 'Rundung der senkrechten Stegkanten, innen und aussen'),
-    # Abgeleitet
-    ('nose_b',  '=nose_w - nose_fit',                           'Steg gedruckt breit'),
-    ('nose_l',  '=2 * sqrt((disc_d / 2)^2 - (nose_b / 2)^2)',   'Steg lang (gesamt): Ecken genau auf dem Umfang'),
-    ('nose_seg', '=(nose_l - nose_gap) / 2',                     'ein Stegstueck lang'),
+    ('disc_d',    40.0, 'Disc outer diameter'),
+    ('disc_t',     5.0, 'Disc thickness'),
+    ('hole_d',     8.5, 'Hole, M8 clearance'),
+    ('nose_w',     8.0, 'Key width, nominal size of the profile slot'),
+    ('nose_fit',   0.2, 'Play in the slot width, TOTAL -- print allowance'),
+    ('nose_h',     3.0, 'Key height, axially above the face'),
+    ('nose_gap',   9.0, 'Cut-out of the rib around the bore, total width'),
+    ('nose_r',     1.0, 'Fillet of the vertical rib edges, inside and outside'),
+    # Derived
+    ('nose_b',  '=nose_w - nose_fit',                           'Rib width as printed'),
+    ('nose_l',  '=2 * sqrt((disc_d / 2)^2 - (nose_b / 2)^2)',   'Rib length (total): corners exactly on the circumference'),
+    ('nose_seg', '=(nose_l - nose_gap) / 2',                     'length of one rib piece'),
 ]
 
 
 def build_sheet(doc):
     sh = doc.addObject('Spreadsheet::Sheet', 'Parameter')
     sh.set('A1', 'Parameter')
-    sh.set('B1', 'Wert')
-    sh.set('C1', 'Bedeutung')
+    sh.set('B1', 'Value')
+    sh.set('C1', 'Meaning')
     for i, (name, val, note) in enumerate(PARAMS):
         r = i + 2
         sh.set('A%d' % r, name)
@@ -87,7 +86,7 @@ def P(sh, name):
     return float(sh.get(name))
 
 
-# ------------------------------------------------------------ Skizzenhilfen
+# ----------------------------------------------------------- Sketch helpers
 
 def named(sk, con, name):
     i = sk.addConstraint(con)
@@ -143,7 +142,7 @@ def sketch_on(body, plane, name, expr_off=None):
     return sk
 
 
-# ------------------------------------------------------------------- Modell
+# -------------------------------------------------------------------- Model
 
 def build(doc, sh):
     body = doc.addObject('PartDesign::Body', 'Distanzscheibe')
@@ -157,13 +156,13 @@ def build(doc, sh):
         doc.recompute()
         return f
 
-    # 1 Scheibe
+    # 1 Disc
     sk = sketch_on(body, xy, 'Sk_Scheibe')
     circle(sk, 0.0, 0.0, P(sh, 'disc_d') / 2, 'sc', '0', '0', 'Parameter.disc_d / 2')
     pad(sk, 'Scheibe', 'Parameter.disc_t')
 
-    # 2 Steg auf der Stirnseite z = disc_t, entlang x, in zwei Stuecken beidseits der
-    #   eckigen Aussparung nose_gap um die Bohrung
+    # 2 Rib on the face z = disc_t, along x, in two pieces either side of the
+    #   square cut-out nose_gap around the bore
     nb, nl, gap, seg = P(sh, 'nose_b'), P(sh, 'nose_l'), P(sh, 'nose_gap'), P(sh, 'nose_seg')
     sk = sketch_on(body, xy, 'Sk_Nase', expr_off='Parameter.disc_t')
     rect(sk, gap / 2, -nb / 2, seg, nb, 'np',
@@ -174,7 +173,7 @@ def build(doc, sh):
          'Parameter.nose_seg', 'Parameter.nose_b')
     nase = pad(sk, 'Nase', 'Parameter.nose_h')
 
-    # 2a Rundung: alle senkrechten Kanten des Stegs (parallel z, oberhalb der Scheibe)
+    # 2a Fillet: all vertical edges of the rib (parallel to z, above the disc)
     t, h = P(sh, 'disc_t'), P(sh, 'nose_h')
     edges = []
     for i, e in enumerate(nase.Shape.Edges):
@@ -188,9 +187,9 @@ def build(doc, sh):
     f.Base = (nase, edges)
     f.setExpression('Radius', 'Parameter.nose_r')
     doc.recompute()
-    print('Rundung an %d Kanten' % len(edges))
+    print('Fillet on %d edges' % len(edges))
 
-    # 3 Loch durch alles
+    # 3 Hole through all
     sk = sketch_on(body, xy, 'Sk_Loch')
     circle(sk, 0.0, 0.0, P(sh, 'hole_d') / 2, 'ho', '0', '0', 'Parameter.hole_d / 2')
     f = body.newObject('PartDesign::Pocket', 'Loch')
@@ -263,40 +262,40 @@ def check(body, sh):
     r, t = P(sh, 'disc_d') / 2, P(sh, 'disc_t')
     zm = t / 2
     if inside(0.0, 0.0, zm):
-        print('FEHLER Loch fehlt'); ok = False
+        print('ERROR hole missing'); ok = False
     if not inside(P(sh, 'hole_d') / 2 + 0.5, 0.0, zm):
-        print('FEHLER keine Scheibe neben dem Loch'); ok = False
+        print('ERROR no disc next to the hole'); ok = False
     if not inside(r - 0.5, 0.0, zm):
-        print('FEHLER Scheibe am Rand fehlt'); ok = False
+        print('ERROR disc missing at the rim'); ok = False
     if inside(r + 0.5, 0.0, zm):
-        print('FEHLER Material ausserhalb der Scheibe (x)'); ok = False
-    zn = t + P(sh, 'nose_h') / 2            # Steghoehe
-    xs = P(sh, 'nose_gap') / 2 + 2.0        # neben der Aussparung, auf dem Steg
+        print('ERROR material outside the disc (x)'); ok = False
+    zn = t + P(sh, 'nose_h') / 2            # rib height
+    xs = P(sh, 'nose_gap') / 2 + 2.0        # next to the cut-out, on the rib
     if inside(P(sh, 'nose_gap') / 2 - 0.2, 0.0, zn) or inside(P(sh, 'hole_d') / 2 + 0.1, 0.0, zn):
-        print('FEHLER Aussparung um die Bohrung fehlt'); ok = False
+        print('ERROR cut-out around the bore missing'); ok = False
     if not inside(P(sh, 'nose_gap') / 2 - 0.2, 0.0, zm) and P(sh, 'nose_gap') > P(sh, 'hole_d'):
-        print('FEHLER Scheibe unter der Aussparung fehlt'); ok = False
+        print('ERROR disc missing under the cut-out'); ok = False
     if not inside(xs, 0.0, zn):
-        print('FEHLER Steg fehlt'); ok = False
+        print('ERROR rib missing'); ok = False
     if inside(xs, 0.0, t + P(sh, 'nose_h') + 0.5):
-        print('FEHLER Steg zu hoch'); ok = False
+        print('ERROR rib too high'); ok = False
     if inside(xs, P(sh, 'nose_b') / 2 + 0.3, zn):
-        print('FEHLER Steg zu breit'); ok = False
-    # Rundung: die Ecke selbst ist weg, 1,5 mm daneben ist noch Steg
+        print('ERROR rib too wide'); ok = False
+    # Fillet: the corner itself is gone, 1.5 mm beside it there is still rib
     cx, cy = P(sh, 'nose_gap') / 2 + 0.2, P(sh, 'nose_b') / 2 - 0.2
     if inside(cx, cy, zn):
-        print('FEHLER Innenecke nicht verrundet'); ok = False
+        print('ERROR inner corner not filleted'); ok = False
     if not inside(cx + 1.5, cy, zn):
-        print('FEHLER Steg neben der Rundung fehlt'); ok = False
+        print('ERROR rib next to the fillet missing'); ok = False
     if inside(0.0, 0.0, zn):
-        print('FEHLER Loch geht nicht durch den Steg'); ok = False
+        print('ERROR hole does not go through the rib'); ok = False
     if inside(0.0, r - 1.0, zn):
-        print('FEHLER Material auf der Stirnseite neben dem Steg'); ok = False
+        print('ERROR material on the face next to the rib'); ok = False
     if inside(r + 0.3, 0.0, zn):
-        print('FEHLER Steg steht ueber den Umfang'); ok = False
+        print('ERROR rib protrudes beyond the circumference'); ok = False
     if inside(xs, 0.0, -0.3):
-        print('FEHLER Material unter der Scheibe'); ok = False
-    print('Steg gedruckt %.1f breit, 2 x %.1f lang, %.1f hoch, Aussparung %.1f, Rundung r %.1f; Loch Ø %.1f'
+        print('ERROR material below the disc'); ok = False
+    print('Rib as printed %.1f wide, 2 x %.1f long, %.1f high, cut-out %.1f, fillet r %.1f; hole Ø %.1f'
           % (P(sh, 'nose_b'), P(sh, 'nose_seg'), P(sh, 'nose_h'), P(sh, 'nose_gap'), P(sh, 'nose_r'), P(sh, 'hole_d')))
     return ok
 
@@ -319,17 +318,17 @@ def main():
     body.Shape.exportStl(os.path.join(here, 'distanzscheibe.stl'))
 
     bb = body.Shape.BoundBox
-    print('Aussenmass  %.1f x %.1f x %.1f mm' % (bb.XLength, bb.YLength, bb.ZLength))
-    print('Volumen     %.0f mm3' % body.Shape.Volume)
-    print('Gueltig     %s' % body.Shape.isValid())
-    print('Plausibel   %s' % check(body, sh))
+    print('Outer size  %.1f x %.1f x %.1f mm' % (bb.XLength, bb.YLength, bb.ZLength))
+    print('Volume      %.0f mm3' % body.Shape.Volume)
+    print('Valid       %s' % body.Shape.isValid())
+    print('Plausible   %s' % check(body, sh))
     bad = [o.Name for o in doc.Objects if getattr(o, 'State', None) and 'Invalid' in o.State]
-    print('Fehlerhaft  %s' % (bad if bad else 'keine'))
+    print('Invalid     %s' % (bad if bad else 'none'))
     offen = [o.Name for o in doc.Objects
              if o.isDerivedFrom('Sketcher::SketchObject') and not getattr(o, 'FullyConstrained', True)]
-    print('Skizzen     %d, davon nicht voll bestimmt: %s'
+    print('Sketches    %d, not fully constrained: %s'
           % (len([o for o in doc.Objects if o.isDerivedFrom('Sketcher::SketchObject')]),
-             offen if offen else 'keine'))
+             offen if offen else 'none'))
 
 
 if __name__ == '__main__':

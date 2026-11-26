@@ -1,45 +1,45 @@
 # -*- coding: utf-8 -*-
 """
-Reiter fuer den Waagebalken (Kalibrierarm): schiebbar, mit einer M6 quer unter dem
-Balken geklemmt, oben eine Fahne mit dem Loch fuer den 2-mm-Drahthaken, an dem das
-Kalibriergewicht haengt. Zum Drucken, ohne Stuetze.
+Rider for the balance beam (calibration arm): slidable, clamped with an M6 across
+under the beam, at the top a tab with the hole for the 2 mm wire hook from which the
+calibration weight hangs. For printing, without supports.
 
-Balken (Angabe 2026-11-24): 15 mm breit, 25 mm hoch. Loch fuer den Draht im Zentrum,
-15 mm ueber der Balkenoberkante. Zwei Klemmschrauben, je eine an jedem Ende, AUSSERHALB
-des Bereichs, den die Arme des Gewichtsclips beim Pendeln ueberstreichen (bei 15 Grad
-und 40 mm unter dem Drehpunkt +-11 mm um die Mitte, dazu der Schraubenkopf).
+Beam (stated 2026-11-24): 15 mm wide, 25 mm high. Hole for the wire in the centre,
+15 mm above the top of the beam. Two clamping screws, one at each end, OUTSIDE the
+area swept by the arms of the weight clip while swinging (at 15 degrees and 40 mm
+below the pivot +-11 mm about the centre, plus the screw head).
 
-LAGE: x laeuft entlang des Balkens, y quer, z nach oben. Der Balken liegt bei
-y = +-beam_w/2, z = 0 (Unterkante) bis beam_h (Oberkante). Der Reiter ist ein U-Profil,
-ueber die Laenge len entlang x konstant -- deshalb druckt er LIEGEND AUF DER STIRNSEITE
-("als U"): alle Waende stehen senkrecht; Drahtloch und M6-Loecher (beide Achse y,
-quer zum Rohr) sind kurze waagerechte Bruecken, das Drahtloch wird nachgebohrt.
+POSITION: x runs along the beam, y across, z upwards. The beam lies at
+y = +-beam_w/2, z = 0 (underside) to beam_h (top). The rider is a U profile, constant
+over the length len along x -- therefore it prints LYING ON ITS END FACE ("as a U"):
+all walls stand vertical; the wire hole and M6 holes (both axis y, across the tube)
+are short horizontal bridges, the wire hole is drilled out afterwards.
 
-Profil (y-z), von unten nach oben:
-    Schenkel     zwei, leg_t = 1,5 dick, von z = -leg_below (unter dem Balken) bis zur
-                 Decke; an jeder Schraube aussen ein Klotz boss_t dick (Gewinde und
-                 Kopfauflage), vom Reiterende boss_len nach innen, innen mit
-                 45-Grad-Anlauf (am +x-Ende ist das die Druckunterseite)
-    Decke        top_t dick ueber dem Balken, mit fit_z Luft
-    Hoecker      NUR an der Querbohrung, ueber die GANZE Breite des Reiters, symmetrisch:
-                 oben hump_w lang (x), bis hump_over ueber die Lochmitte, beidseitig
-                 45-Grad-Flanken zur Decke (die -x-Flanke ist beim liegenden Druck die
-                 Unterseite und braucht keine Stuetze)
-Loecher:
-    Draht        Ø wire_d + fit, Achse y (QUER zum Rohr, parallel zur Klemmschraube),
-                 mittig in x, hole_h ueber der Balkenoberkante, durch die ganze Breite:
-                 der Draht laeuft im Hoecker ueber 2 * y_out, nicht nur ueber eine
-                 schmale Fahne. Er ist der Drehpunkt fuer den Gewichtsclip
-                 (gewichtsclip.py); die Lochmitte ist der Angriffspunkt in x.
-    M6 quer      zwei, Achse y, bei x = +-screw_x, screw_below unter dem Balken: vorne
-                 (+y) Durchgang Ø 6,4, hinten (-y) ein MODELLIERTES M6-Gewinde (PartDesign-
-                 Bohrung, ISO-Profil, wie in esp_spange.py). Anziehen zieht die Schenkel
-                 unten zusammen und klemmt den Balken. Mit 0,1 bis 0,15 mm Schichten
-                 kommt das Gewinde brauchbar heraus; sonst einmal den Gewindebohrer
-                 durchdrehen, der findet die Gaenge.
+Profile (y-z), from bottom to top:
+    Legs         two, leg_t = 1.5 thick, from z = -leg_below (below the beam) up to
+                 the roof; at each screw a block boss_t thick outside (thread and
+                 head seat), from the rider end boss_len inwards, with a 45 degree
+                 lead-in on the inside (at the +x end that is the print underside)
+    Roof         top_t thick above the beam, with fit_z clearance
+    Hump         ONLY at the cross bore, across the FULL width of the rider,
+                 symmetric: hump_w long (x) at the top, up to hump_over above the hole
+                 centre, 45 degree flanks down to the roof on both sides (the -x flank
+                 is the underside when printing lying down and needs no support)
+Holes:
+    Wire         Ø wire_d + fit, axis y (ACROSS the tube, parallel to the clamping
+                 screw), centred in x, hole_h above the top of the beam, through the
+                 full width: the wire runs in the hump over 2 * y_out, not just over a
+                 narrow tab. It is the pivot for the weight clip (gewichtsclip.py);
+                 the hole centre is the point of load application in x.
+    M6 across    two, axis y, at x = +-screw_x, screw_below below the beam: front
+                 (+y) clearance Ø 6.4, back (-y) a MODELLED M6 thread (PartDesign
+                 hole, ISO profile, as in esp_spange.py). Tightening pulls the legs
+                 together at the bottom and clamps the beam. With 0.1 to 0.15 mm
+                 layers the thread comes out usable; otherwise run a tap through once,
+                 it finds the turns.
 
-Aufruf:  /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/waagereiter.py
-Erzeugt hardware/waagereiter.FCStd, .step, .stl.
+Invocation:  /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/waagereiter.py
+Produces hardware/waagereiter.FCStd, .step, .stl.
 """
 
 import os
@@ -53,40 +53,40 @@ import Sketcher
 from FreeCAD import Vector
 
 PARAMS = [
-    ('beam_w',    15.0, 'Balken breit (y)'),
-    ('beam_h',    25.0, 'Balken hoch (z)'),
-    ('fit_w',      0.3, 'Spiel quer, GESAMT'),
-    ('fit_z',      0.2, 'Luft zwischen Balkenoberkante und Decke'),
-    ('len',       56.0, 'Reiter lang (x); Schrauben aussen, Arme des Clips in der Mitte'),
-    ('screw_x',   22.0, 'Klemmschrauben bei +-x'),
-    ('leg_t',      1.5, 'Schenkel dick'),
-    ('boss_t',     2.5, 'Klotz an jeder Schraube, aussen auf dem Schenkel'),
-    ('boss_len',  13.0, 'Klotz lang (x), ab Reiterende nach innen'),
-    ('leg_below', 12.0, 'Schenkel unter die Balkenunterkante'),
-    ('top_t',      4.0, 'Decke dick'),
-    ('hump_w',    12.0, 'Hoecker oben lang (x), mittig; unten + 2 * Hoehe'),
-    ('hump_over',  5.0, 'Hoecker ueber der Lochmitte'),
-    ('hole_h',    15.0, 'Drahtloch ueber der Balkenoberkante, VORGABE'),
-    ('wire_d',     2.0, 'Draht'),
-    ('wire_fit',   0.3, 'Spiel im Drahtloch'),
-    ('screw_below', 6.5, 'M6-Achse unter der Balkenunterkante'),
-    ('m6_thru',    6.4, 'Durchgang vorne (+y)'),
-    ('m6_thread', 'M6', 'Gewinde hinten (-y), modelliert'),
-    ('m6_core',    5.0, 'Kerndurchmesser M6, nur fuer die Pruefung'),
-    # Abgeleitet
-    ('y_in',  '=(beam_w + fit_w) / 2',      'Schenkel innen'),
-    ('y_out', '=y_in + leg_t',              'Schenkel aussen'),
-    ('z_top0', '=beam_h + fit_z',           'Decke unten'),
-    ('z_top1', '=z_top0 + top_t',           'Decke oben'),
-    ('z_hole', '=beam_h + hole_h',          'Drahtloch Mitte'),
-    ('z_hump', '=z_hole + hump_over',       'Hoecker oben'),
-    ('y_boss', '=y_out + boss_t',           'Klotz aussen'),
+    ('beam_w',    15.0, 'Beam width (y)'),
+    ('beam_h',    25.0, 'Beam height (z)'),
+    ('fit_w',      0.3, 'Play across, TOTAL'),
+    ('fit_z',      0.2, 'Clearance between top of beam and roof'),
+    ('len',       56.0, 'Rider length (x); screws outside, arms of the clip in the middle'),
+    ('screw_x',   22.0, 'Clamping screws at +-x'),
+    ('leg_t',      1.5, 'Leg thickness'),
+    ('boss_t',     2.5, 'Block at each screw, outside on the leg'),
+    ('boss_len',  13.0, 'Block length (x), from the rider end inwards'),
+    ('leg_below', 12.0, 'Legs below the underside of the beam'),
+    ('top_t',      4.0, 'Roof thickness'),
+    ('hump_w',    12.0, 'Hump length at the top (x), centred; at the bottom + 2 * height'),
+    ('hump_over',  5.0, 'Hump above the hole centre'),
+    ('hole_h',    15.0, 'Wire hole above the top of the beam, GIVEN'),
+    ('wire_d',     2.0, 'Wire'),
+    ('wire_fit',   0.3, 'Play in the wire hole'),
+    ('screw_below', 6.5, 'M6 axis below the underside of the beam'),
+    ('m6_thru',    6.4, 'Clearance at the front (+y)'),
+    ('m6_thread', 'M6', 'Thread at the back (-y), modelled'),
+    ('m6_core',    5.0, 'Core diameter M6, only for the check'),
+    # Derived
+    ('y_in',  '=(beam_w + fit_w) / 2',      'Legs inside'),
+    ('y_out', '=y_in + leg_t',              'Legs outside'),
+    ('z_top0', '=beam_h + fit_z',           'Roof bottom'),
+    ('z_top1', '=z_top0 + top_t',           'Roof top'),
+    ('z_hole', '=beam_h + hole_h',          'Wire hole centre'),
+    ('z_hump', '=z_hole + hump_over',       'Hump top'),
+    ('y_boss', '=y_out + boss_t',           'Block outside'),
 ]
 
 
 def build_sheet(doc):
     sh = doc.addObject('Spreadsheet::Sheet', 'Parameter')
-    sh.set('A1', 'Parameter'); sh.set('B1', 'Wert'); sh.set('C1', 'Bedeutung')
+    sh.set('A1', 'Parameter'); sh.set('B1', 'Value'); sh.set('C1', 'Meaning')
     for i, (name, val, note) in enumerate(PARAMS):
         r = i + 2; sh.set('A%d' % r, name); sh.setAlias('B%d' % r, name); sh.set('C%d' % r, note)
     doc.recompute()
@@ -159,20 +159,20 @@ def build(doc, sh):
     yi, yo, lb = P(sh, 'y_in'), P(sh, 'y_out'), P(sh, 'leg_below')
     zt0, zt1, zh = P(sh, 'z_top0'), P(sh, 'z_top1'), P(sh, 'z_hole')
 
-    # 1 U-Profil in der YZ-Ebene (lokal x = y, lokal y = z), entlang x gepadded.
+    # 1 U profile in the YZ plane (local x = y, local y = z), padded along x.
     pts = [(-yo, -lb), (yo, -lb), (yo, zt1), (-yo, zt1)]
     sk = sketch_on(body, yz, 'Sk_Aussen')
     poly(sk, pts, 'a', [('-Parameter.y_out', '-Parameter.leg_below'), ('Parameter.y_out', '-Parameter.leg_below'),
                         ('Parameter.y_out', 'Parameter.z_top1'), ('-Parameter.y_out', 'Parameter.z_top1')])
     pad(sk, 'Block', 'Parameter.len')
-    # Balkenraum herausnehmen: von unten bis unter die Decke
+    # Remove the beam space: from the bottom up to below the roof
     sk = sketch_on(body, yz, 'Sk_Balkenraum')
     rect(sk, -yi, -lb - 1, 2 * yi, lb + 1 + zt0, 'r',
          '-Parameter.y_in', '-Parameter.leg_below - 1', '2 * Parameter.y_in', 'Parameter.leg_below + 1 + Parameter.z_top0')
     pocket(sk, 'Balkenraum', midplane=True)
 
-    # 2 Hoecker: Profil in XZ ueber die ganze Breite (Pad 2*y_out midplane): Trapez,
-    #   oben x = +-hump_w/2 bei z_hump, beidseitig 45 Grad bis auf die Decke (0.5 Ueberlappung).
+    # 2 Hump: profile in XZ across the full width (pad 2*y_out midplane): trapezoid,
+    #   at the top x = +-hump_w/2 at z_hump, 45 degrees on both sides down to the roof (0.5 overlap).
     hw, zhu = P(sh, 'hump_w') / 2, P(sh, 'z_hump')
     hh = zhu - zt1
     sk = sketch_on(body, xz, 'Sk_Hoecker')
@@ -183,13 +183,13 @@ def build(doc, sh):
           ('-Parameter.hump_w / 2', 'Parameter.z_hump')])
     pad(sk, 'Hoecker', '2 * Parameter.y_out', midplane=True)
 
-    # 2a Kloetze an den Schrauben: Trapeze in XY, innen (zur Reitermitte) 45-Grad-Anlauf,
-    #    aussen auf beiden Schenkeln, von z = -leg_below bis z = -1 (Pad nach -z).
+    # 2a Blocks at the screws: trapezoids in XY, 45 degree lead-in on the inside (towards
+    #    the rider centre), outside on both legs, from z = -leg_below to z = -1 (pad towards -z).
     sx, L2, bl, bt = P(sh, 'screw_x'), P(sh, 'len') / 2, P(sh, 'boss_len'), P(sh, 'boss_t')
     xy = planes['XY_Plane']
     sk = sketch_on(body, xy, 'Sk_Kloetze')
     for side, tag in ((+1, 'kp'), (-1, 'km')):
-        # x_e = Reiterende, x_i = Innenkante; der Anlauf liegt an x_i
+        # x_e = rider end, x_i = inner edge; the lead-in is at x_i
         x_e, x_i = side * L2, side * (L2 - bl)
         ex_e = ('' if side > 0 else '-') + 'Parameter.len / 2'
         ex_i = ex_e + (' - ' if side > 0 else ' + ') + 'Parameter.boss_len'
@@ -203,32 +203,32 @@ def build(doc, sh):
     f.setExpression('Length', 'Parameter.leg_below - 1'); f.Reversed = True; doc.recompute()
     if not body.Shape.isInside(Vector(sx, yo + bt / 2, -P(sh, 'leg_below') / 2), 1e-6, True):
         f.Reversed = False; doc.recompute()
-    assert body.Shape.isInside(Vector(sx, yo + bt / 2, -P(sh, 'leg_below') / 2), 1e-6, True), 'Kloetze gehen in die falsche Richtung'
+    assert body.Shape.isInside(Vector(sx, yo + bt / 2, -P(sh, 'leg_below') / 2), 1e-6, True), 'blocks go in the wrong direction'
 
-    # 3 Drahtloch, Achse y (quer), mittig in x, durch die Fahne
+    # 3 Wire hole, axis y (across), centred in x, through the tab
     sk = sketch_on(body, xz, 'Sk_Draht')
     circle(sk, 0, zh, (P(sh, 'wire_d') + P(sh, 'wire_fit')) / 2, 'w', '0', 'Parameter.z_hole', '(Parameter.wire_d + Parameter.wire_fit) / 2')
     pocket(sk, 'Drahtloch', midplane=True)
 
-    # 4 M6 quer (Achse y) unter dem Balken: Kernloch durch beide Schenkel, Durchgang
-    #   nur vorne (+y). Skizze auf XZ (lokal x = x, lokal y = z), Pocket von y = 0 aus.
+    # 4 M6 across (axis y) under the beam: core hole through both legs, clearance
+    #   only at the front (+y). Sketch on XZ (local x = x, local y = z), pocket from y = 0.
     zs = -P(sh, 'screw_below')
     sx = P(sh, 'screw_x')
     sk = sketch_on(body, xz, 'Sk_M6_Durchgang')
     circle(sk, sx, zs, P(sh, 'm6_thru') / 2, 'md1', 'Parameter.screw_x', '-Parameter.screw_below', 'Parameter.m6_thru / 2')
     circle(sk, -sx, zs, P(sh, 'm6_thru') / 2, 'md2', '-Parameter.screw_x', '-Parameter.screw_below', 'Parameter.m6_thru / 2')
     f = pocket(sk, 'M6_Durchgang', 'Parameter.y_boss + 1', reversed_=False)
-    # Richtung pruefen: der Durchgang muss im +y-Schenkel liegen; sonst umdrehen.
-    probe = Vector(sx, yi + P(sh, 'leg_t') / 2, zs + 2.9)   # knapp unter dem Durchgangsradius
+    # Check direction: the clearance must be in the +y leg; otherwise reverse.
+    probe = Vector(sx, yi + P(sh, 'leg_t') / 2, zs + 2.9)   # just below the clearance radius
     if body.Shape.isInside(probe, 1e-6, True):
         f.Reversed = True; doc.recompute()
 
-    # M6-Gewinde hinten (-y): PartDesign-Bohrung mit modelliertem ISO-Gewinde, Skizze
-    # auf der Aussenflaeche des hinteren Schenkels, Tiefe = Schenkel. Richtung wie oben
-    # ueber eine Probe geprueft und notfalls umgedreht.
+    # M6 thread at the back (-y): PartDesign hole with modelled ISO thread, sketch on
+    # the outer face of the back leg, depth = leg. Direction checked with a probe as
+    # above and reversed if necessary.
     sk = sketch_on(body, xz, 'Sk_M6_Gewinde')
     sk.AttachmentOffset = App.Placement(Vector(0, 0, 0), App.Rotation())
-    sk.setExpression('AttachmentOffset.Base.z', 'Parameter.y_boss')     # XZ-Normale zeigt nach -y: Versatz +y_boss landet auf y = -y_boss
+    sk.setExpression('AttachmentOffset.Base.z', 'Parameter.y_boss')     # XZ normal points to -y: offset +y_boss lands at y = -y_boss
     circle(sk, sx, zs, 2.5, 'mt1', 'Parameter.screw_x', '-Parameter.screw_below', '2.5')
     circle(sk, -sx, zs, 2.5, 'mt2', '-Parameter.screw_x', '-Parameter.screw_below', '2.5')
     h = body.newObject('PartDesign::Hole', 'M6_Gewinde')
@@ -241,15 +241,15 @@ def build(doc, sh):
     sizes = h.getEnumerationsOfProperty('ThreadSize')
     if thread not in sizes:
         alt = [z for z in sizes if z.startswith('M6')]
-        if not alt: raise RuntimeError('Gewinde %s nicht in %s' % (thread, sizes))
+        if not alt: raise RuntimeError('Thread %s not in %s' % (thread, sizes))
         thread = alt[0]
     h.ThreadSize = thread
     h.ModelThread = True
     doc.recompute()
-    back = Vector(sx, -(yi + P(sh, 'leg_t') / 2), zs)    # Mitte des hinteren Schenkels, Lochachse
+    back = Vector(sx, -(yi + P(sh, 'leg_t') / 2), zs)    # centre of the back leg, hole axis
     if body.Shape.isInside(back, 1e-6, True):
-        # Loch ging in die falsche Richtung (Luft bzw. vorderer Schenkel): Skizze auf die
-        # andere Seite und/oder umkehren, bis die Achse hinten frei ist.
+        # Hole went in the wrong direction (air or front leg): move the sketch to the
+        # other side and/or reverse until the axis at the back is clear.
         for off, rev in (('-Parameter.y_boss', False), ('Parameter.y_boss', True), ('-Parameter.y_boss', True)):
             sk.setExpression('AttachmentOffset.Base.z', off); h.Reversed = rev; doc.recompute()
             if not body.Shape.isInside(back, 1e-6, True): break
@@ -308,40 +308,40 @@ def check(body, sh):
     bh, zt0, zt1, zh = P(sh, 'beam_h'), P(sh, 'z_top0'), P(sh, 'z_top1'), P(sh, 'z_hole')
     zs, rc, rt = -P(sh, 'screw_below'), P(sh, 'm6_core') / 2, P(sh, 'm6_thru') / 2
     ym = yi + lt / 2
-    ymb = yo + P(sh, 'boss_t') / 2   # Mitte des Klotzes
-    # Balken frei, Schenkel und Decke da
+    ymb = yo + P(sh, 'boss_t') / 2   # centre of the block
+    # Beam clear, legs and roof present
     for z in (1.0, bh / 2, bh - 0.5):
-        if inside(0, 0, z) or inside(0, yi - 0.2, z): print('FEHLER Balkenraum nicht frei, z=%.1f' % z); ok = False
-    if not inside(0, ym, bh / 2) or not inside(0, -ym, bh / 2): print('FEHLER Schenkel fehlt'); ok = False
-    if not inside(0, 0, (zt0 + zt1) / 2): print('FEHLER Decke fehlt'); ok = False
-    if not inside(0, ym, -lb + 1): print('FEHLER Schenkel reicht nicht unter den Balken'); ok = False
-    # Fahne und Drahtloch
+        if inside(0, 0, z) or inside(0, yi - 0.2, z): print('ERROR beam space not clear, z=%.1f' % z); ok = False
+    if not inside(0, ym, bh / 2) or not inside(0, -ym, bh / 2): print('ERROR leg missing'); ok = False
+    if not inside(0, 0, (zt0 + zt1) / 2): print('ERROR roof missing'); ok = False
+    if not inside(0, ym, -lb + 1): print('ERROR leg does not reach below the beam'); ok = False
+    # Tab and wire hole
     hw = P(sh, 'hump_w') / 2
     for y in (0, yo - 0.3, -(yo - 0.3)):
-        if inside(0, y, zh): print('FEHLER Drahtloch fehlt bei y=%.1f' % y); ok = False
-        if not inside(hw - 1, y, zh): print('FEHLER Hoecker neben dem Loch fehlt bei y=%.1f' % y); ok = False
-    if not inside(0, 0, zh + P(sh, 'hump_over') - 0.5): print('FEHLER Hoecker ueber dem Loch fehlt'); ok = False
-    if inside(0, 0, zh + P(sh, 'hump_over') + 0.5): print('FEHLER Hoecker zu hoch'); ok = False
-    hh = P(sh, 'z_hump') - zt1  # Hoeckerhoehe ueber der Decke
+        if inside(0, y, zh): print('ERROR wire hole missing at y=%.1f' % y); ok = False
+        if not inside(hw - 1, y, zh): print('ERROR hump next to the hole missing at y=%.1f' % y); ok = False
+    if not inside(0, 0, zh + P(sh, 'hump_over') - 0.5): print('ERROR hump above the hole missing'); ok = False
+    if inside(0, 0, zh + P(sh, 'hump_over') + 0.5): print('ERROR hump too high'); ok = False
+    hh = P(sh, 'z_hump') - zt1  # hump height above the roof
     for sgn in (+1, -1):
-        if inside(sgn * (hw + hh + 1), 0, zt1 + 0.5): print('FEHLER Hoecker zu lang in x'); ok = False
-        if not inside(sgn * (hw + hh - 1), 0, zt1 + 0.5): print('FEHLER Hoeckerflanke fehlt'); ok = False
-    if inside(P(sh, 'len') / 2 - 1, 0, zt1 + 1): print('FEHLER Fahne laeuft noch durch'); ok = False
+        if inside(sgn * (hw + hh + 1), 0, zt1 + 0.5): print('ERROR hump too long in x'); ok = False
+        if not inside(sgn * (hw + hh - 1), 0, zt1 + 0.5): print('ERROR hump flank missing'); ok = False
+    if inside(P(sh, 'len') / 2 - 1, 0, zt1 + 1): print('ERROR tab still runs through'); ok = False
     bt = P(sh, 'boss_t')
-    if not inside(P(sh, 'screw_x'), yo + bt / 2, -P(sh, 'leg_below') + 1.5): print('FEHLER Klotz fehlt'); ok = False
-    if not inside(-P(sh, 'screw_x'), -(yo + bt / 2), -2): print('FEHLER Klotz -x/-y fehlt'); ok = False
-    if inside(0, yo + bt / 2, -P(sh, 'leg_below') / 2): print('FEHLER Klotz in der Mitte'); ok = False
-    # M6: hinten Kernloch (Material zwischen rc und rt), vorne Durchgang (frei bis rt)
+    if not inside(P(sh, 'screw_x'), yo + bt / 2, -P(sh, 'leg_below') + 1.5): print('ERROR block missing'); ok = False
+    if not inside(-P(sh, 'screw_x'), -(yo + bt / 2), -2): print('ERROR block -x/-y missing'); ok = False
+    if inside(0, yo + bt / 2, -P(sh, 'leg_below') / 2): print('ERROR block in the middle'); ok = False
+    # M6: core hole at the back (material between rc and rt), clearance at the front (clear up to rt)
     pr = rc + (rt - rc) / 2
     for sx in (P(sh, 'screw_x'), -P(sh, 'screw_x')):
         for yy in (-ym, -ymb):
-            if inside(sx, yy, zs) or inside(sx, yy, zs + rc / 2 - 0.3): print('FEHLER Gewindeloch hinten fehlt'); ok = False
-            if not inside(sx, yy, zs + 3.3): print('FEHLER hinten ist der Durchgang statt des Gewindes'); ok = False
+            if inside(sx, yy, zs) or inside(sx, yy, zs + rc / 2 - 0.3): print('ERROR threaded hole at the back missing'); ok = False
+            if not inside(sx, yy, zs + 3.3): print('ERROR the clearance is at the back instead of the thread'); ok = False
         for yy in (ym, ymb):
-            if inside(sx, yy, zs + pr): print('FEHLER Durchgang vorne fehlt'); ok = False
-            if not inside(sx, yy, zs + rt + 0.5): print('FEHLER Schenkel ueber dem Durchgang fehlt'); ok = False
-    if not inside(0, ym, zs): print('FEHLER mittig darf keine Schraube sein'); ok = False
-    print('Balken %.1f x %.1f, Reiter aussen %.1f breit (Kloetze %.1f), %.1f hoch; Drahtloch Ø %.1f bei %.0f ueber dem Balken, %.1f lang'
+            if inside(sx, yy, zs + pr): print('ERROR clearance at the front missing'); ok = False
+            if not inside(sx, yy, zs + rt + 0.5): print('ERROR leg above the clearance missing'); ok = False
+    if not inside(0, ym, zs): print('ERROR there must be no screw in the middle'); ok = False
+    print('Beam %.1f x %.1f, rider outside %.1f wide (blocks %.1f), %.1f high; wire hole Ø %.1f at %.0f above the beam, %.1f long'
           % (P(sh, 'beam_w'), bh, 2 * yo, 2 * P(sh, 'y_boss'), P(sh, 'z_hump') + lb, P(sh, 'wire_d') + P(sh, 'wire_fit'), P(sh, 'hole_h'), 2 * yo))
     return ok
 
@@ -355,14 +355,14 @@ def main():
     Part.export([body], os.path.join(here, 'waagereiter.step'))
     body.Shape.exportStl(os.path.join(here, 'waagereiter.stl'))
     bb = body.Shape.BoundBox
-    print('Aussenmass  %.1f x %.1f x %.1f mm' % (bb.XLength, bb.YLength, bb.ZLength))
-    print('Volumen     %.0f mm3' % body.Shape.Volume)
-    print('Gueltig     %s' % body.Shape.isValid())
-    print('Plausibel   %s' % check(body, sh))
+    print('Outer size  %.1f x %.1f x %.1f mm' % (bb.XLength, bb.YLength, bb.ZLength))
+    print('Volume      %.0f mm3' % body.Shape.Volume)
+    print('Valid       %s' % body.Shape.isValid())
+    print('Plausible   %s' % check(body, sh))
     bad = [o.Name for o in doc.Objects if getattr(o, 'State', None) and 'Invalid' in o.State]
-    print('Fehlerhaft  %s' % (bad if bad else 'keine'))
+    print('Invalid     %s' % (bad if bad else 'none'))
     offen = [o.Name for o in doc.Objects if o.isDerivedFrom('Sketcher::SketchObject') and not getattr(o, 'FullyConstrained', True)]
-    print('Skizzen     %d, davon nicht voll bestimmt: %s' % (len([o for o in doc.Objects if o.isDerivedFrom('Sketcher::SketchObject')]), offen if offen else 'keine'))
+    print('Sketches    %d, not fully constrained: %s' % (len([o for o in doc.Objects if o.isDerivedFrom('Sketcher::SketchObject')]), offen if offen else 'none'))
 
 
 if __name__ == '__main__':

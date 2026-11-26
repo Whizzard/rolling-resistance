@@ -1,20 +1,20 @@
 #pragma once
 //
-// Status-LED des DevKits — adressierbare RGB-LED (WS2812) an PIN_STATUS_LED.
+// Status LED of the DevKit -- addressable RGB LED (WS2812) on PIN_STATUS_LED.
 //
-// Sie zeigt den Zustand der BEDIENVERBINDUNG, sonst nichts:
-//   grün, stetig  — ein Bedienrechner meldet sich innerhalb LINK_TIMEOUT_MS
-//   rot, blinkend — es wartet noch keiner, oder er ist weggeblieben
+// It shows the state of the OPERATOR CONNECTION, nothing else:
+//   green, steady  -- an operator computer checks in within LINK_TIMEOUT_MS
+//   red, blinking  -- nobody is waiting yet, or it has gone away
 //
-// Damit ist die Totmannschaltung aus drei Metern ablesbar, ohne auf einen Schirm
-// zu sehen.
+// This makes the dead-man function readable from three metres away without
+// looking at a screen.
 //
 #include <Arduino.h>
 
 namespace statusled {
 
-void begin();    // LED aus
-void service();  // zyklisch aufrufen; nicht blockierend
-bool busy();     // immer false; bleibt für den Aufrufer erhalten
+void begin();    // LED off
+void service();  // call cyclically; non-blocking
+bool busy();     // always false; kept for the caller
 
 }  // namespace statusled

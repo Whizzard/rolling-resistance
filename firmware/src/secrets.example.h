@@ -1,7 +1,7 @@
 #pragma once
-// Vorlage fuer firmware/src/secrets.h (git-ignoriert). Kopieren, Kennwort eintragen,
-// danach die QR-Codes neu erzeugen (docs/04-hardware.md §13.4):
+// Template for firmware/src/secrets.h (git-ignored). Copy, enter the password,
+// then regenerate the QR codes (docs/04-hardware.md §13.4):
 //   cp firmware/src/secrets.example.h firmware/src/secrets.h
-// WPA2 braucht mindestens 8 Zeichen; mit weniger bleibt der Accesspoint OFFEN, und
-// jeder in Reichweite kann den Motor fahren (webui.cpp prueft sizeof > 8).
+// WPA2 needs at least 8 characters; with fewer the access point stays OPEN, and
+// anyone in range can drive the motor (webui.cpp checks sizeof > 8).
 constexpr char WEBUI_PASSWORD[] = "changeme";

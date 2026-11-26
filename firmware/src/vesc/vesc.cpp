@@ -11,9 +11,9 @@ Reader   g_rx;
 Values   g_val;
 uint32_t g_lastValueMs = 0;
 
-// Was wiederholt gesendet wird. Nur EINE Stellgroesse ist gleichzeitig aktiv —
-// zwei Sollwerte abwechselnd zu senden hiesse, dass der Regler zwischen zwei
-// Betriebsarten springt.
+// What is sent repeatedly. Only ONE manipulated variable is active at a time --
+// sending two setpoints alternately would mean the controller jumps between two
+// operating modes.
 enum Mode : uint8_t { MODE_OFF, MODE_RPM, MODE_DUTY, MODE_BRAKE };
 Mode     g_mode    = MODE_OFF;
 int32_t  g_target  = 0;      // ERPM
@@ -30,23 +30,23 @@ uint32_t g_faultCount = 0;
 bool     g_faultSeen = false;
 char     g_hwName[16] = {0};
 
-// Welche Felder abgefragt werden. Bitnummern wie in commands.c der VESC-Firmware:
-//   0 FET-Temperatur · 1 Motortemperatur · 2 Motorstrom · 3 Eingangsstrom
-//   6 Aussteuerung   · 7 ERPM            · 8 Busspannung
-//   15 Fehlercode    · 21 Statusbyte
-// Das sind 22 Nutzbytes statt der 74 einer vollen Abfrage.
+// Which fields are requested. Bit numbers as in commands.c of the VESC firmware:
+//   0 FET temperature · 1 motor temperature · 2 motor current · 3 input current
+//   6 duty cycle      · 7 ERPM              · 8 bus voltage
+//   15 fault code     · 21 status byte
+// That is 22 payload bytes instead of the 74 of a full request.
 constexpr uint32_t MASK = (1UL << 0) | (1UL << 1) | (1UL << 2) | (1UL << 3) |
                           (1UL << 6) | (1UL << 7) | (1UL << 8) | (1UL << 13) |
                           (1UL << 15) | (1UL << 21);
 
-// Breite jedes Feldes in Bytes, Bit 0 bis 21. Wird gebraucht, um nicht abgefragte
-// Felder zu überspringen — so bleibt der Parser richtig, wenn die Maske sich ändert.
+// Width of each field in bytes, bit 0 to 21. Needed to skip fields that were not
+// requested -- this keeps the parser correct when the mask changes.
 const uint8_t FIELD_BYTES[22] = {
   2, 2, 4, 4, 4, 4, 2, 4, 2, 4, 4,
   4, 4, 4, 4, 1, 4, 1, 6, 4, 4, 1
 };
 
-// ------------------------------------------------------------------ Senden
+// ------------------------------------------------------------------ Sending
 void sendPayload(const uint8_t* payload, size_t len) {
   uint8_t out[FRAME_MAX];
   const size_t n = frame(payload, len, out, sizeof(out));
@@ -73,7 +73,7 @@ void sendPoll() {
   sendPayload(p, sizeof(p));
 }
 
-// ------------------------------------------------------------------ Lesen
+// ------------------------------------------------------------------ Reading
 int32_t be32(const uint8_t* p) {
   return (static_cast<int32_t>(p[0]) << 24) | (static_cast<int32_t>(p[1]) << 16) |
          (static_cast<int32_t>(p[2]) << 8)  |  static_cast<int32_t>(p[3]);
@@ -83,7 +83,7 @@ int16_t be16(const uint8_t* p) {
 }
 
 void onValues(const uint8_t* d, size_t len) {
-  // Nutzlast: Kennung(1) + gespiegelte Maske(4) + ausgewählte Felder.
+  // Payload: id(1) + echoed mask(4) + selected fields.
   if (len < 5) return;
   const uint32_t mask = static_cast<uint32_t>(be32(d + 1));
   size_t i = 5;
@@ -91,43 +91,45 @@ void onValues(const uint8_t* d, size_t len) {
   for (uint8_t bit = 0; bit < 22; bit++) {
     if (!(mask & (1UL << bit))) continue;
     const uint8_t w = FIELD_BYTES[bit];
-    // Aelteere Firmwarestaende kennen die hinteren Felder nicht und spiegeln die
-    // Maske trotzdem unveraendert zurueck — die Antwort ist dann kuerzer als die
-    // Maske verspricht. Am 2026-11-17 an Firmware 5.02 gesehen: 73 statt 74 Byte,
-    // weil das Statusbyte (Bit 21) erst ab 5.03 existiert.
+    // Older firmware versions do not know the rear fields and still echo the mask
+    // unchanged -- the answer is then shorter than the mask promises. Seen on
+    // 2026-11-17 with firmware 5.02: 73 instead of 74 bytes, because the status
+    // byte (bit 21) only exists from 5.03.
     //
-    // Abbrechen waere falsch: die bereits gelesenen Felder sind gueltig, die
-    // Pruefsumme stimmt ja. Hier auszusteigen hiesse, dass die Oberflaeche "kein
-    // Regler" meldet, waehrend der Regler sauber antwortet.
+    // Aborting would be wrong: the fields already read are valid, the checksum
+    // matches after all. Bailing out here would mean the UI reports "no
+    // controller" while the controller answers cleanly.
     if (i + w > len) break;
 
     switch (bit) {
-      case 0:  g_val.tempFet      = be16(d + i) / 10.0f;  break;
-      case 1:  g_val.tempMotor    = be16(d + i) / 10.0f;  break;
-      case 2:  g_val.currentMotor = be32(d + i) / 100.0f; break;
-      case 3:  g_val.currentIn    = be32(d + i) / 100.0f; break;
-      case 6:  g_val.duty         = be16(d + i) / 1000.0f;break;
+      case 0:  g_val.raw.tFet10   = be16(d + i); g_val.tempFet      = g_val.raw.tFet10 / 10.0f;   break;
+      case 1:  g_val.raw.tMot10   = be16(d + i); g_val.tempMotor    = g_val.raw.tMot10 / 10.0f;   break;
+      case 2:  g_val.raw.iMot100  = be32(d + i); g_val.currentMotor = g_val.raw.iMot100 / 100.0f; break;
+      case 3:  g_val.raw.iIn100   = be32(d + i); g_val.currentIn    = g_val.raw.iIn100 / 100.0f;  break;
+      case 6:  g_val.raw.duty1000 = be16(d + i); g_val.duty         = g_val.raw.duty1000 / 1000.0f;break;
       case 7:  g_val.erpm         = be32(d + i);          break;
-      case 8:  g_val.vIn          = be16(d + i) / 10.0f;  break;
+      case 8:  g_val.raw.vIn10    = be16(d + i); g_val.vIn          = g_val.raw.vIn10 / 10.0f;    break;
       case 13: g_val.tacho        = be32(d + i);          break;
       case 15: g_val.fault        = d[i];                 break;
       case 21: g_val.status       = d[i];                 break;
-      default: break;                                     // übersprungen
+      default: break;                                     // skipped
     }
     i += w;
   }
 
   g_val.seen = true;
+  g_val.count++;
+  g_val.rxUs = micros();
   g_lastValueMs = millis();
 
-  // Fehlercode festhalten, solange er neu ist (siehe vesc.h).
+  // Hold on to the fault code while it is new (see vesc.h).
   if (g_val.fault != 0 && (!g_faultSeen || g_val.fault != g_lastFault
                            || millis() - g_lastFaultMs > 2000)) {
     g_lastFault = g_val.fault;
     g_lastFaultMs = millis();
     g_faultSeen = true;
     g_faultCount++;
-    Serial.print("# VESC-FEHLER "); Serial.print(g_val.fault);
+    Serial.print("# VESC FAULT "); Serial.print(g_val.fault);
     Serial.print(": "); Serial.print(faultText(g_val.fault));
     Serial.print(" | "); Serial.print(g_val.vIn, 1); Serial.print(" V, ");
     Serial.print(g_val.currentMotor, 1); Serial.print(" A, ");
@@ -143,7 +145,7 @@ void onFwVersion(const uint8_t* d, size_t len) {
   if (len < 3) return;
   g_fwMajor = d[1];
   g_fwMinor = d[2];
-  // Danach folgt der Hardwarename als nullterminierte Zeichenkette.
+  // Followed by the hardware name as a null-terminated string.
   size_t i = 3, k = 0;
   while (i < len && d[i] != 0 && k < sizeof(g_hwName) - 1) g_hwName[k++] = d[i++];
   g_hwName[k] = '\0';
@@ -153,7 +155,7 @@ void onFwVersion(const uint8_t* d, size_t len) {
   Serial.print("  Hardware \""); Serial.print(g_hwName); Serial.println("\"");
 }
 
-// Durchgriff: Textantworten des Terminals zeilenweise, alles andere als Hex.
+// Pass-through: text answers of the terminal line by line, everything else as hex.
 void onPrint(const uint8_t* d, size_t len) {
   Serial.print("# VESC> ");
   for (size_t i = 1; i < len; i++) {
@@ -179,26 +181,26 @@ void dispatch(const uint8_t* d, size_t len) {
     case COMM_GET_VALUES_SELECTIVE: onValues(d, len);    break;
     case COMM_FW_VERSION:           onFwVersion(d, len); break;
     case COMM_PRINT:                onPrint(d, len);     break;
-    default:                        onOther(d, len);     break;   // Durchgriff
+    default:                        onOther(d, len);     break;   // pass-through
   }
 }
 
 }  // namespace
 
-// ------------------------------------------------------------------ Schnittstelle
+// ------------------------------------------------------------------ Interface
 
 void begin() {
-  // Eine Konfiguration (COMM_GET_MCCONF) ist knapp 500 Byte; der Vorgabepuffer
-  // von 256 Byte liefe ueber, bevor die Hauptschleife wieder liest.
+  // A configuration (COMM_GET_MCCONF) is just under 500 bytes; the default buffer
+  // of 256 bytes would overflow before the main loop reads again.
   port().setRxBufferSize(2048);
   port().begin(VESC_BAUD, SERIAL_8N1, PIN_DRIVE_RX, PIN_DRIVE_TX);
   g_rx.reset();
-  sendId(COMM_FW_VERSION);   // kürzeste sinnvolle Transaktion: prüft Rahmen,
-                             // Prüfsumme und Verkabelung in einem Zug
+  sendId(COMM_FW_VERSION);   // shortest meaningful transaction: checks framing,
+                             // checksum and wiring in one go
 }
 
 void service() {
-  // Alles lesen, was da ist. Nicht blockierend — der Webserver läuft nebenher.
+  // Read everything that is there. Non-blocking -- the web server runs alongside.
   while (port().available()) {
     if (g_rx.feed(static_cast<uint8_t>(port().read()))) {
       dispatch(g_rx.payload(), g_rx.payloadLen());
@@ -207,8 +209,8 @@ void service() {
 
   const uint32_t now = millis();
 
-  // Sollwert wiederholen, solange gefahren wird. Nur das hält den Timeout des
-  // Reglers offen; Messwertabfragen tun es nicht.
+  // Repeat the setpoint while driving. Only that keeps the controller's timeout
+  // open; value requests do not.
   if (g_mode != MODE_OFF && now - g_lastSend >= VESC_ALIVE_MS) {
     g_lastSend = now;
     switch (g_mode) {
@@ -224,7 +226,7 @@ void service() {
   if (now - g_lastPoll >= VESC_POLL_MS) {
     g_lastPoll = now;
     sendPoll();
-    if (!g_fwKnown) sendId(COMM_FW_VERSION);   // bis er sich gemeldet hat
+    if (!g_fwKnown) sendId(COMM_FW_VERSION);   // until it has answered
   }
 
   g_val.ageMs = g_val.seen ? (now - g_lastValueMs) : 0;
@@ -291,9 +293,9 @@ void release() {
   g_target  = 0;
   g_duty    = 0.0f;
   g_brake   = 0.0f;
-  // Strom null heißt für den Regler: Brücke sperren, Maschine läuft frei aus.
-  // NICHT Tastverhältnis null — das wäre im BLDC-Betrieb Kurzschlussbremsung, und
-  // im FOC-Betrieb ein geregelter Arbeitspunkt, der zurueckspeist
+  // Zero current means for the controller: disable the bridge, the machine coasts freely.
+  // NOT duty cycle zero -- in BLDC mode that would be short-circuit braking, and
+  // in FOC mode a controlled operating point that regenerates
   // (docs/07-safety.md §3.1).
   sendInt32(COMM_SET_CURRENT, 0);
 }
@@ -305,27 +307,27 @@ const char* hwName() { return g_hwName; }
 
 const char* faultText(uint8_t code) {
   switch (code) {
-    case 0:  return "kein Fehler";
-    case 1:  return "Ueberspannung";
-    case 2:  return "Unterspannung";
-    case 3:  return "Treiberstufe (DRV)";
-    case 4:  return "Ueberstrom";
-    case 5:  return "Uebertemperatur FET";
-    case 6:  return "Uebertemperatur Motor";
-    case 7:  return "Treiberversorgung zu hoch";
-    case 8:  return "Treiberversorgung zu niedrig";
-    case 9:  return "MCU-Unterspannung";
-    case 10: return "Neustart durch Watchdog";
-    case 11: return "Geber SPI";
-    case 12: return "Geber Amplitude zu klein";
-    case 13: return "Geber Amplitude zu gross";
-    case 14: return "Flash beschaedigt";
-    case 15: case 16: case 17: return "Stromsensor-Nullpunkt";
-    case 18: return "Straenge unsymmetrisch";
-    case 19: return "Abschalteingang (BRK)";
-    // Alles darüber gibt es erst in neueren Firmwarestaenden. Lieber ehrlich
-    // "unbekannt" melden als auf einen falschen Namen abbilden.
-    default: return "unbekannt";
+    case 0:  return "no fault";
+    case 1:  return "Overvoltage";
+    case 2:  return "Undervoltage";
+    case 3:  return "Driver stage (DRV)";
+    case 4:  return "Overcurrent";
+    case 5:  return "FET overtemperature";
+    case 6:  return "Motor overtemperature";
+    case 7:  return "Gate driver supply high";
+    case 8:  return "Gate driver supply low";
+    case 9:  return "MCU undervoltage";
+    case 10: return "Watchdog reset";
+    case 11: return "Encoder SPI";
+    case 12: return "Encoder amplitude low";
+    case 13: return "Encoder amplitude high";
+    case 14: return "Flash corrupted";
+    case 15: case 16: case 17: return "Current sensor offset";
+    case 18: return "Unbalanced phases";
+    case 19: return "Shutdown input (BRK)";
+    // Everything above exists only in newer firmware versions. Better to honestly
+    // report "unknown" than to map it to a wrong name.
+    default: return "unknown";
   }
 }
 

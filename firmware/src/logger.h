@@ -1,7 +1,7 @@
 #pragma once
 //
-// CSV-Protokollierung auf die serielle Schnittstelle.
-// Eine Zeile pro Messpunkt (= ganze Zahl von Trommelumdrehungen), nicht pro Sample.
+// CSV logging to the serial interface.
+// One line per measurement point (= whole number of drum revolutions), not per sample.
 //
 #include <Arduino.h>
 
@@ -10,7 +10,7 @@ namespace logger {
 void begin();
 void header();
 
-// Ein vollständiger Messpunkt.
+// A complete measurement point.
 void point(const char* stateName,
            uint32_t rev,
            float v_kmh,
@@ -23,10 +23,15 @@ void point(const char* stateName,
            float bar,
            const char* note);
 
-// Winkelaufgelöste Zusatzzeile zur Diagnose von Trommelnaht und Unrundheit.
+// Angle-resolved extra line for diagnosing the drum seam and out-of-roundness.
 void angleBins();
 
 void note(const char* text);
-const char* lastNote();    // zuletzt uebergebener Text, fuer die Oberflaeche
+// Like note(), but marked as an error: refusals, aborts, FAULT. The user interface
+// colours by this, no longer by the first word (until 2026-11-25 main.cpp guessed from
+// the German words "nicht", "kein", "Abbruch" ...).
+void fail(const char* text);
+const char* lastNote();    // last text passed, for the user interface
+bool lastNoteBad();        // true if it came via fail()
 
 }  // namespace logger

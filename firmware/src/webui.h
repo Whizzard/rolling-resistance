@@ -1,69 +1,69 @@
 #pragma once
 //
-// Bedienfeld über WLAN.
+// Control panel over WLAN.
 //
-// Der Prüfstand spannt einen eigenen Accesspoint auf und liefert die Oberfläche
-// selbst aus — kein Internet, kein Router, keine App. Beim Verbinden öffnet sie
-// sich von allein (Captive Portal): ein DNS-Server beantwortet jede Anfrage mit
-// der eigenen Adresse, und unbekannte Pfade werden auf "/" umgeleitet. Damit
-// schlägt die Verbindungsprüfung des Betriebssystems fehl und es zeigt die Seite.
+// The test stand sets up its own access point and serves the UI itself -- no
+// internet, no router, no app. On connecting it opens by itself (captive
+// portal): a DNS server answers every query with its own address, and unknown
+// paths are redirected to "/". That makes the operating system's connectivity
+// check fail and it shows the page.
 //
-// Die Oberfläche ist dieselbe Datei, die auch als Entwurf im Browser läuft:
-// firmware/web/index.html, gzip-gebacken nach src/webui_html.h. Antwortet
-// /api/state, führt der Prüfstand; sonst simuliert die Seite sich selbst.
+// The UI is the same file that also runs as a mock-up in the browser:
+// firmware/web/index.html, gzip-baked into src/webui_html.h. If /api/state
+// answers, the test stand is in charge; otherwise the page simulates itself.
 //
-// TOTMANNSCHALTUNG: Solange ein Lauf fährt, muss der Bedienrechner sich melden.
-// Bleibt er länger als LINK_TIMEOUT_MS aus, ist das ein Abschaltkriterium wie
-// jedes andere (docs/07-safety.md §4) — state.cpp fragt linkAlive() ab.
+// DEAD-MAN CHECK: as long as a run is driving, the operator device must report in.
+// If it stays silent longer than LINK_TIMEOUT_MS, that is a shutdown criterion
+// like any other (docs/07-safety.md §4) -- state.cpp queries linkAlive().
 //
-// EIGENE TASK, seit 2026-11-23: Der Webserver der Arduino-Bibliothek BLOCKIERT, wenn
-// ein Browser eine Verbindung oeffnet, aber keine Anfrage schickt — iOS tut das
-// vorsorglich, und die Bibliothek wartet dann fest 5 s (HTTP_MAX_DATA_WAIT). In der
-// Hauptschleife hiess das: 2,8 s Stillstand, der Totmann des Reglers (300 ms)
-// schlug zu, und die Regelung gab frei, weil ueber 1 s keine Messwerte kamen. Zwei
-// Starts brachen so ab. Deshalb laufen DNS, Webserver und JSON-Aufbau jetzt in
-// einer eigenen Task auf Kern 0, neben dem WLAN. Befehle aus dem Browser gehen
-// ueber eine Warteschlange an die Hauptschleife und werden dort ausgefuehrt —
-// die Regelung bleibt eingaedig, das Netz kann sie nicht mehr anhalten.
+// OWN TASK, since 2026-11-23: the web server of the Arduino library BLOCKS when a
+// browser opens a connection but sends no request -- iOS does that
+// pre-emptively, and the library then waits a fixed 5 s (HTTP_MAX_DATA_WAIT). In
+// the main loop that meant: 2.8 s standstill, the controller's dead-man timeout
+// (300 ms) tripped, and the speed control released because no measurements came
+// for over 1 s. Two starts aborted that way. That is why DNS, web server and JSON
+// building now run in their own task on core 0, next to the WLAN. Commands from
+// the browser go via a queue to the main loop and are executed there -- the
+// control stays single-threaded, the network can no longer stall it.
 //
-// Der JSON-Aufbau liest dabei Werte, die die Hauptschleife schreibt. Das sind
-// einzelne 32-Bit-Groessen, die auf dem ESP32 atomar sind; ein inkonsistentes
-// Paar (etwa Zaehler und Zeitstempel eines Gebers) ist moeglich und kostet
-// hoechstens eine Anzeige fuer 200 ms. Gestellt wird aus dieser Task NICHTS.
+// The JSON building reads values that the main loop writes. These are
+// single 32-bit quantities, which are atomic on the ESP32; an inconsistent
+// pair (such as counter and timestamp of a sensor) is possible and costs at
+// most one display for 200 ms. NOTHING is actuated from this task.
 //
 #include <Arduino.h>
 
 namespace webui {
 
-// Befehlsempfänger. Es ist bewusst derselbe Parser wie für die serielle
-// Konsole (docs/10-firmware.md G5), damit es nur EIN Befehlsvokabular gibt.
+// Command receiver. It is deliberately the same parser as for the serial
+// console (docs/10-firmware.md G5), so that there is only ONE command vocabulary.
 typedef void (*CommandFn)(const String&);
 
-// Baut die Antwort auf /api/state. Die jeweilige Firmwarevariante liefert ihn mit;
-// dadurch weiß der Webserver nichts über Messkette oder Antrieb und ist für alle
-// Varianten derselbe. Der Puffer ist vorgegeben, die Funktion schreibt JSON hinein.
+// Builds the reply to /api/state. The respective firmware variant supplies it;
+// that way the web server knows nothing about the measuring chain or the drive
+// and is the same for all variants. The buffer is given, the function writes JSON into it.
 typedef void (*StateJsonFn)(char* buf, size_t len);
 
-// htmlGz zeigt auf die gzip-gebackene Oberfläche im PROGMEM. Auch sie kommt von
-// außen, damit jede Variante ihre eigene Seite ausliefern kann.
-// Zweiter JSON-Lieferant fuer /api/run (gefuehrter Messlauf, run.h): eigener Pfad
-// und eigener, groesserer Puffer, damit /api/state klein und schnell bleibt.
-// Dateien unter /runs/ kommen aus dem LittleFS (Protokolle), /runs listet sie.
+// htmlGz points to the gzip-baked UI in PROGMEM. It also comes from
+// outside, so that each variant can serve its own page.
+// Second JSON supplier for /api/run (guided run, run.h): own path
+// and own, larger buffer, so that /api/state stays small and fast.
+// Files under /runs/ come from LittleFS (reports), /runs lists them.
 void begin(CommandFn handler, StateJsonFn state, StateJsonFn runJson,
            const uint8_t* htmlGz, size_t htmlGzLen);
-// Aus der Hauptschleife rufen: fuehrt die Befehle aus, die der Webserver
-// eingereiht hat. Netzwerk wird hier nicht mehr bedient.
+// Call from the main loop: executes the commands that the web server has
+// queued. The network is no longer served here.
 void service();
 
-// false, sobald ein Client da war und dann länger als LINK_TIMEOUT_MS schweigt.
-// Solange nie ein Client da war, true — der Stand lässt sich auch ohne WLAN
-// über die Konsole fahren.
+// false as soon as a client was there and then stays silent longer than LINK_TIMEOUT_MS.
+// As long as no client was ever there, true -- the stand can also be driven
+// from the console without WLAN.
 bool linkAlive();
-// Wer faehrt? Die Totmannschaltung gilt nur, wenn der Antrieb aus dem Browser
-// gestartet wurde. Wer von der Konsole startet, ist selbst der Bediener -- ein
-// schlafendes Handy darf ihm den Lauf nicht abwuergen (2026-11-23, mehrfach).
-bool inWebCommand();           // true, waehrend ein Browser-Befehl ausgefuehrt wird
-void setWebOperator(bool web); // beim Start merken
+// Who is driving? The dead-man check only applies when the drive was started
+// from the browser. Whoever starts from the console is the operator -- a
+// sleeping phone must not kill their run (2026-11-23, several times).
+bool inWebCommand();           // true while a browser command is being executed
+void setWebOperator(bool web); // remember at start
 bool webOperator();
 
 bool clientSeen();

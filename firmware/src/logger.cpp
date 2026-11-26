@@ -7,7 +7,7 @@ namespace logger {
 namespace {
 
 void printFloat(float v, uint8_t decimals) {
-  if (isnan(v)) Serial.print("");   // leeres Feld statt erfundener Zahl
+  if (isnan(v)) Serial.print("");   // empty field instead of an invented number
   else Serial.print(v, decimals);
 }
 
@@ -17,14 +17,14 @@ void begin() { Serial.begin(115200); }
 
 void header() {
   Serial.println();
-  Serial.println("# Fahrrad-Reifenpruefstand — Rohdaten");
+  Serial.println("# Bicycle tire test stand — raw data");
   Serial.print("# U=");  Serial.print(settings::drumCircumferenceM(), 4);
   Serial.print(" m  r="); Serial.print(settings::drumRadiusM(), 4);
   Serial.print(" m  L="); Serial.print(settings::torqueArmM(), 4);
   Serial.print(" m  i="); Serial.print(BELT_RATIO, 3);
   Serial.print("  N_per_count="); Serial.println(settings::loadcellNPerCount(), 8);
   if (!isCalibrated()) {
-    Serial.println("# WARNUNG: Waegezelle unkalibriert — Kraftspalten bleiben leer.");
+    Serial.println("# WARNING: load cell uncalibrated — force columns stay empty.");
   }
   Serial.println("t_ms,state,rev,v_kmh,f_raw,f_N,m_Nm,p_W,crr,load_N,p_tire_bar,note");
 }
@@ -56,9 +56,11 @@ void angleBins() {
   Serial.println();
 }
 
-namespace { char g_last[96] = ""; }
+namespace { char g_last[128] = ""; }
 
+bool g_lastBad = false;
 void note(const char* text) {
+  g_lastBad = false;
   Serial.print("# ");
   Serial.println(text);
   strncpy(g_last, text, sizeof(g_last) - 1);
@@ -66,5 +68,7 @@ void note(const char* text) {
 }
 
 const char* lastNote() { return g_last; }
+void fail(const char* text) { note(text); g_lastBad = true; }
+bool lastNoteBad() { return g_lastBad; }
 
 }  // namespace logger

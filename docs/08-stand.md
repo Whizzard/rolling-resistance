@@ -90,7 +90,7 @@ differs, the foot point of the diagonal shifts by `Δx_foot ≈ 2.2 · Δ(offset
 | Drum radius r | 465.0 | 477.5 | |
 | Drum lower edge | 85.0 | 72.6 | clearance above the floor beam |
 | **Contact plane** (= H + r) | **1015.0** | 1027.5 | |
-| Wheel axle (= contact plane + r_Rad) | 1195 … 1390 | 1207.5 … 1402.5 | r_Rad 180 … 375 |
+| Wheel axle (= contact plane + r_wheel) | 1195 … 1390 | 1207.5 … 1402.5 | r_wheel 180 … 375 |
 | Pivot (= wheel axle + 30) | 1225 … 1420 | 1237.5 … 1432.5 | §7.1 |
 
 **The 12.4 mm difference disappears in the slider travel** (195 mm). Not a single cut
@@ -261,7 +261,7 @@ No more MTB. The slowest tire envisaged is the **Continental Contact Urban**:
 ([source](https://www.bicyclerollingresistance.com/tour-reviews/continental-contact-urban),
 retrieved 2026-10-30) — hence `Crr = 18.4 / (8.0 · 416.9) = 0.00552`.
 
-| Tire | Crr | M_Reifen at r = 0.4523 | + idle + wheel |
+| Tire | Crr | M_tire at r = 0.4523 | + idle + wheel |
 |---|---|---|---|
 | Vittoria Corsa Speed (best) | 0.0025 | 0.471 Nm | 0.98 Nm |
 | good racing tire | 0.0037 | 0.698 Nm | 1.21 Nm |
@@ -337,15 +337,15 @@ error budget.
 
 It is fixed by the **wheel spin-down test**
 ([09-measurement-theory](09-measurement-theory.md) §9.3): bring the drum up to speed, lift
-the wheel off while running, record its own spin-down, `J_Rad · dω/dt = M_Rad(ω)`.
-Required for this: a Hall sensor with a magnet on the spokes (`PIN_WHEEL`) and J_Rad
+the wheel off while running, record its own spin-down, `J_wheel · dω/dt = M_wheel(ω)`.
+Required for this: a Hall sensor with a magnet on the spokes (`PIN_WHEEL`) and J_wheel
 from the bifilar pendulum.
 
 ## 6 Wheel Spin-Down Test: Where J Comes From
 
 What is needed is not the **mass** but the **moment of inertia** J of the complete
 wheel with tire and tube — only with it does the measured deceleration become a
-torque: `M_Rad(ω) = −J · dω/dt`.
+torque: `M_wheel(ω) = −J · dω/dt`.
 
 For a wheel, J is well-behaved because rim, tire and tube account for almost all of it and
 all sit at the same radius. Calculated value for a 622 wheel of 2.5 kg:
@@ -353,7 +353,7 @@ all sit at the same radius. Calculated value for a 622 wheel of 2.5 kg:
 
 ### 6.1 What a J error costs
 
-| Error on J | Error on M_Rad | of the racing-tire signal | as Crr |
+| Error on J | Error on M_wheel | of the racing-tire signal | as Crr |
 |---|---|---|---|
 | 2 % | 0.0050 Nm | 0.69 % | 0.000026 |
 | 5 % | 0.0125 Nm | 1.74 % | 0.000064 |
@@ -389,6 +389,28 @@ Conditions: strings vertical and of equal length, amplitude < 10°, **tire mount
 inflated as in the test** — its mass is part of J. Calculate D as a cross-check; if the
 two differ by more than 5 %, something is wrong.
 
+**Procedure, as of 2026-11-25** (sketch `hardware/bifilar.pdf`, generated from
+`hardware/bifilar.py`):
+
+1. Weigh the wheel as it runs on the stand: tire, tube, valve, spoke magnet, nothing else.
+2. Hang it horizontally on two strings of equal length from a bar. The attachment points
+   sit **opposite each other on the rim**, the line between them through the axle; the
+   points on the bar have the **same spacing** as those on the rim, so the strings are
+   parallel and vertical. Check horizontal with the vial on the rim.
+3. Measure 2·b (string spacing) and L (string length from bar to rim) to the millimetre.
+4. Twist the wheel by less than 10° about the vertical axis and release. Only the
+   torsional oscillation counts; if it sways sideways, let it settle and start again.
+5. Start the stopwatch at a turning point, count 20 full oscillations, stop at the same
+   turning point. T = t / 20.
+6. Enter mass, 2·b, L, n and t in the web UI under *Create run* (step 1 of the guided
+   run). The page computes J and stores it with `y<kg>` and `Y<kgm2>`; the console
+   command does the same by hand.
+
+> **Not near the hub.** The formula holds for any b, but J goes with b², so every
+> millimetre of error in b counts twice, and close to the hub the restoring torque is
+> tiny. At the rim (b ≈ rim radius) 1 mm on 300 mm is 0.7 % on J; at 40 mm from the
+> axle the same millimetre would be 5 %.
+
 ### 6.3 Tire change: carry J along, do not remeasure
 
 Every tire puts a different mass at the same radius. This has to be tracked:
@@ -402,7 +424,7 @@ Every tire puts a different mass at the same radius. This has to be tracked:
 So **measure bifilar once**, then correct arithmetically per tire:
 
 ```
-J = J_ref + (m_Reifen − m_Reifen,ref) · r_Reifen²      r_Reifen = (BSD/2 + tire height/2)
+J = J_ref + (m_tire − m_tire,ref) · r_tire²      r_tire = (BSD/2 + tire height/2)
 ```
 
 Weighing a tire takes 30 seconds and is accurate to 1 g — the correction is thus better
@@ -413,7 +435,7 @@ than the base measurement.
 | | |
 |---|---|
 | Start speed at 60 km/h circumferential | 469 rpm (ω = 49.2 rad/s) |
-| M_Rad at the wheel (from 0.25 Nm at the drum) | 0.182 Nm |
+| M_wheel at the wheel (from 0.25 Nm at the drum) | 0.182 Nm |
 | Initial deceleration | 0.88 rad/s² — in 10 s the speed drops by 84 rpm |
 | Spin-down 60 → 10 km/h | **4.5 min** |
 | to standstill | 29 min |
@@ -421,7 +443,7 @@ than the base measurement.
 Pickup: **4 magnets on the spokes** plus a Hall sensor. With one magnet there would be
 only 1.3 pulses/s at the lower end, with four 5.2 — the curve stays resolved even at 10 km/h.
 Evaluation is not by pointwise differentiation but by fitting a model
-`M_Rad(ω) = A + B·ω²` over the whole spin-down: A is the bearing friction,
+`M_wheel(ω) = A + B·ω²` over the whole spin-down: A is the bearing friction,
 B·ω² the aerodynamics of spokes and tire.
 
 > **Since 2026-11-24 the fit uses the integral method:** `ω(t) = ω₀ − (A/J)·t −

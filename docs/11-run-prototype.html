@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Messlauf · Prototyp</title>
+<title>Run Prototype</title>
 <style>
-/* Prototyp des gefuehrten Messlaufs (docs/11-messablauf-review.md §3).
-   Optik wie firmware/web/index.html. Alles simuliert, Zeit laeuft 60-fach. */
+/* Prototype of the guided measurement run (docs/11-review.md §3).
+   Looks like firmware/web/index.html. Everything simulated, time runs 60 times faster. */
 html, body { margin: 0; }
 * { box-sizing: border-box; }
 body { background: #eef1f4; color: #16202a;
@@ -93,11 +93,12 @@ a.dl { display: inline-block; background: #2f6f99; color: #fff; text-decoration:
 </head>
 <body>
 
+
 <div class="pin"><div class="wrap">
-  <div class="head">Messlauf <span id="runId">2026-11-23-03</span> <span class="sim">Simulation ×60</span></div>
+  <div class="head">Run <span id="runId">2026-11-23-03</span> <span class="sim">Simulation ×60</span></div>
   <div class="tiles">
-    <div class="tile half"><div><div class="lab">Soll</div><div class="val" id="soll">0<small>km/h</small></div></div></div>
-    <div class="tile half"><div><div class="lab">Ist</div><div class="val" id="ist">0.0<small>km/h</small></div></div></div>
+    <div class="tile half"><div><div class="lab">Target</div><div class="val" id="soll">0<small>km/h</small></div></div></div>
+    <div class="tile half"><div><div class="lab">Actual</div><div class="val" id="ist">0.0<small>km/h</small></div></div></div>
   </div>
   <div class="note bad" id="err" hidden></div>
   <div class="note" id="hint" hidden></div>
@@ -105,27 +106,27 @@ a.dl { display: inline-block; background: #2f6f99; color: #fff; text-decoration:
 
 <div class="wrap">
   <div class="tiles" id="liveTiles" hidden>
-    <div class="tile"><div><div class="lab">Moment</div><div class="val" id="lvM">—<small>Nm</small></div></div></div>
-    <div class="tile"><div><div class="lab">Leistung</div><div class="val" id="lvP">—<small>W</small></div></div></div>
-    <div class="tile"><div><div class="lab">Crr roh</div><div class="val" id="lvC">—</div></div></div>
-    <div class="tile"><div><div class="lab">Crr korr.</div><div class="val" id="lvK">—</div></div></div>
+    <div class="tile"><div><div class="lab">Torque</div><div class="val" id="lvM">—<small>Nm</small></div></div></div>
+    <div class="tile"><div><div class="lab">Power</div><div class="val" id="lvP">—<small>W</small></div></div></div>
+    <div class="tile"><div><div class="lab">Crr raw</div><div class="val" id="lvC">—</div></div></div>
+    <div class="tile"><div><div class="lab">Crr corr.</div><div class="val" id="lvK">—</div></div></div>
   </div>
 
   <div class="panel" id="panel"></div>
 
-  <h2>A · Vorbereitung</h2>
+  <h2>A · Preparation</h2>
   <ol class="steps" id="listA"></ol>
-  <h2>B · Messfahrt</h2>
+  <h2>B · Measurement run</h2>
   <ol class="steps" id="listB"></ol>
-  <h2>C · Abschluss</h2>
+  <h2>C · Completion</h2>
   <ol class="steps" id="listC"></ol>
 </div>
 
 <script>
-// ---------- Modell des Pruefstands (simuliert) ----------
+// ---------- Model of the test stand (simulated) ----------
 var U = 2.842, R = U / (2 * Math.PI), LOAD = 494.3;
-var A0 = 0.031, B0 = 2.55e-4;        // Leerlauf [Nm], [Nm/(rad/s)^2]
-var A1 = 0.01627, B1 = 3.673e-5;     // Laufrad
+var A0 = 0.031, B0 = 2.55e-4;        // idle [Nm], [Nm/(rad/s)^2]
+var A1 = 0.01627, B1 = 3.673e-5;     // wheel
 var rWheel = 2.105 / (2 * Math.PI);
 var CAL_TIME = "2026-11-23 15:41";
 function omega(kmh) { return kmh / 3.6 / R; }
@@ -136,24 +137,24 @@ function gauss() { var u = 0, v = 0; while (!u) u = Math.random(); while (!v) v 
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
 function mTotal(kmh, warm) { return mLeer(kmh) + mRad(kmh) + crrTrue(kmh, warm) * LOAD * R; }
 
-// ---------- Zustand ----------
+// ---------- State ----------
 var S = { soll: 0, ist: 0, step: 0, meta: {}, checks: [], warn: [], points: [], warmup: [],
   anchor: null, baseline: [], nachlauf: null, tareSigma: null, ctrlDev: null, startTime: null,
   faultInjected: false };
 var SPEEDUP = 60;
 var tickers = [];
 function $(id) { return document.getElementById(id); }
-function fmt(x, d) { return (x === null || x === undefined || isNaN(x)) ? "—" : x.toFixed(d).replace(".", ","); }
+function fmt(x, d) { return (x === null || x === undefined || isNaN(x)) ? "—" : x.toFixed(d); }
 function now() { return new Date(); }
 function hm(d) { return d.getHours() + ":" + ("0" + d.getMinutes()).slice(-2); }
 function warn(code, text) { S.warn.push(code + " " + text); }
 
-// Drehzahlsimulation: Ist folgt Soll mit Rampe
+// Speed simulation: actual follows target with a ramp
 setInterval(function () {
-  var dt = 0.2 * SPEEDUP / 10;   // gebremste Simulation, damit man die Rampe sieht
+  var dt = 0.2 * SPEEDUP / 10;   // slowed-down simulation so the ramp is visible
   var diff = S.soll - S.ist;
   var step = Math.min(Math.abs(diff), 2.2 * dt);
-  if (S.soll < S.ist && S.ist > 45 && S.soll === 0) step = Math.min(Math.abs(diff), 0.47 * dt); // Auslauf ueber 45
+  if (S.soll < S.ist && S.ist > 45 && S.soll === 0) step = Math.min(Math.abs(diff), 0.47 * dt); // coast-down above 45
   S.ist += Math.sign(diff) * step;
   if (Math.abs(diff) < 0.4) S.ist = S.soll + 0.15 * gauss();
   if (S.ist < 0) S.ist = 0;
@@ -178,22 +179,22 @@ setInterval(function () {
   } else { lt.hidden = true; }
 }, 200);
 
-// ---------- Schritte ----------
+// ---------- Steps ----------
 var STEPS = [
-  { id: 1,  grp: "A", t: "Lauf anlegen",             tag: "Eingabe" },
-  { id: 2,  grp: "A", t: "Sichtprüfung, Not-Aus",    tag: "Hand" },
-  { id: 3,  grp: "A", t: "Systemprüfung",            tag: "auto" },
-  { id: 4,  grp: "A", t: "Nullen",                   tag: "auto" },
-  { id: 5,  grp: "A", t: "Kontrollgewicht",          tag: "Hand · optional" },
-  { id: 6,  grp: "A", t: "Leerlaufmodell",           tag: "Hand + auto" },
-  { id: 7,  grp: "A", t: "Radmodell",                tag: "Hand + auto" },
-  { id: 8,  grp: "A", t: "Rad aufgelegt, Auflast",   tag: "Hand" },
-  { id: 9,  grp: "B", t: "Warmlauf 28,8 km/h · 30 min", tag: "auto" },
-  { id: 10, grp: "B", t: "Plateaus, je 3 × 10 Umdrehungen", tag: "auto" },
-  { id: 11, grp: "B", t: "Ankerpunkt 28,8 km/h",     tag: "auto" },
-  { id: 12, grp: "B", t: "Auslaufen",                tag: "auto" },
-  { id: 13, grp: "C", t: "Nachlauf Leerlauf",        tag: "Hand · optional" },
-  { id: 14, grp: "C", t: "Protokoll",                tag: "auto" }
+  { id: 1,  grp: "A", t: "Create run",               tag: "input" },
+  { id: 2,  grp: "A", t: "Visual check, e-stop",     tag: "manual" },
+  { id: 3,  grp: "A", t: "System check",             tag: "auto" },
+  { id: 4,  grp: "A", t: "Tare",                     tag: "auto" },
+  { id: 5,  grp: "A", t: "Check weight",             tag: "manual · optional" },
+  { id: 6,  grp: "A", t: "Idle-loss model",          tag: "manual + auto" },
+  { id: 7,  grp: "A", t: "Wheel model",              tag: "manual + auto" },
+  { id: 8,  grp: "A", t: "Wheel lowered, load",      tag: "manual" },
+  { id: 9,  grp: "B", t: "Warm-up 28.8 km/h · 30 min", tag: "auto" },
+  { id: 10, grp: "B", t: "Plateaus, 3 × 10 revolutions each", tag: "auto" },
+  { id: 11, grp: "B", t: "Reference point 28.8 km/h", tag: "auto" },
+  { id: 12, grp: "B", t: "Coast-down",               tag: "auto" },
+  { id: 13, grp: "C", t: "Post-run idle check",      tag: "manual · optional" },
+  { id: 14, grp: "C", t: "Report",                   tag: "auto" }
 ];
 var state = {}; // id -> {cls, sub}
 
@@ -217,92 +218,92 @@ function go(step) { clearTickers(); S.step = step; renderLists(); PANEL[step]();
 
 var PANEL = {};
 
-// 1 Lauf anlegen
+// 1 Create run
 PANEL[1] = function () {
   $("panel").innerHTML =
-    '<div class="title">Lauf anlegen</div>' +
-    '<div class="cols"><div class="field"><label>Reifen</label><input id="fTire" value="Conti GP5000 S TR 28"></div>' +
-    '<div class="field"><label>Laufrad</label><select id="fWheel"><option>LR-01 DT Swiss 1850, 28″</option><option>LR-02 Mavic</option></select></div></div>' +
-    '<div class="cols three"><div class="field"><label>Druck</label><input id="fBar" value="5,0" inputmode="decimal"> </div>' +
-    '<div class="field"><label>Raum °C</label><input id="fTemp" value="" placeholder="—" inputmode="decimal"></div>' +
-    '<div class="field"><label>Auflast kg</label><input id="fLoad" value="50,4" inputmode="decimal"></div></div>' +
-    '<div class="cols"><div class="field"><label>Laufgewicht Position mm</label><input id="fPos" value="312" inputmode="numeric"></div>' +
-    '<div class="field"><label>Notiz</label><input id="fNote" value="A/B/A, Referenz 1"></div></div>' +
-    '<div class="btns"><button class="go wide" onclick="finish1()">Weiter</button></div>';
+    '<div class="title">Create run</div>' +
+    '<div class="cols"><div class="field"><label>Tyre</label><input id="fTire" value="Conti GP5000 S TR 28"></div>' +
+    '<div class="field"><label>Wheel</label><select id="fWheel"><option>LR-01 DT Swiss 1850, 28″</option><option>LR-02 Mavic</option></select></div></div>' +
+    '<div class="cols three"><div class="field"><label>Pressure</label><input id="fBar" value="5.0" inputmode="decimal"> </div>' +
+    '<div class="field"><label>Room °C</label><input id="fTemp" value="" placeholder="—" inputmode="decimal"></div>' +
+    '<div class="field"><label>Load kg</label><input id="fLoad" value="50.4" inputmode="decimal"></div></div>' +
+    '<div class="cols"><div class="field"><label>Sliding weight position mm</label><input id="fPos" value="312" inputmode="numeric"></div>' +
+    '<div class="field"><label>Note</label><input id="fNote" value="A/B/A, reference 1"></div></div>' +
+    '<div class="btns"><button class="go wide" onclick="finish1()">Next</button></div>';
 };
 function finish1() {
   S.meta = { tire: $("fTire").value, wheel: $("fWheel").value, bar: $("fBar").value, temp: $("fTemp").value,
     load: $("fLoad").value, pos: $("fPos").value, note: $("fNote").value };
-  if (!S.meta.temp) warn("W07", "Raumtemperatur nicht eingetragen");
+  if (!S.meta.temp) warn("W07", "room temperature not entered");
   S.startTime = now();
   done(1, S.meta.tire + " · " + S.meta.wheel + " · " + S.meta.bar + " bar · " + S.meta.load + " kg");
   go(2);
 }
 
-// 2 Sichtpruefung
+// 2 Visual check
 PANEL[2] = function () {
   $("panel").innerHTML =
-    '<div class="title">Sichtprüfung</div>' +
-    '<div class="txt">Trommel, Wiegeteil frei, Kupplung, Rad gesichert, Blockierkeil raus, Not-Aus griffbereit.</div>' +
-    '<div class="btns"><button class="go wide" onclick="done(2, \'bestätigt \' + hm(now())); go(3)">Geprüft</button></div>';
+    '<div class="title">Visual check</div>' +
+    '<div class="txt">Drum, weighing part free, coupling, wheel secured, blocking wedge out, e-stop within reach.</div>' +
+    '<div class="btns"><button class="go wide" onclick="done(2, \'confirmed \' + hm(now())); go(3)">Checked</button></div>';
 };
 
-// 3 Systempruefung (auto)
+// 3 System check (auto)
 PANEL[3] = function () {
   var checks = [
-    ["Regler", "ok", "FW 7.01 · 41,9 V · kein Fehler"],
-    ["Motor am Regler", "ok", "Trennung ruhig"],
-    ["Wägezelle", "ok", "antwortet · 2 % vom Endwert"],
-    ["Rauschen Stillstand", "ok", "σ = 1,8 Counts (5 s)"],
-    ["Kalibrierfaktor", "ok", "2,668e-5 N/Count · " + CAL_TIME],
-    ["Tara", "miss", "älter als letzter Eingriff → Schritt 4"],
-    ["Leerlaufmodell A₀/B₀", "miss", "gespeichert 11:52, 4 Punkte · älter als Sitzung → Schritt 6"],
-    ["Radmodell A₁/B₁", "ok", "LR-01 · 18:02 · J = 0,0765 kg·m²"],
-    ["Radumfang", "ok", "2105 mm · stetig, 10 U"],
-    ["Plateaus", "ok", "15 · 28,8 · 40 · 50 · 60 km/h"]
+    ["Controller", "ok", "FW 7.01 · 41.9 V · no fault"],
+    ["Motor on controller", "ok", "disconnect quiet"],
+    ["Load cell", "ok", "responds · 2 % of full scale"],
+    ["Noise at standstill", "ok", "σ = 1.8 counts (5 s)"],
+    ["Calibration factor", "ok", "2.668e-5 N/count · " + CAL_TIME],
+    ["Tare", "miss", "older than last intervention → step 4"],
+    ["Idle-loss model A₀/B₀", "miss", "stored 11:52, 4 points · older than session → step 6"],
+    ["Wheel model A₁/B₁", "ok", "LR-01 · 18:02 · J = 0.0765 kg·m²"],
+    ["Wheel circumference", "ok", "2105 mm · steady, 10 rev"],
+    ["Plateaus", "ok", "15 · 28.8 · 40 · 50 · 60 km/h"]
   ];
   S.checks = checks;
-  var html = '<div class="title">Systemprüfung</div><div class="tablewrap"><table><tr><th>Prüfung</th><th>Ergebnis</th><th>Wert</th></tr>';
+  var html = '<div class="title">System check</div><div class="tablewrap"><table><tr><th>Check</th><th>Result</th><th>Value</th></tr>';
   checks.forEach(function (c, i) {
     html += '<tr id="chk' + i + '"><td>' + c[0] + '</td><td class="dim">…</td><td class="dim"></td></tr>';
   });
-  html += '</table></div><div class="btns"><button class="go wide" id="b3" disabled>Weiter</button></div>';
+  html += '</table></div><div class="btns"><button class="go wide" id="b3" disabled>Next</button></div>';
   $("panel").innerHTML = html;
   var i = 0;
   var t = setInterval(function () {
     if (i >= checks.length) { clearInterval(t); $("b3").disabled = false;
-      $("b3").onclick = function () { done(3, "8 ok · 2 fällig"); go(4); }; return; }
+      $("b3").onclick = function () { done(3, "8 ok · 2 due"); go(4); }; return; }
     var c = checks[i], row = $("chk" + i);
-    row.cells[1].className = c[1]; row.cells[1].textContent = c[1] === "ok" ? "ok" : "fällig";
+    row.cells[1].className = c[1]; row.cells[1].textContent = c[1] === "ok" ? "ok" : "due";
     row.cells[2].className = ""; row.cells[2].textContent = c[2];
     i++;
   }, 180);
   tickers.push(t);
 };
 
-// 4 Nullen
+// 4 Tare
 PANEL[4] = function () {
-  $("panel").innerHTML = '<div class="title">Nullen</div><div class="txt">Trommel steht. 200 Werte.</div>' +
+  $("panel").innerHTML = '<div class="title">Tare</div><div class="txt">Drum at standstill. 200 samples.</div>' +
     '<div class="bar"><div id="bar4"></div></div><div class="small" id="t4">—</div>' +
-    '<div class="btns"><button class="go wide" id="b4" disabled>Weiter</button></div>';
+    '<div class="btns"><button class="go wide" id="b4" disabled>Next</button></div>';
   var n = 0, t = setInterval(function () {
     n += 8; $("bar4").style.width = Math.min(100, n / 2) + "%";
     if (n >= 200) { clearInterval(t); S.tareSigma = 1.7 + 0.3 * Math.random();
-      $("t4").textContent = "Offset 269 878 Counts · σ = " + fmt(S.tareSigma, 1) + " Counts";
-      $("b4").disabled = false; $("b4").onclick = function () { done(4, "σ " + fmt(S.tareSigma, 1) + " Counts"); go(5); }; }
+      $("t4").textContent = "Offset 269 878 counts · σ = " + fmt(S.tareSigma, 1) + " counts";
+      $("b4").disabled = false; $("b4").onclick = function () { done(4, "σ " + fmt(S.tareSigma, 1) + " counts"); go(5); }; }
   }, 60);
   tickers.push(t);
 };
 
-// 5 Kontrollgewicht
+// 5 Check weight
 PANEL[5] = function () {
-  $("panel").innerHTML = '<div class="title">Kontrollgewicht</div>' +
-    '<div class="txt">1000 g bei 330 mm anhängen. Soll 3,237 Nm.</div>' +
-    '<div class="tiles"><div class="tile half"><div><div class="lab">Ist</div><div class="val" id="cw">—<small>Nm</small></div></div></div>' +
-    '<div class="tile half"><div><div class="lab">Abweichung</div><div class="val" id="cd">—<small>%</small></div></div></div></div>' +
-    '<div class="btns"><button class="half" onclick="skip5()">Überspringen</button><button class="go half" onclick="hang5()">Hängt</button></div>';
+  $("panel").innerHTML = '<div class="title">Check weight</div>' +
+    '<div class="txt">Hang 1000 g at 330 mm. Target 3.237 Nm.</div>' +
+    '<div class="tiles"><div class="tile half"><div><div class="lab">Actual</div><div class="val" id="cw">—<small>Nm</small></div></div></div>' +
+    '<div class="tile half"><div><div class="lab">Deviation</div><div class="val" id="cd">—<small>%</small></div></div></div></div>' +
+    '<div class="btns"><button class="half" onclick="skip5()">Skip</button><button class="go half" onclick="hang5()">Hanging</button></div>';
 };
-function skip5() { warn("W01", "Kontrollgewicht übersprungen"); done(5, "übersprungen (W01)", "skip"); go(6); }
+function skip5() { warn("W01", "check weight skipped"); done(5, "skipped (W01)", "skip"); go(6); }
 function hang5() {
   var val = 3.237 * (1 + 0.0028 * gauss()), dev = (val / 3.237 - 1) * 100;
   S.ctrlDev = dev;
@@ -310,27 +311,27 @@ function hang5() {
   $("cd").innerHTML = (dev >= 0 ? "+" : "") + fmt(dev, 2) + "<small>%</small>";
   var ok = Math.abs(dev) < 0.5;
   $("panel").querySelector(".btns").innerHTML = ok
-    ? '<button class="go wide" onclick="done(5, \'' + (dev >= 0 ? "+" : "") + fmt(dev, 2) + ' %\'); go(6)">Weiter</button>'
-    : '<button class="half" onclick="PANEL[5]()">Nochmal</button><button class="stop half" onclick="setErr(\'Kontrollgewicht ' + fmt(dev, 2) + ' %: Kalibrierung prüfen\')">Abbruch</button>';
+    ? '<button class="go wide" onclick="done(5, \'' + (dev >= 0 ? "+" : "") + fmt(dev, 2) + ' %\'); go(6)">Next</button>'
+    : '<button class="half" onclick="PANEL[5]()">Again</button><button class="stop half" onclick="setErr(\'Check weight ' + fmt(dev, 2) + ' %: check calibration\')">Abort</button>';
 }
 
-// 6 Leerlaufmodell
+// 6 Idle-loss model
 PANEL[6] = function () {
-  $("panel").innerHTML = '<div class="title">Leerlaufmodell</div>' +
-    '<div class="txt">Gespeichert 11:52, 4 Punkte, älter als diese Sitzung.</div>' +
-    '<div class="btns"><button class="half" onclick="keep6()">Übernehmen</button><button class="go half" onclick="lift6()">Neu fahren</button></div>';
+  $("panel").innerHTML = '<div class="title">Idle-loss model</div>' +
+    '<div class="txt">Stored 11:52, 4 points, older than this session.</div>' +
+    '<div class="btns"><button class="half" onclick="keep6()">Adopt</button><button class="go half" onclick="lift6()">Run new</button></div>';
 };
-function keep6() { warn("W02", "Leerlaufmodell älter als die Sitzung übernommen"); done(6, "übernommen 11:52 (W02)", "skip"); go(7); }
+function keep6() { warn("W02", "idle-loss model older than the session adopted"); done(6, "adopted 11:52 (W02)", "skip"); go(7); }
 function lift6() {
-  $("panel").innerHTML = '<div class="title">Rad abheben</div><div class="txt">Exzenterhebel. Rad frei von der Trommel.</div>' +
-    '<div class="btns"><button class="go wide" onclick="runBaseline(6)">Abgehoben</button></div>';
+  $("panel").innerHTML = '<div class="title">Lift wheel</div><div class="txt">Eccentric lever. Wheel clear of the drum.</div>' +
+    '<div class="btns"><button class="go wide" onclick="runBaseline(6)">Lifted</button></div>';
 }
 var PLATEAUS = [15, 28.8, 40, 50, 60];
 function runBaseline(step) {
   var pts = [];
-  var html = '<div class="title">' + (step === 6 ? "Leerlauf Vorlauf" : "Leerlauf Nachlauf") + '</div>' +
-    '<div class="tablewrap"><table id="tb"><tr><th>km/h</th><th>M Nm</th><th>σ</th>' + (step === 13 ? '<th>Δ zu Vorlauf</th><th>auf F_roll</th>' : '') + '</tr></table></div>' +
-    '<div class="small" id="fit"></div><div class="btns"><button class="go wide" id="bB" disabled>Weiter</button></div>';
+  var html = '<div class="title">' + (step === 6 ? "Idle run before" : "Idle run after") + '</div>' +
+    '<div class="tablewrap"><table id="tb"><tr><th>km/h</th><th>M Nm</th><th>σ</th>' + (step === 13 ? '<th>Δ to before</th><th>on F_roll</th>' : '') + '</tr></table></div>' +
+    '<div class="small" id="fit"></div><div class="btns"><button class="go wide" id="bB" disabled>Next</button></div>';
   $("panel").innerHTML = html;
   var i = 0;
   function next() {
@@ -339,20 +340,20 @@ function runBaseline(step) {
       if (step === 6) {
         S.baseline = pts;
         var fit = fitAB(pts);
-        $("fit").textContent = "A₀ = " + fmt(fit.a, 4) + " Nm · B₀ = " + fit.b.toExponential(3).replace(".", ",") + " Nm/(rad/s)² · Drift zu 11:52: +1,9 %";
+        $("fit").textContent = "A₀ = " + fmt(fit.a, 4) + " Nm · B₀ = " + fit.b.toExponential(3) + " Nm/(rad/s)² · drift vs 11:52: +1.9 %";
         $("bB").disabled = false;
-        $("bB").onclick = function () { done(6, "A₀ " + fmt(fit.a, 4) + " · B₀ " + fit.b.toExponential(2).replace(".", ",") + " · 5 Punkte"); lower6(); };
+        $("bB").onclick = function () { done(6, "A₀ " + fmt(fit.a, 4) + " · B₀ " + fit.b.toExponential(2) + " · 5 points"); lower6(); };
       } else {
         S.nachlauf = pts;
         var worst = 0; pts.forEach(function (p, k) { worst = Math.max(worst, Math.abs(p.m - S.baseline[k].m) / R); });
-        $("fit").textContent = "größte Abweichung " + fmt(worst, 3) + " N auf F_roll · Kriterium 0,02 N → " + (worst < 0.02 ? "ok" : "verwerfen");
-        if (worst >= 0.02) warn("W08", "Leerlaufdrift " + fmt(worst, 3) + " N über 0,02 N");
+        $("fit").textContent = "largest deviation " + fmt(worst, 3) + " N on F_roll · criterion 0.02 N → " + (worst < 0.02 ? "ok" : "discard");
+        if (worst >= 0.02) warn("W08", "idle drift " + fmt(worst, 3) + " N above 0.02 N");
         $("bB").disabled = false;
-        $("bB").onclick = function () { done(13, "Drift max " + fmt(worst, 3) + " N"); go(14); };
+        $("bB").onclick = function () { done(13, "drift max " + fmt(worst, 3) + " N"); go(14); };
       }
       return;
     }
-    var v = PLATEAUS[i]; S.soll = v; setHint("Plateau " + fmt(v, 1) + " km/h · einschwingen");
+    var v = PLATEAUS[i]; S.soll = v; setHint("Plateau " + fmt(v, 1) + " km/h · settling");
     var wait = setInterval(function () {
       if (Math.abs(S.ist - v) < 1) { clearInterval(wait);
         setTimeout(function () {
@@ -370,40 +371,40 @@ function runBaseline(step) {
   }
   next();
 }
-function fitAB(pts) { // M = a + b w^2, kleinste Quadrate
+function fitAB(pts) { // M = a + b w^2, least squares
   var n = pts.length, sx = 0, sy = 0, sxx = 0, sxy = 0;
   pts.forEach(function (p) { var x = omega(p.v); x *= x; sx += x; sy += p.m; sxx += x * x; sxy += x * p.m; });
   var b = (n * sxy - sx * sy) / (n * sxx - sx * sx), a = (sy - b * sx) / n; return { a: a, b: b };
 }
 function lower6() {
   renderLists();
-  $("panel").innerHTML = '<div class="title">Rad absenken</div><div class="txt">Trommel steht. Rad auf die Trommel.</div>' +
-    '<div class="btns"><button class="go wide" id="bl" disabled>Abgesenkt</button></div>';
+  $("panel").innerHTML = '<div class="title">Lower wheel</div><div class="txt">Drum at standstill. Wheel onto the drum.</div>' +
+    '<div class="btns"><button class="go wide" id="bl" disabled>Lowered</button></div>';
   var w = setInterval(function () { if (S.ist < 0.3) { clearInterval(w); $("bl").disabled = false; $("bl").onclick = function () { go(7); }; } }, 200);
   tickers.push(w);
 }
 
-// 7 Radmodell
+// 7 Wheel model
 PANEL[7] = function () {
-  $("panel").innerHTML = '<div class="title">Radmodell LR-01</div>' +
-    '<div class="txt">A₁ 0,01627 Nm · B₁ 3,673e-5 · J 0,0765 kg·m² · 18:02 heute · Umfang 2105 mm.</div>' +
-    '<div class="btns"><button class="go half" onclick="done(7, \'übernommen 18:02\'); go(8)">Übernehmen</button><button class="half" onclick="setHint(\'Assistent Auslauf startet (im Prototyp nicht abgebildet)\')">Neu: Assistent Auslauf</button></div>';
+  $("panel").innerHTML = '<div class="title">Wheel model LR-01</div>' +
+    '<div class="txt">A₁ 0.01627 Nm · B₁ 3.673e-5 · J 0.0765 kg·m² · 18:02 today · circumference 2105 mm.</div>' +
+    '<div class="btns"><button class="go half" onclick="done(7, \'adopted 18:02\'); go(8)">Adopt</button><button class="half" onclick="setHint(\'Coast-down assistant starting (not shown in the prototype)\')">New: coast-down assistant</button></div>';
 };
 
-// 8 Rad aufgelegt
+// 8 Wheel lowered
 PANEL[8] = function () {
-  $("panel").innerHTML = '<div class="title">Rad aufgelegt</div>' +
-    '<div class="txt">Laufgewicht bei ' + S.meta.pos + ' mm, Holm waagerecht, Rad mittig, x = 0.</div>' +
-    '<div class="btns"><button class="go wide" onclick="done(8, \'bestätigt · Position \' + S.meta.pos + \' mm\'); go(9)">Bestätigt · Messfahrt starten</button></div>';
+  $("panel").innerHTML = '<div class="title">Wheel lowered</div>' +
+    '<div class="txt">Sliding weight at ' + S.meta.pos + ' mm, rail level, wheel centred, x = 0.</div>' +
+    '<div class="btns"><button class="go wide" onclick="done(8, \'confirmed · position \' + S.meta.pos + \' mm\'); go(9)">Confirmed · start measurement run</button></div>';
 };
 
-// 9 Warmlauf
+// 9 Warm-up
 PANEL[9] = function () {
   S.soll = 28.8; setHint("");
-  $("panel").innerHTML = '<div class="title">Warmlauf</div><div class="txt">28,8 km/h · 30 min · Live-Punkt je Minute.</div>' +
+  $("panel").innerHTML = '<div class="title">Warm-up</div><div class="txt">28.8 km/h · 30 min · one live point per minute.</div>' +
     '<div class="bar"><div id="bar9"></div></div><div class="small" id="t9">0 min</div>' +
     '<canvas class="spark" id="sp9" width="800" height="70"></canvas>' +
-    '<div class="btns"><button class="stop wide" onclick="S.soll=0;setErr(\'Abgebrochen durch Bediener\')">Stop</button></div>';
+    '<div class="btns"><button class="stop wide" onclick="S.soll=0;setErr(\'Aborted by operator\')">Stop</button></div>';
   var min = 0, warmFactor;
   var t = setInterval(function () {
     if (Math.abs(S.ist - 28.8) > 1) return;
@@ -416,7 +417,7 @@ PANEL[9] = function () {
     drawSpark();
     if (min >= 30) { clearInterval(t);
       var last5 = S.warmup.slice(-6), ch = (last5[last5.length - 1].p / last5[0].p - 1) * 100;
-      done(9, "30 min · P " + fmt(S.warmup[29].p, 1) + " W · Änderung letzte 5 min " + fmt(ch, 1) + " %");
+      done(9, "30 min · P " + fmt(S.warmup[29].p, 1) + " W · change last 5 min " + fmt(ch, 1) + " %");
       go(10); }
   }, 250);
   tickers.push(t);
@@ -429,25 +430,25 @@ function drawSpark() {
   g.stroke();
 }
 
-// 10 Plateaus
+// 10 plateaus
 PANEL[10] = function () {
-  var html = '<div class="title">Plateaus</div><div class="tablewrap"><table id="tp"><tr><th>km/h</th><th>Punkt</th><th>M Nm</th><th>σ_U</th><th>Crr roh</th><th>Crr korr.</th><th>gültig</th></tr></table></div>' +
-    '<div class="btns"><button class="stop wide" onclick="S.soll=0;setErr(\'Abgebrochen durch Bediener\')">Stop</button></div>';
+  var html = '<div class="title">Plateaus</div><div class="tablewrap"><table id="tp"><tr><th>km/h</th><th>Point</th><th>M Nm</th><th>σ_U</th><th>Crr raw</th><th>Crr corr.</th><th>valid</th></tr></table></div>' +
+    '<div class="btns"><button class="stop wide" onclick="S.soll=0;setErr(\'Aborted by operator\')">Stop</button></div>';
   $("panel").innerHTML = html;
   var i = 0, k = 0;
   function next() {
-    if (i >= PLATEAUS.length) { done(10, S.points.length + " Punkte · " + S.points.filter(function (p) { return !p.ok; }).length + " ungültig"); go(11); return; }
-    var v = PLATEAUS[i]; S.soll = v; setHint("Plateau " + fmt(v, 1) + " km/h · einschwingen 15 s");
+    if (i >= PLATEAUS.length) { done(10, S.points.length + " points · " + S.points.filter(function (p) { return !p.ok; }).length + " invalid"); go(11); return; }
+    var v = PLATEAUS[i]; S.soll = v; setHint("Plateau " + fmt(v, 1) + " km/h · settling 15 s");
     var wait = setInterval(function () {
-      if (Math.abs(S.ist - v) < 1) { clearInterval(wait); setHint("Plateau " + fmt(v, 1) + " km/h · Punkt " + (k + 1) + "/3");
+      if (Math.abs(S.ist - v) < 1) { clearInterval(wait); setHint("Plateau " + fmt(v, 1) + " km/h · point " + (k + 1) + "/3");
         setTimeout(function () {
           var bad = (!S.faultInjected && v === 50 && k === 1); if (bad) S.faultInjected = true;
           var m = mTotal(v, true) + 0.004 * gauss() + (bad ? 0.05 : 0), sg = 0.003 + 0.003 * Math.random();
-          var p = { v: v, k: k + 1, m: m, s: sg, croh: m / R / LOAD, ckor: (m - mLeer(v) - mRad(v)) / R / LOAD, ok: !bad, why: bad ? "dv/dt 0,6 km/h/s" : "" };
+          var p = { v: v, k: k + 1, m: m, s: sg, croh: m / R / LOAD, ckor: (m - mLeer(v) - mRad(v)) / R / LOAD, ok: !bad, why: bad ? "dv/dt 0.6 km/h/s" : "" };
           S.points.push(p);
-          if (bad) warn("W03", "Punkt 50 km/h #2 ungültig: " + p.why);
+          if (bad) warn("W03", "point 50 km/h #2 invalid: " + p.why);
           var tr = $("tp").insertRow(-1);
-          [fmt(v, 1), p.k, fmt(m, 4), fmt(sg, 4), fmt(p.croh, 5), fmt(p.ckor, 5), p.ok ? "ja" : "nein · " + p.why].forEach(function (c, j) {
+          [fmt(v, 1), p.k, fmt(m, 4), fmt(sg, 4), fmt(p.croh, 5), fmt(p.ckor, 5), p.ok ? "yes" : "no · " + p.why].forEach(function (c, j) {
             var td = tr.insertCell(-1); td.textContent = c; if (j === 6) td.className = p.ok ? "ok" : "miss"; });
           k++; if (k >= 3) { k = 0; i++; }
           next();
@@ -459,10 +460,10 @@ PANEL[10] = function () {
   next();
 };
 
-// 11 Anker
+// 11 Reference point
 PANEL[11] = function () {
-  S.soll = 28.8; setHint("Ankerpunkt 28,8 km/h");
-  $("panel").innerHTML = '<div class="title">Ankerpunkt</div><div class="txt">28,8 km/h wiederholen, Drift gegen den ersten Punkt.</div><div class="small" id="t11">…</div>';
+  S.soll = 28.8; setHint("Reference point 28.8 km/h");
+  $("panel").innerHTML = '<div class="title">Reference point</div><div class="txt">Repeat 28.8 km/h, drift against the first point.</div><div class="small" id="t11">…</div>';
   var wait = setInterval(function () {
     if (Math.abs(S.ist - 28.8) < 1) { clearInterval(wait);
       setTimeout(function () {
@@ -470,7 +471,7 @@ PANEL[11] = function () {
         var m0 = first.reduce(function (a, p) { return a + p.m; }, 0) / first.length;
         var m = mTotal(28.8, true) * 1.004 + 0.004 * gauss();
         S.anchor = { m0: m0, m: m, d: m - m0, dcrr: (m - m0) / R / LOAD };
-        if (Math.abs(S.anchor.d) / R > 0.03) warn("W04", "Ankerdrift " + fmt(Math.abs(S.anchor.d) / R, 3) + " N auf F_roll");
+        if (Math.abs(S.anchor.d) / R > 0.03) warn("W04", "reference-point drift " + fmt(Math.abs(S.anchor.d) / R, 3) + " N on F_roll");
         $("t11").textContent = "ΔM " + (S.anchor.d >= 0 ? "+" : "") + fmt(S.anchor.d, 4) + " Nm · ΔCrr " + (S.anchor.dcrr >= 0 ? "+" : "") + fmt(S.anchor.dcrr, 5);
         done(11, "ΔCrr " + (S.anchor.dcrr >= 0 ? "+" : "") + fmt(S.anchor.dcrr, 5));
         setTimeout(function () { go(12); }, 800);
@@ -480,37 +481,37 @@ PANEL[11] = function () {
   tickers.push(wait);
 };
 
-// 12 Auslaufen
+// 12 Coast-down
 PANEL[12] = function () {
-  S.soll = 0; setHint("Auslauf · unter 45 km/h Bremse");
-  $("panel").innerHTML = '<div class="title">Auslaufen</div><div class="txt">Frei bis 45 km/h, dann 20 A.</div>';
+  S.soll = 0; setHint("Coast-down · brake below 45 km/h");
+  $("panel").innerHTML = '<div class="title">Coast-down</div><div class="txt">Free down to 45 km/h, then 20 A.</div>';
   var t0 = Date.now();
   var w = setInterval(function () {
-    if (S.ist < 0.3) { clearInterval(w); setHint(""); done(12, fmt((Date.now() - t0) / 1000 * 6, 0) + " s (simuliert)"); go(13); }
+    if (S.ist < 0.3) { clearInterval(w); setHint(""); done(12, fmt((Date.now() - t0) / 1000 * 6, 0) + " s (simulated)"); go(13); }
   }, 200);
   tickers.push(w);
 };
 
-// 13 Nachlauf
+// 13 Post-run idle check
 PANEL[13] = function () {
-  $("panel").innerHTML = '<div class="title">Nachlauf Leerlauf</div>' +
-    '<div class="txt">Rad abheben, Leerlauf warm wiederholen. Prüft die Drift der Kennlinie (0,02 N).</div>' +
-    '<div class="btns"><button class="half" onclick="skip13()">Überspringen</button><button class="go half" onclick="lift13()">Rad abgehoben</button></div>';
+  $("panel").innerHTML = '<div class="title">Post-run idle check</div>' +
+    '<div class="txt">Lift the wheel, repeat the idle run warm. Checks the drift of the characteristic (0.02 N).</div>' +
+    '<div class="btns"><button class="half" onclick="skip13()">Skip</button><button class="go half" onclick="lift13()">Wheel lifted</button></div>';
 };
-function skip13() { warn("W05", "Nachlauf übersprungen: Drift der Leerlaufkennlinie ungeprüft, Ergebnis nur im A/B/A derselben Sitzung gültig"); done(13, "übersprungen (W05)", "skip"); go(14); }
+function skip13() { warn("W05", "post-run check skipped: drift of the idle characteristic unchecked, result valid only within the A/B/A of the same session"); done(13, "skipped (W05)", "skip"); go(14); }
 function lift13() { if (!S.baseline.length) { S.baseline = PLATEAUS.map(function (v) { return { v: v, m: mLeer(v) }; }); } runBaseline(13); }
 
-// 14 Protokoll
+// 14 Report
 PANEL[14] = function () {
   S.soll = 0; setHint("");
-  done(14, "fertig " + hm(now()));
+  done(14, "finished " + hm(now()));
   renderLists();
   var md = protokoll();
   var href = "data:text/markdown;charset=utf-8," + encodeURIComponent(md);
-  $("panel").innerHTML = '<div class="title">Protokoll</div>' +
-    '<div class="txt">' + S.points.length + ' Messpunkte · ' + S.warn.length + ' Warnungen.</div>' +
-    '<a class="dl" href="' + href + '" download="messlauf-' + $("runId").textContent + '.md">Protokoll .md</a>' +
-    '<a class="dl" href="#" onclick="return false" style="background:#c3ccd4;color:#16202a">Daten .csv</a>' +
+  $("panel").innerHTML = '<div class="title">Report</div>' +
+    '<div class="txt">' + S.points.length + ' measurement points · ' + S.warn.length + ' warnings.</div>' +
+    '<a class="dl" href="' + href + '" download="messlauf-' + $("runId").textContent + '.md">Report .md</a>' +
+    '<a class="dl" href="#" onclick="return false" style="background:#c3ccd4;color:#16202a">Data .csv</a>' +
     '<pre>' + md.replace(/</g, "&lt;") + '</pre>';
 };
 
@@ -527,52 +528,52 @@ function plateauStats() {
 function protokoll() {
   var id = $("runId").textContent, d = now();
   var L = [];
-  L.push("# Messlauf " + id);
+  L.push("# Run " + id);
   L.push("");
-  L.push("Reifen: " + S.meta.tire + " · Laufrad: " + S.meta.wheel + " · Druck: " + S.meta.bar + " bar · Auflast: " + S.meta.load + " kg (" + fmt(LOAD, 1) + " N) · Laufgewicht: " + S.meta.pos + " mm");
-  L.push("Raumtemperatur: " + (S.meta.temp || "—") + " °C · Start " + hm(S.startTime || d) + " · Ende " + hm(d) + " · Firmware 2026-11-23 179511f · Regler FW 7.01");
-  L.push("Notiz: " + S.meta.note);
+  L.push("Tyre: " + S.meta.tire + " · Wheel: " + S.meta.wheel + " · Pressure: " + S.meta.bar + " bar · Load: " + S.meta.load + " kg (" + fmt(LOAD, 1) + " N) · Sliding weight: " + S.meta.pos + " mm");
+  L.push("Room temperature: " + (S.meta.temp || "—") + " °C · start " + hm(S.startTime || d) + " · end " + hm(d) + " · firmware 2026-11-23 179511f · controller FW 7.01");
+  L.push("Note: " + S.meta.note);
   L.push("");
-  L.push("## Prüfungen");
-  L.push("| Prüfung | Ergebnis | Wert |"); L.push("|---|---|---|");
-  S.checks.forEach(function (c) { L.push("| " + c[0] + " | " + (c[1] === "ok" ? "ok" : "fällig, erledigt") + " | " + c[2] + " |"); });
-  L.push("| Nullen | ok | σ = " + fmt(S.tareSigma, 1) + " Counts |");
-  L.push("| Kontrollgewicht | " + (S.ctrlDev === null ? "übersprungen" : "ok") + " | " + (S.ctrlDev === null ? "W01" : (S.ctrlDev >= 0 ? "+" : "") + fmt(S.ctrlDev, 2) + " %") + " |");
+  L.push("## Checks");
+  L.push("| Check | Result | Value |"); L.push("|---|---|---|");
+  S.checks.forEach(function (c) { L.push("| " + c[0] + " | " + (c[1] === "ok" ? "ok" : "due, done") + " | " + c[2] + " |"); });
+  L.push("| Tare | ok | σ = " + fmt(S.tareSigma, 1) + " counts |");
+  L.push("| Check weight | " + (S.ctrlDev === null ? "skipped" : "ok") + " | " + (S.ctrlDev === null ? "W01" : (S.ctrlDev >= 0 ? "+" : "") + fmt(S.ctrlDev, 2) + " %") + " |");
   L.push("");
-  L.push("## Kalibrierstand");
-  L.push("| Größe | Wert | Herkunft | Stand |"); L.push("|---|---|---|---|");
-  L.push("| U Trommel | 2,842 m | gemessen | 2026-11-23 |");
-  L.push("| L Zellenarm | 0,084 m | gemessen | 2026-11-23 |");
-  L.push("| N_per_count | 2,668e-5 N | kalibriert 1 kg @ 330 mm | " + CAL_TIME + " |");
-  L.push("| A₀ / B₀ | " + fmt(A0, 4) + " Nm / " + B0.toExponential(2).replace(".", ",") + " | Leerlauf 5 Punkte | " + (state[6] && state[6].cls === "skip" ? "11:52 (W02)" : hm(d)) + " |");
-  L.push("| A₁ / B₁ / J_Rad | " + fmt(A1, 5) + " / " + B1.toExponential(3).replace(".", ",") + " / 0,0765 kg·m² | Auslauf LR-01 | 18:02 |");
-  L.push("| Radumfang | 2,105 m | Drehzahlverhältnis, 10 U | 18:02 |");
+  L.push("## Calibration status");
+  L.push("| Quantity | Value | Origin | As of |"); L.push("|---|---|---|---|");
+  L.push("| U drum | 2.842 m | measured | 2026-11-23 |");
+  L.push("| L cell arm | 0.084 m | measured | 2026-11-23 |");
+  L.push("| N_per_count | 2.668e-5 N | calibrated 1 kg @ 330 mm | " + CAL_TIME + " |");
+  L.push("| A₀ / B₀ | " + fmt(A0, 4) + " Nm / " + B0.toExponential(2) + " | idle run 5 points | " + (state[6] && state[6].cls === "skip" ? "11:52 (W02)" : hm(d)) + " |");
+  L.push("| A₁ / B₁ / J_wheel | " + fmt(A1, 5) + " / " + B1.toExponential(3) + " / 0.0765 kg·m² | coast-down LR-01 | 18:02 |");
+  L.push("| Wheel circumference | 2.105 m | speed ratio, 10 rev | 18:02 |");
   L.push("");
-  L.push("## Warmlauf 28,8 km/h");
-  L.push("| min | P W | Crr korr. |"); L.push("|---|---|---|");
+  L.push("## Warm-up 28.8 km/h");
+  L.push("| min | P W | Crr corr. |"); L.push("|---|---|---|");
   S.warmup.forEach(function (w) { if (w.min % 5 === 0 || w.min === 1) L.push("| " + w.min + " | " + fmt(w.p, 1) + " | " + fmt(w.crr, 5) + " |"); });
-  if (S.warmup.length >= 6) { var a = S.warmup[S.warmup.length - 6].p, b = S.warmup[S.warmup.length - 1].p; L.push(""); L.push("Änderung letzte 5 min: " + fmt((b / a - 1) * 100, 1) + " %"); }
+  if (S.warmup.length >= 6) { var a = S.warmup[S.warmup.length - 6].p, b = S.warmup[S.warmup.length - 1].p; L.push(""); L.push("Change last 5 min: " + fmt((b / a - 1) * 100, 1) + " %"); }
   L.push("");
-  L.push("## Messpunkte");
-  L.push("| v km/h | n | M Nm | σ Nm | F_roll N | Crr roh | Crr korr. | u(Crr) |"); L.push("|---|---|---|---|---|---|---|---|");
+  L.push("## Measurement points");
+  L.push("| v km/h | n | M Nm | σ Nm | F_roll N | Crr raw | Crr corr. | u(Crr) |"); L.push("|---|---|---|---|---|---|---|---|");
   plateauStats().forEach(function (s) {
     L.push("| " + fmt(s.v, 1) + " | " + s.n + "/" + s.all + " | " + fmt(s.m, 4) + " | " + fmt(s.sd, 4) + " | " + fmt(s.froll, 3) + " | " + fmt(s.croh, 5) + " | " + fmt(s.ckor, 5) + " | ± " + fmt(s.u, 5) + " |");
   });
   L.push("");
-  L.push("## Anker 28,8 km/h");
-  if (S.anchor) L.push("ΔM " + (S.anchor.d >= 0 ? "+" : "") + fmt(S.anchor.d, 4) + " Nm · ΔCrr " + (S.anchor.dcrr >= 0 ? "+" : "") + fmt(S.anchor.dcrr, 5) + " · " + fmt(Math.abs(S.anchor.d) / R, 3) + " N auf F_roll");
+  L.push("## Reference point 28.8 km/h");
+  if (S.anchor) L.push("ΔM " + (S.anchor.d >= 0 ? "+" : "") + fmt(S.anchor.d, 4) + " Nm · ΔCrr " + (S.anchor.dcrr >= 0 ? "+" : "") + fmt(S.anchor.dcrr, 5) + " · " + fmt(Math.abs(S.anchor.d) / R, 3) + " N on F_roll");
   L.push("");
-  L.push("## Leerlauf Vor/Nach");
+  L.push("## Idle run before/after");
   if (S.nachlauf) {
-    L.push("| v km/h | vor Nm | nach Nm | Δ auf F_roll N |"); L.push("|---|---|---|---|");
+    L.push("| v km/h | before Nm | after Nm | Δ on F_roll N |"); L.push("|---|---|---|---|");
     S.nachlauf.forEach(function (p, i) { L.push("| " + fmt(p.v, 1) + " | " + fmt(S.baseline[i].m, 4) + " | " + fmt(p.m, 4) + " | " + fmt(Math.abs(p.m - S.baseline[i].m) / R, 3) + " |"); });
-  } else L.push("Nachlauf nicht gefahren (W05).");
+  } else L.push("Post-run idle check not run (W05).");
   L.push("");
-  L.push("## Warnungen");
-  if (!S.warn.length) L.push("keine"); else S.warn.forEach(function (w) { L.push("- " + w); });
+  L.push("## Warnings");
+  if (!S.warn.length) L.push("none"); else S.warn.forEach(function (w) { L.push("- " + w); });
   L.push("");
-  L.push("## Rohdaten");
-  L.push("messlauf-" + id + ".csv · " + (S.points.length + S.warmup.length + S.baseline.length + (S.nachlauf ? S.nachlauf.length : 0) + 1) + " Zeilen");
+  L.push("## Raw data");
+  L.push("messlauf-" + id + ".csv · " + (S.points.length + S.warmup.length + S.baseline.length + (S.nachlauf ? S.nachlauf.length : 0) + 1) + " rows");
   return L.join("\n");
 }
 

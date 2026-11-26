@@ -5,22 +5,22 @@
 namespace tirepressure {
 namespace {
 
-// Zustand, aus der BLE-Task geschrieben, aus der Hauptschleife gelesen.
-// 32-Bit-Schreibzugriffe sind auf dem ESP32 atomar; mehr Schutz braucht es nicht.
-volatile float    g_bleBar  = NAN;     // gleitendes Mittel ueber AIRSPY_AVG_N Werte
+// State, written from the BLE task, read from the main loop.
+// 32-bit writes are atomic on the ESP32; no further protection is needed.
+volatile float    g_bleBar  = NAN;     // moving average over AIRSPY_AVG_N values
 volatile float    g_bleTemp = NAN;
 volatile float    g_bleBatt = NAN;
-volatile uint32_t g_bleLastMs = 0;     // millis() des letzten Druckwerts, 0 = nie
+volatile uint32_t g_bleLastMs = 0;     // millis() of the last pressure value, 0 = never
 volatile bool     g_connected = false;
 char              g_name[24] = "";
 
 float g_manualBar = NAN;
 
-// Mittelung, nur in der BLE-Task benutzt.
+// Averaging, used only in the BLE task.
 float   g_ring[AIRSPY_AVG_N];
 uint8_t g_ringPos = 0, g_ringFill = 0;
 
-// Sichtung aus dem Scan, von der Scan-Callback an die Task uebergeben.
+// Sighting from the scan, handed from the scan callback to the task.
 NimBLEAddress g_seenAddr;
 volatile bool g_seen = false;
 volatile uint32_t g_seenMs = 0;
@@ -28,8 +28,8 @@ char g_seenName[24] = "";
 
 static float readF32(const uint8_t* p) { float f; memcpy(&f, p, 4); return f; }
 
-// Eine Notification: 15 Byte. Druck in der ersten Haelfte, Temperatur und Batterie in
-// der zweiten. Laeuft im Kontext des NimBLE-Hosts.
+// One notification: 15 bytes. Pressure in the first half, temperature and battery in
+// the second. Runs in the context of the NimBLE host.
 void onNotify(NimBLERemoteCharacteristic*, uint8_t* d, size_t len, bool) {
   if (len != 15) return;
   if (d[14] == AIRSPY_TAG_PRESSURE) {
@@ -63,8 +63,8 @@ ScanCB g_scanCB;
 class ClientCB : public NimBLEClientCallbacks {
   void onDisconnect(NimBLEClient*, int reason) override {
     g_connected = false;
-    g_ringFill = g_ringPos = 0;    // nie ueber eine Luecke mitteln
-    Serial.print("# AirSpy: Verbindung weg, Grund "); Serial.println(reason);
+    g_ringFill = g_ringPos = 0;    // never average across a gap
+    Serial.print("# AirSpy: connection lost, reason "); Serial.println(reason);
   }
 };
 ClientCB g_clientCB;
@@ -74,15 +74,15 @@ NimBLEClient* g_client = nullptr;
 void startScan() {
   NimBLEScan* scan = NimBLEDevice::getScan();
   if (scan->isScanning()) return;
-  scan->setActiveScan(true);           // der Name steht in der Scan-Antwort
+  scan->setActiveScan(true);           // the name is in the scan response
   scan->setInterval(100);
   scan->setWindow(30);
   scan->setMaxResults(0);
   scan->start(0, false, true);
 }
 
-// Verbinden und abonnieren. Blockiert bis zu AIRSPY_CONNECT_TIMEOUT_MS -- deshalb in
-// der eigenen Task.
+// Connect and subscribe. Blocks for up to AIRSPY_CONNECT_TIMEOUT_MS -- hence in
+// its own task.
 bool connectAndSubscribe() {
   if (!g_client) {
     g_client = NimBLEDevice::createClient();
@@ -92,20 +92,20 @@ bool connectAndSubscribe() {
   }
   if (g_client->isConnected()) return true;
   NimBLEDevice::getScan()->stop();
-  Serial.print("# AirSpy: verbinde mit "); Serial.println(g_seenName);
-  if (!g_client->connect(g_seenAddr, true)) { Serial.println("# AirSpy: Verbindung fehlgeschlagen"); return false; }
+  Serial.print("# AirSpy: connecting to "); Serial.println(g_seenName);
+  if (!g_client->connect(g_seenAddr, true)) { Serial.println("# AirSpy: connection failed"); return false; }
   NimBLERemoteService* svc = g_client->getService(NimBLEUUID(AIRSPY_SVC_UUID16));
   NimBLERemoteCharacteristic* chr = svc ? svc->getCharacteristic(NimBLEUUID(AIRSPY_CHR_UUID16)) : nullptr;
   if (!chr || !chr->canNotify() || !chr->subscribe(true, onNotify)) {
-    Serial.println("# AirSpy: 0xFFF4 nicht abonnierbar");
+    Serial.println("# AirSpy: cannot subscribe to 0xFFF4");
     g_client->disconnect();
     return false;
   }
-  // Langsames Verbindungsintervall erbitten, sonst ist die Knopfzelle in einem Tag leer.
+  // Request a slow connection interval, otherwise the coin cell is empty within a day.
   g_client->updateConnParams(AIRSPY_CONN_ITVL_MIN, AIRSPY_CONN_ITVL_MAX, 4, 600);
   strncpy(g_name, g_seenName, sizeof(g_name) - 1);
   g_connected = true;
-  Serial.print("# AirSpy: "); Serial.print(g_name); Serial.println(" abonniert (0xFFF4, 2 Hz)");
+  Serial.print("# AirSpy: "); Serial.print(g_name); Serial.println(" subscribed (0xFFF4, 2 Hz)");
   return true;
 }
 
@@ -117,18 +117,18 @@ void bleTask(void*) {
   uint32_t nextTry = 0;
   for (;;) {
     if (g_connected) {
-      // Verbunden, aber stumm: der Sensor schlaeft oder die Verbindung ist tot.
-      if (g_bleLastMs && millis() - g_bleLastMs > 6 * AIRSPY_STALE_MS && g_client && g_client->isConnected()) {
-        Serial.println("# AirSpy: stumm, trenne");
+      // Connected but silent: the sensor is asleep or the connection is dead.
+      if (g_bleLastMs && millis() - g_bleLastMs > AIRSPY_MUTE_MS && g_client && g_client->isConnected()) {
+        Serial.println("# AirSpy: silent, disconnecting");
         g_client->disconnect();
       }
-      vTaskDelay(pdMS_TO_TICKS(500));
+      vTaskDelay(pdMS_TO_TICKS(AIRSPY_POLL_MS));
       continue;
     }
-    // Nur verbinden, wenn der Sensor gerade gehoert wurde -- dann antwortet er sofort.
-    if (g_seen && millis() - g_seenMs < 3000 && millis() >= nextTry) {
+    // Only connect if the sensor was just heard -- then it answers at once.
+    if (g_seen && millis() - g_seenMs < AIRSPY_SEEN_MS && millis() >= nextTry) {
       g_seen = false;
-      if (!connectAndSubscribe()) nextTry = millis() + 2000;
+      if (!connectAndSubscribe()) nextTry = millis() + AIRSPY_RETRY_MS;
     }
     if (!g_connected) startScan();
     vTaskDelay(pdMS_TO_TICKS(200));
@@ -138,7 +138,7 @@ void bleTask(void*) {
 }  // namespace
 
 void begin() {
-  // Kern 0, unter der Netzwerk-Task; die Hauptschleife laeuft auf Kern 1.
+  // Core 0, below the network task; the main loop runs on core 1.
   xTaskCreatePinnedToCore(bleTask, "airspy", 6144, nullptr, 1, nullptr, 0);
 }
 
@@ -152,7 +152,7 @@ const char* name() { return g_name; }
 float bar() {
   if (fresh()) return g_bleBar;
   if (!isnan(g_manualBar)) return g_manualBar;
-  return isnan(g_bleBar) ? NAN : g_bleBar;   // alt, aber besser als nichts; fresh() sagt es
+  return isnan(g_bleBar) ? NAN : g_bleBar;   // old, but better than nothing; fresh() tells
 }
 float tempC()   { return g_bleLastMs ? g_bleTemp : NAN; }
 float battery() { return g_bleLastMs ? g_bleBatt : NAN; }

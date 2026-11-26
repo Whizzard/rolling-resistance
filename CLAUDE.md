@@ -1,13 +1,20 @@
 # Conventions in this project
 
 ## Language
-Documentation (`README.md`, `docs/`, the READMEs in `analysis/`, `tools/`, `hardware/`)
-is written in **English**. Identifiers in code are English. Comments inside the
-firmware and the web UI texts are German; they are not translated piecemeal, only
-whole files at a time.
+**Everything in the repository is English** — code, identifiers, comments, firmware
+console messages, web UI texts, documentation, drawing labels, commit messages. This
+holds even when the conversation is in German. Translated on 2026-11-26; until then
+firmware comments and UI texts were German. The UI keeps its terse style (one to three
+words per message).
 
 A knowledge-base mirror of the documentation existed until 2026-11-22 and was removed.
 The repository is the only source; there is nothing to synchronise.
+
+## Logbook
+`docs/12-logbook.md` is kept up to date as part of the work: an entry (newest first, by
+date) for every event at the stand, milestone, measurement run, rebuild, notable change
+or commit, and whenever the builder names a point. Short, factual, with the source
+(commit, file under `data/`, document section); no value without a source.
 
 ## Units
 **SI throughout internally**: N, Nm, W, m, m/s, rad/s, s, Pa.

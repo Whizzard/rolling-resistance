@@ -1,59 +1,58 @@
 # -*- coding: utf-8 -*-
 """
-Befestigungsspange für das ESP-Gehäuse (ESP, ggf. Display, Verschaltung).
+Mounting clip for the ESP enclosure (ESP, display if fitted, wiring).
 
-Zwei Stück nötig — das Gehäuse hat zwei Kopfseiten —, aber nur **ein** Teil
-konstruiert: die Spange ist symmetrisch zur M6-Achse und passt deshalb an beide
-Enden.
+Two pieces needed -- the enclosure has two end faces --, but only **one** part
+designed: the clip is symmetric about the M6 axis and therefore fits both ends.
 
-Drei Löcher im Dreieck:
+Three holes in a triangle:
 
-      o-------------o     zwei M4-GEWINDE direkt in der Platte
-       \           /      (Abstand M4_PITCH, Lochmitten)
+      o-------------o     two M4 THREADS directly in the plate
+       \           /      (spacing M4_PITCH, hole centres)
         \         /
-         \       /        Kontur läuft zur Mitte hin zusammen
+         \       /        outline narrows towards the middle
           \     /
           +-----+
-          | (O) |       eine M6, mittig, nach aussen versetzt, mit
-          +-----+       Flachsenkung fuer den Schraubenkopf
+          | (O) |       one M6, centred, offset outwards, with a
+          +-----+       flat counterbore for the screw head
 
-Die beiden M4 kommen von oben durch die Ø-4,5-Bohrungen am Rand der Kopfseite
-direkt in Gewinde, die in der Platte sitzen. Die M6 geht durch die überstehende
-Spitze auf die Schiene. Zwei Schrauben, zwei Aufgaben: die M4 halten das
-Gehäuse, die M6 hält die Spange.
+The two M4 come from above through the Ø 4.5 holes at the edge of the end face
+directly into threads that sit in the plate. The M6 goes through the protruding tip
+onto the rail. Two screws, two jobs: the M4 hold the enclosure, the M6 holds the
+clip.
 
-FASSUNG VOM 2026-11-23 — schlanker, duenner, ohne Muttern:
+VERSION OF 2026-11-23 -- slimmer, thinner, without nuts:
 
-  * M4-GEWINDE statt Muttern. Wie bei der Not-Aus-Spange (hardware/not-aus-
-    spange.FCStd): PartDesign-Bohrung, ISO M4x0,7, Gewinde modelliert, durch.
-    Die Schraube greift in den Druck; 4 mm Platte sind knapp sechs Gaenge.
-  * PLATTE 4,0 mm wie die Not-Aus-Spange. Die 6,0 waren nur fuer die Muttern.
-  * M6 VERSENKT. Die Schrauben sind kurz, ISO 7380 Kugelkopf (Kopf Ø 10,5,
-    3,3 hoch). Flachsenkung Ø m6_head_d = 11, so tief, dass m6_rest = 1,5 mm
-    Boden bleiben; Durchgang 6,5. Der Kopf steht 0,8 mm ueber die Platte,
-    neben dem Gehaeuse, das stoert niemanden.
-  * SPITZE SCHLANKER. Versatz und Spitze richten sich jetzt nach dem KOPF
-    (Ø 11) statt nach der Karosseriescheibe Ø 18, die mit der Senkung
-    entfaellt. Die M6-Achse rueckt damit von 16,2 auf 12,7 mm hinter die
-    M4-Linie, die Spitze von 21 auf 15 mm Breite.
+  * M4 THREADS instead of nuts. As with the e-stop clip (hardware/not-aus-
+    spange.FCStd): PartDesign hole, ISO M4x0.7, thread modelled, through.
+    The screw bites into the print; 4 mm of plate are just under six turns.
+  * PLATE 4.0 mm like the e-stop clip. The 6.0 were only for the nuts.
+  * M6 COUNTERSUNK. The screws are short, ISO 7380 button head (head Ø 10.5,
+    3.3 high). Flat counterbore Ø m6_head_d = 11, deep enough that m6_rest =
+    1.5 mm of floor remain; clearance 6.5. The head stands 0.8 mm above the
+    plate, next to the enclosure, where it bothers nobody.
+  * SLIMMER TIP. Offset and tip now follow the HEAD (Ø 11) instead of the
+    body washer Ø 18, which is dropped with the counterbore. The M6 axis thus
+    moves from 16.2 to 12.7 mm behind the M4 line, the tip from 21 to 15 mm
+    width.
 
-Aufbau wie hall_gehaeuse.py und hx711_gehaeuse.py: PartDesign-Body mit
-Featurebaum plus Spreadsheet "Parameter", alle Skizzen voll bestimmt und über
-Ausdrücke an die Tabelle gebunden. Maße in mm.
+Structure as in hall_gehaeuse.py and hx711_gehaeuse.py: PartDesign body with a
+feature tree plus spreadsheet "Parameter", all sketches fully constrained and bound
+to the table through expressions. Dimensions in mm.
 
-Featurebaum:
-    Platte        Sechseck-Umriss: breit unter dem Gehäuse, Spitze zur M6
-    M4_Gewinde    zwei Gewindebohrungen M4x0,7 durch die Platte
-    M6_Durchgang  Ø 6,5 in der Spitze
-    M6_Senkung    Flachsenkung Ø 11 von oben, bis 1,5 mm Boden bleiben
-    Verrundung    die sechs senkrechten Umrisskanten
+Feature tree:
+    Platte        hexagonal outline: wide under the enclosure, tip towards the M6
+    M4_Gewinde    two threaded holes M4x0.7 through the plate
+    M6_Durchgang  Ø 6.5 in the tip
+    M6_Senkung    flat counterbore Ø 11 from above, until 1.5 mm of floor remain
+    Verrundung    the six vertical outline edges
 
-Die Oberseite ist **glatt** — keine erhöhten Auflagen. Sie liegt vollflächig an
-der Kopfseite des Gehäuses.
+The top side is **smooth** -- no raised pads. It lies flat over its full area
+against the end face of the enclosure.
 
-Koordinaten: x = 0 ist die Symmetrieachse, y = 0 die Linie der beiden M4.
-+y zeigt von der Gehäusemitte weg, nach draussen. z = 0 ist die Unterseite, die
-auf der Schiene liegt.
+Coordinates: x = 0 is the axis of symmetry, y = 0 the line of the two M4.
++y points away from the enclosure centre, outwards. z = 0 is the underside that
+rests on the rail.
 """
 
 import os
@@ -69,61 +68,61 @@ from FreeCAD import Vector
 
 # ------------------------------------------------------------------- TBD
 #
-# Abstand der beiden Ø-4,5-Bohrungen am Gehäuse, Mitte zu Mitte, in mm.
+# Spacing of the two Ø 4.5 holes on the enclosure, centre to centre, in mm.
 #
-# Steht hier None, baut das Skript nichts, sondern sagt, was zu messen ist —
-# eine erfundene Zahl, die wie ein Maß aussieht, ist schlimmer als eine Lücke
-# (Projektregel, siehe CLAUDE.md).
+# If this is None, the script builds nothing but says what has to be measured --
+# an invented number that looks like a measurement is worse than a gap
+# (project rule, see CLAUDE.md).
 #
-# Am Gehäuse gemessen (2026-11-18): 50,0 mm.
+# Measured on the enclosure (2026-11-18): 50.0 mm.
 M4_PITCH = 50.0
 
-SCREW_EDGE = 6.2          # Lochmitte bis Aussenkante des Gehaeuses, vorgegeben
+SCREW_EDGE = 6.2          # hole centre to outer edge of the enclosure, given
 
 
 def params(pitch):
-    """(Name, Wert oder Formel, Kommentar). Formeln beginnen mit '='."""
+    """(name, value or formula, comment). Formulas start with '='."""
     return [
-        ('m4_pitch',   pitch,        'Lochabstand am Gehaeuse, Mitte zu Mitte'),
-        ('screw_edge', SCREW_EDGE,   'Lochmitte bis Gehaeusekante, vorgegeben'),
+        ('m4_pitch',   pitch,        'Hole spacing on the enclosure, centre to centre'),
+        ('screw_edge', SCREW_EDGE,   'Hole centre to enclosure edge, given'),
 
-        ('m4_thread',  'M4x0.7', 'Gewinde direkt in der Platte, wie Not-Aus-Spange'),
-        ('m6_d',          6.5,  'Durchgang M6 zur Schiene'),
-        # Flachsenkung fuer den Kugelkopf ISO 7380 M6: dk 10,5, k 3,3.
-        ('m6_head_d',    11.0,  'Flachsenkung, Kugelkopf dk 10,5 + Spiel'),
-        ('m6_rest',       1.5,  'Boden unter dem Schraubenkopf'),
-        ('m6_cb_t', '=plate_t - m6_rest', 'Tiefe der Flachsenkung'),
+        ('m4_thread',  'M4x0.7', 'Thread directly in the plate, as on the e-stop clip'),
+        ('m6_d',          6.5,  'M6 clearance to the rail'),
+        # Flat counterbore for the button head ISO 7380 M6: dk 10.5, k 3.3.
+        ('m6_head_d',    11.0,  'Flat counterbore, button head dk 10.5 + play'),
+        ('m6_rest',       1.5,  'Floor under the screw head'),
+        ('m6_cb_t', '=plate_t - m6_rest', 'Depth of the flat counterbore'),
 
-        ('m4_pad',       11.3,  'Material um die Gewinde: Platte so breit wie das Gehaeuse'),
-        ('plate_t',       4.0,  'Plattendicke, wie die Not-Aus-Spange'),
-        ('fillet_r',      3.0,  'Verrundung der senkrechten Umrisskanten'),
+        ('m4_pad',       11.3,  'Material around the threads: plate as wide as the enclosure'),
+        ('plate_t',       4.0,  'Plate thickness, as the e-stop clip'),
+        ('fillet_r',      3.0,  'Fillet of the vertical outline edges'),
 
-        # Versatz und Spitze richten sich nach dem versenkten KOPF: die Senkung
-        # soll die Gehaeusekante nicht anschneiden, und neben ihr muss an der
-        # Spitze Wand stehen bleiben.
-        ('m6_clear',      1.0,  'Luft Senkungsrand bis Gehaeusekante'),
-        ('tip_wall',      2.0,  'Wand neben der Senkung an der Spitze'),
+        # Offset and tip follow the countersunk HEAD: the counterbore must not
+        # cut into the enclosure edge, and beside it a wall has to remain at
+        # the tip.
+        ('m6_clear',      1.0,  'Clearance from counterbore rim to enclosure edge'),
+        ('tip_wall',      2.0,  'Wall beside the counterbore at the tip'),
         ('m6_offset', '=screw_edge + m6_head_d / 2 + m6_clear',
-                       'M4-Linie bis M6-Achse'),
+                       'M4 line to M6 axis'),
 
-        ('y_in',  '=-screw_edge', 'Innenkante, unter dem Gehaeuse'),
-        ('y_hip', '=screw_edge',  'Hier beginnt die Verjuengung: an der Gehaeusekante'),
+        ('y_in',  '=-screw_edge', 'Inner edge, under the enclosure'),
+        ('y_hip', '=screw_edge',  'The taper starts here: at the enclosure edge'),
         ('y_out', '=m6_offset + m6_head_d / 2 + tip_wall',
-                  'Aussenkante: Wand neben der Senkung'),
+                  'Outer edge: wall beside the counterbore'),
 
-        ('w_wide', '=m4_pitch + m4_pad', 'Breite unter dem Gehaeuse'),
+        ('w_wide', '=m4_pitch + m4_pad', 'Width under the enclosure'),
         ('w_tip',  '=m6_head_d + 2 * tip_wall',
-                   'Breite an der Spitze: Wand neben der Senkung'),
+                   'Width at the tip: wall beside the counterbore'),
 
-        ('len', '=y_out - y_in', 'Gesamtlaenge'),
+        ('len', '=y_out - y_in', 'Overall length'),
     ]
 
 
 def build_sheet(doc, pitch):
     sh = doc.addObject('Spreadsheet::Sheet', 'Parameter')
     sh.set('A1', 'Parameter')
-    sh.set('B1', 'Wert')
-    sh.set('C1', 'Bedeutung')
+    sh.set('B1', 'Value')
+    sh.set('C1', 'Meaning')
     rows = params(pitch)
     for i, (name, val, note) in enumerate(rows):
         r = i + 2
@@ -141,7 +140,7 @@ def P(sh, name):
     return float(sh.get(name))
 
 
-# ------------------------------------------------------------ Skizzenhilfen
+# ----------------------------------------------------------- Sketch helpers
 
 def named(sk, con, name):
     i = sk.addConstraint(con)
@@ -150,11 +149,11 @@ def named(sk, con, name):
 
 
 def polygon(sk, pts, tag, exprs):
-    """Geschlossenes Vieleck, voll bestimmt über je DistanceX/Y zum Ursprung.
+    """Closed polygon, fully constrained by one DistanceX/Y each to the origin.
 
-    n Linien haben 4n Freiheitsgrade, n Koinzidenzen nehmen 2n, die 2n Maße den
-    Rest — genau bestimmt, ohne Horizontal/Vertikal, die hier überbestimmen
-    würden.
+    n lines have 4n degrees of freedom, n coincidences take 2n, the 2n dimensions
+    the rest -- exactly constrained, without Horizontal/Vertical, which would
+    over-constrain here.
     """
     n = len(pts)
     g = [sk.addGeometry(Part.LineSegment(Vector(pts[i][0], pts[i][1], 0),
@@ -185,7 +184,7 @@ def circle(sk, cx, cy, r, tag, expr_x, expr_y, expr_r):
 
 
 
-# ------------------------------------------------------------------- Modell
+# -------------------------------------------------------------------- Model
 
 def sketch_on(body, plane, name, z_off=0.0):
     sk = body.newObject('Sketcher::SketchObject', name)
@@ -224,9 +223,9 @@ def build(doc, sh):
     yi, yh, yo = P(sh, 'y_in'), P(sh, 'y_hip'), P(sh, 'y_out')
     hx = P(sh, 'm4_pitch') / 2
 
-    # 1 Platte: volle Breite bis zur Gehaeusekante, dann zur Spitze zusammen.
-    #   Die Verjuengung beginnt erst dort, weil die Sockel darunter die volle
-    #   Breite brauchen.
+    # 1 Plate: full width up to the enclosure edge, then narrowing to the tip.
+    #   The taper only starts there because the bosses underneath need the full
+    #   width.
     sk = sketch_on(body, xy, 'Sk_Platte')
     polygon(sk,
             [(-ww, yi), (ww, yi), (ww, yh), (wt, yo), (-wt, yo), (-ww, yh)], 'pl',
@@ -238,9 +237,9 @@ def build(doc, sh):
              ('-Parameter.w_wide / 2', 'Parameter.y_hip')])
     pad(sk, 'Platte', 'Parameter.plate_t')
 
-    # 2 M4-Gewinde durch die Platte: PartDesign-Bohrung mit modelliertem
-    #   ISO-Gewinde, genau wie in hardware/not-aus-spange.FCStd. Die Skizze
-    #   liefert nur die Mittelpunkte, den Durchmesser bestimmt das Gewinde.
+    # 2 M4 threads through the plate: PartDesign hole with a modelled ISO
+    #   thread, exactly as in hardware/not-aus-spange.FCStd. The sketch only
+    #   supplies the centres, the thread determines the diameter.
     sk = sketch_on(body, xy, 'Sk_M4', P(sh, 'plate_t'))
     sk.setExpression('AttachmentOffset.Base.z', 'Parameter.plate_t')
     for sign, t in ((+1, 'p'), (-1, 'm')):
@@ -256,33 +255,32 @@ def build(doc, sh):
     if thread not in sizes:
         alt = [z for z in sizes if z.startswith('M4')]
         if not alt:
-            raise RuntimeError('Gewinde %s nicht in %s' % (thread, sizes))
+            raise RuntimeError('Thread %s not in %s' % (thread, sizes))
         thread = alt[0]
     h.ThreadSize = thread
     h.ModelThread = True
     doc.recompute()
 
-    # 4 M6 in der Spitze
+    # 4 M6 in the tip
     sk = sketch_on(body, xy, 'Sk_M6')
     circle(sk, 0.0, P(sh, 'm6_offset'), P(sh, 'm6_d') / 2, 'm6',
            '0', 'Parameter.m6_offset', 'Parameter.m6_d / 2')
     pocket(sk, 'M6_Durchgang', 'Parameter.plate_t + 1')
 
-    # 4a Flachsenkung von oben, bis m6_rest Boden bleiben. Skizze auf der
-    #    Oberseite; die Tasche geht gegen die Normale, also nach unten.
+    # 4a Flat counterbore from above, until m6_rest of floor remains. Sketch on
+    #    the top side; the pocket goes against the normal, i.e. downwards.
     sk = sketch_on(body, xy, 'Sk_M6_Senkung', P(sh, 'plate_t'))
     sk.setExpression('AttachmentOffset.Base.z', 'Parameter.plate_t')
     circle(sk, 0.0, P(sh, 'm6_offset'), P(sh, 'm6_head_d') / 2, 'cb',
            '0', 'Parameter.m6_offset', 'Parameter.m6_head_d / 2')
     pocket(sk, 'M6_Senkung', 'Parameter.m6_cb_t', reversed_=False)
 
-    # 5 Verrundung der senkrechten Umrisskanten.
+    # 5 Fillet of the vertical outline edges.
     #
-    #   Die Kanten werden ueber ihre LAGE gesucht, nicht ueber ihren Index: ein
-    #   Index verschiebt sich bei jeder Aenderung am Baum, eine Koordinate
-    #   nicht. Die senkrechten Kanten der Muttertaschen liegen woanders und
-    #   bleiben dadurch scharf — eine verrundete Sechskanttasche haelt keine
-    #   Mutter mehr.
+    #   The edges are found by their POSITION, not by their index: an index
+    #   shifts with every change to the tree, a coordinate does not. The
+    #   vertical edges of the nut pockets lie elsewhere and so stay sharp -- a
+    #   filleted hex pocket no longer holds a nut.
     ecken = [(-ww, yi), (ww, yi), (ww, yh), (wt, yo), (-wt, yo), (-ww, yh)]
     tip = body.Tip
     namen = []
@@ -291,12 +289,12 @@ def build(doc, sh):
             continue
         d = e.Vertexes[-1].Point - e.Vertexes[0].Point
         if abs(d.x) > 1e-6 or abs(d.y) > 1e-6:
-            continue                                   # nicht senkrecht
+            continue                                   # not vertical
         q = e.Vertexes[0].Point
         if any(abs(q.x - ex) < 1e-6 and abs(q.y - ey) < 1e-6 for ex, ey in ecken):
             namen.append('Edge%d' % (i + 1))
     if len(namen) != 6:
-        raise RuntimeError('Umrisskanten nicht eindeutig gefunden: %s' % namen)
+        raise RuntimeError('Outline edges not found unambiguously: %s' % namen)
     f = body.newObject('PartDesign::Fillet', 'Verrundung')
     f.Base = (tip, namen)
     f.setExpression('Radius', 'Parameter.fillet_r')
@@ -363,18 +361,18 @@ def set_visibility(doc, body):
 
 def main():
     if M4_PITCH is None:
-        print('M4_PITCH ist TBD — es wird nichts gebaut.')
+        print('M4_PITCH is TBD -- nothing is built.')
         print()
-        print('Gebraucht wird der Abstand der beiden Ø-4,5-Bohrungen an der')
-        print('Kopfseite des ESP-Gehaeuses, Mitte zu Mitte, in mm. Zu ermitteln:')
-        print('  * Messschieber ueber die beiden Lochmitten, oder')
-        print('  * Breite der Kopfseite minus 2 x %.1f mm (Randabstand).'
+        print('Needed is the spacing of the two Ø 4.5 holes on the end face')
+        print('of the ESP enclosure, centre to centre, in mm. To determine it:')
+        print('  * calipers across the two hole centres, or')
+        print('  * width of the end face minus 2 x %.1f mm (edge distance).'
               % SCREW_EDGE)
         print()
-        print('Dann oben M4_PITCH setzen und erneut laufen lassen. Alles andere')
-        print('haengt daran und rechnet sich von selbst:')
-        print('  Breite unter dem Gehaeuse = M4_PITCH + 11,3')
-        print('  Laenge, Sockel, Muttertaschen, M6-Lage: fest')
+        print('Then set M4_PITCH above and run again. Everything else')
+        print('depends on it and follows by itself:')
+        print('  width under the enclosure = M4_PITCH + 11.3')
+        print('  length, bosses, nut pockets, M6 position: fixed')
         return 1
 
     here = os.path.dirname(os.path.abspath(__file__))
@@ -394,37 +392,37 @@ def main():
     body.Shape.exportStl(os.path.join(here, 'esp-spange.stl'))
 
     bb = body.Shape.BoundBox
-    print('Aussenmass  %.1f x %.1f x %.1f mm'
+    print('Outer size  %.1f x %.1f x %.1f mm'
           % (bb.XLength, bb.YLength, bb.ZLength))
-    print('Volumen     %.0f mm3' % body.Shape.Volume)
-    print('Gueltig     %s' % body.Shape.isValid())
+    print('Volume      %.0f mm3' % body.Shape.Volume)
+    print('Valid       %s' % body.Shape.isValid())
     bad = [o.Name for o in doc.Objects if getattr(o, 'State', None)
            and 'Invalid' in o.State]
-    print('Fehlerhaft  %s' % (bad if bad else 'keine'))
+    print('Invalid     %s' % (bad if bad else 'none'))
     offen = [o.Name for o in doc.Objects
              if o.isDerivedFrom('Sketcher::SketchObject')
              and not getattr(o, 'FullyConstrained', True)]
-    print('Skizzen     %d, davon nicht voll bestimmt: %s'
+    print('Sketches    %d, not fully constrained: %s'
           % (len([o for o in doc.Objects
                   if o.isDerivedFrom('Sketcher::SketchObject')]),
-             offen if offen else 'keine'))
-    print('M4-Gewinde                  %s, modelliert, %.1f mm lang'
+             offen if offen else 'none'))
+    print('M4 thread                   %s, modelled, %.1f mm long'
           % (doc.getObject('M4_Gewinde').ThreadSize, P(sh, 'plate_t')))
-    print('Verrundung                  r = %.1f mm an 6 Kanten'
+    print('Fillet                      r = %.1f mm on 6 edges'
           % P(sh, 'fillet_r'))
-    print('M6-Achse hinter der Gehaeusekante %.2f mm'
+    print('M6 axis behind the enclosure edge %.2f mm'
           % (P(sh, 'm6_offset') - P(sh, 'screw_edge')))
-    print('Flachsenkung \u00d8%.1f, %.2f mm tief, Boden %.2f mm, Wand neben dem '
-          'Kopf %.2f mm'
+    print('Flat counterbore \u00d8%.1f, %.2f mm deep, floor %.2f mm, wall beside the '
+          'head %.2f mm'
           % (P(sh, 'm6_head_d'), P(sh, 'm6_cb_t'), P(sh, 'm6_rest'),
              (P(sh, 'w_tip') - P(sh, 'm6_head_d')) / 2))
-    # Geometrie pruefen: Luft in der Senkung, Boden darunter, Durchgang offen.
+    # Check geometry: air in the counterbore, floor beneath, clearance hole open.
     s = body.Shape
     yc, r = P(sh, 'm6_offset'), P(sh, 'm6_head_d') / 2 - 0.5
     ok = (not s.isInside(Vector(r, yc, P(sh, 'plate_t') - 0.5), 1e-6, True)
           and s.isInside(Vector(r, yc, P(sh, 'm6_rest') / 2), 1e-6, True)
           and not s.isInside(Vector(0, yc, P(sh, 'm6_rest') / 2), 1e-6, True))
-    print('Senkung plausibel           %s' % ok)
+    print('Counterbore plausible       %s' % ok)
     return 0
 
 

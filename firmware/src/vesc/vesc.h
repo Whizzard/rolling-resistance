@@ -1,120 +1,125 @@
 #pragma once
 //
-// Motorregler über UART — das Nötigste.
+// Motor controller over UART -- the bare essentials.
 //
-// Sollwert ist die DREHZAHL in ERPM, denn so rechnet der Regler, und er hat dafür
-// einen eigenen PID-Regelkreis: ein Plateau hält er selbst, der ESP32 muss nicht
-// nachregeln. Die mechanische Drehzahl wäre ERPM / Polpaarzahl — die ist aber nicht
-// gemessen (MOTOR_PULSES_PER_REV ist TBD), deshalb wird hier nichts umgerechnet.
-// Lieber ERPM anzeigen als eine erfundene Drehzahl.
+// The setpoint is the SPEED in ERPM, because that is how the controller computes, and it
+// has its own PID loop for it: it holds a plateau itself, the ESP32 does not have to
+// readjust. The mechanical speed would be ERPM / number of pole pairs -- but that is not
+// measured (MOTOR_PULSES_PER_REV is TBD), so nothing is converted here.
+// Better to show ERPM than an invented speed.
 //
-// Gelesen werden neun Werte (VESC_POLL_MS): FET- und Motortemperatur, Motor- und
-// Eingangsstrom, Aussteuerung, Drehzahl, Busspannung, Fehlercode und Statusbyte.
+// Nine values are read (VESC_POLL_MS): FET and motor temperature, motor and
+// input current, duty cycle, speed, bus voltage, fault code and status byte.
 //
-// Die Motortemperatur war anfangs ausgeklammert, weil der Regler ohne Fühler am
-// TMP-Eingang dafür eine Phantasiezahl OHNE Fehlermeldung liefert. Seit A5 am
-// 2026-11-17 beantwortet ist (10-k-NTC im Stator, dreifach belegt), ist der Wert
-// echt und wird abgefragt.
+// The motor temperature was left out at first, because without a sensor on the
+// TMP input the controller delivers a fantasy number for it WITHOUT an error message.
+// Since A5 was answered on 2026-11-17 (10 k NTC in the stator, confirmed three times),
+// the value is real and is requested.
 //
-// TOTMANN: Der Regler stellt ab, wenn länger als timeout_msec kein Sollwert kommt.
-// Deshalb wird der Sollwert alle VESC_ALIVE_MS wiederholt, solange gefahren wird.
-// ACHTUNG: Messwertabfragen setzen den Timeout NICHT zurück — nur Sollwerte.
-// Wird nicht gefahren, wird auch nichts gesendet; läuft die Firmware dann fest,
-// greift der Timeout des Reglers. Das ist die zweite, unabhängige Ebene.
+// DEAD MAN: the controller shuts off if no setpoint arrives for longer than timeout_msec.
+// So the setpoint is repeated every VESC_ALIVE_MS while driving.
+// CAUTION: value requests do NOT reset the timeout -- only setpoints.
+// When not driving, nothing is sent either; if the firmware then hangs,
+// the controller's timeout takes effect. That is the second, independent level.
 //
 #include <Arduino.h>
 
 namespace vesc {
 
-// Befehlskennungen, Zahlenwerte aus datatypes.h der VESC-Firmware.
+// Command ids, numeric values from datatypes.h of the VESC firmware.
 enum : uint8_t {
   COMM_FW_VERSION          = 0,
   COMM_SET_DUTY            = 5,
   COMM_SET_CURRENT         = 6,
   COMM_SET_CURRENT_BRAKE   = 7,
   COMM_SET_RPM             = 8,
-  COMM_TERMINAL_CMD        = 20,   // Textbefehl an das Terminal des Reglers
-  COMM_PRINT               = 21,   // Textantwort des Terminals
+  COMM_TERMINAL_CMD        = 20,   // text command to the controller's terminal
+  COMM_PRINT               = 21,   // text answer of the terminal
   COMM_ALIVE               = 30,
   COMM_GET_VALUES_SELECTIVE = 50,
 };
 
 struct Values {
-  bool     seen   = false;   // schon mindestens ein Paket empfangen
-  uint32_t ageMs  = 0;       // seit dem letzten Paket
+  bool     seen   = false;   // at least one packet received
+  uint32_t ageMs  = 0;       // since the last packet
   float    tempFet = 0.0f;   // °C
-  float    tempMotor = 0.0f; // °C, 10-k-NTC im Stator (A5)
-  float    currentMotor = 0.0f;  // A, Mittel seit der letzten Abfrage
-  float    currentIn    = 0.0f;  // A, dito. Auf Hardware 4.x GERECHNET, nicht gemessen
+  float    tempMotor = 0.0f; // °C, 10 k NTC in the stator (A5)
+  float    currentMotor = 0.0f;  // A, mean since the last request
+  float    currentIn    = 0.0f;  // A, same. COMPUTED on hardware 4.x, not measured
   float    duty   = 0.0f;    // −1 … +1
   int32_t  erpm   = 0;
-  int32_t  tacho  = 0;       // Tachozaehler des Reglers, 6 Schritte je elektrische Umdrehung, zaehlt auch von Hand gedreht
+  int32_t  tacho  = 0;       // controller tacho counter, 6 steps per electrical revolution, also counts when turned by hand
   float    vIn    = 0.0f;    // V
   uint8_t  fault  = 0;
-  uint8_t  status = 0;       // Bit0 Timeout des Reglers, Bit1 Kill-Switch
+  uint8_t  status = 0;       // bit0 controller timeout, bit1 kill switch
+  // For the raw data (rawlog.h): packet counter, micros() on reception and the
+  // fields in the resolution in which the controller sends them.
+  uint32_t count = 0;
+  uint32_t rxUs  = 0;
+  struct { int16_t tFet10 = 0, tMot10 = 0, duty1000 = 0; int32_t iMot100 = 0, iIn100 = 0; uint16_t vIn10 = 0; } raw;
 };
 
 void begin();
-void service();              // zyklisch aufrufen; nicht blockierend
+void service();              // call cyclically; non-blocking
 
 const Values& values();
-bool connected();            // ein Paket innerhalb der letzten Sekunde
+bool connected();            // a packet within the last second
 
-// Sollwert. Wird auf ±VESC_ERPM_MAX begrenzt und alle VESC_ALIVE_MS wiederholt,
-// bis release() kommt.
+// Setpoint. Limited to ±VESC_ERPM_MAX and repeated every VESC_ALIVE_MS
+// until release() comes.
 void setErpm(int32_t erpm);
 int32_t targetErpm();
 bool driving();
-bool braking();              // SET_CURRENT_BRAKE liegt an (Befehl s)
+bool braking();              // SET_CURRENT_BRAKE applied (command s)
 
-// Tastverhaeltnis als Stellgroesse, −1 … +1. Wird wie der Drehzahlsollwert alle
-// VESC_ALIVE_MS wiederholt.
+// Duty cycle as the manipulated variable, −1 … +1. Repeated every VESC_ALIVE_MS like
+// the speed setpoint.
 //
-// Dieser Weg wird gefahren, weil der Drehzahlregler des VESC fuer diesen Motor
-// unbrauchbar eingestellt ist und s_pid_min_erpm = 900 die unterste Pruefstufe
-// sperrt (docs/06-open-questions.md A15). Ueber das Tastverhaeltnis ist der Stand
-// am 2026-11-17 bis 99,2 km/h gefahren worden, streng linear zur Leerlaufkennlinie.
+// This path is used because the VESC speed controller is tuned uselessly for this
+// motor and s_pid_min_erpm = 900 blocks the lowest test step
+// (docs/06-open-questions.md A15). Via the duty cycle the stand was driven up to
+// 99.2 km/h on 2026-11-17, strictly linear to the no-load characteristic.
 void setDuty(float duty);
 float targetDuty();
 
-// Bremsen mit vorgegebenem Strom. Der EINSTIEG speist fuer Millisekunden zurueck;
-// am Netzteil ab ~56 km/h Ueberspannung (docs/07-safety.md §3.2d). Deshalb nur
-// unter BRAKE_MAX_KMH rufen. Ein Tastverhaeltnis-0-Befehl waere in FOC kein
-// Kurzschluss, sondern eine PI-Rampe mit Rueckspeisung -- darum gibt es ihn hier nicht.
+// Braking with a given current. The ONSET regenerates for milliseconds;
+// on the power supply overvoltage from ~56 km/h (docs/07-safety.md §3.2d). So only
+// call below BRAKE_MAX_KMH. A duty-cycle-0 command would not be a short in FOC,
+// but a PI ramp with regeneration -- that is why it does not exist here.
 void setBrakeCurrent(float amps);
 
-// Antrieb stromlos, Trommel läuft frei aus. Das ist der normale Weg zum Anhalten
-// und entspricht IDrive::stop() — KEIN Ersatz für den Not-Aus.
+// Drive without current, drum coasts freely. That is the normal way to stop
+// and corresponds to IDrive::stop() -- NO substitute for the emergency stop.
 void release();
 
-// Firmwarestand des Reglers. Entscheidet unter anderem, ob
-// foc_short_ls_on_zero_duty existiert (erst ab 6.05).
+// Firmware version of the controller. Decides among other things whether
+// foc_short_ls_on_zero_duty exists (only from 6.05).
 bool fwKnown();
 uint8_t fwMajor();
 uint8_t fwMinor();
-const char* hwName();        // "410" beim FSESC 4.20
+const char* hwName();        // "410" on the FSESC 4.20
 
-// Fehlercode im Klartext. Unbekannte Codes werden als solche gemeldet und nicht
-// auf einen falschen Namen abgebildet.
+// Fault code in plain text. Unknown codes are reported as such and not
+// mapped to a wrong name.
 const char* faultText(uint8_t code);
 
-// Der Regler meldet einen Fehlercode nur m_fault_stop_time_ms lang (500 ms), dann
-// ist er wieder 0. Zu kurz fuer ein Auge -- deshalb bleibt der letzte Code hier
-// stehen: lastFault() und wie lange das her ist. Jeder neue Fehler geht als
-// "# VESC-FEHLER" auf die Konsole. Die Historie liefert das Terminal (":faults").
+// The controller reports a fault code only for m_fault_stop_time_ms (500 ms), then
+// it is 0 again. Too short for an eye -- so the last code stays here:
+// lastFault() and how long ago that was. Every new fault goes to the console as
+// "# VESC FAULT". The terminal delivers the history (":faults").
 uint8_t  lastFault();
-uint32_t lastFaultAgeMs();   // 0xFFFFFFFF, wenn nie einer kam
+uint32_t lastFaultAgeMs();   // 0xFFFFFFFF if none ever came
 uint32_t faultCount();
 
-// DURCHGRIFF fuer die Fehlersuche ueber die USB-Konsole (docs/04-hardware.md 14.1):
-//   terminal(text)   schickt einen Textbefehl an das Terminal des Reglers, so wie
-//                    das VESC-Tool es tut ("faults", "hall_analyze 5", ...). Die
-//                    Antworten kommen als COMM_PRINT und werden als "# VESC> ..."
-//                    auf die Konsole geschrieben.
-//   raw(payload)     schickt eine beliebige Nutzlast (Kennung + Daten). Antworten,
-//                    die der Treiber nicht selbst verarbeitet, erscheinen als
-//                    "# V <hex>" -- so laesst sich z. B. COMM_GET_MCCONF (14) holen.
-// Beides ist Werkzeug, kein Betriebsweg: die Firmware wertet nichts davon aus.
+// PASS-THROUGH for troubleshooting via the USB console (docs/04-hardware.md 14.1):
+//   terminal(text)   sends a text command to the controller's terminal, as the
+//                    VESC Tool does ("faults", "hall_analyze 5", ...). The
+//                    answers come as COMM_PRINT and are written to the console
+//                    as "# VESC> ...".
+//   raw(payload)     sends an arbitrary payload (id + data). Answers the driver
+//                    does not process itself appear as "# V <hex>" -- this way
+//                    e.g. COMM_GET_MCCONF (14) can be fetched.
+// Both are tools, not an operating path: the firmware evaluates none of it.
 void terminal(const char* text);
 void raw(const uint8_t* payload, size_t len);
 

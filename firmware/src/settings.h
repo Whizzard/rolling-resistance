@@ -1,126 +1,157 @@
 #pragma once
 //
-// Werte, die am Stand ermittelt werden und deshalb zur Laufzeit liegen müssen.
+// Values determined at the stand and therefore held at runtime.
 //
-// WARUM NICHT IN config.h: Trommelumfang, Hebelarm und Kalibrierfaktor werden
-// AM AUFBAU gemessen, nicht am Schreibtisch. Ein Kalibrierlauf, der zum Übersetzen
-// zwingt, wird nicht gemacht — und ein nicht gemachter Kalibrierlauf ist die Quelle
-// erfundener Zahlen, gegen die CLAUDE.md geschrieben ist.
+// WHY NOT IN config.h: drum circumference, lever arm and calibration factor are
+// measured AT THE SETUP, not at the desk. A calibration run that forces a recompile
+// does not get done -- and a calibration run not done is the source of the invented
+// numbers CLAUDE.md is written against.
 //
-// DIE PROJEKTREGEL BLEIBT TROTZDEM GEWAHRT: config.h liefert die Vorgaben, und die
-// Oberfläche zeigt nach jeder Kalibrierung die fertige Zeile zum Eintragen in
-// config.h und docs/03-parameters.md an. Der NVS ist der Arbeitsspeicher, das Repo
-// bleibt die Quelle der Wahrheit. Wer das Board tauscht, verliert den NVS — und
-// merkt es, weil die Firmware dann wieder "nicht kalibriert" meldet.
+// THE PROJECT RULE IS STILL KEPT: config.h provides the defaults, and after every
+// calibration the UI shows the finished line to enter into config.h and
+// docs/03-parameters.md. The NVS is the working memory, the repo remains the
+// source of truth. Whoever swaps the board loses the NVS -- and notices, because the
+// firmware then reports "not calibrated" again.
 //
 #include <Arduino.h>
 #include "config.h"
 
 namespace settings {
 
-// Lädt aus dem NVS. Fehlt ein Wert, gilt die Vorgabe aus config.h.
+// Loads from NVS. If a value is missing, the default from config.h applies.
 void begin();
 
 float drumCircumferenceM();
-float drumRadiusM();            // abgeleitet, U / 2π
-float torqueArmM();             // Hebelarm der Wägezelle
-float calibArmM();              // Hebelarm des Kalibriergewichts
+float drumRadiusM();            // derived, U / 2π
+float torqueArmM();             // lever arm of the load cell
+float calibArmM();              // lever arm of the calibration weight
 float loadcellNPerCount();
 
-// Welches Vorzeichen der Reglerdrehzahl die MESSRICHTUNG ist. +1 oder -1.
+// Which sign of the controller speed is the MEASURING DIRECTION. +1 or -1.
 //
-// Das haengt an der Phasenreihenfolge und aendert sich, sobald jemand am
-// Motorkabel oder an den Bremsrelais umklemmt. Es gehoert deshalb hierher und
-// nicht in config.h: anlernbar durch Drehen von Hand, siehe speedctl::learn().
+// It depends on the phase order and changes as soon as someone reconnects the
+// motor cable or the brake relays. It therefore belongs here and not in
+// config.h: learnable by turning by hand, see speedctl::learn().
 int8_t directionSign();
 
-// false, solange nicht kalibriert. Dann liefert torque:: keine Kräfte, nur Rohwerte.
+// false as long as not calibrated. Then torque:: delivers no forces, only raw values.
 bool calibrated();
 
-// Setzer. Liefern false und ändern nichts, wenn der Wert unplausibel ist —
-// ein vertippter Trommelumfang von 28,37 m soll nicht stillschweigend gelten.
+// Setters. Return false and change nothing if the value is implausible --
+// a mistyped drum circumference of 28.37 m should not silently apply.
 bool setDrumCircumferenceM(float m);
 bool setTorqueArmM(float m);
 bool setCalibArmM(float m);
-bool setLoadcellNPerCount(float nPerCount);
-bool setDirectionSign(int8_t sign);   // nur +1 oder -1
+// epoch: local time in s (from the browser), 0 = unknown. For "calibrated ... ago" in the display.
+bool setLoadcellNPerCount(float nPerCount, uint32_t epoch = 0);
+uint32_t calibEpoch();
+bool setDirectionSign(int8_t sign);   // only +1 or -1
 
-// Messgeschwindigkeiten: die Plateaus, die Leerlauf- und Messlauf der Reihe
-// nach abfahren. Vorgabe PLATEAUS_KMH aus config.h, gepflegt über die
-// Oberfläche, im NVS. Die Liste ist IMMER aufsteigend sortiert und ohne
-// Doppelte; addPlateau fügt an der richtigen Stelle ein.
+// Measuring speeds: the plateaus that the no-load and measuring runs go through in
+// order. Default PLATEAUS_KMH from config.h, maintained via the UI, in NVS.
+// The list is ALWAYS sorted ascending and without duplicates; addPlateau inserts
+// at the right place.
 uint8_t plateauCount();
-float   plateauKmh(uint8_t i);           // 0 ausserhalb der Liste
-bool    addPlateau(float kmh);           // false: unplausibel, voll oder schon drin
-bool    removePlateau(float kmh);        // false: nicht in der Liste
+float   plateauKmh(uint8_t i);           // 0 outside the list
+bool    addPlateau(float kmh);           // false: implausible, full or already present
+bool    removePlateau(float kmh);        // false: not in the list
 
-// Auflast auf dem Laufrad, Vorgabe LOAD_DEFAULT_N, am Stand änderbar (Befehl l).
+// Load on the wheel, default LOAD_DEFAULT_N, changeable at the stand (command l).
 float loadN();
 bool  setLoadN(float n);
-// Hebelwaage (config.h LOAD_*): Leergewicht an der Achse, Laufgewicht, Radarm a.
-// loadFromPosN rechnet die Auflast aus der Position b des Laufgewichts (Befehle Ae/Aw/Aa/Ap).
+// Lever scale (config.h LOAD_*): empty weight at the axle, sliding weight, wheel arm a.
+// loadFromPosN computes the load from the position b of the sliding weight (commands Ae/Aw/Aa/Ap).
 float loadEmptyKg();  bool setLoadEmptyKg(float kg);
 float loadWeightKg(); bool setLoadWeightKg(float kg);
 float loadArmM();     bool setLoadArmM(float m);
-float loadFromPosN(float posM);   // (m_leer + m_gewicht * b / a) * g; NAN bei unsinniger Position
+float loadFromPosN(float posM);   // (m_empty + m_weight * b / a) * g; NAN for a nonsensical position
 
-// Verlustmodelle, beide im NVS (config.h, docs/09-measurement-theory.md Gl. 11/12):
-//   Leerlauf  M_leer(w)     = A0 + B0 w^2        [Nm], w Trommel in rad/s
-//   Laufrad   M_Rad(w_Rad)  = A1 + B1 w_Rad^2    [Nm am Rad]
-// NAN = nicht ermittelt. Dann wird nicht korrigiert, und Crr heisst "roh".
+// Loss models, both in NVS (config.h, docs/09-measurement-theory.md eq. 11/12):
+//   no-load  M_empty(w)      = A0 + B0 w^2        [Nm], w drum in rad/s
+//   wheel    M_wheel(w_wheel) = A1 + B1 w_wheel^2  [Nm at the wheel]
+// NAN = not determined. Then nothing is corrected, and Crr is called "raw".
 float baselineA0();  float baselineB0();  bool setBaseline(float a0, float b0);
 float wheelA1();     float wheelB1();     bool setWheelModel(float a1, float b1);
 bool  haveBaseline();  bool haveWheelModel();
-// Alter seit dem letzten Setzen IN DIESER SITZUNG, ms. UINT32_MAX, wenn der Wert aus
-// dem NVS stammt, also vor dem Start gesetzt wurde: dann kennt niemand sein Alter,
-// und der gefuehrte Messlauf (run.h) fragt nach, ob er noch gilt.
+// Age since the last set IN THIS SESSION, ms. UINT32_MAX if the value comes from
+// NVS, i.e. was set before the start: then nobody knows its age,
+// and the guided measuring run (run.h) asks whether it still applies.
 uint32_t baselineAgeMs(); uint32_t wheelModelAgeMs(); uint32_t tareAgeMs();
-// Laufradmasse mit Reifen [kg]; daraus J_Rad = WHEEL_J_FACTOR m r_Rad^2. NAN = unbekannt.
+// Mass of the check weight [kg], hangs at calibArmM(). Default RUN_CTRL_MASS_KG;
+// changeable in the setup since 2026-11-25 (command K<kg>). The measuring run uses it to check
+// the chain cell, arm, factor and takes over the factor -- since then there is no separate
+// calibration in the UI any more (k<kg> remains on the console).
+float ctrlMassKg(); bool setCtrlMassKg(float kg);
+// Wheel mass with tire [kg]; gives J_wheel = WHEEL_J_FACTOR m r_wheel^2. NAN = unknown.
 float wheelMassKg(); bool setWheelMassKg(float kg);
-// GEMESSENES J_Rad [kg m^2] aus dem Bifilarpendel (docs/09-measurement-theory.md §9.2).
-// Gesetzt hat es Vorrang vor der Schaetzung ueber WHEEL_J_FACTOR, und die
-// Unsicherheit des Radmodells faellt von UNC_RAD_EST_REL auf UNC_RAD_REL. NAN = nicht
-// gemessen; setWheelJKgm2(0) loescht.
+// MEASURED J_wheel [kg m^2] from the bifilar pendulum (docs/09-measurement-theory.md §9.2).
+// When set it takes precedence over the estimate via WHEEL_J_FACTOR, and the
+// uncertainty of the wheel model drops from UNC_WHEEL_EST_REL to UNC_WHEEL_REL. NAN = not
+// measured; setWheelJKgm2(0) clears it.
 float wheelJKgm2(); bool setWheelJKgm2(float j);
-// Zellenarm ZUM ZEITPUNKT DER KALIBRIERUNG [m]. Im Moment kuerzt sich der Arm heraus
-// (M = counts * m g L_kal / counts_kal), aber nur, solange derselbe Wert gilt wie bei
-// der Kalibrierung. Weicht torqueArmM() davon ab, warnt der Messlauf (W15). NAN = unbekannt.
+uint32_t wheelJSetMs();   // millis() of the last setWheelJKgm2 with a value, 0 = not in this session
+// Cell arm AT THE TIME OF CALIBRATION [m]. In the torque the arm cancels out
+// (M = counts * m g L_cal / counts_cal), but only as long as the same value applies as at
+// calibration. If torqueArmM() differs from it, the measuring run warns (W15). NAN = unknown.
 float armAtCalM();
-// Letzter gemessener Laufradumfang [m] (wheel.h), ueberlebt den Stillstand und den
-// Neustart -- der Assistent braucht ihn, bevor sich etwas dreht. NAN = nie gemessen.
+// Last measured wheel circumference [m] (wheel.h), survives standstill and
+// restart -- the assistant needs it before anything turns. NAN = never measured.
 float wheelCircM(); bool setWheelCircM(float m);
 
-// Kopfdaten des letzten Messlaufs (run.h Schritt 1), im NVS: Reifen, Laufrad, Notiz,
-// Druck, Raumtemperatur, Auflast, Position des Laufgewichts. Werden beim Eintippen
-// gespeichert und beim naechsten Anlegen vorbelegt -- nach Abbruch, Neustart oder
-// Flashen faengt niemand von vorn an (2026-11-24).
+// Header data of the last measuring run (run.h step 1), in NVS: tire, wheel, note,
+// pressure, room temperature, load, position of the sliding weight. Saved while
+// typing and preset on the next creation -- after an abort, restart or
+// flashing nobody starts from scratch (2026-11-24).
 struct RunMeta {
   char  tire[40];
-  char  wheel[32];
+  char  rim[32];     // was "wheel" until 2026-11-26 (rim, since then with a separate hub)
   char  note[64];
+  char  etrto[16];   // e.g. "42-406"
+  char  tube[32];    // e.g. "Vittoria Latex"
+  char  hub[32];     // since 2026-11-26: the hub carries most of the wheel loss (bearings)
   float bar, tempC, loadKg;
   int   posMm;
 };
 const RunMeta& runMeta();
 void setRunMeta(const RunMeta& m);
 
-// Statische Tara der Wägezelle (Rohwert bei leerem Arm). Im NVS, damit sie einen
-// Neustart überlebt -- vorher war sie nach jedem Flashen weg, und 241 000 counts
-// wurden als 6,4 N angezeigt (2026-11-23). 0 = nie genullt.
+// Where the wheel model (A1, B1) comes from (since 2026-11-26): the run inputs of the
+// run whose spin-down produced it -- tire, tube, rim/wheel, ETRTO, pressure -- because
+// the model belongs to that set-up and is not one for all wheels. In NVS ("wm_org").
+// known = false: model from before 2026-11-26 or from the console, origin unknown.
+struct WheelOrigin {
+  RunMeta  m;
+  char     run[24];   // run id, "" = spin-down wizard under Setup
+  uint32_t epoch;     // local time of the fit (wallclock), 0 = unknown
+  bool     known;
+};
+const WheelOrigin& wheelOrigin();
+void setWheelOrigin(const RunMeta& m, const char* run, uint32_t epoch = 0);   // epoch 0 = now
+
+// Static tare of the load cell (raw value with empty arm). In NVS so that it survives
+// a restart -- before, it was gone after every flash, and 241 000 counts
+// were shown as 6.4 N (2026-11-23). 0 = never zeroed.
 long tareOffset();
 bool setTareOffset(long counts);
 
-// Zurück auf die Vorgaben aus config.h, NVS wird geleert.
+// When each value was last changed, as a JSON object {"<NVS key>": local time s}.
+// If a key is missing, the default from config.h applies; 0 = set, time unknown
+// (set without a browser clock, or before 2026-11-26). Keys: drum_u, arm, calib_arm,
+// n_per_count, dir_sign, plateaus, tare, load_n, a0 (no-load model), a1 (wheel model),
+// m_wheel, u_wheel, j_wheel, arm_at_cal, ctrl_kg, ld_empty, ld_weight, ld_arm.
+size_t stampsJson(char* out, size_t n);
+
+// Back to the defaults from config.h, NVS is cleared.
 void reset();
 
-// true, wenn mindestens ein Wert vom Vorgabewert abweicht.
+// true if at least one value differs from its default.
 bool anyOverridden();
 
 }  // namespace settings
 
-// --------------------------------------------------------- Umrechnungen
-// Stehen hier und nicht in config.h, weil sie am Trommelumfang bzw. am
-// Kalibrierfaktor haengen — beides zur Laufzeit ueberschreibbar.
+// --------------------------------------------------------- Conversions
+// They live here and not in config.h because they depend on the drum circumference
+// or the calibration factor -- both overridable at runtime.
 
 inline float kmhFromRevPerSec(float rps) {
   return rps * settings::drumCircumferenceM() * MS_TO_KMH;

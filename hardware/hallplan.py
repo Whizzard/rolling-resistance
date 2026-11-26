@@ -1,33 +1,33 @@
 #!/usr/bin/env python3
-"""Loet- und Anschlussvorlage fuer die drei Hall-Geber.
+"""Soldering and connection template for the three Hall sensors.
 
-Der Schaltplan (hardware/schaltplan.py) zeigt, WAS womit verbunden ist, der
-Anschlussplan (hardware/anschlussplan.py), WIE die Adern laufen. Dieser Plan
-zeigt, WAS AUF DIE PLATINE KOMMT — Bauteil fuer Bauteil, Loch fuer Loch.
+The circuit diagram (hardware/schaltplan.py) shows WHAT is connected to what, the
+connection plan (hardware/anschlussplan.py) HOW the wires run. This plan
+shows WHAT GOES ONTO THE BOARD — part by part, hole by hole.
 
-Quelle ist dieser Text, das PDF wird daraus erzeugt:
+The source is this text; the PDF is generated from it:
 
     .venv/bin/python hardware/hallplan.py
 
-Erzeugt hardware/hallplan.pdf und hardware/hallplan.png.
+Produces hardware/hallplan.pdf and hardware/hallplan.png.
 
-ALLE ANGABEN ZUM GEBER stammen aus dem Datenblatt der Familie TLE4905L /
-TLE4935L / TLE4945L / TLE4945-2L, Infineon, V1.5 vom November 2007:
+ALL DATA ON THE SENSOR come from the datasheet of the family TLE4905L /
+TLE4935L / TLE4945L / TLE4945-2L, Infineon, V1.5 of November 2007:
 
-    Bild 1, Seite 2   Pinbelegung, Blick auf die BEDRUCKTE Seite:
+    Fig. 1, page 2    pin assignment, view onto the PRINTED side:
                       1 = V_S, 2 = GND, 3 = Q
-    Seite 3           Ausgang ist OPEN COLLECTOR (Schmitt-Trigger)
-    Seite 6           Betriebsbereich V_S = 3,8 ... 24 V, I_Q bis 100 mA
-    Seite 7           V_QSat 0,25 V typ. bei 40 mA; Leckstrom <= 10 uA;
-                      Anstiegszeit <= 1 us bei R_L = 1,2 kOhm
-    Bild 8, Seite 11  Anwendungsschaltung: Pull-up am STEUERGERAET, je 4,7 nF
-                      von V_S und von Q nach GND AM GEBER
-    Seite 4 / 5       TLE4905 ist der UNIPOLARE Typ; bipolar (latchend) ist
-                      der TLE4935L aus derselben Familie.
+    Page 3            output is OPEN COLLECTOR (Schmitt trigger)
+    Page 6            operating range V_S = 3.8 ... 24 V, I_Q up to 100 mA
+    Page 7            V_QSat 0.25 V typ. at 40 mA; leakage current <= 10 uA;
+                      rise time <= 1 us at R_L = 1.2 kOhm
+    Fig. 8, page 11   application circuit: pull-up at the CONTROL UNIT, 4.7 nF each
+                      from V_S and from Q to GND AT THE SENSOR
+    Page 4 / 5        TLE4905 is the UNIPOLAR type; bipolar (latching) is
+                      the TLE4935L from the same family.
 
-WAS NICHT IM DATENBLATT STEHT und deshalb hier auch nicht behauptet wird: das
-Rastermass der drei Beine. Die Bauform PG-SSO-3-2 ist in einem eigenen Dokument
-bemasst. Also: am Bauteil messen, dann auf 2,54 mm aufbiegen.
+WHAT IS NOT IN THE DATASHEET and is therefore not claimed here either: the
+pitch of the three legs. The package PG-SSO-3-2 is dimensioned in a separate
+document. So: measure on the part, then bend to 2.54 mm.
 """
 import matplotlib
 matplotlib.use("Agg")
@@ -36,11 +36,11 @@ from matplotlib.patches import Rectangle, FancyBboxPatch, Circle, Polygon
 
 INK  = "#1b2328"
 MUT  = "#6b7a85"
-SIG  = "#1f6f8b"   # Messsignal
-AUX  = "#4a7a2a"   # Versorgung
-PWR  = "#9c3524"   # Warnung / 5 V
+SIG  = "#1f6f8b"   # measurement signal
+AUX  = "#4a7a2a"   # supply
+PWR  = "#9c3524"   # warning / 5 V
 LINE = "#c9d2d8"
-LOET = "#b8860b"   # Draehte auf der Loetseite
+LOET = "#b8860b"   # wires on the solder side
 MONO = {"family": "DejaVu Sans Mono"}
 
 fig, ax = plt.subplots(figsize=(12.0, 24.0))
@@ -50,7 +50,7 @@ ax.set_aspect("equal")
 ax.axis("off")
 
 
-# ----------------------------------------------------------------- Werkzeug
+# ----------------------------------------------------------------- tools
 def txt(x, y, s, size=8, color=INK, ha="left", va="center", weight=None, mono=False,
         zorder=5):
     ax.text(x, y, s, fontsize=size, color=color, ha=ha, va=va, zorder=zorder,
@@ -72,7 +72,7 @@ def dot(x, y, color=INK, r=0.9):
 
 
 def res(x, y, w=9.0, h=3.4, label="", color=INK, vert=False):
-    """Widerstand als Rechteck (IEC)."""
+    """Resistor as a rectangle (IEC)."""
     if vert:
         ax.add_patch(Rectangle((x - h / 2, y - w / 2), h, w, ec=color, fc="white", lw=1.3,
                                zorder=3))
@@ -84,14 +84,14 @@ def res(x, y, w=9.0, h=3.4, label="", color=INK, vert=False):
 
 
 def cap(x, y, label="", color=INK, w=6.0, gap=1.6):
-    """Kondensator, senkrecht durchflossen."""
+    """Capacitor, current flowing vertically."""
     line(x - w / 2, y + gap / 2, x + w / 2, y + gap / 2, color, 1.6)
     line(x - w / 2, y - gap / 2, x + w / 2, y - gap / 2, color, 1.6)
     txt(x + w / 2 + 1.6, y, label, 7.5, color, mono=True)
 
 
 def led(x, y, color=AUX, size=3.2, label=""):
-    """LED, Strom von oben nach unten."""
+    """LED, current from top to bottom."""
     ax.add_patch(Polygon([(x - size, y + size), (x + size, y + size), (x, y - size * 0.6)],
                          closed=True, ec=color, fc="white", lw=1.3, zorder=3))
     line(x - size, y - size * 0.6, x + size, y - size * 0.6, color, 1.8)
@@ -104,8 +104,8 @@ def led(x, y, color=AUX, size=3.2, label=""):
 
 
 def zener(x, y, color=INK, size=3.0, label=""):
-    """Z-Diode, Kathode UNTEN (am Signal), Anode oben (an Masse) — wie im Plan,
-    wo die Masseschiene über der Signalschiene liegt."""
+    """Zener diode, cathode at the BOTTOM (to the signal), anode at the top (to ground) — as in
+    the plan, where the ground rail lies above the signal rail."""
     ax.add_patch(Polygon([(x - size, y + size), (x + size, y + size), (x, y - size * 0.6)],
                          closed=True, ec=color, fc="white", lw=1.3, zorder=3))
     line(x - size, y - size * 0.6, x + size, y - size * 0.6, color, 1.8)
@@ -114,25 +114,25 @@ def zener(x, y, color=INK, size=3.0, label=""):
     txt(x + size + 1.6, y, label, 7.5, color, mono=True)
 
 
-# ------------------------------------------------------------------- Kopf
-txt(0, 312, "Hall-Geber — Löt- und Anschlussvorlage", 18, INK, weight="bold")
-txt(0, 305, "3 × TLE4905L  ·  Trommelmarken, Indexmarke, Laufrad  ·  "
-            "Quelle: hardware/hallplan.py", 9, MUT)
-txt(0, 300, "Alle Geberangaben aus dem Infineon-Datenblatt TLE4905L/4935L/4945L, "
-            "V1.5 (2007-11) — Fundstellen in den Fußnoten.", 9, MUT)
+# ------------------------------------------------------------------- header
+txt(0, 312, "Hall sensors — soldering and connection template", 18, INK, weight="bold")
+txt(0, 305, "3 × TLE4905L  ·  drum marks, index mark, wheel  ·  "
+            "Source: hardware/hallplan.py", 9, MUT)
+txt(0, 300, "All sensor data from the Infineon datasheet TLE4905L/4935L/4945L, "
+            "V1.5 (2007-11) — references in the footnotes.", 9, MUT)
 line(0, 295, 160, 295, LINE, 1.2)
 
 
-# =================================================== 1 Pinbelegung
-txt(0, 287, "1   Anschlüsse des Gebers", 12, INK, weight="bold")
-txt(0, 281, "Blick auf die BEDRUCKTE Seite, Beine nach unten.", 9, PWR, weight="bold")
+# =================================================== 1 pin assignment
+txt(0, 287, "1   Sensor terminals", 12, INK, weight="bold")
+txt(0, 281, "View onto the PRINTED side, legs pointing down.", 9, PWR, weight="bold")
 
 bx, by, bw, bh = 14, 252, 26, 19
 ax.add_patch(FancyBboxPatch((bx, by), bw, bh, boxstyle="round,pad=0,rounding_size=1.6",
                             ec=INK, fc="#f4f6f7", lw=1.6))
 txt(bx + bw / 2, by + 13.5, "05 L", 9.5, INK, ha="center", mono=True, weight="bold")
 ax.add_patch(Circle((bx + bw / 2, by + 6.0), 2.2, ec=INK, fc="white", lw=1.0, zorder=4))
-txt(bx + bw + 3, by + 6.0, "empfindliche Fläche", 7.5, MUT)
+txt(bx + bw + 3, by + 6.0, "sensitive area", 7.5, MUT)
 
 for i, (nm, fn, col) in enumerate((("1", "V_S", PWR), ("2", "GND", INK), ("3", "Q", SIG))):
     px = bx + 5 + i * 8
@@ -140,31 +140,31 @@ for i, (nm, fn, col) in enumerate((("1", "V_S", PWR), ("2", "GND", INK), ("3", "
     txt(px, by - 14, nm, 9, INK, ha="center", weight="bold", mono=True)
     txt(px, by - 19.5, fn, 8.5, col, ha="center", mono=True)
 
-txt(62, 272, "1   V_S    Versorgung  3,8 … 24 V   →   hier 5 V", 9, INK, mono=True)
+txt(62, 272, "1   V_S    supply  3.8 … 24 V   →   here 5 V", 9, INK, mono=True)
 txt(62, 266, "2   GND", 9, INK, mono=True)
-txt(62, 260, "3   Q      Ausgang, OPEN COLLECTOR", 9, INK, mono=True)
-txt(62, 250, "Open Collector heißt: der Geber kann nur nach Masse ziehen.\n"
-             "Den High-Pegel macht ausschließlich die Beschaltung —\n"
-             "und genau daher kommen die 3,3 V.", 8.5, MUT, va="top")
+txt(62, 260, "3   Q      output, OPEN COLLECTOR", 9, INK, mono=True)
+txt(62, 250, "Open collector means: the sensor can only pull to ground.\n"
+             "The high level is made solely by the external circuit —\n"
+             "and that is exactly where the 3.3 V come from.", 8.5, MUT, va="top")
 
-txt(0, 225, "TLE4905L ist der UNIPOLARE Typ der Familie: er schaltet bei EINER "
-            "Feldrichtung. Alle acht Magnete mit", 8.5, PWR)
-txt(0, 220, "derselben Seite nach außen — der bipolare, latchende Typ wäre der "
-            "TLE4935L aus derselben Reihe.", 8.5, PWR)
-txt(0, 213, "Bauform PG-SSO-3-2. Das Rastermaß der Beine steht NICHT im Datenblatt: "
-            "am Bauteil messen, dann auf", 8.5, MUT)
-txt(0, 208, "2,54 mm aufbiegen. Die Reihenfolge 1-2-3 bleibt dabei.", 8.5, MUT)
+txt(0, 225, "TLE4905L is the UNIPOLAR type of the family: it switches at ONE "
+            "field direction. All eight magnets with", 8.5, PWR)
+txt(0, 220, "the same side facing out — the bipolar, latching type would be the "
+            "TLE4935L from the same series.", 8.5, PWR)
+txt(0, 213, "Package PG-SSO-3-2. The pitch of the legs is NOT in the datasheet: "
+            "measure on the part, then bend", 8.5, MUT)
+txt(0, 208, "to 2.54 mm. The order 1-2-3 stays the same.", 8.5, MUT)
 line(0, 202, 160, 202, LINE, 1.0)
 
 
-# =================================================== 2 Schaltung
-txt(0, 194, "2   Schaltung je Geber", 12, INK, weight="bold")
+# =================================================== 2 circuit
+txt(0, 194, "2   Circuit per sensor", 12, INK, weight="bold")
 
 rbox(0, 120, 86, 62, MUT, 1.0, "--")
-txt(3, 185, "im Gehäuse, am Geber", 8.5, MUT)
+txt(3, 185, "in the housing, at the sensor", 8.5, MUT)
 rbox(104, 120, 56, 62, MUT, 1.0, "--")
-txt(107, 185, "am ESP32", 8.5, MUT)
-txt(95, 185, "Leitung", 8.5, MUT, ha="center")
+txt(107, 185, "at the ESP32", 8.5, MUT)
+txt(95, 185, "Lead", 8.5, MUT, ha="center")
 
 y5, yg, yq = 172, 156, 140
 for yy, nm, col in ((y5, "+5 V", PWR), (yg, "GND", INK), (yq, "Signal", SIG)):
@@ -179,11 +179,11 @@ for yy, nm in ((y5, "1"), (yg, "2"), (yq, "3")):
     txt(gx - 2.5, yy, nm, 8, INK, ha="right", mono=True)
     dot(gx, yy)
 
-cap(42, (y5 + yg) / 2, "4,7 nF", INK)
+cap(42, (y5 + yg) / 2, "4.7 nF", INK)
 line(42, y5, 42, (y5 + yg) / 2 + 0.8); line(42, (y5 + yg) / 2 - 0.8, 42, yg)
 dot(42, y5); dot(42, yg)
 
-cap(56, (yg + yq) / 2, "4,7 nF", INK)
+cap(56, (yg + yq) / 2, "4.7 nF", INK)
 line(56, yg, 56, (yg + yq) / 2 + 0.8); line(56, (yg + yq) / 2 - 0.8, 56, yq)
 dot(56, yg); dot(56, yq)
 
@@ -191,7 +191,7 @@ lx = 74
 res(lx, (y5 + yg) / 2, 9.0, 3.4, "1 kΩ", AUX, vert=True)
 line(lx, y5, lx, (y5 + yg) / 2 + 4.5, AUX)
 line(lx, (y5 + yg) / 2 - 4.5, lx, yq + 7.0, AUX)
-led(lx, yq + 4.0, AUX, 3.0, "grün")
+led(lx, yq + 4.0, AUX, 3.0, "green")
 line(lx, yq + 1.2, lx, yq, AUX)
 dot(lx, y5, PWR); dot(lx, yq, SIG)
 
@@ -201,30 +201,30 @@ line(tx, y5, tx, (y5 + yg) / 2 + 4.5, SIG); line(tx, (y5 + yg) / 2 - 4.5, tx, yq
 dot(tx, y5, PWR); dot(tx, yq, SIG)
 
 tx2 = 134
-zener(tx2, (yg + yq) / 2, SIG, 3.0, "3,3 V")
+zener(tx2, (yg + yq) / 2, SIG, 3.0, "3.3 V")
 line(tx2, yq, tx2, (yg + yq) / 2 - 1.8, SIG); line(tx2, (yg + yq) / 2 + 3.0, tx2, yg, SIG)
 dot(tx2, yq, SIG); dot(tx2, yg)
 
 line(150, yq, 150, yq - 8, SIG)
 txt(150, yq - 11.5, "GPIO", 8.5, SIG, ha="center", mono=True)
 
-txt(107, 131, "offen:        ≈ 3,2 V", 8, SIG, mono=True)
-txt(107, 126, "geschaltet:   < 0,1 V", 8, SIG, mono=True)
+txt(107, 131, "open:         ≈ 3.2 V", 8, SIG, mono=True)
+txt(107, 126, "switched:     < 0.1 V", 8, SIG, mono=True)
 
-txt(0, 112, "Pull-up und Z-Diode am ESP32 SIND die Pegelwandlung: 470 Ω nach 5 V ziehen "
-            "den offenen Kollektor hoch,", 8.5, INK)
-txt(0, 107, "die Z-Diode 3,3 V gegen Masse klemmt den Knoten auf ihre Durchbruchspannung "
-            "(≈ 3,6 mA, der Knick ist weich,", 8.5, INK)
-txt(0, 102, "3,1 V am Multimeter sind normal). Kathode = Ring ans Signal, Anode an Masse "
-            "— falsch herum klemmt sie als", 8.5, INK)
-txt(0, 97, "normale Diode auf 0,7 V, der Eingang bleibt dauerhaft low. Ein Pull-up allein "
-           "wäre mit 5 V am Ausgang tödlich.", 8.5, INK)
+txt(0, 112, "Pull-up and Zener diode at the ESP32 ARE the level conversion: 470 Ω to 5 V pull "
+            "the open collector up,", 8.5, INK)
+txt(0, 107, "the 3.3 V Zener diode to ground clamps the node at its breakdown voltage "
+            "(≈ 3.6 mA, the knee is soft,", 8.5, INK)
+txt(0, 102, "3.1 V on the multimeter is normal). Cathode = ring to the signal, anode to ground "
+            "— reversed it clamps as a", 8.5, INK)
+txt(0, 97, "normal diode at 0.7 V, the input stays permanently low. A pull-up alone "
+           "would be fatal with 5 V at the output.", 8.5, INK)
 line(0, 92, 160, 92, LINE, 1.0)
 
 
-# =================================================== 3 Lochraster
-txt(0, 88, "3   Lochrasterplatine 18 × 13 mm", 12, INK, weight="bold")
-txt(0, 81.5, "Blick von der BESTÜCKUNGSSEITE", 9, PWR, weight="bold")
+# =================================================== 3 perfboard
+txt(0, 88, "3   Perfboard 18 × 13 mm", 12, INK, weight="bold")
+txt(0, 82.5, "View from the COMPONENT SIDE", 9, PWR, weight="bold")
 
 P = 10.0
 X0, Y0 = 16, 30
@@ -232,8 +232,8 @@ COLS = "ABCDEFG"
 
 ax.add_patch(Rectangle((X0 - 6, Y0 - 6), 6 * P + 12, 4 * P + 12, ec=LINE, fc="#fbfcfc",
                        lw=1.2, zorder=0))
-txt(X0 - 6, Y0 + 4 * P + 10, "vorn — zur Trommel", 8, PWR)
-txt(X0 + 6 * P + 6, Y0 + 4 * P + 10, "hinten — Kabel", 8, MUT, ha="right")
+txt(X0 - 6, Y0 + 4 * P + 8, "front — towards the drum", 8, PWR)
+txt(X0 + 6 * P + 6, Y0 + 4 * P + 8, "rear — cable", 8, MUT, ha="right")
 
 def hole(c, r):
     return X0 + COLS.index(c) * P, Y0 + (r - 1) * P
@@ -265,7 +265,7 @@ for col, r1, r2 in (("B", 2, 3), ("C", 3, 4)):
     x1, y1 = hole(col, r1); x2, y2 = hole(col, r2)
     cap((x1 + x2) / 2, (y1 + y2) / 2, "", INK, 5.5, 1.4)
     line(x1, y1, x1, (y1 + y2) / 2 + 0.7); line(x2, (y1 + y2) / 2 - 0.7, x2, y2)
-    txt(x1 + 3.8, (y1 + y2) / 2, "4,7 nF", 6.5, INK, mono=True)
+    txt(x1 + 3.8, (y1 + y2) / 2, "4.7 nF", 6.5, INK, mono=True)
 
 x1, y1 = hole("E", 2); x2, y2 = hole("E", 5)
 res((x1 + x2) / 2, (y1 + y2) / 2, 12.0, 3.2, "", AUX, vert=True)
@@ -277,62 +277,62 @@ line(xa, ya, xb, yb, LOET, 3.4)
 x1, y1 = hole("F", 5); x2, y2 = hole("F", 4)
 led(x1, (y1 + y2) / 2, AUX, 2.4, "")
 line(x1, y1, x1, (y1 + y2) / 2 + 2.4, AUX); line(x2, (y1 + y2) / 2 - 1.4, x2, y2, AUX)
-txt(x1 - 2.0, (y1 + y2) / 2 + 7.5, "LED grün", 6.5, AUX, mono=True)
+txt(x1 - 2.0, (y1 + y2) / 2 + 7.5, "LED green", 6.5, AUX, mono=True)
 
-for r, (nm, col) in ((2, ("rot", PWR)), (3, ("schwarz", INK)), (4, ("gelb", SIG))):
+for r, (nm, col) in ((2, ("red", PWR)), (3, ("black", INK)), (4, ("yellow", SIG))):
     xx, yy = hole("G", r)
     line(xx, yy, xx + 11, yy, col, 1.8)
     txt(xx + 12.5, yy, nm, 7, col, mono=True)
 
-txt(X0 - 6, 18, "Dicke Linien = Drahtbrücken auf der LÖTSEITE. Erst die drei Schienen "
-                "legen, dann bestücken.", 8, LOET)
-txt(X0 - 6, 12.5, "Reihe 2 = +5 V (rot) · Reihe 3 = GND (schwarz) · Reihe 4 = Signal "
-                  "(gelb).", 8, MUT)
-txt(X0 - 6, 7, "LED in Spalte F, also 14,1 mm hinter der Platinenvorderkante ≈ 16,3 mm "
-               "hinter der Stirnwand;", 8, MUT)
-txt(X0 - 6, 1.5, "das Loch im Deckel liegt bei 15,0 mm — die Beine der LED also 1,3 mm "
-                 "nach vorn biegen.", 8, MUT)
+txt(X0 - 6, 18, "Thick lines = wire jumpers on the SOLDER SIDE. Lay the three rails "
+                "first, then fit the parts.", 8, LOET)
+txt(X0 - 6, 12.5, "Row 2 = +5 V (red) · row 3 = GND (black) · row 4 = signal "
+                  "(yellow).", 8, MUT)
+txt(X0 - 6, 7, "LED in column F, i.e. 14.1 mm behind the front edge of the board ≈ 16.3 mm "
+               "behind the end wall;", 8, MUT)
+txt(X0 - 6, 1.5, "the hole in the lid is at 15.0 mm — so bend the LED legs 1.3 mm "
+                 "forward.", 8, MUT)
 
 
-# =================================================== 4 Je Geber
+# =================================================== 4 per sensor
 X = 112
-txt(X, 88, "4   Je Geber", 12, INK, weight="bold")
+txt(X, 88, "4   Per sensor", 12, INK, weight="bold")
 rows = [("1 ×", "TLE4905L", "PG-SSO-3-2"),
-        ("2 ×", "4,7 nF", "Datenblatt Bild 8"),
-        ("1 ×", "1 kΩ", "für die LED"),
-        ("1 ×", "LED grün 3 mm", "siehe Fußnote"),
-        ("1 ×", "470 Ω", "am ESP32, Pull-up nach 5 V"),
-        ("1 ×", "Z-Diode 3,3 V", "am ESP32, Kathode ans Signal"),
-        ("1 ×", "Leitung 3-adrig", "rot/schwarz/gelb")]
+        ("2 ×", "4.7 nF", "datasheet Fig. 8"),
+        ("1 ×", "1 kΩ", "for the LED"),
+        ("1 ×", "LED green 3 mm", "see footnote"),
+        ("1 ×", "470 Ω", "at the ESP32, pull-up to 5 V"),
+        ("1 ×", "Zener 3.3 V", "at the ESP32, cathode to signal"),
+        ("1 ×", "3-wire lead", "red/black/yellow")]
 for i, (n, b, k) in enumerate(rows):
     yy = 78 - i * 6.0
     txt(X, yy, n, 8, MUT, mono=True)
     txt(X + 8, yy, b, 8, INK, mono=True)
     txt(X, yy - 2.6, k, 7, MUT)
 
-txt(X, 36, "Kanäle", 10, INK, weight="bold")
-for i, (nm, gp) in enumerate((("Trommelmarken", "GPIO 4"), ("Indexmarke", "GPIO 5"),
-                              ("Laufrad", "GPIO 6"))):
-    yy = 29 - i * 6.0
+txt(X, 34, "Channels", 10, INK, weight="bold")
+for i, (nm, gp) in enumerate((("Drum marks", "GPIO 4"), ("Index mark", "GPIO 5"),
+                              ("Wheel", "GPIO 6"))):
+    yy = 27 - i * 6.0
     txt(X, yy, nm, 8, INK)
     txt(X + 32, yy, gp, 8, SIG, mono=True)
 
 
-# =================================================== Fussnoten
+# =================================================== footnotes
 notes = [
-    ("5 V, nicht 3,3 V:", "der Geber braucht laut Datenblatt mindestens 3,8 V "
-     "(Betriebsbereich 3,8 … 24 V, Seite 6). An 3,3 V läuft er nicht."),
-    ("Warum grün:", "bei offenem Ausgang liegen über dem LED-Zweig nur 5 − 3,2 ≈ 1,8 V. "
-     "Eine grüne LED braucht mehr und bleibt sicher dunkel; eine rote würde glimmen "
-     "und den Pegel verziehen."),
-    ("Die 4,7 nF sind kein Zierrat:", "sie stehen so in der Anwendungsschaltung des "
-     "Datenblatts (Bild 8) und sitzen AM GEBER, nicht am ESP32 — sie fangen ab, was "
-     "sich auf einer langen Leitung einkoppelt."),
-    ("Strom:", "geschaltet zieht der Geber ≈ 10 mA durch den Pull-up und 2,8 mA durch die "
-     "LED. Erlaubt sind 100 mA; die Sättigungsspannung bleibt dabei unter 0,1 V. Offen "
-     "fließen ≈ 3,6 mA durch die Z-Diode, rund 12 mW — jede Glas-Z-Diode hält das aus."),
-    ("Magnetpolung:", "unipolar heißt, es gibt nur EINE wirksame Feldrichtung. Jeden "
-     "Magneten vor dem Festziehen einzeln gegen den Geber prüfen — die LED zeigt es an. "
+    ("5 V, not 3.3 V:", "according to the datasheet the sensor needs at least 3.8 V "
+     "(operating range 3.8 … 24 V, page 6). It does not run on 3.3 V."),
+    ("Why green:", "with the output open only 5 − 3.2 ≈ 1.8 V lie across the LED branch. "
+     "A green LED needs more and reliably stays dark; a red one would glow faintly "
+     "and pull the level."),
+    ("The 4.7 nF matter:", "they are in the application circuit of the "
+     "datasheet (Fig. 8) like this and sit AT THE SENSOR, not at the ESP32 — they catch "
+     "what couples into a long lead."),
+    ("Current:", "switched, the sensor draws ≈ 10 mA through the pull-up and 2.8 mA through the "
+     "LED. 100 mA are allowed; the saturation voltage stays below 0.1 V. Open, "
+     "≈ 3.6 mA flow through the Zener diode, about 12 mW — any glass Zener handles that."),
+    ("Magnet polarity:", "unipolar means there is only ONE effective field direction. Check "
+     "each magnet individually against the sensor before tightening — the LED shows it. "
      "docs/04-hardware.md §8.4."),
 ]
 line(0, -8, 160, -8, LINE, 1.0)

@@ -13,14 +13,17 @@
    HX711 DOUT  ──┤ GPIO15                                   │
    HX711 SCK   ──┤ GPIO16          UART1 ───── controller   │
                  │                 (TX18/RX21)              │
-   E-stop       ─┤ GPIO2  (in)                              │
-   feedback      │                                          │
+   E-stop       ─┤ GPIO2  (in)     GPIO40 (out) ── brake     │
+   feedback      │                   release (§9)           │
                  │                 BLE ──── pressure sensor │
                  └──────────────────────────────────────────┘
 
-   Power path (galvanically isolated from the logic side):
+   Power path (common ground with the logic side, star point §5.5; logic 5 V from the
+   bus via an XL7015 buck into the 5V pin, §5.1):
 
-   Power supply 36 V ──[E-stop]──[fuse]── motor controller ── hub motor
+   Power supply 36 V ──[fuse]── motor controller ── relay block ── hub motor
+                                                       │ coils in series on the bus
+                                       [E-stop] ── one wire ── 2N5551 at the ESP32, GPIO40 (§9.1)
 ```
 
 ## 2 Mechanical layout
@@ -80,15 +83,15 @@ need 1393 rpm, three times its rated speed.
 |---|---|---|
 | Hub motor | **Hoverboard drive wheel 6.5″, 36 V / 350 W** | **procured** |
 | Motor controller | **FSESC 4.20 / 50 A** (VESC class), key data and connections in §10 | **procured** |
-| 3 × automotive changeover relays 12 V/40 A | short-circuit brake, §9 | in cart |
-| 2N5551, 1N4007, resistors | low-side switch of the relay chain, §9 | assortment procured |
+| 3 × automotive changeover relays 12 V/40 A | short-circuit brake, §9 | **installed** 2026-11-17 |
+| 2N5551, 1N4007, 220 Ω / 10 kΩ, fuse 500 mA | low-side switch of the relay chain, §9.1 (decided 2026-11-25) | on hand (assortment) except the fuse |
 | NTC for the stator axle | only if the 6th wire at the Hall connector is not a sensor (A5) | open |
 | Mating connector Julet 9-pin | or cut off the connector and fit own connectors | open |
 
 | Power supply | 36–42 V, ≥ 10 A | open |
 | XT60E-M panel-mount connector (Amass) | supply lead from the power supply at the frame; holder §7.6 | holder designed 2026-11-22 |
 | ESP32 board | **ESP32-S3-DevKitC-1 N16R8** | procured |
-| USB power supply | 5 V / ≥ 1 A, for measurement operation (not the notebook) | open |
+| 5 V supply for the logic | **XL7015 buck module on the bus**, 5–80 V in, 0.8 A, set to 5 V, into the 5V pin (§5.1) | in use since 2026-11-25 |
 | Five-way tactile switch | navigation button, 5 contacts + common ground (e.g. ALPS SKQU); **no** analog joystick breakouts | open |
 | HX711 module | **separate VCC/VDD** (five-pin, SparkFun form factor) — four-pin modules are ruled out, see §5.2 | open |
 | Hall sensors | 3 × TLE4905L (marks, index, wheel), unipolar | on hand |
@@ -97,9 +100,11 @@ need 1393 rpm, three times its rated speed.
 | Brake resistor + chopper | **dropped** — braking is done by short circuit, §9 | – |
 | Pillow-block bearings for the stator axle | 2 pieces, on the cradle frame | open |
 | Timing belt | **dropped with direct drive** — only needed if A6 turns out negative | – |
-| Emergency stop | positively opening, disconnects the power path | open |
+| Emergency stop | positively opening, NC contact **in the relay coil chain** (§9.1); a second NC contact would give a direct feedback | open |
 | Second HX711 | same form factor, for the later wheel-load measurement | later |
 | BLE pressure sensor | **SKS AirSpy** at the valve, protocol from `~/git/airspy` | on hand |
+| microSD card + passive microSD-to-SD adapter | adapter used as the card socket, wires soldered to its contacts, §15 | open |
+| 4 × 10 kΩ, 10 µF + 100 nF | pull-ups and decoupling at the SD adapter, §15 | assortment |
 
 ## 4 Pin assignment
 
@@ -111,25 +116,25 @@ that the firmware does not yet touch.
 
 | GPIO | Constant | Function | Direction | Note |
 |---|---|---|---|---|
-| 2 | `PIN_ESTOP_FB` | emergency-stop feedback | in, pull-up | **display** only; the disconnection happens in hardware. **Not yet wired** (`ESTOP_FB_WIRED` = false); until then the firmware detects the emergency stop from the missing motor current ([07-safety](07-safety.md) §4) |
+| 2 | `PIN_ESTOP_FB` | emergency-stop feedback | in, pull-up | **display** only; the disconnection happens in hardware. **Not yet wired** (`ESTOP_FB_WIRED` = false); until then the firmware detects the emergency stop from the missing motor current ([07-safety](07-safety.md) §4). Option in §9.1: divider from the drain node of the brake MOSFET, meaningful only while GPIO40 is low |
 | 4 | `PIN_MARK` | speed marks drum | in, interrupt | **8** marks/revolution |
 | 5 | `PIN_INDEX` | index mark drum | in, interrupt | 1/revolution, triggers the averaging |
 | 6 | `PIN_WHEEL` | speed of the test wheel | in, interrupt | **1** magnet/revolution (`WHEEL_MARKS_PER_REV`); provides the effective wheel circumference (§14.1), later the wheel spin-down test |
 | 7 | `PIN_MOTOR_HALL` | motor Hall (one phase) | in, interrupt | also the high-resolution speed source |
 | 8 | `PIN_I2C_SDA` | I²C SDA | bidir | S3 default assignment; free for the IR sensor |
 | 9 | `PIN_I2C_SCL` | I²C SCL | out | ditto |
-| 10 | `PIN_SD_CS` | microSD, chip select | out | remaining SPI pins still **TBD** |
-| ~~11~~ | ~~`PIN_BTN_UP`~~ | ~~D-pad up~~ | — | **free since 2026-11-22** |
-| ~~12~~ | ~~`PIN_BTN_DOWN`~~ | ~~D-pad down~~ | — | free |
-| ~~13~~ | ~~`PIN_BTN_IN`~~ | ~~D-pad in~~ | — | free |
-| ~~14~~ | ~~`PIN_BTN_OUT`~~ | ~~D-pad out~~ | — | free |
+| 10 | `PIN_SD_CS` | microSD, chip select (SD contact 1) | out | 10 kΩ pull-up at the adapter, §15 |
+| 11 | `PIN_SD_MOSI` | microSD, MOSI (SD contact 2, CMD) | out | SPI2 via IO-MUX, §15 (since 2026-11-25; D-pad up until 2026-11-22) |
+| 12 | `PIN_SD_SCK` | microSD, clock (SD contact 5) | out | §15 |
+| 13 | `PIN_SD_MISO` | microSD, MISO (SD contact 7, DAT0) | in | 10 kΩ pull-up at the adapter, §15 |
+| ~~14~~ | ~~`PIN_BTN_OUT`~~ | ~~D-pad out~~ | — | **free since 2026-11-22** |
 | 15 | `PIN_HX711_DOUT` | HX711 #1 DOUT (torque) | in | |
 | 16 | `PIN_HX711_SCK` | HX711 SCK | out | **shared clock of both HX711** |
 | 17 | `PIN_HX7112_DOUT` | HX711 #2 DOUT (wheel load) | in | second cell not yet fitted |
 | 18 | `PIN_DRIVE_TX` | UART1 TX → controller | out | |
 | 21 | `PIN_DRIVE_RX` | UART1 RX ← controller | in | |
 | ~~39~~ | ~~`PIN_BTN_OK`~~ | ~~D-pad center~~ | — | **free since 2026-11-22** |
-| 40 | `PIN_BRAKE_RELEASE` | MOSFET in the coil ground of the brake relays | out | **high = relays on = brake released.** Pull-down at the gate: braked on reset |
+| 40 | `PIN_BRAKE_RELEASE` | low-side transistor (2N5551) in the coil ground of the brake relays, in series with the emergency stop (§9.1) | out | **high = relays on = brake released.** 10 kΩ base–emitter: braked on reset. Not yet driven by the firmware; sequence in §9.4 |
 | 48 | `PIN_STATUS_LED` | status LED | out | on DevKitC-1 **v1.0** this is the RGB LED, on v1.1 it is on GPIO 38 |
 
 ### Which GPIOs are blocked on this board
@@ -147,9 +152,10 @@ the S3 fell almost entirely on pins that either do not exist or are occupied:
 | 43, 44 | UART0, serial console |
 | 38 | RGB LED of the DevKit |
 
-That leaves **GPIO 1, 41, 42 and 47** free. The microSD still needs three of them
-(SCK/MOSI/MISO, CS is on GPIO 10) — after that GPIO 1 is the only free pin. If
-anything else is added later, it has to go over the I²C bus, which is already there anyway.
+That leaves **GPIO 1, 14, 39, 41, 42 and 47** free (as of 2026-11-25). The microSD took
+GPIO 11…13 when the D-pad was dropped, not three of the last free pins: 10…13 are the
+IO-MUX pins of SPI2 (FSPICS0/FSPID/FSPICLK/FSPIQ), §15. If anything else is added later,
+the I²C bus is already there.
 
 GPIO 1 became free because the motor sensor is connected to the controller and not to the ESP32
 (§11.4). If something does need to be measured in analog after all: only **ADC1** (GPIO 1…10)
@@ -167,7 +173,32 @@ Display: `LCD_I2C_ADDR` = 0x27 (**TBD**, usual alternative 0x3F), `LCD_COLS` = 2
 
 ### 5.1 Supply via USB
 
-The logic side is powered **via USB-C**, not via the 5V pin. Espressif calls the
+> **As built on 2026-11-25 (statement of the builder): the logic side is fed via the
+> 5V pin, not via USB-C.** The text below describes the USB variant it was designed for
+> and still holds for flashing and the console. What changes with the 5V pin:
+>
+> - The 5V pin sits **behind** the two Schottky diodes (D1, D7). A notebook on `COM`
+>   is therefore still protected; its USB diode merely stays reverse-biased as long as
+>   the pin carries more than about 4.7 V. Both may be connected at once.
+> - What is lost is the protection **in front of** the pin: reverse polarity or
+>   overvoltage go straight into the LDO and onto everything on `VCC_5V` (Hall sensors,
+>   HX711 VCC). A fused, polarity-safe connector on the supply lead is the remedy.
+> - The 5 V come from an **XL7015 buck module on the bus** (statement of the builder,
+>   2026-11-25; module data per seller and XLSEMI datasheet: 5–80 V in, 5–20 V out
+>   adjustable, 0.8 A, 150 kHz, **non-isolated**, input and output negative are one
+>   node). Tap the input behind the 15 A fuse, as for the relay chain (§9.1).
+> - Consequently the ESP32 ground reaches the star point twice, via COMM − and via the
+>   converter's negative. Keep both leads short and run them together; the HX711 keeps
+>   its ferrite and 100 µF at AVDD (§5.5), because 150 kHz switching ripple now sits on
+>   the bridge supply too — the HX711 is ratiometric and cancels most of it, not all.
+> - The ESP32 is thus **not** independent of the power path, contrary to the earlier
+>   wording in [07-safety](07-safety.md) §4: bus gone → logic gone → no drum sensor
+>   during a spin-down after a power cut. The relay brake does not care (de-energized =
+>   braked), and the controller's logic hangs on the bus anyway (§10.4a).
+> - Budget: around 150 mA average, 350 mA peak with WiFi (table below); the 0.8 A of
+>   the converter suffice.
+
+The logic side was designed to be powered **via USB-C**, not via the 5V pin. Espressif calls the
 three paths *mutually exclusive*
 ([User Guide](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html)).
 
@@ -1118,6 +1149,52 @@ point of application along the arm; drill the hole to size after printing.
 > vertical; hump and bosses have 45° run-ins on the side facing the bed; the cross holes
 > are short bridges. No support.
 
+### 7.12 Saddle for a second vial on the calibration arm
+
+A second **block level 15.1 × 15.1 × 40 mm** (same type as §7.8) sits on the calibration
+arm itself and shows the arm's inclination along its length. The holder is a **U like the
+rider (§7.11), pushed onto the 15 × 25 tube from above, without screws**: the cheeks are
+preloaded against the tube and a small claw on each cheek hooks under the tube. The vial
+lies on top, located only by a **3 mm rim** on the long sides, no end walls, no high side
+walls, and is **glued** to the deck. The profile is constant over the 40 mm length.
+
+| | |
+|---|---|
+| Deck | 2.5 mm, rests **without clearance** on the tube top; that is the vial's reference plane |
+| Rim | 1.95 mm thick, 3 mm high, flush with the cheeks outside; 0.3 mm play for the vial |
+| Cheeks | 2.0 mm, tilted inward: 15.3 clear at the deck, **14.4 at the claws, so 0.3 mm preload per side** on the 15 mm tube |
+| Claws | reach 1.5 mm under the tube. The top face rises 0.4 mm from the tip to the cheek (about 15°): the preload pushes the claw inward and the slope turns that into a pull that presses the deck onto the tube, self-tightening and insensitive to a few tenths in tube height. Tip 0.15 mm below the tube bottom, 0.8 mm end face, 45° lead-in underneath |
+| Mounting | press straight on (each cheek springs 1.8 mm over 25 mm, about 0.9 % strain at the root, fine for PETG, marginal for PLA) or hook one claw and press the other side down. To remove, push one cheek outward at its lower edge |
+| Size | 40 along the tube, 19.3 wide, 33 high; 7.0 cm³ |
+| Feature tree | one sketch `Sk_Profil` (closed 20-point polygon on YZ) · Sattel |
+| `hardware/libellen_sattel.py` | builds the tree, exports `.step` and `.stl`; tube, vial, preload and claw are parameters |
+
+> **Print:** lying on its end face, the U on the bed. All walls vertical, all slopes are
+> profile edges, no overhang. PETG, 3 walls, brim: the footprint is only 19 × 33 mm at
+> 40 mm height.
+
+### 7.13 Cup for the check weight
+
+A round cup that holds the check weight, screwed down with **one M6 button head** through
+the centre of the floor. The floor is built like the plate of the iPad holder: a flat
+counterbore from the inside takes the head completely, so the weight stands on the floor,
+not on the screw. As of 2026-11-26.
+
+| | |
+|---|---|
+| Interior | **Ø 50.0, 50.0 deep** from the top of the floor, as specified; no clearance added |
+| Wall | 1.5 mm |
+| Floor | 5.5 mm = head height 4.0 (**assumed**, measure on the screw) + 1.5 under the head |
+| M6 | Ø 6.6 through, flat counterbore Ø 13.0 × 4.0 (takes DIN 7985 dk 12 and ISO 7380 dk 10.6) |
+| Size | Ø 53.0 × 55.5 mm, 23.7 cm³ |
+| Feature tree | Zylinder · Innenraum · M6 |
+| `hardware/gewichtsbecher.py` | builds the tree from scratch, exports `.step` and `.stl` |
+
+> One screw only: the cup can turn about it, which does not matter for a cup. If the
+> weight sits too tight, raise `inner_d` in the table.
+
+> **Print:** floor on the bed. No overhangs, no support.
+
 ## 8 Mark mounting on the drum
 
 Co-rotating side, counterpart to §7. Not a printed part.
@@ -1213,7 +1290,7 @@ eight: check polarity against the sensor before tightening (§8.4).
 What the detection reports: *re-locked* counts how often the pattern came at an unexpected
 position (before that an edge was lost or one was added), *swallowed* intervals that were too long,
 *spurious pulses* a "short, short" in the middle of the revolution. All three should stay at zero in
-measurement operation; `Zähler nullen` resets them. Without an intermediate magnet
+measurement operation; the *Reset counters* button resets them. Without an intermediate magnet
 the firmware stays with counting every 8th edge; nothing has to be switched.
 
 ## 9 Brake: short circuit via three relays
@@ -1225,31 +1302,80 @@ against each other; the energy stays in the copper.
 **3.25 Nm** mean braking torque and 68 W mean power loss — thermally
 irrelevant. Compared to 3 to 6 minutes of free spin-down, a factor of 8 to 14.
 
-### 9.1 Circuit
+### 9.1 Circuit — as proposed on 2026-11-24, not yet built
+
+Drawings: `hardware/bremsplan.pdf` (circuit detail) and `hardware/bremsverdrahtung.pdf`
+(wire by wire). Both are generated from the `.py` file of the same name.
+
+**Topology, decided by the builder on 2026-11-24:** the three coils sit in series on the
+bus. The lower end of the chain goes to the emergency stop, and from the emergency stop
+**exactly one wire** runs to a small switching module next to the ESP32, where a
+transistor pulls that wire to ground. The relays are energized, i.e. the brake released, only while
+**both** switches are closed: the hand (emergency stop) **and** the firmware (GPIO40
+high). Whichever opens — hand, reset, firmware fault, broken wire, bus gone — the chain
+drops and the motor is shorted.
 
 ```
-   +36…42 V (bus)
+   +Bus 36…42 V  (BATT + of the controller, i.e. behind the 15 A fuse)
         │
-   ┌────┴────┐   three 12 V coils in SERIES
-   │ K1 K2 K3│   together 140 mA, 1N4007 antiparallel across the whole chain
-   └────┬────┘
+       F1  500 mA
+        │────────────────┐
+   ┌────┴────┐           │
+   │ K1 K2 K3│  coils    ▲ D1  1N4007, cathode to +bus
+   │ in series│          │     across the COILS only — not across S1
+   └────┬────┘           │
+        │────────────────┘   node A
+       S1  emergency stop, positively opening NC contact, at the frame
         │
+        │  wire 1 — the ONE wire to the switching module; carries bus voltage
+        │           while the relays are dropped
         C
-      2N5551        B ──1 kΩ── GPIO40
-        E                └─10 kΩ─┐
-        │                        │
-       GND ──────────────────────┘
+   Q1  2N5551     B ──220 Ω (R1)── GPIO40  PIN_BRAKE_RELEASE
+        E              └─10 kΩ (R2)─┐
+        │                           │
+   Bus −  star point ───────────────┘   own wire, not through the DevKit's GND pin
 ```
 
-| Part | Value | Why |
-|---|---|---|
-| Relays | 3 × automotive changeover relays 12 V, contact at **87a** (NC) | closed when de-energized = braked |
-| Coils | **in series** on the bus | 3 × 12 V = 36 V, no DC-DC converter needed |
-| Transistor | **2N5551**, 160 V / 600 mA | bus plus diode drop; 45 V types are too tight at 42 V |
-| Base resistor | 1 kΩ | 2.6 mA at hFE ≈ 60 under load |
-| Base–emitter | 10 kΩ | GPIO is high-impedance on reset — without it the base floats |
-| Freewheel | 1N4007 across the chain | one is enough |
-| Phase leads | ≥ 4 mm² | 60 A peak; the supplied socket cables are too thin |
+| Part | Value | Origin | Why |
+|---|---|---|---|
+| K1…K3 | 3 × automotive changeover relays 12 V, contact at **87a** (NC) | installed 2026-11-17 | closed when de-energized = braked. Relays **without** built-in diode (a diode fixes the coil polarity and does not fit a series chain with one common free-wheeling diode) |
+| Coils | **in series** on the bus | decision | 3 × 12 V = 36 V, no DC-DC converter (§9.2); 140 mA once |
+| F1 | 500 mA fuse at the +bus tap | decision | a short in the chain or on wire 1 must not sit on the 15 A main fuse |
+| D1 | 1N4007 across the chain, cathode to +bus, anode to node A | assortment | free-wheeling. **Across the coils only:** if it also spanned S1, the coil current would have no path when the button opens |
+| S1 | emergency stop, positively opening **NC** contact, in the chain between node A and wire 1 | to be procured | switches 42 V DC / 0.14 A — any 22 mm mushroom switch is good for that; a block with a **second** NC contact would allow a direct feedback (§4) |
+| Q1 | **2N5551**, NPN, TO-92 — **decided 2026-11-25**, on hand from the assortment | datasheet: V_CEO 160 V, I_C 600 mA, h_FE 80…250, V_CE(sat) 0.2 V at I_C = 50 mA / I_B = 5 mA, P_tot 625 mW ([onsemi](https://www.onsemi.cn/download/data-sheet/pdf/2n5550-d.pdf), [Diotec](https://diotec.com/request/datasheet/2n5551.pdf)) | 160 V leaves ample room above the 42 V bus. 140 mA × ≈ 0.3 V = 40 mW, no heat sink. Proof after assembly: U_CE < 0.3 V with the chain energized (§9.5) |
+| R1 | **220 Ω** base series | calculated | (3.3 V − 0.75 V) / 220 Ω ≈ 11 mA base current, forced β ≈ 12 at 140 mA — saturated. The ESP32-S3 GPIO delivers that at its default drive strength (20 mA). The 1 kΩ named here until 2026-11-24 would not saturate: h_FE is specified only up to 50 mA |
+| R2 | **10 kΩ** base–emitter | calculated | holds the base at ground on reset even against an internal 45 kΩ pull-up of the ESP32 — therefore 10 kΩ, not 100 kΩ |
+| Q1 alternative | **IRL540N**, N-MOSFET, TO-220, with R1 = 100 Ω into the gate and R2 = 10 kΩ gate–source | datasheet: V_DSS 100 V, V_GS(th) 1.0…2.0 V, R_DS(on) 0.11 Ω at V_GS = 4 V ([Vishay IRL540](https://www.vishay.com/docs/91300/irl540.pdf), [Infineon IRL540N](https://www.infineon.com/part/IRL540N)) | if a logic-level MOSFET is at hand; R_DS(on) at 3.3 V is not specified, proof is U_DS < 0.5 V |
+| Not suitable | 2N2222 (40 V), BC337 / BC547 (45 V), BC517 (30 V), D4184 modules (40 V), IRLZ44N (55 V), IRF520 (no logic-level gate) | datasheet | too little margin above 42 V, or not switchable with 3.3 V |
+| Wire 1 | 0.5 mm², insulated like the power path | decision | carries bus voltage while the relays are dropped |
+| Phase leads | ≥ 4 mm² | as before | 60 A peak |
+
+> Until 2026-11-24 this section showed the 2N5551 with a 1 kΩ base resistor and no
+> emergency stop in the chain; the manual emergency stop built on 2026-11-23 switches
+> the chain by hand ([07-safety](07-safety.md) §3). The proposal above merges the two:
+> the hand stays in the chain, and the firmware gets the second switch.
+
+**Ground.** The coil current returns through the emitter of Q1 to bus −. It must **not**
+run through the GND pin of the DevKit and the COMM ground to the controller — that wire
+stays the only logic–power connection and carries signals. The source therefore gets its
+own wire to the star point. The gate is still referenced correctly, because the ESP32
+ground lies on the same node via COMM −: the 5 V regulator on the FSESC is a
+non-isolated step-down, battery −, phase ground, COMM −, SENSE − and the USB shield are
+one node. There are no separate ground levels on the stand.
+
+**Option: feedback without an extra wire.** A divider from the collector node, R3 120 kΩ to
+`PIN_ESTOP_FB` (GPIO2), R4 10 kΩ and a 3.3 V Zener from there to ground (42 V → 3.23 V;
+48 V = `l_max_vin` → 3.69 V, hence the Zener as at the Hall inputs). The level says
+something only while GPIO40 is low: HIGH = bus present **and** emergency stop not
+pressed, LOW = pressed or bus gone. With GPIO40 high it is always LOW. Intended as a
+check before releasing — "do not start with the emergency stop pressed" — not as an
+emergency-stop detection during a run. That remains the current criterion from the
+motor current ([07-safety](07-safety.md) §4).
+
+**Failure modes of the one wire.** Broken → chain open → braked. Shorted to ground →
+Q1 bypassed, but S1 still in the chain → the hand still works. Shorted to +bus → F1
+blows (the chain is bridged, 140 mA becomes the fuse current) → braked.
 
 ### 9.2 Why in series and not via a converter
 
@@ -1268,6 +1394,60 @@ current in series is only **once** 140 mA, not three times.
   resistance. Replace only with the same model.
 - A **parking brake this does not replace.** For that the blocking wedge remains
   ([07-safety](07-safety.md) §3).
+
+### 9.4 Control by the ESP32 — firmware since 2026-11-25 (`brake.cpp`)
+
+**Rule: the relays are energized as long as the firmware runs.** `brake::begin()` sets
+GPIO40 high right after the settings are loaded. The firmware drops them for exactly one
+thing: a **stop** (`s`, FAULT, end of a run), **at any speed**. Until the evening of
+2026-11-25 this held only above 40 km/h (`RELAY_BRAKE_ABOVE_KMH`), where the controller
+must not brake ([07-safety](07-safety.md) §3.2d); the brake comparison from 35.9 km/h then
+showed that the controller with 20 A and the relay short decelerate identically
+(2.8 km/h/s, 35 → 5 km/h in 13 s), because 20 A lie above the short-circuit current and
+the controller ends in the hardware short anyway. The relays do the same without
+regeneration and without a controller fault, so the builder decided: every stop via the
+relays, the controller brakes only descents within a run. Everything else stays as it was — the
+spin-down test coasts with the motor free, the zero check turns the drum by hand against
+a free rotor, descents within a run brake via the controller. The price is 140 mA in the
+coils while the stand is powered; the gain is that no start has to wait for contacts and
+no hand check meets a shorted motor. N6 ("braked on reset") therefore holds for the
+reset itself, until `begin()` runs — with R2 on the gate that is guaranteed by hardware.
+
+| Situation | What happens |
+|---|---|
+| Reset, boot | GPIO40 low → braked (R2), then `begin()` → relays pull in. The first drive command is refused for `RELAY_SETTLE_MS` ("Relays settling"). |
+| Stop (`s`, FAULT, end of a run), any speed | `vesc::release()` → `RELAY_DRIVER_OFF_MS` → GPIO40 low → motor shorted ("Relaisbremse: Motor kurzgeschlossen"). The controller stays released; N2 by software. |
+| … while shorted | The criterion "no motor on the controller" is muted (`speedctl`), drive commands are refused ("Relaisbremse aktiv"). Speed from `revsrc`: drum marks, below 267 rpm also the controller's Hall sensors. |
+| Drum at standstill for `RELAY_RELEASE_STILL_MS` | relays pull in again, the stand is ready. |
+| Descent within a run (setpoint lowered) | Controller released, **never** braking via the controller. If the coasting time to the setpoint exceeds `DESCENT_MIN_COAST_S`, the relays brake **once**, full, and are pulled in again at setpoint + lead (`DESCENT_*`); the rest is coasted, then the controller takes over. At most one braking per setpoint, speed only from the drum marks. The console logs braking point and release point (`# Abstieg: …`). First attempt on 2026-11-25 read the speed from the controller, which sees 0 rpm with the motor shorted: the relays switched 26 times, every switch knocked the weighing arm into its end stop. |
+| Hand emergency stop during a run | unchanged: relays drop, the controller reports no current, the criterion fires rightly. |
+| `RELAY_BRAKE_WIRED` = false | the module does nothing: GPIO40 stays low, a stop brakes via the controller below `BRAKE_MAX_KMH` and coasts above. true since the rebuild of 2026-11-25. |
+
+Constants in [03-parameters](03-parameters.md) §6: `RELAY_BRAKE_WIRED`,
+`RELAY_DRIVER_OFF_MS`, `RELAY_SETTLE_MS`,
+`RELAY_RELEASE_STILL_MS`. The state is in `/api/state` as `relayBrake` and in the
+console status line.
+
+Not built, as a second step: handing over to the controller brake below the threshold
+(the short-circuit torque falls with speed, the 20 A do not). First the plain version
+has to run.
+
+### 9.5 Checks before the first release — and after the first programmatic brake
+
+1. **Chain without module:** between BATT + and wire 1 about 257 Ω with S1 closed
+   (3 coils in series, 140 mA at 36 V), infinite with S1 pressed. Each coil 85↔86 reads the
+   same in both directions (no built-in diode).
+2. **Module without chain:** GPIO40 high → collector to emitter conducts (diode test);
+   GPIO40 low → open.
+3. **Together, motor disconnected:** GPIO40 high → the relays click, U_CE < 0.3 V,
+   chain current ≈ 140 mA. GPIO40 low → they drop. S1 pressed with GPIO40 high → they
+   drop.
+4. **Reset of the ESP32 with the chain energized** → they drop.
+5. Only then connect the motor and repeat the phase-sequence checks of §10.6.
+6. **After the first firmware-triggered brake from above 40 km/h:** `uptime` and
+   `faults` in the controller terminal. A short uptime would mean the controller still
+   resets although the driver was disabled first — then `RELAY_DRIVER_OFF_MS` is too
+   short or the cause lies elsewhere.
 
 ## 10 Motor controller FSESC 4.20
 
@@ -2064,10 +2244,11 @@ Commands, identical over serial console and web UI ([10-firmware](10-firmware.md
 | | |
 |---|---|
 | `v<kmh>` | target speed at the drum surface |
-| `s` | STOP, brakes with 20 A |
+| `s` | STOP via the relay brake at any speed (§9.4); `sr` existed for a few hours on 2026-11-25 for the brake comparison and is gone |
 | `c` | let coast |
 | `t` | tare the load cell (only at standstill) |
-| `k<kg>` | calibrate with known weight on the calibration arm |
+| `k<kg>` | calibrate with known weight on the calibration arm (console only since 2026-11-25; the web UI has no calibrate button any more, the guided run adopts the factor from the check weight) |
+| `K<kg>` | mass of the check weight (setup page, default `RUN_CTRL_MASS_KG`) |
 | `d<m>` `a<m>` `b<m>` | drum circumference · lever arm · calibration arm |
 | `z` | reset settings to the defaults from `config.h` |
 | `i` | **status**: controller, load cell, sensors, operator link |
@@ -2077,7 +2258,7 @@ Commands, identical over serial console and web UI ([10-firmware](10-firmware.md
 | `h<kmh>` / `h-<kmh>` | add / remove measurement speed (list in NVS, sorted) |
 | `l<N>` | wheel load; without it no measurement run starts |
 | `n<A0> <B0>` / `w<A1> <B1>` | set idle-loss and wheel-loss model by hand; `m0` fits the idle-loss model itself, `u` the wheel-loss model |
-| `u` / `y<kg>` | assistant spin-down + idle (drum up, lift wheel, both at once) / wheel mass for J_Rad |
+| `u` / `y<kg>` | assistant spin-down + idle (drum up, lift wheel, both at once) / wheel mass for J_wheel |
 | `j<s>` | live telemetry to the console, every 200 ms for s seconds — for logging with `tools/konsole.py` |
 | `:<text>` | **passthrough** to the controller's terminal, as in the VESC tool: `:faults`, `:hall_analyze 5`. Answers as `# VESC> …` |
 | `><hex>` | raw packet to the controller, answer as `# V <hex>`. `>0e` fetches the motor configuration, `>11` the app configuration |
@@ -2103,7 +2284,7 @@ rolling circumference** of the wheel in mm. At the contact patch the circumferen
 equal, so
 
 ```
-U_Rad = U_Trommel · drum revolutions / wheel revolutions     (same time window)
+U_wheel = U_drum · drum revolutions / wheel revolutions     (same time window)
 ```
 
 The wheel revolutions are exact — the window begins and ends on a pulse of the
@@ -2145,8 +2326,8 @@ Two steps, both via the Setup page or the console:
 The calculation is
 
 ```
-F_Zelle    = m · g · L_cal / L_cell
-N_per_cnt = F_Zelle / (raw − zero)
+F_cell    = m · g · L_cal / L_cell
+N_per_cnt = F_cell / (raw − zero)
 ```
 
 The weight hangs on the **longer** arm, the cell sits on the shorter — that is why a
@@ -2163,7 +2344,7 @@ not at the desk. A calibration run that forces compiling and flashing is
 not done — and a calibration run not done is exactly the source of invented
 numbers that the project rule is written against.
 
-That is why these four values live in the **NVS** of the ESP32 (`firmware/src/settings.*`).
+That is why these values live in the **NVS** of the ESP32 (`firmware/src/settings.*`), since 2026-11-25 also the mass of the check weight (`K<kg>`).
 
 > **The rule is nevertheless upheld.** `config.h` supplies the defaults, and the
 > UI shows after every calibration the finished line for entry into `config.h`
@@ -2252,3 +2433,54 @@ The firmware version is reported by the variant itself at start (`COMM_FW_VERSIO
 decides whether `foc_short_ls_on_zero_duty` and `l_battery_regen_cut_start/end`
 exist at all — both only from **6.05**. The controller has been running on
 **7.01** since 2026-11-17; both are present and set (§10.5a).
+
+## 15 microSD via an SD adapter
+
+As of 2026-11-25 (drawing 2026-11-26). Drawing: `hardware/sdplan.pdf` (source `hardware/sdplan.py`).
+Firmware: [10-firmware](10-firmware.md) §11.
+
+The passive adapter that comes with a microSD card serves as the socket: wires are
+soldered to its nine contacts, the microSD is plugged in. The adapter only passes the
+contacts through — no level shifter, no regulator. The card runs on 3.3 V and the
+ESP32-S3 talks 3.3 V, so it connects directly. Modules with a 5 V regulator and level
+shifter are not needed and add nothing on a 3.3 V host.
+
+### 15.1 Contacts
+
+Seen onto the contacts, chamfered corner top left, the order is **9 1 2 3 4 5 6 7 8**:
+the SD card kept the seven MMC contacts 1…7 and added 8 and 9 at the edges, 9 under the
+chamfer next to 1. Count on the adapter itself before soldering.
+
+| SD contact | SD name | SPI function | ESP32-S3 | At the adapter |
+|---|---|---|---|---|
+| 1 | DAT3/CD | CS | GPIO 10 | 10 kΩ to 3V3 |
+| 2 | CMD | MOSI (DI) | GPIO 11 | |
+| 3 | VSS1 | GND | GND | |
+| 4 | VDD | 3.3 V | 3V3 | 10 µF + 100 nF to contact 3 |
+| 5 | CLK | SCK | GPIO 12 | |
+| 6 | VSS2 | GND | GND | |
+| 7 | DAT0 | MISO (DO) | GPIO 13 | 10 kΩ to 3V3 |
+| 8 | DAT1 | — | — | 10 kΩ to 3V3 |
+| 9 | DAT2 | — | — | 10 kΩ to 3V3 |
+
+- **Pull-ups.** CS high keeps the card deselected while the ESP32 boots. DAT1 and DAT2
+  are unused in SPI mode; left open they can disturb the card. MISO floats while the
+  card is deselected.
+- **Both ground contacts** (3 and 6) are connected.
+- **Decoupling** at the adapter: the card draws current peaks while writing.
+- **Wires** as short as possible (under 15 cm), a ground wire next to CLK. The SPI clock
+  is `SD_SPI_KHZ` = 10 MHz; halve it first if reads fail. Needed are about 2 kB/s of
+  raw data, so even 1 MHz would be enough for logging — the clock only matters for
+  downloads.
+- The **write-protect slider** of the adapter has no effect in SPI mode: it is only a
+  switch for a card reader to read.
+- **No card-detect contact.** The firmware notices insertion and removal itself by
+  polling (`STORAGE_CHECK_MS`).
+
+### 15.2 Why GPIO 10…13
+
+They are the IO-MUX pins of SPI2 (FSPICS0, FSPID, FSPICLK, FSPIQ) and at the same time
+the default SPI pins of the DevKitC-1. The signals go straight to the peripheral, not
+through the GPIO matrix. GPIO 10 was reserved for CS from the start; 11…13 became free
+with the D-pad on 2026-11-22.
+

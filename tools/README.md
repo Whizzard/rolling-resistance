@@ -2,7 +2,8 @@
 
 Not part of the firmware. They run on the Mac or laptop and talk to the motor controller
 over USB with the same packet protocol as over UART, so the framing here is the same as
-in `firmware/src/vesc/packet.cpp`.
+in `firmware/src/vesc/packet.cpp`. The Python side of it lives once, in `vescproto.py`
+(CRC-16/XMODEM, frame, receiver); `python3 tools/vescproto.py` runs its self-test.
 
 They need **pyserial**. PlatformIO's environment already has it:
 
@@ -31,6 +32,16 @@ packet. Command table in [04-hardware](../docs/04-hardware.md) §14.1.
 Found with it on 2026-11-23: the motor drew current but did not turn, ERPM stayed 0
 while the current rose to 6.4 A. `:hall_analyze 10` and `:foc_openloop 10 300` showed
 sensors and power stage in order; the fault was in the Hall table.
+
+## `rawlog.py` — raw recordings to CSV
+
+Converts a raw recording of the stand (`.rrl`, [10-firmware](../docs/10-firmware.md) §11)
+into one CSV per sensor, exactly like the `.zip` download from `/raw` does on the stand.
+For files fetched raw or copied straight off the SD card.
+
+```
+python3 tools/rawlog.py 2026-11-25-183012.rrl [--out folder/]
+```
 
 ## `vesc_console.py` — drive the controller by hand
 

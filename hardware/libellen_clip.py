@@ -1,71 +1,69 @@
 # -*- coding: utf-8 -*-
 """
-Clip für eine Block-Libelle (Wasserwaagen-Libelle, 15,1 x 15,1 x 40 mm) auf dem
-Aluminiumprofil, zum Drucken.
+Clip for a block vial (spirit-level vial, 15.1 x 15.1 x 40 mm) on the aluminium
+profile, for printing.
 
-Aufbau wie hall_gehaeuse.py und xt60_halter.py: ein PartDesign-Body mit
-Featurebaum plus ein Spreadsheet "Parameter"; alle Skizzen über Ausdrücke an
-die Tabelle gebunden. Maße ändert man im GUI in der Tabelle, nicht in den
-Skizzen. Maße in mm.
+Structure as in hall_gehaeuse.py and xt60_halter.py: one PartDesign body with a
+feature tree plus a spreadsheet "Parameter"; all sketches bound to the table through
+expressions. Change dimensions in the GUI in the table, not in the sketches.
+Dimensions in mm.
 
-Aufruf (nur das FreeCAD-eigene Python kann FreeCAD importieren):
+Invocation (only FreeCAD's own Python can import FreeCAD):
 
     /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/libellen_clip.py
 
-Erzeugt hardware/libellen-clip.FCStd, .step und .stl.
+Produces hardware/libellen-clip.FCStd, .step and .stl.
 
-LAGE: z = 0 ist die Auflage auf dem Profil. x läuft entlang des Profils (und
-entlang der Libelle), y quer dazu, symmetrisch um y = 0. Die Libelle liegt mit
-ihrer langen Achse in x, also misst sie die Neigung des Profils in seiner
-Längsrichtung.
+POSITION: z = 0 is the contact face on the profile. x runs along the profile (and
+along the vial), y across it, symmetric about y = 0. The vial lies with its long axis
+in x, so it measures the inclination of the profile in its longitudinal direction.
 
-Entlang x, von links nach rechts:
+Along x, from left to right:
 
-    PAD      STIRNWAND      LIBELLE 40,0 (+ fit_l)      STIRNWAND      PAD
+    PAD      END WALL       VIAL 40.0 (+ fit_l)         END WALL       PAD
     M6                                                                 M6
 
-Zwei M6 mit Linsenkopf (ISO 7380) in der Profilnut, eine je Ende, ausserhalb der
-Libelle. Unter dem Schraubenkopf liegen base_t = 1,5 mm Material — das ist die
-Vorgabe; die ganze Grundplatte ist so dick, dann liegt die Libelle in derselben
-Ebene wie die Schraubenauflage und die Unterseite ist eine einzige Fläche. Die
-Senkung entfällt, der Kopf steht oben auf.
+Two M6 button-head screws (ISO 7380) in the profile slot, one at each end, outside
+the vial. Under the screw head there are base_t = 1.5 mm of material -- that is the
+requirement; the whole base plate is that thick, so the vial lies in the same plane
+as the screw seat and the underside is one single face. There is no counterbore, the
+head sits on top.
 
-Die Libelle soll von DREI Seiten sichtbar bleiben: von oben und von beiden
-Längsseiten. Der Clip hält sie an den STIRNSEITEN und richtet sie mit den Leisten
-quer aus; festgehalten wird sie mit doppelseitigem Klebeband am Boden des Fachs
-(Fassung 2026-11-24: die frueheren Schnappnasen oben sind weg, die Stirnwaende
-schliessen BUENDIG mit der Oberkante der Libelle ab).
+The vial is to remain visible from THREE sides: from above and from both long sides.
+The clip holds it at the END FACES and aligns it crosswise with the rails; it is held
+with double-sided tape on the floor of the pocket (version 2026-11-24: the earlier
+snap noses at the top are gone, the end walls finish FLUSH with the top of the vial).
 
-    Stirnwaende   je wall_t dick, genau vial_h hoch ueber der Platte, buendig
-                  mit der Libelle.
-    Stuetzen      Stuetz-Schraegen AUSSEN an jeder Stirnwand, je eine links und
-                  rechts neben dem Schraubenkopf auf den Laengsleisten: ein Keil
-                  von der Oberkante der Stirnwand hinunter zum Plattenende, rail_t
-                  breit. Sie verhindern, dass die Wand nach aussen kippt -- die
-                  erste Fassung mit 1,5-mm-Waenden war labil.
-    Leisten       zwei Leisten rail_h hoch entlang der Laengsseiten, ueber die
-                  GANZE Laenge. Sie richten die Libelle quer aus und versteifen
-                  die Grundplatte; aussen gehen sie in die Stuetzen ueber.
+    End walls     wall_t thick each, exactly vial_h high above the plate, flush
+                  with the vial.
+    Supports      support slopes OUTSIDE each end wall, one left and one right of
+                  the screw head on the long rails: a wedge from the top of the end
+                  wall down to the plate end, rail_t wide. They keep the wall from
+                  tipping outwards -- the first version with 1.5 mm walls was
+                  unstable.
+    Rails         two rails rail_h high along the long sides, over the FULL length.
+                  They align the vial crosswise and stiffen the base plate; on the
+                  outside they merge into the supports.
 
-Der Schraubenkopf sitzt zwischen den beiden Stuetzen (lichte Weite cav_w, der
-Kopf hat head_d) mit head_clear Luft zur Stirnwand; der Schraubendreher kommt
-von oben senkrecht hin.
+The screw head sits between the two supports (clear width cav_w, the head has
+head_d) with head_clear clearance to the end wall; the screwdriver comes in
+vertically from above.
 
-Featurebaum:
-    Grundplatte       Quader base_l x base_w x base_t, z = 0 ist die Auflage
-    Leisten           2 x rail_t breit, rail_h hoch, volle Länge, aussen
-    Stirnwaende       2 x wall_t dick, volle Breite, wall_h = vial_h hoch
-    Stuetzen          Keile in XZ ueber die volle Breite ...
-    Stuetzen_frei     ... und die Mitte (cav_w) wieder herausgenommen: zwei Rippen
-                      je Ende bleiben stehen
-    M6_Loecher        2 x Ø m6_d durch die Grundplatte
+Feature tree:
+    Grundplatte       block base_l x base_w x base_t, z = 0 is the contact face
+    Leisten           2 x rail_t wide, rail_h high, full length, outside
+    Stirnwaende       2 x wall_t thick, full width, wall_h = vial_h high
+    Stuetzen          wedges in XZ across the full width ...
+    Stuetzen_frei     ... and the middle (cav_w) removed again: two ribs per end
+                      remain
+    M6_Loecher        2 x Ø m6_d through the base plate
 
-Druck: flach, Grundplatte aufs Bett. Keine Ueberhaenge: die Keile fallen nach
-aussen ab.
+Printing: flat, base plate on the bed. No overhangs: the wedges slope down towards
+the outside.
 
-Das Libellenmass 15,1 x 15,1 x 40 ist am Teil GEMESSEN (2026-11-23). Der
-Kopfdurchmesser der M6 ist der Normwert ISO 7380 und dient nur dazu, das Pad
-lang genug zu machen — wer andere Schrauben nimmt, trägt head_d ein.
+The vial size 15.1 x 15.1 x 40 was MEASURED on the part (2026-11-23). The head
+diameter of the M6 is the standard value ISO 7380 and only serves to make the pad
+long enough -- whoever uses other screws enters head_d.
 """
 
 import os
@@ -78,45 +76,45 @@ import Part
 import Sketcher
 from FreeCAD import Vector
 
-# --------------------------------------------------------------- Parameter
-# (Name, Wert oder Formel, Kommentar). Formeln beginnen mit '='.
+# -------------------------------------------------------------- Parameters
+# (name, value or formula, comment). Formulas start with '='.
 PARAMS = [
-    # Libelle, gemessen 2026-11-23
-    ('vial_l',       40.0, 'Libelle lang (x), gemessen'),
-    ('vial_w',       15.1, 'Libelle breit (y), gemessen'),
-    ('vial_h',       15.1, 'Libelle hoch (z), gemessen'),
-    ('fit_l',         0.3, 'Spiel in der Laenge, GESAMT'),
-    ('fit_w',         0.3, 'Spiel in der Breite, GESAMT'),
+    # Vial, measured 2026-11-23
+    ('vial_l',       40.0, 'Vial length (x), measured'),
+    ('vial_w',       15.1, 'Vial width (y), measured'),
+    ('vial_h',       15.1, 'Vial height (z), measured'),
+    ('fit_l',         0.3, 'Play in length, TOTAL'),
+    ('fit_w',         0.3, 'Play in width, TOTAL'),
 
-    # Schraube M6, Linsenkopf ISO 7380: dk ~10,5, k ~4
-    ('m6_d',          6.6, 'M6 Durchgang, wie die anderen Halter'),
-    ('head_d',       10.5, 'Linsenkopf ISO 7380 M6, Normwert -- nur fuer die Padlaenge'),
-    ('head_edge',     2.0, 'Rand neben dem Kopf bis zum Plattenende'),
-    ('head_clear',    1.0, 'Luft zwischen Kopf und Stirnwand'),
+    # Screw M6, button head ISO 7380: dk ~10.5, k ~4
+    ('m6_d',          6.6, 'M6 clearance, as on the other holders'),
+    ('head_d',       10.5, 'Button head ISO 7380 M6, standard value -- only for the pad length'),
+    ('head_edge',     2.0, 'Margin beside the head up to the plate end'),
+    ('head_clear',    1.0, 'Clearance between head and end wall'),
 
-    # Koerper (2026-11-24: mehr Fleisch als die erste Fassung mit 1,5 / 1,2 / 1,5)
-    ('base_t',        2.0, 'Grundplatte dick = Material unter dem Schraubenkopf'),
-    ('rail_t',        1.6, 'Laengsleiste dick, zugleich Breite der Stuetzen'),
-    ('rail_h',        2.0, 'Laengsleiste hoch ueber der Platte; so viel ist seitlich verdeckt'),
-    ('wall_t',        2.0, 'Stirnwand dick'),
+    # Body (2026-11-24: more material than the first version with 1.5 / 1.2 / 1.5)
+    ('base_t',        2.0, 'Base plate thickness = material under the screw head'),
+    ('rail_t',        1.6, 'Long rail thickness, also width of the supports'),
+    ('rail_h',        2.0, 'Long rail height above the plate; this much is hidden at the side'),
+    ('wall_t',        2.0, 'End wall thickness'),
 
-    # Abgeleitet
-    ('cav_l',  '=vial_l + fit_l',                  'Fach lang'),
-    ('cav_w',  '=vial_w + fit_w',                  'Fach breit'),
-    ('base_w', '=cav_w + 2 * rail_t',              'Grundplatte breit'),
-    ('m6_x',   '=head_edge + head_d / 2',          'erste Schraube ab Plattenende'),
-    ('cav_x0', '=m6_x + head_d / 2 + head_clear + wall_t', 'Fach beginnt'),
-    ('base_l', '=2 * cav_x0 + cav_l',              'Grundplatte lang'),
-    ('m6_pitch', '=base_l - 2 * m6_x',             'Lochabstand der M6'),
-    ('wall_h', '=vial_h',                          'Stirnwand hoch ueber der Platte, buendig mit der Libelle'),
+    # Derived
+    ('cav_l',  '=vial_l + fit_l',                  'Pocket length'),
+    ('cav_w',  '=vial_w + fit_w',                  'Pocket width'),
+    ('base_w', '=cav_w + 2 * rail_t',              'Base plate width'),
+    ('m6_x',   '=head_edge + head_d / 2',          'first screw from the plate end'),
+    ('cav_x0', '=m6_x + head_d / 2 + head_clear + wall_t', 'Pocket starts'),
+    ('base_l', '=2 * cav_x0 + cav_l',              'Base plate length'),
+    ('m6_pitch', '=base_l - 2 * m6_x',             'Hole spacing of the M6'),
+    ('wall_h', '=vial_h',                          'End wall height above the plate, flush with the vial'),
 ]
 
 
 def build_sheet(doc):
     sh = doc.addObject('Spreadsheet::Sheet', 'Parameter')
     sh.set('A1', 'Parameter')
-    sh.set('B1', 'Wert')
-    sh.set('C1', 'Bedeutung')
+    sh.set('B1', 'Value')
+    sh.set('C1', 'Meaning')
     for i, (name, val, note) in enumerate(PARAMS):
         r = i + 2
         sh.set('A%d' % r, name)
@@ -130,11 +128,11 @@ def build_sheet(doc):
 
 
 def P(sh, name):
-    """Zahlenwert eines Parameters."""
+    """Numeric value of a parameter."""
     return float(sh.get(name))
 
 
-# ------------------------------------------------------------ Skizzenhilfen
+# ----------------------------------------------------------- Sketch helpers
 
 def named(sk, con, name):
     i = sk.addConstraint(con)
@@ -143,9 +141,9 @@ def named(sk, con, name):
 
 
 def poly(sk, pts, tag, exprs):
-    """Geschlossener Polygonzug, jeder Eckpunkt über DistanceX/DistanceY an
-    Ausdrücke gebunden -> voll bestimmt. pts: [(x, y), ...], exprs:
-    [(expr_x, expr_y), ...] in derselben Reihenfolge."""
+    """Closed polyline, every vertex bound to expressions through
+    DistanceX/DistanceY -> fully constrained. pts: [(x, y), ...], exprs:
+    [(expr_x, expr_y), ...] in the same order."""
     v = Vector
     n = len(pts)
     g = []
@@ -166,7 +164,7 @@ def poly(sk, pts, tag, exprs):
 
 
 def rect(sk, x0, y0, w, h, tag, ex0, ey0, ew, eh):
-    """Achsparalleles Rechteck über poly; Ausdrücke für Ecke und Maße."""
+    """Axis-parallel rectangle via poly; expressions for corner and dimensions."""
     pts = [(x0, y0), (x0 + w, y0), (x0 + w, y0 + h), (x0, y0 + h)]
     ex1 = '(%s) + (%s)' % (ex0, ew)
     ey1 = '(%s) + (%s)' % (ey0, eh)
@@ -185,7 +183,7 @@ def circle(sk, cx, cy, r, tag, expr_x, expr_y, expr_r):
     return g
 
 
-# ------------------------------------------------------------------- Modell
+# -------------------------------------------------------------------- Model
 
 def sketch_on(body, plane, name, off=0.0, expr_off=None):
     sk = body.newObject('Sketcher::SketchObject', name)
@@ -226,13 +224,13 @@ def build(doc, sh):
     cav_x0, cav_l, wall_t = P(sh, 'cav_x0'), P(sh, 'cav_l'), P(sh, 'wall_t')
     cav_x1 = cav_x0 + cav_l
 
-    # 1 Grundplatte. z = 0 ist die Auflage auf dem Profil.
+    # 1 Base plate. z = 0 is the contact face on the profile.
     sk = sketch_on(body, xy, 'Sk_Grundplatte')
     rect(sk, 0.0, -base_w / 2, base_l, base_w, 'gp',
          '0', '-Parameter.base_w / 2', 'Parameter.base_l', 'Parameter.base_w')
     pad(sk, 'Grundplatte', 'Parameter.base_t')
 
-    # 2 Laengsleisten aussen, volle Laenge, auf der Platte.
+    # 2 Long rails outside, full length, on the plate.
     sk = sketch_on(body, xy, 'Sk_Leisten', expr_off='Parameter.base_t')
     rect(sk, 0.0, base_w / 2 - P(sh, 'rail_t'), base_l, P(sh, 'rail_t'), 'lp',
          '0', 'Parameter.base_w / 2 - Parameter.rail_t',
@@ -241,7 +239,7 @@ def build(doc, sh):
          '0', '-Parameter.base_w / 2', 'Parameter.base_l', 'Parameter.rail_t')
     pad(sk, 'Leisten', 'Parameter.rail_h')
 
-    # 3 Stirnwaende, volle Breite, auf der Platte.
+    # 3 End walls, full width, on the plate.
     sk = sketch_on(body, xy, 'Sk_Stirnwaende', expr_off='Parameter.base_t')
     rect(sk, cav_x0 - wall_t, -base_w / 2, wall_t, base_w, 'wl',
          'Parameter.cav_x0 - Parameter.wall_t', '-Parameter.base_w / 2',
@@ -251,11 +249,11 @@ def build(doc, sh):
          'Parameter.wall_t', 'Parameter.base_w')
     pad(sk, 'Stirnwaende', 'Parameter.wall_h')
 
-    # 4 Stuetz-Schraegen: Keile in der XZ-Ebene (lokal x = global x, lokal y =
-    #   global z), aussen an jeder Stirnwand von deren Oberkante hinunter zum
-    #   Plattenende, auf Leistenhoehe aufsetzend. Erst ueber die volle Breite
-    #   gezogen, dann die Mitte (cav_w) wieder herausgenommen -> je Ende zwei
-    #   Rippen rail_t breit, auf den Laengsleisten, der Schraubenkopf dazwischen.
+    # 4 Support slopes: wedges in the XZ plane (local x = global x, local y =
+    #   global z), outside each end wall from its top edge down to the plate
+    #   end, starting at rail height. First padded across the full width, then
+    #   the middle (cav_w) removed again -> two ribs rail_t wide per end, on the
+    #   long rails, with the screw head between them.
     ztop = base_t + P(sh, 'wall_h')
     zrail = base_t + P(sh, 'rail_h')
     e_top = 'Parameter.base_t + Parameter.wall_h'
@@ -279,7 +277,7 @@ def build(doc, sh):
     f.Midplane = True
     doc.recompute()
 
-    # 5 M6-Loecher, eines je Pad, durch die Grundplatte.
+    # 5 M6 holes, one per pad, through the base plate.
     sk = sketch_on(body, xy, 'Sk_M6')
     circle(sk, P(sh, 'm6_x'), 0.0, P(sh, 'm6_d') / 2, 'm6l',
            'Parameter.m6_x', '0', 'Parameter.m6_d / 2')
@@ -290,10 +288,10 @@ def build(doc, sh):
     return body
 
 
-# FreeCAD speichert die Sichtbarkeit fuer das GUI NICHT in Document.xml, sondern in
-# einer GuiDocument.xml mit je einem ViewProvider pro Objekt. Headless entsteht die
-# nicht — deshalb oeffnet sich eine so erzeugte Datei mit Default-Sichtbarkeiten:
-# Skizzen an, Koerper aus. Die schreiben wir nach dem Speichern selbst ins Archiv.
+# FreeCAD does NOT store the GUI visibility in Document.xml but in a
+# GuiDocument.xml with one ViewProvider per object. Headless, that file is not
+# created -- so a file produced this way opens with default visibilities:
+# sketches on, bodies off. We write it into the archive ourselves after saving.
 
 _GUI_HEAD = """<?xml version='1.0' encoding='utf-8'?>
 <!--
@@ -316,7 +314,7 @@ _GUI_TAIL = """    </ViewProviderData>
 
 
 def write_gui_visibility(fcstd, visible):
-    """GuiDocument.xml ins FCStd-Archiv schreiben."""
+    """Write GuiDocument.xml into the FCStd archive."""
     import re
     import shutil
     import zipfile
@@ -344,7 +342,7 @@ def write_gui_visibility(fcstd, visible):
 
 
 def set_visibility(doc, body):
-    """Körper sichtbar, Skizzen und Zwischenschritte aus."""
+    """Body visible, sketches and intermediate steps hidden."""
     for o in doc.Objects:
         if hasattr(o, 'Visibility'):
             o.Visibility = False
@@ -354,8 +352,8 @@ def set_visibility(doc, body):
 
 
 def check(body, sh):
-    """Geometrische Plausibilitaet, damit ein Vorzeichenfehler bei den
-    Skizzenebenen nicht erst im Slicer auffaellt."""
+    """Geometric plausibility, so that a sign error in the sketch planes is not
+    first noticed in the slicer."""
     s = body.Shape
     ok = True
     inside = lambda x, y, z: s.isInside(Vector(x, y, z), 1e-6, True)
@@ -366,53 +364,53 @@ def check(body, sh):
     ztop = base_t + P(sh, 'wall_h')
     zrail = base_t + P(sh, 'rail_h')
 
-    # Grundplatte: Material unter dem Kopf, Luft im Loch
+    # Base plate: material under the head, air in the hole
     for x in (P(sh, 'm6_x'), base_l - P(sh, 'm6_x')):
         if not inside(x + P(sh, 'm6_d') / 2 + 0.5, 0.0, base_t / 2):
-            print('FEHLER keine Platte neben dem Loch bei x = %.1f' % x); ok = False
+            print('ERROR no plate next to the hole at x = %.1f' % x); ok = False
         if inside(x, 0.0, base_t / 2):
-            print('FEHLER M6-Loch fehlt bei x = %.1f' % x); ok = False
+            print('ERROR M6 hole missing at x = %.1f' % x); ok = False
         if inside(x, 0.0, base_t + 0.5):
-            print('FEHLER Material ueber dem Kopf bei x = %.1f' % x); ok = False
-    # Fach: Luft in der Mitte und direkt ueber der Oberkante der Libelle
+            print('ERROR material above the head at x = %.1f' % x); ok = False
+    # Pocket: air in the middle and directly above the top of the vial
     if inside(xc, 0.0, base_t + P(sh, 'vial_h') / 2):
-        print('FEHLER Fach nicht frei'); ok = False
+        print('ERROR pocket not clear'); ok = False
     if inside(xc, 0.0, ztop + 0.5):
-        print('FEHLER Material ueber dem Fach'); ok = False
-    # Libelle liegt auf der Platte: Material direkt darunter
+        print('ERROR material above the pocket'); ok = False
+    # Vial rests on the plate: material directly beneath
     if not inside(xc, 0.0, base_t / 2):
-        print('FEHLER kein Boden unter der Libelle'); ok = False
-    # Leisten: Material aussen, Luft innen auf Leistenhoehe
+        print('ERROR no floor under the vial'); ok = False
+    # Rails: material outside, air inside at rail height
     for sign in (+1, -1):
         y_rail = sign * (base_w / 2 - P(sh, 'rail_t') / 2)
         if not inside(xc, y_rail, base_t + P(sh, 'rail_h') / 2):
-            print('FEHLER keine Leiste bei y = %+.1f' % y_rail); ok = False
+            print('ERROR no rail at y = %+.1f' % y_rail); ok = False
         if inside(xc, sign * (P(sh, 'cav_w') / 2 - 0.1), base_t + P(sh, 'rail_h') / 2):
-            print('FEHLER Leiste ragt ins Fach bei y = %+.1f' % y_rail); ok = False
-    # Stirnwaende: Material in Wandmitte, bis oben
+            print('ERROR rail protrudes into the pocket at y = %+.1f' % y_rail); ok = False
+    # End walls: material at mid-wall, up to the top
     for xw in (cav_x0 - P(sh, 'wall_t') / 2, cav_x1 + P(sh, 'wall_t') / 2):
         if not inside(xw, 0.0, ztop - 0.2):
-            print('FEHLER Stirnwand fehlt bei x = %.1f' % xw); ok = False
-    # Stuetzen: Rippe aussen auf halber Hoehe, Luft daneben (ueber dem Kopf) und
-    # oberhalb der Schraege
+            print('ERROR end wall missing at x = %.1f' % xw); ok = False
+    # Supports: rib outside at half height, air beside it (above the head) and
+    # above the slope
     for xw, sign in ((cav_x0 - P(sh, 'wall_t'), -1), (cav_x1 + P(sh, 'wall_t'), +1)):
-        xm = xw + sign * 1.0                       # 1 mm vor der Wand: Keil fast voll hoch
+        xm = xw + sign * 1.0                       # 1 mm in front of the wall: wedge almost full height
         zq = zrail + 0.5 * (ztop - zrail)
         yr = base_w / 2 - P(sh, 'rail_t') / 2
         if not inside(xm, yr, zq):
-            print('FEHLER Stuetze fehlt bei x = %.1f' % xm); ok = False
+            print('ERROR support missing at x = %.1f' % xm); ok = False
         if inside(xm, 0.0, zq):
-            print('FEHLER Stuetze ueber dem Schraubenkopf bei x = %.1f' % xm); ok = False
-        xe = xw + sign * (P(sh, 'cav_x0') - P(sh, 'wall_t') - 0.5)   # kurz vor dem Plattenende
+            print('ERROR support above the screw head at x = %.1f' % xm); ok = False
+        xe = xw + sign * (P(sh, 'cav_x0') - P(sh, 'wall_t') - 0.5)   # just before the plate end
         if inside(xe, yr, zq):
-            print('FEHLER Schraege faellt nicht ab bei x = %.1f' % xe); ok = False
-    # Stirnwand buendig: kein Material ueber ztop
+            print('ERROR slope does not fall away at x = %.1f' % xe); ok = False
+    # End wall flush: no material above ztop
     if inside(cav_x0 - P(sh, 'wall_t') / 2, 0.0, ztop + 0.3):
-        print('FEHLER Stirnwand steht ueber die Libelle'); ok = False
-    # Kopf neben der Wand frei
+        print('ERROR end wall stands above the vial'); ok = False
+    # Head clear next to the wall
     gap = cav_x0 - P(sh, 'wall_t') - (P(sh, 'm6_x') + P(sh, 'head_d') / 2)
-    print('Luft Kopf-Stirnwand %.1f mm, Lochabstand %.1f mm' % (gap, P(sh, 'm6_pitch')))
-    print('Seitlich verdeckt %.1f von %.1f mm, Stirnwand buendig, Stuetzen %.1f breit'
+    print('Clearance head to end wall %.1f mm, hole spacing %.1f mm' % (gap, P(sh, 'm6_pitch')))
+    print('Hidden at the side %.1f of %.1f mm, end wall flush, supports %.1f wide'
           % (P(sh, 'rail_h'), P(sh, 'vial_h'), P(sh, 'rail_t')))
     return ok
 
@@ -435,21 +433,21 @@ def main():
     body.Shape.exportStl(os.path.join(here, 'libellen-clip.stl'))
 
     bb = body.Shape.BoundBox
-    print('Aussenmass  %.1f x %.1f x %.1f mm'
+    print('Outer size  %.1f x %.1f x %.1f mm'
           % (bb.XLength, bb.YLength, bb.ZLength))
-    print('Volumen     %.0f mm3' % body.Shape.Volume)
-    print('Gueltig     %s' % body.Shape.isValid())
-    print('Plausibel   %s' % check(body, sh))
+    print('Volume      %.0f mm3' % body.Shape.Volume)
+    print('Valid       %s' % body.Shape.isValid())
+    print('Plausible   %s' % check(body, sh))
     bad = [o.Name for o in doc.Objects if getattr(o, 'State', None)
            and 'Invalid' in o.State]
-    print('Fehlerhaft  %s' % (bad if bad else 'keine'))
+    print('Invalid     %s' % (bad if bad else 'none'))
     offen = [o.Name for o in doc.Objects
              if o.isDerivedFrom('Sketcher::SketchObject')
              and not getattr(o, 'FullyConstrained', True)]
-    print('Skizzen     %d, davon nicht voll bestimmt: %s'
+    print('Sketches    %d, not fully constrained: %s'
           % (len([o for o in doc.Objects
                   if o.isDerivedFrom('Sketcher::SketchObject')]),
-             offen if offen else 'keine'))
+             offen if offen else 'none'))
 
 
 main()

@@ -63,7 +63,7 @@ What is needed is not the mass of the stator but the **moment of inertia** — a
 only as an intermediate step to the natural frequency:
 
 ```
-f_n = (1/2π)·√(k_rot/J)      k_rot = k_Zelle · L² = 523 Nm/rad
+f_n = (1/2π)·√(k_rot/J)      k_rot = k_cell · L² = 523 Nm/rad
 ```
 
 | J_stator | f_n | Position relative to the orders at 60 km/h |
@@ -102,7 +102,7 @@ That is **0.39 %** of the signal of a good racing tire. Even ±50 % uncertainty 
 drops out completely anyway (same load, same bearings).
 
 If it is to be measured after all: **wheel diameter is mandatory**, not optional. A small
-roller amplifies its own bearing friction by `r_Trommel/r_Rolle` — for a 30 mm roller by a
+roller amplifies its own bearing friction by `r_drum/r_roller` — for a 30 mm roller by a
 factor of 30. A bare aluminum rim directly on the tread plate is ruled out: line contact at
 417 N dents both. What would be needed is a rim with a **POM or PU running surface** in
 tire size, in the existing fork. That much effort and money against 0.2 % — not worth it.
@@ -194,9 +194,12 @@ the change during the run. **Not yet tested at the stand with a real sensor.**
 > **Surface: no longer an issue.** The drum gets aluminum **tread plate**, i.e. the same
 > kind of surface as the reference test rig. The previously feared penalty from smooth
 > wood is gone.
+>
+> **2026-11-25:** the tread plate now waves between the screws, see [E2](#e2-tread-plate-on-the-drum-waves--surface-no-longer-round).
+> The surface is open again.
 
 What remains is the **curvature**. The tire is deformed more on a drum than on a flat
-surface; what matters is the effective contact radius `1/(1/r_Reifen + 1/r_Trommel)`:
+surface; what matters is the effective contact radius `1/(1/r_tire + 1/r_drum)`:
 
 | | r_eff at r_tire = 0.34 m | Share of flat value |
 |---|---|---|
@@ -223,6 +226,50 @@ real measurements based on the scatter.
 ### C5 Draft
 Drum aerodynamics dominate the idle losses at high speed. How strongly do they react to
 doors, ventilation, position in the room? Try it out deliberately once.
+
+## E — Mechanical defects of the stand
+
+As of **2026-11-25**, reported by the operator after the first complete run
+(2026-11-25-1830). None of them blocks a run, but each one feeds into the measured torque,
+and none is quantified yet.
+
+### E1 Motor wobbles — flange has to be replaced
+The motor runs out of true; the cause is the flange, which has to be **made new**. The
+wobble is passed on to the **weighing beam**, which wobbles with it. As far as can be
+seen it does not hit anything. It shows up as torque ripple once per revolution (column
+`ripple_Nm`, 0.05 to 0.11 Nm in run 2026-11-25-1830, i.e. 3 to 8 % of M). The mean over
+whole revolutions cancels most of it, but not a contact that only happens on one side.
+After the new flange: compare the ripple at the same speed.
+
+### E2 Tread plate on the drum waves — surface no longer round
+The aluminum tread plate on the drum ([C1](#c1-drum-curvature--halved-surface-done))
+**waves between the screws** by now and makes noise. A wave is being pushed around the
+drum by the tire, so the surface is neither round nor fixed. That is an extra loss that
+belongs to the stand, not the tire, and it may change during a run (anchor drift W04).
+Options:
+
+| Option | For | Against |
+|---|---|---|
+| Re-tension the plate | quick, keeps the reference-like surface | the cause (plate longer than the circumference) stays |
+| Remove it, sheathe the drum with thin plywood, stiffen with epoxy | round and smooth, no moving surface | smooth surface: Crr no longer comparable to tread-plate rigs |
+| Several **tracks** side by side: smooth wood, tread plate, perforated plate | surface becomes a measurable variable; same tire on each track | more build work, wheel has to be moved sideways, each track needs its own baseline |
+
+Decision open. Whatever is chosen, the surface goes into the run report.
+
+### E3 Vibrations
+There are vibrations on the stand, source not yet identified (E1, E2, motor cogging,
+resonance of the balance, see [A7](#a7-natural-frequency-of-the-balance--measure-dont-weigh)).
+**To do:** record the raw load cell at 80 SPS at several speeds and look for the
+frequencies (once per drum revolution, per motor revolution, per screw spacing of the
+plate).
+
+### E4 Wheel load not measured cleanly
+The wheel load is currently entered (calculated from the position of the sliding weight
+or a hanging scale) and is **not measured during the run** (run 2026-11-25-1830:
+"50.4 kg, eingegeben"). Crr is inversely proportional to it, so every error in the load
+goes 1:1 into Crr. **Plan:** load cells at the wheel axle with their own calibration,
+read during the run, the measured load per point into the CSV. Until then the load stays
+an assumption without a measured uncertainty.
 
 ## D — Minor items
 
@@ -259,10 +306,11 @@ installed; the arm enters **linearly** into every torque.
 | Question | Decision | Date |
 |---|---|---|
 | Computing platform | ESP32 (BLE for the pressure sensor, WLAN logging, one board for everything) | 2026-10-24 |
-| Speed range | 10–60 km/h; 100 km/h only after drum clearance | 2026-10-24 |
+| Speed range | 10–100 km/h since 2026-11-25 (`V_MAX_KMH`, [07-safety](07-safety.md) §5 entry); 10–60 km/h before | 2026-11-25 |
 | Speed pickup | Hall instead of reed, 6 marks + index; speed from the window over a whole revolution | 2026-10-24 |
 | Drum bearing arrangement (A10) | **Own co-rotating shaft** instead of drum on the motor rotor. 4.7 mNm load-dependent in the torque path instead of 9.8 mNm of uncorrectable hysteresis. | 2026-11-01 |
 | Drum width (A12) | **100 mm** built. Idle losses stay at 0.27 Nm. | 2026-11-01 |
+| **Brake, triggered by the ESP32** | **Firmware 2026-11-25 (`brake.cpp`, `RELAY_BRAKE_WIRED`), hardware rebuilt the same day.** Proposal 2026-11-24: emergency stop in the relay coil chain, one wire to a transistor at the ESP32 (2N5551, GPIO40); hand and firmware in series. Lets the firmware brake above `BRAKE_MAX_KMH` via the relays. Circuit [04-hardware](04-hardware.md) §9.1, sequence §9.4, drawings `hardware/bremsplan.pdf` and `hardware/bremsverdrahtung.pdf`. | 2026-11-24 |
 | **Brake (A8, A9)** | **Short-circuit braking via three automotive changeover relays on the NC contacts.** Measured 2026-11-01: 25 s from over 400 rpm, mean braking torque 3.25 Nm, 68 W in the copper. Circuit in [04-hardware](04-hardware.md) §9. No braking resistor, no DC-DC converter. | 2026-11-03 |
 | Bearing of the motor axle (A6) | Moot: the drum has its own shaft (A10), the stator axle is held only by the lever arm. | 2026-11-03 |
 | Drum mounting (A4) | Moot: flange at the shaft end instead of adapter plate on the rotor. | 2026-11-03 |
@@ -299,7 +347,7 @@ installed; the arm enters **linearly** into every torque.
 | Standard wheel load | 42.5 kg (417 N), as in the published Crr database | 2026-10-24 |
 | Lever arm | 0.07 m instead of 0.15 m — the worst case thus lands at 61 % of the cell's full-scale value instead of 29 % | 2026-10-24 |
 | Warm-up time | 30 min instead of 10 min, following the reference test rig | 2026-10-24 |
-| Motor selection in general | Two criteria instead of watts: `kv = n_nenn/U_nenn` must be 14–20 rpm/V, `T_dauer = P_nenn/ω_nenn` at least 3.53 Nm. In practice 250 W minimum, 350 W right. Table in [03-parameters](03-parameters.md) §4. | 2026-10-24 |
+| Motor selection in general | Two criteria instead of watts: `kv = n_rated/U_rated` must be 14–20 rpm/V, `T_cont = P_rated/ω_rated` at least 3.53 Nm. In practice 250 W minimum, 350 W right. Table in [03-parameters](03-parameters.md) §4. | 2026-10-24 |
 | LG direct-drive washing-machine motor | Rejected: high-voltage machine (100–150 V bus needed), and the listing seen contained only the rotor without stator. | 2026-10-24 |
 | Friction drive on the drum surface? | No — would need 1930 rpm instead of 480 | 2026-10-24 |
 | Drum cantilevered on the hub? | No — one-sided stub axle, drum in two of its own bearings | 2026-10-24 |

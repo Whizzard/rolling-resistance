@@ -1,108 +1,107 @@
 # -*- coding: utf-8 -*-
 """
-Wandhalterung für ein iPad mini 3, als Kreuz, zum Drucken.
+Wall mount for an iPad mini 3, cross-shaped, for printing.
 
-Aufbau wie hall_gehaeuse.py und xt60_halter.py: ein PartDesign-Body mit
-Featurebaum plus ein Spreadsheet "Parameter"; alle Skizzen über Ausdrücke an
-die Tabelle gebunden. Maße ändert man im GUI in der Tabelle, nicht in den
-Skizzen. Maße in mm.
+Structure as in hall_gehaeuse.py and xt60_halter.py: one PartDesign body with a
+feature tree plus a spreadsheet "Parameter"; all sketches are bound to the table
+via expressions. Dimensions are changed in the GUI in the table, not in the
+sketches. Dimensions in mm.
 
-Aufruf (nur das FreeCAD-eigene Python kann FreeCAD importieren):
+Invocation (only FreeCAD's own Python can import FreeCAD):
 
     /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/ipad_halter.py
 
-Erzeugt hardware/ipad-halter.FCStd, .step und .stl.
+Produces hardware/ipad-halter.FCStd, .step and .stl.
 
-LAGE: Hochformat, Home-Button unten. Das iPad liegt mit dem Rücken auf der
-Platte. z = 0 ist der Rücken der Halterung — flach, das ist die Druckauflage.
-x läuft über die Breite des iPads, y über die Länge, +y ist oben.
+ORIENTATION: portrait, home button at the bottom. The iPad lies with its back on
+the plate. z = 0 is the back of the mount — flat, that is the print bed face.
+x runs across the width of the iPad, y along its length, +y is up.
 
-    ipad_w x ipad_l x ipad_t = 134,7 x 200,0 x 7,5   Apple, technische Daten
-                                                      iPad mini 3 — vor dem
-                                                      Druck am Gerät nachmessen
+    ipad_w x ipad_l x ipad_t = 134.7 x 200.0 x 7.5   Apple, technical specs
+                                                      iPad mini 3 — measure on
+                                                      the device before printing
 
-Das Kreuz: ein senkrechter und ein waagerechter Arm, je arm_w breit, Platte
-plate_t dick, alle zwölf Ecken in der Draufsicht mit corner_r gerundet. Die
-Arme reichen bis an die Kanten des iPads; an ihren Enden sitzen die vier
-Haltestellen. Die Ecken des iPads bleiben frei — dort fasst man an.
+The cross: one vertical and one horizontal arm, each arm_w wide, plate
+plate_t thick, all twelve corners rounded with corner_r in top view. The arms
+reach to the edges of the iPad; the four holding points sit at their ends. The
+corners of the iPad stay free — that is where you grip it.
 
-Die Kralle läuft über die VOLLE Armbreite, die Plattenrundung geht dort über
-die ganze Höhe mit — bei 40 mm Armen bliebe sonst neben der Lücke nichts für
-die Kralle übrig. Deshalb muss corner_r kleiner sein als claw_t, sonst
-schneidet die Rundung durch die Innenwand. Führungen und Schnapper sind
-dünner bzw. oben verjüngt und enden vor der Rundung (wall_len).
+The claw runs over the FULL arm width, and the plate rounding there continues
+over the full height — with 40 mm arms nothing would otherwise be left for the
+claw next to the gap. Therefore corner_r must be smaller than claw_t, or the
+rounding cuts through the inner wall. Guides and snap clip are thinner or
+tapered at the top and end before the rounding (wall_len).
 
-    links/rechts   FÜHRUNG       Wand guide_t dick, bündig mit der Vorderseite,
-                                 kein Überstand. Sie hält nichts, sie richtet aus.
-    unten          KRALLE        Wand claw_t plus Lippe claw_lip tief über der
-                                 Vorderseite. In der Mitte eine Lücke claw_gap:
-                                 der Home-Button bleibt frei, und das
-                                 Lightning-Kabel kommt durch die Lücke in der
-                                 Wand. Es bleiben zwei L-Stücke aussen, je
-                                 claw_len breit — die tragen das Gewicht und
-                                 sind deshalb die kräftigsten Teile.
-    oben           SCHNAPPER     Wand clip_t mit kleiner Nase clip_nose. Die
-                                 Einführschräge ist flach (clip_ramp = 2 x
-                                 clip_nose, rund 27° zur Senkrechten), die
-                                 Unterseite der Nase leicht geneigt (clip_under)
-                                 — das rastet weich ein und lässt sich ohne
-                                 Gewalt wieder lösen. Über der Schräge läuft
-                                 die Wand als LASCHE tab_h hoch, um tab_flare
-                                 nach hinten geneigt, von clip_t auf tab_tip
-                                 verjüngt, der Knick aussen mit tab_r verrundet.
-                                 Innen geht die Schräge OHNE ABSATZ in die
-                                 Lasche über; tab_flare/tab_h ist dafür etwas
-                                 steiler als die Schräge (2:1), sonst entsteht
-                                 ein einspringender Knick, und den rundet der
-                                 Kern an den Stirnseiten nicht. Daran zieht man
-                                 zum Ausklinken. Einsetzen: unten in die Kralle,
-                                 oben andrücken; die Schräge hebt das Armende
-                                 jenseits der oberen Schraube (rund 50 mm
-                                 Hebel), die Nase rastet über die Glaskante.
+    left/right     GUIDE         wall guide_t thick, flush with the front face,
+                                 no overhang. It holds nothing, it aligns.
+    bottom         CLAW          wall claw_t plus a lip claw_lip deep over the
+                                 front face. In the middle a gap claw_gap: the
+                                 home button stays free, and the Lightning
+                                 cable comes through the gap in the wall. Two
+                                 L pieces remain on the outside, each claw_len
+                                 wide — they carry the weight and are therefore
+                                 the strongest parts.
+    top            SNAP CLIP     wall clip_t with a small nose clip_nose. The
+                                 lead-in ramp is shallow (clip_ramp = 2 x
+                                 clip_nose, about 27° to the vertical), the
+                                 underside of the nose slightly inclined
+                                 (clip_under) — it snaps in softly and can be
+                                 released again without force. Above the ramp
+                                 the wall continues as a TAB tab_h high, inclined
+                                 backwards by tab_flare, tapered from clip_t to
+                                 tab_tip, the outer bend rounded with tab_r.
+                                 On the inside the ramp runs into the tab
+                                 WITHOUT A STEP; tab_flare/tab_h is slightly
+                                 steeper than the ramp (2:1) for that, otherwise
+                                 a re-entrant bend results, and the kernel does
+                                 not round it at the end faces. You pull on it to
+                                 release. Inserting: bottom into the claw, press
+                                 at the top; the ramp lifts the arm end beyond
+                                 the upper screw (about 50 mm lever), the nose
+                                 snaps over the edge of the glass.
 
-Kralle (6 mm Wand, 4 mm Lippe) und Schnapper (4,5 mm Wand) sind bewusst
-kräftiger als die Führungen: beim Druck mit dem Rücken auf dem Bett stehen die
-Wände aus Schichten, und Lippe und Nase hängen an einer Schichtfuge — da
-bricht es ab, wenn es dünn ist. Die beiden Krallenstücke sind einzeln und
-tragen das ganze Gewicht, darum die dicksten. Die Führungen seitlich halten
-nichts und bleiben bei 3 mm.
+Claw (6 mm wall, 4 mm lip) and snap clip (4.5 mm wall) are deliberately
+stronger than the guides: printed with the back on the bed, the walls are built
+from layers, and lip and nose hang on a layer line — that is where it breaks
+when it is thin. The two claw pieces are separate and carry the whole weight,
+hence the thickest. The side guides hold nothing and stay at 3 mm.
 
-Vier M6-Linsenkopfschrauben in Flachsenkungen von der iPad-Seite: zwei auf
-der senkrechten Mittelachse, m6_pitch auseinander, zwei auf der waagerechten,
-m6_pitch_h auseinander — je nachdem, wie die Wand hergibt, nimmt man das eine
-Paar oder das andere oder alle vier. Kopfhöhe m6_head_h = 4 mm ANGENOMMEN (an
-der Schraube messen), darunter bleiben m6_floor = 1,5 mm Boden — daraus folgt
-die Plattendicke plate_t = 5,5. Die Senkung m6_head_d = 13 fasst DIN 7985
-(dk 12) wie ISO 7380 (dk 10,6). Der Kopf liegt vollständig in der Platte, das
-iPad liegt auf der Platte, nicht auf den Köpfen. Weil die Platte dicker wurde,
-sind die Arme schmaler: arm_w 40.
+Four M6 button-head screws in flat counterbores from the iPad side: two on the
+vertical centre axis, m6_pitch apart, two on the horizontal one, m6_pitch_h
+apart — depending on what the wall allows, use one pair or the other or all
+four. Head height m6_head_h = 4 mm ASSUMED (measure on the screw), below it
+m6_floor = 1.5 mm floor remains — this gives the plate thickness plate_t = 5.5.
+The counterbore m6_head_d = 13 takes DIN 7985 (dk 12) as well as ISO 7380
+(dk 10.6). The head lies completely within the plate, the iPad lies on the
+plate, not on the heads. Because the plate got thicker, the arms are narrower:
+arm_w 40.
 
-RUNDUNGEN: Plattenecken corner_r in der Draufsicht. Kralle rundum —
-senkrechte Endkanten mit claw_r, alle freien Kanten darüber (Oberkante,
-Lippenvorderkante, Enden) mit edge_r. Schnapper: Knick der Lasche mit tab_r,
-alle übrigen freien Kanten mit edge_r; Nase und Schräge bleiben scharf, das
-ist die Rastkante. Die Führungen bekommen nur wall_r an den Endkanten.
-Tangentiale Nahtkanten vorhandener Rundungen werden erkannt und übergangen.
+ROUNDINGS: plate corners corner_r in top view. Claw all round — vertical end
+edges with claw_r, all free edges above (top edge, front edge of the lip, ends)
+with edge_r. Snap clip: bend of the tab with tab_r, all other free edges with
+edge_r; nose and ramp stay sharp, that is the latching edge. The guides only get
+wall_r on the end edges. Tangential seam edges of existing roundings are
+detected and skipped.
 
-DRUCK: Rücken auf das Bett. Die Lippe der Kralle (claw_lip = 4 mm) und die
-Nase (1,5 mm) sind Überhänge ohne Stütze von unten; die Nase druckt frei, die
-Lippe braucht Stützen oder man lässt sie als kurze Brücke laufen. PETG
-empfohlen — die Platte federt beim Einschnappen, PLA ermüdet dabei.
+PRINTING: back on the bed. The lip of the claw (claw_lip = 4 mm) and the nose
+(1.5 mm) are overhangs without support from below; the nose prints freely, the
+lip needs supports or is left as a short bridge. PETG recommended — the plate
+flexes when snapping in, PLA fatigues from that.
 
-Featurebaum:
-    Arm_senkrecht    Rechteck arm_w x (Länge über beide Wände), z = 0...plate_t
-    Arm_waagerecht   Rechteck (Breite über beide Wände) x arm_w
-    Fuehrung         zwei Wände an x = +-(ipad_w/2 + clr/2), Länge wall_len
-    Kralle_p/_m      L-Profil in YZ, je ein Stück neben der Lücke bis zum Rand
-    Schnapper        Profil mit Nase und Lasche in YZ, Länge wall_len, mittig
-    Rundung_Platte   alle zwölf Aussenecken in der Draufsicht, Radius corner_r,
-                     an der Kralle über die volle Höhe
-    Rundung_Fuehrung  senkrechte Endkanten der Führungen, Radius wall_r
-    Rundung_Krallen   senkrechte Endkanten der Kralle, claw_r
-    Rundung_Kanten    freie Kanten der Kralle, edge_r
-    Rundung_Lasche    Knick der Lasche innen und aussen, tab_r
-    Rundung_Schnapper freie Kanten des Schnappers, edge_r
-    M6               vier Flachsenkungen, PartDesign-Hole mit Counterbore
+Feature tree:
+    Arm_senkrecht    rectangle arm_w x (length across both walls), z = 0...plate_t
+    Arm_waagerecht   rectangle (width across both walls) x arm_w
+    Fuehrung         two walls at x = +-(ipad_w/2 + clr/2), length wall_len
+    Kralle_p/_m      L profile in YZ, one piece each beside the gap up to the edge
+    Schnapper        profile with nose and tab in YZ, length wall_len, centred
+    Rundung_Platte   all twelve outer corners in top view, radius corner_r,
+                     at the claw over the full height
+    Rundung_Fuehrung  vertical end edges of the guides, radius wall_r
+    Rundung_Krallen   vertical end edges of the claw, claw_r
+    Rundung_Kanten    free edges of the claw, edge_r
+    Rundung_Lasche    bend of the tab inside and outside, tab_r
+    Rundung_Schnapper free edges of the snap clip, edge_r
+    M6               four flat counterbores, PartDesign Hole with counterbore
 """
 
 import os
@@ -115,72 +114,72 @@ import Part
 import Sketcher
 from FreeCAD import Vector
 
-# --------------------------------------------------------------- Parameter
-# (Name, Wert oder Formel, Kommentar). Formeln beginnen mit '='.
+# -------------------------------------------------------------- Parameters
+# (name, value or formula, comment). Formulas start with '='.
 PARAMS = [
-    # Geraet, Apple technische Daten iPad mini 3 -> NACHMESSEN
-    ('ipad_w',      134.7, 'iPad breit, Apple'),
-    ('ipad_l',      200.0, 'iPad lang, Apple'),
-    ('ipad_t',        7.5, 'iPad dick, Apple'),
-    ('clr',           0.6, 'Spiel in Breite und Laenge, GESAMT -> 0,3 je Seite'),
-    ('clr_z',         0.3, 'Luft zwischen Vorderseite und Lippe/Nase'),
+    # Device, Apple technical specs iPad mini 3 -> MEASURE
+    ('ipad_w',      134.7, 'iPad width, Apple'),
+    ('ipad_l',      200.0, 'iPad length, Apple'),
+    ('ipad_t',        7.5, 'iPad thickness, Apple'),
+    ('clr',           0.6, 'clearance in width and length, TOTAL -> 0.3 per side'),
+    ('clr_z',         0.3, 'gap between front face and lip/nose'),
 
-    # Kreuz
-    ('plate_t', '=m6_head_h + m6_floor', 'Platte dick: Kopf plus Boden; Ruecken = Druckauflage'),
-    ('arm_w',        40.0, 'Arme breit, beide gleich'),
-    ('corner_r',      4.0, 'Rundung aller Plattenecken; MUSS < claw_t sein'),
-    ('wall_len', '=arm_w - 2 * corner_r', 'Fuehrungslaenge = gerader Teil der Armenden'),
-    ('wall_r',        1.0, 'Rundung der senkrechten Endkanten der Fuehrungen'),
-    ('claw_r',        2.0, 'Rundung der senkrechten Endkanten von Kralle und Schnapper'),
-    ('edge_r',        1.2, 'Rundung der freien Kanten von Kralle und Schnapper'),
+    # Cross
+    ('plate_t', '=m6_head_h + m6_floor', 'plate thickness: head plus floor; back = print bed face'),
+    ('arm_w',        40.0, 'arm width, both the same'),
+    ('corner_r',      4.0, 'rounding of all plate corners; MUST be < claw_t'),
+    ('wall_len', '=arm_w - 2 * corner_r', 'guide length = straight part of the arm ends'),
+    ('wall_r',        1.0, 'rounding of the vertical end edges of the guides'),
+    ('claw_r',        2.0, 'rounding of the vertical end edges of claw and snap clip'),
+    ('edge_r',        1.2, 'rounding of the free edges of claw and snap clip'),
 
-    # Fuehrung seitlich
-    ('guide_t',       3.0, 'Fuehrungswand dick'),
-    ('guide_h', '=plate_t + ipad_t', 'Fuehrungswand hoch, buendig mit Vorderseite'),
+    # Side guide
+    ('guide_t',       3.0, 'guide wall thickness'),
+    ('guide_h', '=plate_t + ipad_t', 'guide wall height, flush with the front face'),
 
-    # Kralle unten
-    ('claw_t',        6.0, 'Krallenwand dick; zwei einzelne Stuecke tragen alles'),
-    ('claw_lip',      4.0, 'Lippe ueber der Vorderseite, Tiefe'),
-    ('claw_lip_t',    4.0, 'Lippe dick; haengt an einer Schichtfuge'),
-    ('claw_gap',     20.0, 'Luecke mittig: Home-Button frei, Lightning durch'),
-    ('claw_len', '=(arm_w - claw_gap) / 2', 'Laenge je Krallenstueck, bis zum Armrand'),
+    # Claw at the bottom
+    ('claw_t',        6.0, 'claw wall thickness; two separate pieces carry everything'),
+    ('claw_lip',      4.0, 'lip over the front face, depth'),
+    ('claw_lip_t',    4.0, 'lip thickness; hangs on a layer line'),
+    ('claw_gap',     20.0, 'gap in the middle: home button free, Lightning through'),
+    ('claw_len', '=(arm_w - claw_gap) / 2', 'length per claw piece, up to the arm edge'),
 
-    # Schnapper oben
-    ('clip_t',        4.5, 'Schnapperwand dick; steht aus Schichten, deshalb kraeftig'),
-    ('clip_nose',     1.2, 'Nase ueber der Vorderseite, Tiefe'),
-    ('clip_ramp', '=2 * clip_nose', 'Einfuehrschraege hoch; 2:1 -> rund 27 Grad zur Senkrechten'),
-    ('clip_under',    0.6, 'Neigung der Nasenunterseite, Hoehe; 0 = waagerecht, hart'),
-    ('clip_tip',      1.0, 'Nase an der Spitze senkrecht, zwischen Schraege und Unterseite'),
-    ('tab_h',        10.0, 'Lasche hoch, ab Oberkante der Schraege'),
-    ('tab_flare',     6.0, 'Lasche nach hinten geneigt, Versatz oben; > tab_h/2, s. Kopf'),
-    ('tab_tip',       3.0, 'Lasche oben dick; unten clip_t'),
-    ('tab_r',         6.0, 'Rundung des Knicks der Lasche'),
+    # Snap clip at the top
+    ('clip_t',        4.5, 'snap clip wall thickness; built from layers, hence strong'),
+    ('clip_nose',     1.2, 'nose over the front face, depth'),
+    ('clip_ramp', '=2 * clip_nose', 'lead-in ramp height; 2:1 -> about 27 degrees to the vertical'),
+    ('clip_under',    0.6, 'incline of the nose underside, height; 0 = horizontal, hard'),
+    ('clip_tip',      1.0, 'nose vertical at the tip, between ramp and underside'),
+    ('tab_h',        10.0, 'tab height, from the top edge of the ramp'),
+    ('tab_flare',     6.0, 'tab inclined backwards, offset at the top; > tab_h/2, see header'),
+    ('tab_tip',       3.0, 'tab thickness at the top; at the bottom clip_t'),
+    ('tab_r',         6.0, 'rounding of the tab bend'),
 
-    # Schrauben M6 Linsenkopf, Flachsenkung von der iPad-Seite
-    ('m6_d',          6.6, 'M6 Durchgang'),
-    ('m6_head_d',    13.0, 'Flachsenkung; DIN 7985 dk 12, ISO 7380 dk 10,6 + Luft'),
-    ('m6_head_h',     4.0, 'Kopfhoehe ANGENOMMEN -> an der Schraube messen'),
-    ('m6_floor',      1.5, 'Boden unter dem Kopf'),
-    ('m6_pitch',    100.0, 'Lochabstand senkrecht, auf der Mittelachse'),
-    ('m6_pitch_h',   80.0, 'Lochabstand waagerecht, auf der Mittelachse'),
+    # Screws M6 button head, flat counterbore from the iPad side
+    ('m6_d',          6.6, 'M6 clearance hole'),
+    ('m6_head_d',    13.0, 'flat counterbore; DIN 7985 dk 12, ISO 7380 dk 10.6 + clearance'),
+    ('m6_head_h',     4.0, 'head height ASSUMED -> measure on the screw'),
+    ('m6_floor',      1.5, 'floor under the head'),
+    ('m6_pitch',    100.0, 'hole spacing vertical, on the centre axis'),
+    ('m6_pitch_h',   80.0, 'hole spacing horizontal, on the centre axis'),
 
-    # abgeleitet
-    ('x_side',  '=ipad_w / 2 + clr / 2',   'Innenflaeche der Fuehrung, Betrag'),
-    ('y_top',   '=ipad_l / 2 + clr / 2',   'Innenflaeche des Schnappers'),
-    ('y_bot',   '=-(ipad_l / 2 + clr / 2)', 'Innenflaeche der Kralle'),
-    ('z_front', '=plate_t + ipad_t + clr_z', 'Unterseite von Lippe und Nase'),
-    ('claw_top', '=z_front + claw_lip_t',  'Kralle hoch'),
-    ('z_ramp',  '=z_front + clip_under + clip_tip + clip_ramp', 'Oberkante der Schraege = Knick der Lasche'),
-    ('clip_top', '=z_ramp + tab_h',       'Schnapper hoch'),
-    ('claw_x',  '=claw_gap / 2 + claw_len / 2', 'Mitte eines Krallenstuecks, Betrag'),
+    # derived
+    ('x_side',  '=ipad_w / 2 + clr / 2',   'inner face of the guide, absolute value'),
+    ('y_top',   '=ipad_l / 2 + clr / 2',   'inner face of the snap clip'),
+    ('y_bot',   '=-(ipad_l / 2 + clr / 2)', 'inner face of the claw'),
+    ('z_front', '=plate_t + ipad_t + clr_z', 'underside of lip and nose'),
+    ('claw_top', '=z_front + claw_lip_t',  'claw height'),
+    ('z_ramp',  '=z_front + clip_under + clip_tip + clip_ramp', 'top edge of the ramp = bend of the tab'),
+    ('clip_top', '=z_ramp + tab_h',       'snap clip height'),
+    ('claw_x',  '=claw_gap / 2 + claw_len / 2', 'centre of a claw piece, absolute value'),
 ]
 
 
 def build_sheet(doc):
     sh = doc.addObject('Spreadsheet::Sheet', 'Parameter')
     sh.set('A1', 'Parameter')
-    sh.set('B1', 'Wert')
-    sh.set('C1', 'Bedeutung')
+    sh.set('B1', 'Value')
+    sh.set('C1', 'Meaning')
     for i, (name, val, note) in enumerate(PARAMS):
         r = i + 2
         sh.set('A%d' % r, name)
@@ -194,11 +193,11 @@ def build_sheet(doc):
 
 
 def P(sh, name):
-    """Zahlenwert eines Parameters."""
+    """Numeric value of a parameter."""
     return float(sh.get(name))
 
 
-# ------------------------------------------------------------ Skizzenhilfen
+# ----------------------------------------------------------- Sketch helpers
 
 def named(sk, con, name):
     i = sk.addConstraint(con)
@@ -207,7 +206,7 @@ def named(sk, con, name):
 
 
 def rect(sk, x0, y0, w, h, tag, expr_x0, expr_y0, expr_w, expr_h):
-    """Achsparalleles Rechteck, voll bestimmt und an Ausdrücke gebunden."""
+    """Axis-parallel rectangle, fully constrained and bound to expressions."""
     v = Vector
     g = [sk.addGeometry(Part.LineSegment(v(x0, y0, 0), v(x0 + w, y0, 0)), False),
          sk.addGeometry(Part.LineSegment(v(x0 + w, y0, 0), v(x0 + w, y0 + h, 0)), False),
@@ -242,9 +241,9 @@ def circle(sk, cx, cy, r, tag, expr_x, expr_y, expr_r):
 
 
 def polygon(sk, pts, tag):
-    """Geschlossener Linienzug. pts = [(x, y, expr_x, expr_y), ...]; jede Ecke
-    wird über zwei Abstände zum Ursprung festgelegt und an Ausdrücke gebunden —
-    damit ist der Zug ohne weitere Bedingungen voll bestimmt."""
+    """Closed polyline. pts = [(x, y, expr_x, expr_y), ...]; every corner is
+    fixed by two distances to the origin and bound to expressions — so the
+    polyline is fully constrained without further constraints."""
     v = Vector
     n = len(pts)
     g = []
@@ -261,7 +260,7 @@ def polygon(sk, pts, tag):
     return g
 
 
-# ------------------------------------------------------------------- Modell
+# -------------------------------------------------------------------- Model
 
 def sketch_on(body, plane, name, off=0.0, expr_off=None):
     sk = body.newObject('Sketcher::SketchObject', name)
@@ -278,7 +277,7 @@ def sketch_on(body, plane, name, off=0.0, expr_off=None):
 
 
 def vertical_edges(shape, zmin, zmax):
-    """Namen der Kanten parallel zu z, die genau von zmin bis zmax laufen."""
+    """Names of the edges parallel to z that run exactly from zmin to zmax."""
     namen = []
     for i, e in enumerate(shape.Edges):
         if len(e.Vertexes) != 2:
@@ -293,8 +292,8 @@ def vertical_edges(shape, zmin, zmax):
 
 
 def wall_end_edges(shape, plate_t, region):
-    """Senkrechte Kanten, die auf der Platte beginnen und ueber sie hinaus-
-    reichen — die Endkanten der Waende. region(bb) waehlt den Bereich."""
+    """Vertical edges that start on the plate and reach beyond it — the end
+    edges of the walls. region(bb) selects the area."""
     namen = []
     for i, e in enumerate(shape.Edges):
         if len(e.Vertexes) != 2:
@@ -311,9 +310,8 @@ def wall_end_edges(shape, plate_t, region):
 
 
 def tangent_seam(shape, edge):
-    """Wahr, wenn die beiden Flaechen an der Kante tangential ineinander
-    uebergehen — die Naht einer vorhandenen Rundung. Die laesst sich nicht
-    noch einmal runden."""
+    """True if the two faces at the edge merge tangentially — the seam of an
+    existing rounding. That cannot be rounded a second time."""
     faces = shape.ancestorsOfType(edge, Part.Face)
     if len(faces) != 2:
         return False
@@ -327,20 +325,20 @@ def tangent_seam(shape, edge):
 
 
 def free_edges(shape, plate_t, region, exclude):
-    """Alle Kanten oberhalb der Platte in einem Bereich, ohne senkrechte
-    (die sind schon gerundet) und ohne die in exclude(bb) genannten — das
-    sind die einspringenden, an denen das iPad anliegt."""
+    """All edges above the plate in an area, without the vertical ones
+    (already rounded) and without those named by exclude(bb) — those are the
+    re-entrant ones the iPad rests against."""
     namen = []
     for i, e in enumerate(shape.Edges):
         bb = e.BoundBox
         if bb.ZMin < plate_t + 1e-3:
-            continue                               # Fuss der Wand, einspringend
+            continue                               # foot of the wall, re-entrant
         if bb.XLength < 1e-6 and bb.YLength < 1e-6:
-            continue                               # senkrecht
+            continue                               # vertical
         if not region(bb) or exclude(bb):
             continue
         if tangent_seam(shape, e):
-            continue                               # Naht einer Rundung
+            continue                               # seam of a rounding
         namen.append('Edge%d' % (i + 1))
     return namen
 
@@ -352,7 +350,7 @@ def fillet(doc, body, name, edges, expr_r):
     f.setExpression('Radius', expr_r)
     doc.recompute()
     if 'Invalid' in (f.State or []) or not body.Shape.isValid():
-        print('%s fehlgeschlagen (%d Kanten), bleibt weg' % (name, len(edges)))
+        print('%s failed (%d edges), left out' % (name, len(edges)))
         body.removeObject(f)
         doc.removeObject(f.Name)
         doc.recompute()
@@ -379,8 +377,8 @@ def build(doc, sh):
     gt, ct, kt = P(sh, 'guide_t'), P(sh, 'clip_t'), P(sh, 'claw_t')
     zf = P(sh, 'z_front')
 
-    # 1 Senkrechter Arm: von der Aussenseite der Kralle bis zur Aussenseite des
-    #   Schnappers.
+    # 1 Vertical arm: from the outside of the claw to the outside of the
+    #   snap clip.
     sk = sketch_on(body, xy, 'Sk_Arm_senkrecht')
     rect(sk, -arm / 2, yb - kt, arm, (yt + ct) - (yb - kt), 'av',
          '-Parameter.arm_w / 2', 'Parameter.y_bot - Parameter.claw_t',
@@ -388,14 +386,14 @@ def build(doc, sh):
          'Parameter.y_top + Parameter.clip_t - (Parameter.y_bot - Parameter.claw_t)')
     pad(sk, 'Arm_senkrecht', 'Parameter.plate_t')
 
-    # 2 Waagerechter Arm: ueber beide Fuehrungswaende.
+    # 2 Horizontal arm: across both guide walls.
     sk = sketch_on(body, xy, 'Sk_Arm_waagerecht')
     rect(sk, -(xs + gt), -arm / 2, 2 * (xs + gt), arm, 'ah',
          '-(Parameter.x_side + Parameter.guide_t)', '-Parameter.arm_w / 2',
          '2 * (Parameter.x_side + Parameter.guide_t)', 'Parameter.arm_w')
     pad(sk, 'Arm_waagerecht', 'Parameter.plate_t')
 
-    # 3 Fuehrung links und rechts: zwei Waende, beide in einer Skizze.
+    # 3 Guide left and right: two walls, both in one sketch.
     sk = sketch_on(body, xy, 'Sk_Fuehrung')
     wl = P(sh, 'wall_len')
     rect(sk, xs, -wl / 2, gt, wl, 'fp',
@@ -405,9 +403,9 @@ def build(doc, sh):
          'Parameter.guide_t', 'Parameter.wall_len')
     pad(sk, 'Fuehrung', 'Parameter.guide_h')
 
-    # 5 Kralle: L-Profil in YZ (lokal x = global y, lokal y = global z), je ein
-    #   Stueck links und rechts der Luecke. Die YZ-Normale zeigt nach +x, der
-    #   Skizzenversatz schiebt das Profil auf x = +-claw_x; geprueft in check().
+    # 5 Claw: L profile in YZ (local x = global y, local y = global z), one
+    #   piece each left and right of the gap. The YZ normal points to +x, the
+    #   sketch offset moves the profile to x = +-claw_x; checked in check().
     kl, kt_lip = P(sh, 'claw_lip'), P(sh, 'claw_lip_t')
     ktop = P(sh, 'claw_top')
     for tag, sign in (('p', +1), ('m', -1)):
@@ -423,12 +421,11 @@ def build(doc, sh):
         ], 'kr' + tag)
         pad(sk, 'Kralle_' + tag, 'Parameter.claw_len', midplane=True)
 
-    # 6 Schnapper: Wand mit Nase und Lasche, mittig ueber wall_len. Profil in
-    #   YZ (lokal x = global y, lokal y = global z), im Uhrzeigersinn ab dem
-    #   Fuss innen: Fuss, Aussenwand bis zum Knick, Lasche nach hinten geneigt
-    #   und verjuengt, Oberkante, Innenseite der Lasche hinunter bis zur
-    #   Oberkante der Schraege, Einfuehrschraege, Nasenspitze, geneigte
-    #   Unterseite.
+    # 6 Snap clip: wall with nose and tab, centred over wall_len. Profile in
+    #   YZ (local x = global y, local y = global z), clockwise from the inner
+    #   foot: foot, outer wall up to the bend, tab inclined backwards and
+    #   tapered, top edge, inside of the tab down to the top edge of the ramp,
+    #   lead-in ramp, nose tip, inclined underside.
     nose, ctop = P(sh, 'clip_nose'), P(sh, 'clip_top')
     zr = P(sh, 'z_ramp')
     fl, tip, under = P(sh, 'tab_flare'), P(sh, 'tab_tip'), P(sh, 'clip_under')
@@ -450,10 +447,10 @@ def build(doc, sh):
     ], 'sn')
     pad(sk, 'Schnapper', 'Parameter.wall_len', midplane=True)
 
-    # 6a Rundung aller Plattenecken: jede senkrechte Kante, die am Ruecken
-    #    beginnt — an den Enden des waagerechten Arms und an den vier
-    #    einspringenden Ecken nur bis plate_t, an der Kralle bis zu deren
-    #    Oberkante, weil die Wand dort buendig mit dem Plattenrand ist.
+    # 6a Rounding of all plate corners: every vertical edge that starts at the
+    #    back — at the ends of the horizontal arm and at the four re-entrant
+    #    corners only up to plate_t, at the claw up to its top edge, because
+    #    the wall is flush with the plate edge there.
     edges = []
     for i, e in enumerate(body.Shape.Edges):
         bb = e.BoundBox
@@ -463,37 +460,36 @@ def build(doc, sh):
     if len(edges) == 12:
         fillet(doc, body, 'Rundung_Platte', edges, 'Parameter.corner_r')
     else:
-        print('Plattenkanten nicht eindeutig (%d), Rundung bleibt weg' % len(edges))
+        print('plate edges ambiguous (%d), rounding left out' % len(edges))
 
-    # 7 Rundungen. Erst die senkrechten Endkanten der Waende (Draufsicht),
-    #   dann alle freien Kanten von Kralle und Schnapper. Einspringende Kanten
-    #   bleiben scharf: der Fuss der Waende und die Unterseite der Nase, da
-    #   liegt das iPad an.
+    # 7 Roundings. First the vertical end edges of the walls (top view), then
+    #   all free edges of claw and snap clip. Re-entrant edges stay sharp: the
+    #   foot of the walls and the underside of the nose, the iPad rests there.
     guides = lambda bb: abs(bb.XMin) > xs - 1e-3 and abs(bb.YMax) < arm / 2 + 1e-3
     claws = lambda bb: bb.YMax < yb + P(sh, 'claw_lip') + 1e-3
     clip = lambda bb: bb.YMin > yt - nose - 1e-3
 
     edges = wall_end_edges(body.Shape, pt, guides)
-    print('Fuehrung   %d Endkanten' % len(edges))
+    print('Guide      %d end edges' % len(edges))
     if edges:
         fillet(doc, body, 'Rundung_Fuehrung', edges, 'Parameter.wall_r')
 
-    # Senkrechte Endkanten der Kralle, gestuft: die Kanten der Innenwand enden
-    #   oben in der einspringenden Kante unter der Lippe, was OCC nicht immer
-    #   rundet. Erst alle, sonst nur die, die bis zur Oberkante durchlaufen
-    #   (Lippenvorderkanten; die Aussenecken hat schon die Plattenrundung).
+    # Vertical end edges of the claw, in stages: the edges of the inner wall end
+    #   at the top in the re-entrant edge under the lip, which OCC does not
+    #   always round. First all, otherwise only those running through to the top
+    #   edge (lip front edges; the outer corners already have the plate rounding).
     def bis_oben(n):
         return abs(body.Shape.getElement(n).BoundBox.ZMax - ktop) < 1e-3
 
     alle = wall_end_edges(body.Shape, pt, claws)
-    for stufe, edges in (('alle', alle),
-                         ('nur durchlaufende', [n for n in alle if bis_oben(n)])):
-        print('Kralle     %d Endkanten (%s)' % (len(edges), stufe))
+    for stufe, edges in (('all', alle),
+                         ('only continuous', [n for n in alle if bis_oben(n)])):
+        print('Claw       %d end edges (%s)' % (len(edges), stufe))
         if edges and fillet(doc, body, 'Rundung_Krallen', edges, 'Parameter.claw_r'):
             break
 
-    # Freie Kanten der Kralle; die einspringende Kante unter der Lippe
-    #   (y = y_bot, z = z_front) bleibt scharf, da liegt das iPad an.
+    # Free edges of the claw; the re-entrant edge under the lip
+    #   (y = y_bot, z = z_front) stays sharp, the iPad rests there.
     def unter_der_lippe(bb):
         return bb.YLength < 1e-6 and abs(bb.YMin - yb) < 1e-3 and abs(bb.ZMin - zf) < 1e-3
     alle = free_edges(body.Shape, pt, claws, unter_der_lippe)
@@ -504,31 +500,31 @@ def build(doc, sh):
     def oberkante(n):
         return body.Shape.getElement(n).BoundBox.ZMin > ktop - 1e-3
 
-    for stufe, edges in (('alle', alle),
-                         ('ohne Innenwand', [n for n in alle if vor_der_innenwand(n)]),
-                         ('nur Oberkanten', [n for n in alle if oberkante(n)])):
-        print('Kralle     %d freie Kanten (%s)' % (len(edges), stufe))
+    for stufe, edges in (('all', alle),
+                         ('without inner wall', [n for n in alle if vor_der_innenwand(n)]),
+                         ('only top edges', [n for n in alle if oberkante(n)])):
+        print('Claw       %d free edges (%s)' % (len(edges), stufe))
         if edges and fillet(doc, body, 'Rundung_Kanten', edges, 'Parameter.edge_r'):
             break
 
-    # Schnapper. Erst der Knick der Lasche: die waagerechten Kanten laengs x
-    #   auf z = z_ramp, aussen (Wand -> Lasche) und innen (Schraege -> Lasche,
-    #   fast gestreckt). Fehlt die innere, weil beide Flaechen zusammenfallen,
-    #   wird nur aussen gerundet.
+    # Snap clip. First the bend of the tab: the horizontal edges along x at
+    #   z = z_ramp, outside (wall -> tab) and inside (ramp -> tab, almost
+    #   straight). If the inner one is missing because both faces coincide,
+    #   only the outside is rounded.
     edges = []
     for i, e in enumerate(body.Shape.Edges):
         bb = e.BoundBox
         if clip(bb) and bb.YLength < 1e-6 and bb.ZLength < 1e-6 \
                 and abs(bb.ZMin - zr) < 1e-3 and bb.XLength > 1.0:
             edges.append('Edge%d' % (i + 1))
-    print('Lasche     %d Knickkanten' % len(edges))
+    print('Tab        %d bend edges' % len(edges))
     if edges:
         fillet(doc, body, 'Rundung_Lasche', edges, 'Parameter.tab_r')
 
-    # Dann alle freien Kanten des Schnappers oberhalb der Schraege, auch die
-    #   senkrechten Aussenecken der Wand (sie laufen tangential in die
-    #   Knickrundung und die Lasche weiter). Nase und Schraege bleiben scharf
-    #   — und mit ihnen rundet der Kern auch nichts, was an sie anschliesst.
+    # Then all free edges of the snap clip above the ramp, including the
+    #   vertical outer corners of the wall (they continue tangentially into the
+    #   bend rounding and the tab). Nose and ramp stay sharp — and with them the
+    #   kernel also rounds nothing that adjoins them.
     def nase(bb):
         return bb.ZMax < zr + 1e-3
     frei = free_edges(body.Shape, pt, clip, nase)
@@ -536,15 +532,15 @@ def build(doc, sh):
                  if body.Shape.getElement(n).BoundBox.YMin > yt + 1e-3]
     def oberkante_s(n):
         return body.Shape.getElement(n).BoundBox.ZMin > ctop - 1e-3
-    for stufe, edges in (('alle', frei + senkrecht),
-                         ('nur Oberkanten', [n for n in frei if oberkante_s(n)])):
-        print('Schnapper  %d freie Kanten (%s)' % (len(edges), stufe))
+    for stufe, edges in (('all', frei + senkrecht),
+                         ('only top edges', [n for n in frei if oberkante_s(n)])):
+        print('Snap clip  %d free edges (%s)' % (len(edges), stufe))
         if edges and fillet(doc, body, 'Rundung_Schnapper', edges, 'Parameter.edge_r'):
             break
 
-    # 8 M6-Flachsenkungen von der iPad-Seite. Skizze auf z = plate_t, die
-    #   Bohrung geht gegen die Normale nach unten durch; die Senkung beginnt an
-    #   der Skizzenebene und ist m6_head_h tief.
+    # 8 M6 flat counterbores from the iPad side. Sketch at z = plate_t, the
+    #   hole goes through downwards against the normal; the counterbore starts
+    #   at the sketch plane and is m6_head_h deep.
     sk = sketch_on(body, xy, 'Sk_M6', expr_off='Parameter.plate_t')
     for tag, sign in (('p', +1), ('m', -1)):
         circle(sk, 0.0, sign * P(sh, 'm6_pitch') / 2, P(sh, 'm6_d') / 2, 'm6v' + tag,
@@ -564,10 +560,10 @@ def build(doc, sh):
     return body
 
 
-# FreeCAD speichert die Sichtbarkeit fuer das GUI NICHT in Document.xml, sondern in
-# einer GuiDocument.xml mit je einem ViewProvider pro Objekt. Headless entsteht die
-# nicht — deshalb oeffnet sich eine so erzeugte Datei mit Default-Sichtbarkeiten:
-# Skizzen an, Koerper aus. Die schreiben wir nach dem Speichern selbst ins Archiv.
+# FreeCAD does NOT store the GUI visibility in Document.xml but in a
+# GuiDocument.xml with one ViewProvider per object. Headless, that file is not
+# created -- so a file produced this way opens with default visibilities:
+# sketches on, bodies off. We write it into the archive ourselves after saving.
 
 _GUI_HEAD = """<?xml version='1.0' encoding='utf-8'?>
 <!--
@@ -590,7 +586,7 @@ _GUI_TAIL = """    </ViewProviderData>
 
 
 def write_gui_visibility(fcstd, visible):
-    """GuiDocument.xml ins FCStd-Archiv schreiben."""
+    """Write GuiDocument.xml into the FCStd archive."""
     import re
     import shutil
     import zipfile
@@ -627,8 +623,8 @@ def set_visibility(doc, body):
 
 
 def check(body, sh):
-    """Geometrische Plausibilitaet — ein Vorzeichenfehler bei den Skizzenebenen
-    soll hier auffallen, nicht erst im Slicer."""
+    """Geometric plausibility — a sign error in the sketch planes should show
+    up here, not only in the slicer."""
     s = body.Shape
     bb = s.BoundBox
     ok = True
@@ -636,13 +632,13 @@ def check(body, sh):
     def material(p, was):
         nonlocal ok
         if not s.isInside(p, 1e-6, True):
-            print('FEHLER kein Material: %s bei (%.1f, %.1f, %.1f)' % (was, p.x, p.y, p.z))
+            print('ERROR no material: %s at (%.1f, %.1f, %.1f)' % (was, p.x, p.y, p.z))
             ok = False
 
     def luft(p, was):
         nonlocal ok
         if s.isInside(p, 1e-6, True):
-            print('FEHLER Material statt Luft: %s bei (%.1f, %.1f, %.1f)' % (was, p.x, p.y, p.z))
+            print('ERROR material instead of air: %s at (%.1f, %.1f, %.1f)' % (was, p.x, p.y, p.z))
             ok = False
 
     pt, zf = P(sh, 'plate_t'), P(sh, 'z_front')
@@ -651,75 +647,75 @@ def check(body, sh):
     cx, nose = P(sh, 'claw_x'), P(sh, 'clip_nose')
     zmid = pt + P(sh, 'ipad_t') / 2
 
-    # Ruecken flach
+    # Back flat
     if abs(bb.ZMin) > 1e-6:
-        print('FEHLER Ruecken nicht auf z = 0: %.3f' % bb.ZMin); ok = False
-    # Platte
-    material(Vector(0, 0, pt / 2), 'Plattenmitte')
-    material(Vector(0, yt, pt / 2), 'Platte unter dem Schnapper')
-    material(Vector(0, yb, pt / 2), 'Platte unter der Kralle')
-    material(Vector(xs, 0, pt / 2), 'Platte unter der Fuehrung')
-    # Ecke gerundet: an der Armecke aussen darf nichts sein
-    material(Vector(0, yt + ct - 0.2, pt / 2), 'Armende mittig')
-    luft(Vector(P(sh, 'arm_w') / 2 - 0.3, yt + ct - 0.3, pt / 2), 'Armecke (Rundung)')
-    # iPad-Raum frei
+        print('ERROR back not at z = 0: %.3f' % bb.ZMin); ok = False
+    # Plate
+    material(Vector(0, 0, pt / 2), 'plate centre')
+    material(Vector(0, yt, pt / 2), 'plate under the snap clip')
+    material(Vector(0, yb, pt / 2), 'plate under the claw')
+    material(Vector(xs, 0, pt / 2), 'plate under the guide')
+    # Corner rounded: nothing may be at the outer arm corner
+    material(Vector(0, yt + ct - 0.2, pt / 2), 'arm end centre')
+    luft(Vector(P(sh, 'arm_w') / 2 - 0.3, yt + ct - 0.3, pt / 2), 'arm corner (rounding)')
+    # iPad space free
     for p in (Vector(0, 0, zmid), Vector(xs - 0.1, 0, zmid), Vector(-xs + 0.1, 0, zmid),
               Vector(0, yt - 0.1, zmid), Vector(0, yb + 0.1, zmid),
               Vector(0, yt - 0.1, zf - 0.1), Vector(0, yb + 0.1, zf - 0.1),
               Vector(cx, yb + 1.0, zf - 0.1)):
-        luft(p, 'iPad-Raum')
-    # Fuehrung
+        luft(p, 'iPad space')
+    # Guide
     for sign in (+1, -1):
-        material(Vector(sign * (xs + gt / 2), 0, zmid), 'Fuehrung')
-        luft(Vector(sign * (xs + gt / 2), 0, P(sh, 'guide_h') + 0.3), 'ueber der Fuehrung')
-        luft(Vector(sign * (xs - 1.0), 0, zf + 1.0), 'vor der Fuehrung (kein Ueberstand)')
-    # Kralle: zwei Stuecke, Luecke mittig
+        material(Vector(sign * (xs + gt / 2), 0, zmid), 'guide')
+        luft(Vector(sign * (xs + gt / 2), 0, P(sh, 'guide_h') + 0.3), 'above the guide')
+        luft(Vector(sign * (xs - 1.0), 0, zf + 1.0), 'in front of the guide (no overhang)')
+    # Claw: two pieces, gap in the middle
     for sign in (+1, -1):
-        material(Vector(sign * cx, yb - kt / 2, zmid), 'Krallenwand')
-        material(Vector(sign * cx, yb + P(sh, 'claw_lip') / 2, zf + P(sh, 'claw_lip_t') / 2), 'Krallenlippe')
-    luft(Vector(0, yb - kt / 2, zmid), 'Luecke in der Krallenwand')
-    luft(Vector(0, yb + 1.0, zf + 1.0), 'Luecke in der Lippe')
-    luft(Vector(P(sh, 'claw_gap') / 2 - 0.3, yb - kt / 2, zmid), 'Lueckenrand')
-    # Schnapper: Wand, Nase, Schraege
-    material(Vector(0, yt + ct / 2, zmid), 'Schnapperwand')
+        material(Vector(sign * cx, yb - kt / 2, zmid), 'claw wall')
+        material(Vector(sign * cx, yb + P(sh, 'claw_lip') / 2, zf + P(sh, 'claw_lip_t') / 2), 'claw lip')
+    luft(Vector(0, yb - kt / 2, zmid), 'gap in the claw wall')
+    luft(Vector(0, yb + 1.0, zf + 1.0), 'gap in the lip')
+    luft(Vector(P(sh, 'claw_gap') / 2 - 0.3, yb - kt / 2, zmid), 'gap edge')
+    # Snap clip: wall, nose, ramp
+    material(Vector(0, yt + ct / 2, zmid), 'snap clip wall')
     zr, ctop = P(sh, 'z_ramp'), P(sh, 'clip_top')
-    material(Vector(0, yt - nose / 2, zf + P(sh, 'clip_under') + P(sh, 'clip_tip') / 2), 'Nase')
-    luft(Vector(0, yt - nose + 0.1, zr - 0.1), 'Schraege der Nase')
-    luft(Vector(0, yt - nose - 0.2, zf + 0.2), 'vor der Nase')
-    luft(Vector(0, yt - nose + 0.1, zf + 0.05), 'geneigte Unterseite der Nase')
-    material(Vector(0, yt + ct / 2, zr - 0.5), 'Wand unter dem Knick')
+    material(Vector(0, yt - nose / 2, zf + P(sh, 'clip_under') + P(sh, 'clip_tip') / 2), 'nose')
+    luft(Vector(0, yt - nose + 0.1, zr - 0.1), 'ramp of the nose')
+    luft(Vector(0, yt - nose - 0.2, zf + 0.2), 'in front of the nose')
+    luft(Vector(0, yt - nose + 0.1, zf + 0.05), 'inclined underside of the nose')
+    material(Vector(0, yt + ct / 2, zr - 0.5), 'wall under the bend')
     if P(sh, 'tab_flare') / P(sh, 'tab_h') <= nose / P(sh, 'clip_ramp') + 1e-6:
-        print('FEHLER Lasche flacher als die Schraege -> einspringender Knick innen'); ok = False
-    material(Vector(0, yt + P(sh, 'tab_flare') + P(sh, 'tab_tip') / 2, ctop - 0.5), 'Lasche oben')
-    luft(Vector(0, yt + 0.5, ctop - 0.5), 'vor der Lasche (nach hinten geneigt)')
-    luft(Vector(0, yt + ct + P(sh, 'tab_flare') + P(sh, 'tab_tip'), ctop - 0.5), 'hinter der Lasche')
-    print('Schnapper  Nase %.1f tief, Schraege %.1f hoch, Unterseite %.1f geneigt; Lasche %.1f hoch, '
-          '%.1f nach hinten, %.1f -> %.1f dick'
+        print('ERROR tab shallower than the ramp -> re-entrant bend inside'); ok = False
+    material(Vector(0, yt + P(sh, 'tab_flare') + P(sh, 'tab_tip') / 2, ctop - 0.5), 'tab top')
+    luft(Vector(0, yt + 0.5, ctop - 0.5), 'in front of the tab (inclined backwards)')
+    luft(Vector(0, yt + ct + P(sh, 'tab_flare') + P(sh, 'tab_tip'), ctop - 0.5), 'behind the tab')
+    print('Snap clip  nose %.1f deep, ramp %.1f high, underside %.1f inclined; tab %.1f high, '
+          '%.1f backwards, %.1f -> %.1f thick'
           % (nose, P(sh, 'clip_ramp'), P(sh, 'clip_under'), P(sh, 'tab_h'),
              P(sh, 'tab_flare'), ct, P(sh, 'tab_tip')))
-    # M6: Durchgang, Flachsenkung m6_head_h tief, Boden darunter
+    # M6: clearance hole, flat counterbore m6_head_h deep, floor below
     r_cb = P(sh, 'm6_head_d') / 2 - 0.3
     hh, fl = P(sh, 'm6_head_h'), P(sh, 'm6_floor')
     for sign in (+1, -1):
         for x, y in ((0.0, sign * P(sh, 'm6_pitch') / 2),
                      (sign * P(sh, 'm6_pitch_h') / 2, 0.0)):
-            luft(Vector(x, y, pt / 2), 'M6-Durchgang')
-            luft(Vector(x + r_cb, y, pt - 0.1), 'Senkung oben')
-            luft(Vector(x + r_cb, y, pt - hh + 0.1), 'Senkung am Grund')
-            material(Vector(x + r_cb, y, pt - hh - 0.1), 'Boden unter dem Kopf')
-            material(Vector(x + r_cb, y, 0.1), 'Boden am Ruecken')
-    # Rundungen: an der Aussenecke der Kralle oben darf nichts mehr sein
+            luft(Vector(x, y, pt / 2), 'M6 clearance hole')
+            luft(Vector(x + r_cb, y, pt - 0.1), 'counterbore top')
+            luft(Vector(x + r_cb, y, pt - hh + 0.1), 'counterbore bottom')
+            material(Vector(x + r_cb, y, pt - hh - 0.1), 'floor under the head')
+            material(Vector(x + r_cb, y, 0.1), 'floor at the back')
+    # Roundings: nothing may remain at the upper outer corner of the claw
     luft(Vector(cx + P(sh, 'claw_len') / 2 - 0.2, yb - kt + 0.2, P(sh, 'claw_top') - 0.2),
-         'Krallenecke (Rundung)')
-    print('Senkung  4 x Flachsenkung %.1f x %.1f tief, Boden %.1f, Platte %.1f; '
-          'senkrecht %.0f, waagerecht %.0f'
+         'claw corner (rounding)')
+    print('Counterbore 4 x flat counterbore %.1f x %.1f deep, floor %.1f, plate %.1f; '
+          'vertical %.0f, horizontal %.0f'
           % (P(sh, 'm6_head_d'), hh, fl, pt, P(sh, 'm6_pitch'), P(sh, 'm6_pitch_h')))
-    print('Kralle   %d Stuecke a %.1f mm, Wand %.1f, Lippe %.1f tief x %.1f dick, Luecke %.1f'
+    print('Claw     %d pieces of %.1f mm, wall %.1f, lip %.1f deep x %.1f thick, gap %.1f'
           % (2, P(sh, 'claw_len'), kt, P(sh, 'claw_lip'), P(sh, 'claw_lip_t'), P(sh, 'claw_gap')))
     if P(sh, 'corner_r') >= kt:
-        print('FEHLER corner_r %.1f >= Wanddicke, Rundung schneidet die Innenwand' % P(sh, 'corner_r'))
+        print('ERROR corner_r %.1f >= wall thickness, rounding cuts the inner wall' % P(sh, 'corner_r'))
         ok = False
-    print('Hebel    obere Schraube bis Nase %.1f mm'
+    print('Lever    upper screw to nose %.1f mm'
           % (yt - P(sh, 'm6_pitch') / 2))
     return ok
 
@@ -742,21 +738,21 @@ def main():
     body.Shape.exportStl(os.path.join(here, 'ipad-halter.stl'))
 
     bb = body.Shape.BoundBox
-    print('Aussenmass  %.1f x %.1f x %.1f mm'
+    print('Outer size  %.1f x %.1f x %.1f mm'
           % (bb.XLength, bb.YLength, bb.ZLength))
-    print('Volumen     %.1f cm3' % (body.Shape.Volume / 1000.0))
-    print('Gueltig     %s' % body.Shape.isValid())
-    print('Plausibel   %s' % check(body, sh))
+    print('Volume      %.1f cm3' % (body.Shape.Volume / 1000.0))
+    print('Valid       %s' % body.Shape.isValid())
+    print('Plausible   %s' % check(body, sh))
     bad = [o.Name for o in doc.Objects if getattr(o, 'State', None)
            and 'Invalid' in o.State]
-    print('Fehlerhaft  %s' % (bad if bad else 'keine'))
+    print('Invalid     %s' % (bad if bad else 'none'))
     offen = [o.Name for o in doc.Objects
              if o.isDerivedFrom('Sketcher::SketchObject')
              and not getattr(o, 'FullyConstrained', True)]
-    print('Skizzen     %d, davon nicht voll bestimmt: %s'
+    print('Sketches    %d, not fully constrained: %s'
           % (len([o for o in doc.Objects
                   if o.isDerivedFrom('Sketcher::SketchObject')]),
-             offen if offen else 'keine'))
+             offen if offen else 'none'))
 
 
 main()

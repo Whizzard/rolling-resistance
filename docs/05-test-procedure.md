@@ -80,7 +80,7 @@ are the same on the serial console and in the web UI.
    the sliding weight. (8)
 3. Place the gantry over the wheel axle, check the hanging scale with the 1 kg check
    weight.
-4. **Weigh** the wheel → `m_Rad`, weigh the tire → `m_Reifen` (for J_Rad, A5.4).
+4. **Weigh** the wheel → `m_wheel`, weigh the tire → `m_tire` (for J_wheel, A5.4).
 
 ### A5 Inertia and loss models
 
@@ -90,11 +90,16 @@ are the same on the serial console and in the web UI.
 3. `J` from the same experiment with a known added mass. **Open** — until then the
    calculated 1.94 kg·m² with ±5 % applies, and since 2026-11-24 it enters the result via
    the per-point inertia correction.
-4. **Bifilar pendulum** per wheel → `J_Rad`: two threads of equal length at opposite
-   points of the rim, 20 oscillations, amplitude < 10°, tire mounted and inflated. Enter
-   the result with `Y<kgm2>` or *Setup → J_Rad measured*. **Open** — without it the
-   firmware uses 0.85·m·r² with ±10 % and states so in the report.
-5. **Wheel spin-down** per wheel → `A₁`, `B₁`: *Assistant spin-down + idle* under Setup.
+4. **Bifilar pendulum** per wheel → `J_wheel`: two threads of equal length at opposite
+   points of the rim, 20 oscillations, amplitude < 10°, tire mounted and inflated.
+   Procedure and sketch in [08-stand](08-stand.md) §6.2. Enter mass, string spacing,
+   string length, n and time under *Create run* (step 1 of the guided run), which
+   computes J and stores it; or the result directly with `Y<kgm2>` or *Setup → J_wheel
+   measured*. **Open** — without it the firmware uses 0.85·m·r² with ±10 % and states
+   so in the report.
+5. **Wheel spin-down** per wheel → `A₁`, `B₁`: step 6 of the guided run (*Neu fahren*), or
+   standalone as *Assistant spin-down + idle* under Setup — same mechanics, same result;
+   the setup entry stays for a wheel check without a full run.
    Drum with the wheel resting on it up to 40 km/h, lift the wheel **while running**; the
    firmware fits `A₁ + B₁·ω²` over the **whole** spin-down (integral method) and prints
    residual and support points. (10)
@@ -160,7 +165,7 @@ today** at the end. About two hours, of which 30 min warm-up. (11)
 
 ### B2 Prepare tire
 
-- [ ] Weigh the tire → `J_Rad = J_ref + (m_Reifen − m_ref) · r_Reifen²`, `Y<kgm2>`
+- [ ] Weigh the tire → `J_wheel = J_ref + (m_tire − m_ref) · r_tire²`, `Y<kgm2>`
 - [ ] Set pressure cold by gauge; the AirSpy shows it on the Measurement page, otherwise
       enter `p<bar>`
 - [ ] The firmware measures the tire circumference from the speed ratio (Setup → Wheel)
@@ -183,7 +188,7 @@ today** at the end. About two hours, of which 30 min warm-up. (11)
    measurement speeds from the settings in order (default `PLATEAUS_KMH`: 15, 28.8, 40,
    50, 60 km/h), waits `SETTLE_MS` at each and averages over `AVG_REVS_PER_POINT`
    **whole** revolutions.
-3. Result `M_leer(ω)` → fit `A₀ + B₀·ω²`. Do not skip. (16)
+3. Result `M_idle(ω)` → fit `A₀ + B₀·ω²`. Do not skip. (16)
 
 ### B5 Warm-up
 
@@ -206,7 +211,7 @@ today** at the end. About two hours, of which 30 min warm-up. (11)
 
 ### B7 Zero and post-run baseline
 
-1. Lift the wheel, enter the room temperature.
+1. Lift the wheel. (Since 2026-11-25 there is no room temperature entry; start and end temperature come from the AirSpy, which sits in the room at the valve.)
 2. The firmware reads the zero (drum stationary, wheel free): deviation from the offset
    > 0.25 N on F_roll is drift of the cell, cable or preload (W14); the fine check is the post-run baseline.
 3. `b`, immediately afterwards, in the warm state.
@@ -233,7 +238,7 @@ today** at the end. About two hours, of which 30 min warm-up. (11)
 | changed | to be redone |
 |---|---|
 | Speed, pressure, load | nothing; for pressure and load, 5 min re-warming |
-| **Tire** | correct `J_Rad` (B2), **new baseline**, **full 30 min** warm-up |
+| **Tire** | correct `J_wheel` (B2), **new baseline**, **full 30 min** warm-up |
 | **Wheel** | additionally A5.4 (bifilar) and A5.5 (wheel spin-down) |
 
 ---
