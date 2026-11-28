@@ -1,5 +1,7 @@
 #include "calib.h"
 
+#include "autozero.h"
+
 #include "config.h"
 #include "logger.h"
 #include "rawlog.h"
@@ -19,6 +21,8 @@ struct Pt { float kg, counts, sigma; uint32_t n; };
 St       g_st = OFF;
 Pt       g_pt[CAL_MAX_POINTS]; uint8_t g_n = 0;
 float    g_pendingKg = 0.0f;            // mass of the reading in progress
+bool     g_motor = false;               // reading over several rotor positions (autozero.h)
+bool     g_motorAll = true;             // every reading of this procedure was taken that way
 uint32_t g_t0 = 0, g_reads0 = 0;
 // Result of the evaluation
 float    g_npc = NAN, g_a = NAN, g_b = NAN, g_lin = NAN, g_hyst = NAN, g_zero = NAN, g_sps = NAN;
@@ -33,9 +37,19 @@ bool allowed() {
 }
 float forceN(float kg) { return kg * 9.80665f * settings::calibArmM() / settings::torqueArmM(); }
 
+// Every reading -- zero and loads alike -- spins the drum forwards and backwards and averages
+// over whole revolutions (autozero.h, builder 2026-11-27): at rest the cogging torque held by
+// friction would sit in the reading as an unknown offset. Without the controller the reading
+// is a plain average at rest.
 void beginReading(float kg) {
   g_pendingKg = kg; g_t0 = millis(); g_reads0 = torque::readsTotal();
-  torque::sampleBegin(); g_st = READING;
+  g_motor = autozero::start(false);
+  if (!g_motor) {
+    g_motorAll = false;
+    Serial.printf("# Calibration: reading at one position only (%s)\n", autozero::why());
+    torque::sampleBegin();
+  }
+  g_st = READING;
 }
 
 bool evaluate() {
@@ -127,11 +141,11 @@ St state() { return g_st; }
 
 bool command(const char* t) {
   if (!t || !t[0]) return false;
-  if (t[0] == 'x') { g_st = OFF; g_n = 0; torque::sampleStop(); logger::note("Calibration cancelled"); return true; }
+  if (t[0] == 'x') { if (g_motor) autozero::stop(); g_motor = false; g_st = OFF; g_n = 0; torque::sampleStop(); logger::note("Calibration cancelled"); return true; }
   if (!allowed()) { logger::fail("Calibration: only at standstill, outside a run, cell responding"); return false; }
   switch (t[0]) {
     case '0':
-      g_n = 0; g_npc = NAN; beginReading(0.0f); return true;
+      g_n = 0; g_npc = NAN; g_motorAll = true; beginReading(0.0f); return true;
     case 'm': case 'z': {
       if (g_st != READY && g_st != RESULT) { logger::fail(g_st == READING ? "Calibration: still reading" : "Calibration: start with C0"); return false; }
       if (g_n >= CAL_MAX_POINTS) { logger::fail("Calibration: too many readings"); return false; }
@@ -145,7 +159,7 @@ bool command(const char* t) {
     case 'a': {
       if (g_st != RESULT) { logger::fail("Calibration: evaluate first"); return false; }
       uint8_t loads = 0; for (uint8_t i = 0; i < g_n; i++) if (g_pt[i].kg > 0) loads++;
-      store("procedure", loads, g_n);
+      store(g_motorAll ? "procedure, motor" : "procedure", loads, g_n);
       g_st = OFF; g_n = 0; return true; }
     default: return false;
   }
@@ -153,6 +167,16 @@ bool command(const char* t) {
 
 void service() {
   if (g_st != READING) return;
+  if (g_motor) {   // the drum moves on purpose; autozero watches standstill and the wheel itself
+    const autozero::St a = autozero::state();
+    if (a == autozero::FAILED) { g_st = READY; logger::fail(autozero::why()); return; }
+    if (a != autozero::DONE) return;
+    Pt& p = g_pt[g_n++];
+    p.kg = g_pendingKg; p.counts = autozero::resultCounts(); p.sigma = autozero::sigmaCounts(); p.n = AZ_POSITIONS;
+    g_sps = (torque::readsTotal() - g_reads0) * 1000.0f / (millis() - g_t0);
+    g_st = READY;
+    return;
+  }
   if (!allowed()) { g_st = OFF; torque::sampleStop(); logger::fail("Calibration aborted: drum moving or run started"); return; }
   if (millis() - g_t0 < CAL_AVG_MS) return;
   Pt& p = g_pt[g_n++];
@@ -183,8 +207,10 @@ int8_t validity(char* why, size_t n) {
 
 size_t json(char* out, size_t n) {
   if (g_st == OFF) return 0;
-  size_t p = snprintf(out, n, ",\"calib\":{\"st\":%u,\"ms\":%lu,\"avgMs\":%lu,\"pts\":[", (unsigned)g_st,
-                      (unsigned long)(g_st == READING ? millis() - g_t0 : 0), (unsigned long)CAL_AVG_MS);
+  const bool az = g_st == READING && g_motor;
+  size_t p = snprintf(out, n, ",\"calib\":{\"st\":%u,\"ms\":%lu,\"avgMs\":%lu,\"az\":%s%s%s,\"pts\":[", (unsigned)g_st,
+                      (unsigned long)(g_st == READING ? millis() - g_t0 : 0), (unsigned long)CAL_AVG_MS,
+                      az ? "\"" : "", az ? autozero::phaseText() : "null", az ? "\"" : "");
   for (uint8_t i = 0; i < g_n && p < n; i++)
     p += snprintf(out + p, n - p, "%s[%.4f,%.1f,%.1f,%s]", i ? "," : "", g_pt[i].kg, g_pt[i].counts, g_pt[i].sigma,
                   g_st == RESULT ? String(g_res[i], 3).c_str() : "null");

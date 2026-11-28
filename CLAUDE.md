@@ -43,7 +43,7 @@ credentials, e-mail addresses and keys are not.
 
 ## Measurement data
 The **averaged measurement points** are versioned as CSV under `data/`, unchanged. The
-raw 80 SPS stream stays on the stand (about 30 MB per session) and does **not** go into
+raw 80 SPS stream stays on the stand (about 4–5 MB per run, estimate 2026-11-27) and does **not** go into
 the repo. Derived quantities are never written back into an existing file; evaluation
 always produces new files.
 

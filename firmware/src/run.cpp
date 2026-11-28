@@ -2,6 +2,7 @@
 #include "build_id.h"
 #include "speed.h"
 #include "calib.h"
+#include "autozero.h"
 #include "wallclock.h"
 #include "calc/warmup.h"
 #include "calc/json.h"
@@ -67,6 +68,10 @@ struct Record {
   Check    checks[CHECK_N];
   uint8_t  checkN = 0;
   float    tareSigma = NAN;
+  float    azMean[AZ_POSITIONS] = {}, azDeg[AZ_POSITIONS] = {};   // per position: raw mean, degrees turned before
+  bool     tareAuto = false;
+  bool     postAuto = false;              // post-run zero by the motor (autozero.h)
+  bool     ctrlAuto = false;              // check-weight step: the reading in progress spins the drum (autozero.h)              // zero by the drum motor at several positions (autozero.h, since 2026-11-27)
   long     tarePp = 0;                    // peak-to-peak of the tare values, counts (the noise record since 2026-11-26)
   long     tareRaw = 0;                   // zero point taken in step 4, raw counts
   bool     tareTaken = false;
@@ -137,8 +142,8 @@ void addCheck(const char* name, int8_t res, const char* fmt, ...) {
   va_end(ap);
 }
 
-// Every step change also goes into the raw log as a TEXT mark "run <step>.<sub>", so
-// the noise window, zeroing, check weight and so on can be found in the .rrl later.
+// Every step change also goes into the raw log as a note line "run <step>.<sub>", so
+// the noise window, zeroing, check weight and so on can be found in the raw stream later.
 void rawMark() { char t[24]; snprintf(t, sizeof(t), "run %u.%u", static_cast<unsigned>(g_step), static_cast<unsigned>(g_sub)); rawlog::text(t); }
 // A result in the raw log, next to the samples it came from.
 void rawNote(const char* fmt, ...) {
@@ -496,7 +501,12 @@ void writeMd(Print& o) {
   }
   o.print("| Zeroing, wheel lifted | ok | tare "); if (g_r.tareTaken) o.print(g_r.tareRaw); else o.print("—");
   o.print(" counts · peak-to-peak "); o.print(g_r.tarePp); o.print(" counts ("); pf(o, countsToFrollN(g_r.tarePp), 4); o.print(" N) · noise σ = "); pf(o, countsToFrollN(g_r.tareSigma), 4); o.print(" N on F_roll ("); pf(o, g_r.tareSigma, 0); o.println(" counts) |");
-  o.print("| Zero check after turning | "); o.print(isnan(g_r.tareCheckN) ? "not done" : (g_r.tareCheckOk ? "ok" : "DEVIATION (W13)"));
+  if (g_r.tareAuto) {
+    o.print("| Zero by the motor | both directions at "); pf(o, AZ_SPIN_KMH, 0); o.print(" km/h | ");
+    for (uint8_t i = 0; i < AZ_POSITIONS; i++) { if (i) o.print(" · "); o.print(i % 2 ? "− " : "+ "); pf(o, g_r.azMean[i], 1); o.print(" counts over "); pf(o, g_r.azDeg[i] / 360.0f, 0); o.print(" rev"); }
+    o.println(" |");
+  }
+  o.print(g_r.tareAuto ? "| Spread of the revolution means | " : "| Zero check after turning | "); o.print(isnan(g_r.tareCheckN) ? "not done" : (g_r.tareCheckOk ? "ok" : "DEVIATION (W13)"));
   o.print(" | "); if (!isnan(g_r.tareCheckN)) { pf(o, g_r.tareCheckN, 3); o.print(" N on F_roll, limit "); o.print(RUN_ZERO_LIMIT_N, 2); o.print(" N"); } o.println(" |");
   o.print("| Check weight | "); o.print(g_r.ctrlSkipped ? "skipped" : (fabsf(g_r.ctrlDev) < RUN_CTRL_OK_PCT ? "ok" : "warning (W10)"));
   o.print(" | "); if (g_r.ctrlSkipped) o.print("W01"); else { pf(o, g_r.ctrlNm, 3); o.print(" Nm · "); pf(o, g_r.ctrlDev, 2); o.print(" %"); } o.println(" |");
@@ -686,6 +696,7 @@ void abortRun(const char* why) {
   strncpy(g_r.abortWhy, why ? why : "aborted", sizeof(g_r.abortWhy) - 1);
   warn("W06", "Run aborted in step %u: %s", static_cast<unsigned>(g_step), g_r.abortWhy);
   go(S_ABORT);   // first, so that the sequence callback (seqDone) does not land here again
+  autozero::stop();
   if (state::phase() != state::IDLE && state::phase() != state::FAULT) state::stopRun();
   state::wizardAck();
   torque::sampleStop();
@@ -790,6 +801,35 @@ float zeroDeviationN() {
   const float m = sampleOffsetNm();
   return isnan(m) ? NAN : m / rDrum();
 }
+// Check-weight step readings (weight, weight again, zero): with the controller there they
+// spin the drum both ways (autozero.h, builder 2026-11-27), else a plain average at rest.
+void beginCtrlRead() {
+  g_r.ctrlAuto = autozero::start(false);
+  if (!g_r.ctrlAuto) torque::sampleBegin();
+}
+// true once the reading is complete; raw = mean counts, n = values (or readings).
+bool ctrlReadDone(float& raw, uint32_t& n) {
+  if (g_r.ctrlAuto) {
+    const autozero::St a = autozero::state();
+    if (a == autozero::FAILED) {
+      warn("W13", "Reading by the motor stopped (%s), read at rest", autozero::why());
+      autozero::stop(); g_r.ctrlAuto = false; torque::sampleBegin(); g_subMs = millis(); return false;
+    }
+    if (a != autozero::DONE) return false;
+    raw = autozero::resultCounts(); n = AZ_POSITIONS;
+    rawNote("motor_reading plus=%.1f minus=%.1f spread=%.1f", autozero::plusCounts(), autozero::minusCounts(), autozero::rangeCounts());
+    autozero::stop(); g_r.ctrlAuto = false;
+    return true;
+  }
+  if (inSubMs() < (g_sub == 4 ? RUN_ZERO_AVG_MS : RUN_CTRL_AVG_MS)) return false;
+  torque::sampleStop();
+  n = torque::sampleN(); raw = n ? torque::sampleMean() : NAN;
+  return true;
+}
+float rawOffsetNm(float raw) {
+  if (!settings::calibrated() || isnan(raw)) return NAN;
+  return (raw - torque::tareOffset()) * settings::loadcellNPerCount() * settings::torqueArmM();
+}
 // Check weight: target torque and whether it is still hanging (live torque above half
 // the target). Uncalibrated it counts as removed, otherwise there would be no Continue.
 float ctrlTargetNm() { return settings::ctrlMassKg() * 9.80665f * settings::calibArmM(); }
@@ -830,7 +870,27 @@ float liveNm() { const float f = torque::newtons(); return isnan(f) ? NAN : f * 
 bool  ctrlWeightOn() { const float m = liveNm(); return !isnan(m) && m > 0.5f * ctrlTargetNm(); }
 // ------------------------------------------------------------- Buttons
 // ok = main button, alt = secondary button, redo = Again.
+// Buttons that start a drive or read the cell at rest: only when the stand is idle. Buttons
+// pressed while the drum turns on purpose (lift the wheel during the spin-down ...) stay free.
+// A press while the drum still turns is answered, not acted on, and the step stays.
+bool needsStill() {
+  switch (g_step) {
+    case S_TARE:  return g_sub == 0 || g_sub == 2 || g_sub == 5;           // zero: spins or reads at rest
+    case S_CTRL:  return g_sub == 0 || g_sub == 1 || g_sub == 7;           // readings of the cell at rest
+    case S_BASE:  return g_sub == 1;                                       // starts the wizard from rest
+    case S_READY: return true;                                             // starts the warm-up from rest
+    case S_POST:  return g_sub == 0;                                       // post-run zero by the motor
+    default: return false;                                                 // the rest may be pressed while the drum turns
+  }
+}
+bool stillOrSay() {
+  if (!needsStill() || state::phase() == state::IDLE) return true;
+  logger::fail("Drum still turning: wait until it stands");
+  return false;
+}
+
 void onOk() {
+  if (!stillOrSay()) return;
   switch (g_step) {
     case S_META:
       // Temperature from the AirSpy (sits in the room at the valve); there has been no
@@ -851,7 +911,8 @@ void onOk() {
     case S_VISUAL: runChecks(); go(S_CHECKS, 1); break;   // no noise window since 2026-11-26: zeroing measures it
     case S_CHECKS: if (g_sub == 1 && !checksBlock()) go(S_TARE); break;
     case S_TARE:
-      if (g_sub == 0) { state::startTare(); sub(1); }                 // wheel free -> zero
+      // wheel lifted -> automatic zero with the drum motor (sub 5); by hand only as fallback
+      if (g_sub == 0) { if (autozero::start(true)) sub(5); else { state::startTare(); sub(1); warn("W13", "Automatic zero not possible (%s), zeroed by hand", autozero::why()); } }
       else if (g_sub == 2 && (isnan(g_r.turnDeg) || g_r.turnReady)) { torque::sampleBegin(); sub(3); }   // turned, still -> measure
       else if (g_sub == 4) go(S_CTRL, 1);                              // result -> check weight
       break;
@@ -863,7 +924,7 @@ void onOk() {
       // weight has just confirmed or replaced. The second weight reading shows whether the
       // overload changed the sensitivity (W22), the zero afterwards whether it left an
       // offset (W21). Both compare raw counts, so an adopted factor does not matter.
-      if (g_sub == 1) { torque::sampleBegin(); sub(2); }              // hanging -> measure
+      if (g_sub == 1) { beginCtrlRead(); sub(2); }                    // hanging -> measure
       else if (g_sub == 3) {                                           // result -> end stop, weight stays on
         if (fabsf(g_r.ctrlDev) >= RUN_CTRL_OK_PCT) warn("W10", "Check weight deviates %.2f %%, continued without recalibrating", g_r.ctrlDev);
         g_r.stopPeakPct = NAN; sub(0);
@@ -871,7 +932,7 @@ void onOk() {
       else if (g_sub == 0) {                                           // end stop reached and released
         if (isnan(g_r.stopPeakPct) || g_r.stopPeakPct < RUN_STOP_MIN_PCT || g_r.stopPeakPct > RUN_STOP_MAX_PCT)
           warn("W16", "End stop at %.0f %% FS, target %.0f to %.0f %%", g_r.stopPeakPct, RUN_STOP_MIN_PCT, RUN_STOP_MAX_PCT);
-        torque::sampleBegin();
+        beginCtrlRead();
         if (g_r.ctrlSkipped || isnan(g_r.ctrlRaw) || !ctrlWeightOn()) { g_r.stopZeroN = NAN; sub(4); }   // no weight: straight to the zero
         else sub(6);
       }
@@ -879,7 +940,7 @@ void onOk() {
         if (ctrlWeightOn()) { g_r.ctrlOnHint = true; break; }
         if (!isnan(g_r.ctrlRep) && fabsf(g_r.ctrlRep) >= RUN_CTRL_OK_PCT)
           warn("W22", "Check weight %+.2f %% after the end-stop press", g_r.ctrlRep);
-        g_r.stopZeroN = NAN; torque::sampleBegin(); sub(4);
+        g_r.stopZeroN = NAN; beginCtrlRead(); sub(4);
       }
       else if (g_sub == 5 && !isnan(g_r.stopZeroN) && fabsf(g_r.stopZeroN) <= RUN_ZERO_LIMIT_N) go(S_BASE);
       break;
@@ -898,18 +959,22 @@ void onOk() {
       if (state::startHold(WARMUP_KMH)) { go(S_WARMUP); g_r.warmN = 0; g_r.warmSettledMin = 0; g_r.wSumM = g_r.wSumP = g_r.wSumC = 0; g_r.wCnt = 0; } else abortRun(logger::lastNote());
       break;
     case S_POST:
-      if (g_sub == 0) { torque::sampleBegin(); sub(1); }              // wheel lifted -> check zero point
+      // wheel lifted -> check the zero point: by the motor at several positions, the stand
+      // not touched (since 2026-11-27); a single reading where that is not possible
+      if (g_sub == 0) { g_r.postAuto = autozero::start(false); if (!g_r.postAuto) torque::sampleBegin(); sub(1); }
       break;
     case S_REPORT: case S_ABORT: go(S_OFF); break;
     default: break;
   }
 }
 void onAlt() {
+  if (!stillOrSay()) return;
   switch (g_step) {
     case S_TARE:
       // Zero point already set since boot (tare at start-up or by hand): adopt it.
       if (g_sub == 0 && !isnan(torque::tareSigma())) { warn("W20", "Zeroing skipped: existing zero point %ld counts, angle check missing", torque::tareOffset()); go(S_CTRL, 1); }
       if (g_sub == 4) { warn("W13", "Zero point depends on angle: %.3f N on F_roll, continued anyway", g_r.tareCheckN); go(S_CTRL, 1); }
+      if (g_sub == 5 && autozero::state() == autozero::FAILED) { g_r.tareAuto = false; state::startTare(); sub(1); }   // by hand instead
       break;
     case S_CTRL:
       if (g_sub == 0) { g_r.stopSkipped = true; g_r.stopPeakPct = NAN; warn("W17", "End-stop check skipped");
@@ -943,7 +1008,7 @@ bool canBack() {
   if (speedctl::running()) return false;
   switch (g_step) {
     case S_VISUAL: case S_CHECKS: case S_WHEEL: case S_READY: return true;
-    case S_TARE: return g_sub != 1 && g_sub != 3;
+    case S_TARE: return g_sub != 1 && g_sub != 3 && !(g_sub == 5 && autozero::state() != autozero::FAILED);
     case S_CTRL: return g_sub != 2 && g_sub != 4 && g_sub != 6;
     case S_BASE: return g_sub == 0 || g_sub == 1 || g_sub == 4;
     default: return false;
@@ -964,12 +1029,14 @@ void onBack() {
   }
 }
 void onRedo() {
+  if (!stillOrSay()) return;
   if (g_step == S_CHECKS && g_sub == 1) { runChecks(); sub(1); }   // after fixing things under Setup
   if (g_step == S_CTRL && g_sub == 3) sub(1);
   if (g_step == S_CTRL && g_sub == 0) { g_r.stopPeakPct = NAN; sub(0); }
-  if (g_step == S_CTRL && g_sub == 7 && ctrlWeightOn()) { torque::sampleBegin(); sub(6); }   // read the weight again
+  if (g_step == S_CTRL && g_sub == 7 && ctrlWeightOn()) { beginCtrlRead(); sub(6); }   // read the weight again
   if (g_step == S_CTRL && g_sub == 5) go(S_TARE);                        // zero shifted: zero again (then weight again)
   if (g_step == S_TARE && g_sub == 4) { g_r.tareCheckN = NAN; sub(0); }
+  if (g_step == S_TARE && g_sub == 5 && autozero::state() == autozero::FAILED && autozero::start(true)) sub(5);
 }
 
 }  // namespace
@@ -1016,6 +1083,18 @@ void service() {
           } else { g_r.turnStandstillMs = 0; g_r.turnReady = false; }
         } else { g_r.turnDeg = NAN; g_r.turnReady = false; }
       }
+      if (g_sub == 5 && autozero::state() == autozero::DONE) {
+        g_r.tareAuto = true; g_r.tareTaken = true;
+        for (uint8_t i = 0; i < AZ_POSITIONS; i++) { g_r.azMean[i] = autozero::mean(i); g_r.azDeg[i] = autozero::degTurned(i); }
+        g_r.tareRaw = torque::tareOffset(); g_r.tareSigma = autozero::sigmaCounts();
+        g_r.tarePp = lroundf(autozero::rangeCounts());
+        g_r.tareCheckN = countsToFrollN(autozero::rangeCounts());   // range over the positions
+        g_r.tareCheckOk = !isnan(g_r.tareCheckN) && g_r.tareCheckN <= RUN_ZERO_LIMIT_N;
+        rawNote("tare auto raw_counts=%ld spread_counts=%.1f sigma_counts=%.1f plus=%.1f minus=%.1f", g_r.tareRaw,
+                autozero::rangeCounts(), autozero::sigmaCounts(), autozero::plusCounts(), autozero::minusCounts());
+        autozero::stop();
+        sub(4);
+      }
       if (g_sub == 3 && inSubMs() >= RUN_ZERO_AVG_MS) {
         torque::sampleStop();
         g_r.tareCheckN = zeroDeviationN();
@@ -1028,27 +1107,27 @@ void service() {
         const float fN = torque::newtons();
         if (!isnan(fN)) { const float pct = fabsf(fN) / LOADCELL_CAPACITY_N * 100.0f; if (isnan(g_r.stopPeakPct) || pct > g_r.stopPeakPct) g_r.stopPeakPct = pct; }
       }
-      if (g_sub == 2 && inSubMs() >= RUN_CTRL_AVG_MS) {
-        torque::sampleStop();
-        const float m = sampleOffsetNm();
-        g_r.ctrlNm = m; g_r.ctrlDev = (m / ctrlTargetNm() - 1.0f) * 100.0f;
-        g_r.ctrlRaw = torque::sampleN() ? torque::sampleMean() - torque::tareOffset() : NAN;
-        rawNote("check_weight raw_above_tare=%.1f n=%lu", g_r.ctrlRaw, static_cast<unsigned long>(torque::sampleN()));
-        sub(3);
-      }
-      if (g_sub == 6 && inSubMs() >= RUN_CTRL_AVG_MS) {              // weight again, after the end-stop press
-        torque::sampleStop();
-        g_r.ctrlRaw2 = torque::sampleN() ? torque::sampleMean() - torque::tareOffset() : NAN;
-        g_r.ctrlRep = (isnan(g_r.ctrlRaw2) || isnan(g_r.ctrlRaw) || g_r.ctrlRaw == 0.0f) ? NAN : (g_r.ctrlRaw2 / g_r.ctrlRaw - 1.0f) * 100.0f;
-        rawNote("check_weight_after_stop raw_above_tare=%.1f", g_r.ctrlRaw2);
-        sub(7);
-      }
-      if (g_sub == 4 && inSubMs() >= RUN_ZERO_AVG_MS) {              // zero after the end-stop press
-        torque::sampleStop();
-        g_r.stopZeroN = zeroDeviationN();
-        rawNote("zero_after_stop raw_above_tare=%.1f", torque::sampleN() ? torque::sampleMean() - torque::tareOffset() : NAN);
-        sub(5);
-      }
+      { float raw = NAN; uint32_t n = 0;
+        if ((g_sub == 2 || g_sub == 4 || g_sub == 6) && ctrlReadDone(raw, n)) {
+          const float above = isnan(raw) ? NAN : raw - torque::tareOffset();
+          if (g_sub == 2) {
+            const float m = rawOffsetNm(raw);
+            g_r.ctrlNm = m; g_r.ctrlDev = (m / ctrlTargetNm() - 1.0f) * 100.0f;
+            g_r.ctrlRaw = above;
+            rawNote("check_weight raw_above_tare=%.1f n=%lu", g_r.ctrlRaw, static_cast<unsigned long>(n));
+            sub(3);
+          } else if (g_sub == 6) {                                     // weight again, after the end-stop press
+            g_r.ctrlRaw2 = above;
+            g_r.ctrlRep = (isnan(g_r.ctrlRaw2) || isnan(g_r.ctrlRaw) || g_r.ctrlRaw == 0.0f) ? NAN : (g_r.ctrlRaw2 / g_r.ctrlRaw - 1.0f) * 100.0f;
+            rawNote("check_weight_after_stop raw_above_tare=%.1f", g_r.ctrlRaw2);
+            sub(7);
+          } else {                                                     // zero after the end-stop press
+            const float m = rawOffsetNm(raw);
+            g_r.stopZeroN = isnan(m) ? NAN : m / rDrum();
+            rawNote("zero_after_stop raw_above_tare=%.1f", above);
+            sub(5);
+          }
+        } }
       break;
     case S_BASE:
       // Drum stands still AND the wheel spin-down has ended (otherwise lowering would cut the fit short).
@@ -1118,9 +1197,13 @@ void service() {
       if (state::phase() == state::IDLE) go(S_POST);
       break;
     case S_POST:
-      if (g_sub == 1 && inSubMs() >= RUN_ZERO_AVG_MS) {
-        torque::sampleStop();
-        g_r.zeroEndN = zeroDeviationN();
+      if (g_sub == 1 && g_r.postAuto && autozero::state() == autozero::FAILED) {   // fall back to one reading
+        warn("W14", "Automatic post-run zero stopped (%s), single reading", autozero::why());
+        autozero::stop(); g_r.postAuto = false; torque::sampleBegin(); g_subMs = millis();
+      }
+      if (g_sub == 1 && (g_r.postAuto ? autozero::state() == autozero::DONE : inSubMs() >= RUN_ZERO_AVG_MS)) {
+        if (g_r.postAuto) { g_r.zeroEndN = countsToFrollN(autozero::resultCounts() - torque::tareOffset()); autozero::stop(); }
+        else { torque::sampleStop(); g_r.zeroEndN = zeroDeviationN(); }
         if (!isnan(g_r.zeroEndN) && fabsf(g_r.zeroEndN) > RUN_ZERO_LIMIT_N)
           warn("W14", "Zero point shifted by %.3f N on F_roll after the run: drift of cell, cable or preload", g_r.zeroEndN);
         g_r.postN = 0;
@@ -1137,7 +1220,9 @@ bool command(const char* t) {
   switch (t[0]) {
     case '\0':
       if (g_step != S_OFF) { logger::fail("Run already active"); return false; }
-      if (state::phase() != state::IDLE) { logger::fail("Start refused: not IDLE"); return false; }
+      // No standstill needed to START (builder, 2026-11-27: the drum was still coasting, the
+      // run refused, and there was no way out but a page refresh). The first steps are only
+      // input; the steps that need the drum still check it themselves (needsStill()).
       startRun(); return true;
     case 'k': onOk(); return true;
     case 's': onAlt(); return true;
@@ -1190,7 +1275,7 @@ void json(char* buf, size_t len) {
       txt = checksBlock() ? "Fix what is marked red (Setup stays reachable), then Again." : "Everything the run needs now is there.";
       break;
     case S_TARE:   title = "Zeroing";
-      if (g_sub == 0) { txt = "LIFT the wheel with the eccentric. Nudge the drum by hand and let it swing out: the rotor must fall freely into its detent position, otherwise the cogging torque ends up in the zero point."; ok = "Wheel free, drum still";
+      if (g_sub == 0) { txt = "Then the stand zeroes by itself: the drum runs forwards and backwards, the cell is averaged over whole revolutions."; act = "Lift the wheel"; ok = "Wheel lifted";
                         if (!isnan(torque::tareSigma())) alt = "Use stored"; }
       else if (g_sub == 1) { static char ttxt[40]; snprintf(ttxt, sizeof(ttxt), "Hands off. %u values.", static_cast<unsigned>(TARE_SAMPLES)); txt = ttxt; }
       else if (g_sub == 2) { txt = isnan(g_r.turnDeg) ? "Turn the drum a quarter turn further by hand, let it swing out."
@@ -1199,6 +1284,10 @@ void json(char* buf, size_t len) {
                                  : "Turn the drum further by hand until the bar is full, then let go.";
                              ok = isnan(g_r.turnDeg) ? "Turned" : (g_r.turnReady ? "Measure" : ""); }
       else if (g_sub == 3) txt = "Hands off, measuring.";
+      else if (g_sub == 5) {
+        if (autozero::state() == autozero::FAILED) { static char ftxt[120]; snprintf(ftxt, sizeof(ftxt), "Automatic zero stopped: %s.", autozero::why()); txt = ftxt; redo = "Again"; alt = "By hand"; }
+        else txt = "Hands off: the drum turns by itself.";
+      }
       else { ok = g_r.tareCheckOk ? "Next" : ""; alt = g_r.tareCheckOk ? "" : "Next anyway"; redo = "Again";
              txt = g_r.tareCheckOk ? "" : "Zero point depends on the angle: is something holding the rotor (wheel on the drum, cable)?"; }
       break;
@@ -1312,6 +1401,10 @@ void json(char* buf, size_t len) {
       const float byCount = static_cast<float>(torque::tareCount()) / TARE_SAMPLES, byTime = static_cast<float>(inSubMs()) / TARE_TIMEOUT_MS;
       prog = byCount > byTime ? byCount : byTime;
       snprintf(ptxt, sizeof(ptxt), "Zeroing: %u of %u values", torque::tareCount(), static_cast<unsigned>(TARE_SAMPLES)); }
+    else if (((g_step == S_TARE && g_sub == 5) || (g_step == S_POST && g_sub == 1 && g_r.postAuto)
+              || (g_step == S_CTRL && (g_sub == 2 || g_sub == 4 || g_sub == 6) && g_r.ctrlAuto)) && autozero::state() != autozero::FAILED) {
+      prog = (autozero::done() + (autozero::state() == autozero::READ ? 0.5f : 0.0f)) / AZ_POSITIONS;
+      snprintf(ptxt, sizeof(ptxt), "Zero by the motor: %s", autozero::phaseText()); }
     else if (g_step == S_TARE && g_sub == 2 && !isnan(g_r.turnDeg)) { prog = g_r.turnDeg / RUN_TURN_DEG;
       snprintf(ptxt, sizeof(ptxt), g_r.turnReady ? "%.0f degrees, still" : g_r.turnDeg >= RUN_TURN_DEG - RUN_TURN_TOL_DEG ? "%.0f degrees, still moving" : "%.0f of %.0f degrees turned", g_r.turnDeg, RUN_TURN_DEG); }
     else if ((g_step == S_TARE && g_sub == 3) || (g_step == S_POST && g_sub == 1) || (g_step == S_CTRL && g_sub == 4)) { prog = static_cast<float>(inSubMs()) / RUN_ZERO_AVG_MS; snprintf(ptxt, sizeof(ptxt), "Reading zero point, %lu s", static_cast<unsigned long>(RUN_ZERO_AVG_MS / 1000)); }

@@ -4,6 +4,7 @@ extern "C" {
 #include "relaytest.h"
 #include "console.h"
 #include "calib.h"
+#include "autozero.h"
 
 
 #include "config.h"
@@ -135,6 +136,7 @@ void printHelp() {
   Serial.println("#   Fs / Ff format SD (also readable) / flash (only if unreadable) -- erases everything on it\n"
   "#   D       list /vmrr on the SD (sessions and their files); D<file> prints a text file below /vmrr");
   Serial.println("#   G?<dir> / G<path> <off> <len>  file transfer, for tools/console.py --get");
+  Serial.println("#   Z / Zt / Zx  automatic zero by the motor, wheel lifted: measure / and set tare / stop");
   Serial.println("#   C0 / Cm<kg> / Cz / Ce / Ca / Cx  calibration: zero, load with mass, zero, evaluate, accept, cancel");
   Serial.println("#   X<n>    relay pulse test at standstill: n drop/pull-in cycles, edges and load cell per cycle");
   Serial.println("#   B<text> stand revision (free text into every protocol), B alone clears");
@@ -578,6 +580,13 @@ void handleCommand(const String& cmd) {
   if (cmd[0] == ':') { vesc::terminal(cmd.c_str() + 1); return; }
   // Guided run (run.h). Whoever starts it is subject to the dead-man check.
   if (cmd == "Gb") { if (run::busy() || state::phase() != state::IDLE || storage::info(storage::SD_CARD).formatting) Serial.println("# SD bench: only at standstill"); else storage::sdBench(); return; }
+  // Automatic zero by the drum motor (autozero.h): Z measures only, Zt also sets the tare, Zx stops.
+  if (cmd[0] == 'Z') {
+    if (cmd == "Zx") { autozero::stop(); note("Auto zero stopped"); return; }
+    if (run::busy()) { fail("Not during a run"); return; }
+    if (autozero::start(cmd == "Zt")) note("Auto zero: drum spins both ways, keep clear"); else fail(autozero::why());
+    return;
+  }
   if (cmd[0] == 'C' && cmd.length() > 1) { calib::command(cmd.c_str() + 1); return; }
   if (cmd[0] == 'G') { fileGet(cmd); return; }
   if (cmd[0] == 'X') { relaytest::start(static_cast<uint8_t>(constrain(cmd.substring(1).toInt(), 1, 20))); return; }

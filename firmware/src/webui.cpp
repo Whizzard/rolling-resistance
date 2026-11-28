@@ -247,15 +247,13 @@ void handleProfiles() {
 struct SdLock { SdLock() { storage::lockSd(); } ~SdLock() { storage::unlockSd(); } };
 
 
-// ---------------------------------------------------------- Raw data (/raw)
+// ---------------------------------------------------------- Raw data
 //
-//   /raw                          list of both media
-//   /raw/<sd|flash>/<file>.rrl    the raw file as it is
-//   /raw/<sd|flash>/<file>.zip    the same as CSV, one file per sensor, converted
-//                                 while sending (calc/rawlog.h). Streamed ZIP with
-//                                 data descriptor and HTTP chunked: one read pass
-//                                 per CSV, no intermediate buffer, no Content-Length.
-// If the file is not a readable .rrl, it goes into the archive unchanged.
+// A raw stream (raw_<session>.csv, calc/rawlog.h) split into one CSV per sensor with column
+// names, plus its .json and .md, converted while sending (/fs/...?csv). Streamed ZIP with
+// data descriptor and HTTP chunked: one read pass per CSV, no intermediate buffer, no
+// Content-Length.
+// If the first line is not a sync record, the file goes into the archive unchanged.
 //
 // While streaming, this task stands still -- /api/state waits. So fetch larger
 // files at standstill. Reading from the FLASH also briefly locks the cache per
@@ -300,36 +298,95 @@ void zipFinish(ZipOut& z, const ZipEntry* e, size_t n) {
   g_server.sendContent("", 0);   // end of the chunked stream
 }
 
-// One CSV from the raw file: one pass, only the records of this type.
-// Returns the number of rows; bad = file does not end cleanly (power loss,
-// unknown record) -- everything before it is valid.
-uint32_t csvPass(File& in, size_t hdrLen, calc::rrl::Type which, ZipOut& z, bool& bad) {
-  static uint8_t ib[2048];
-  static char line[400];
-  size_t have = 0;
+// Reads a file line by line through one fixed buffer in 2 kB blocks. The buffer holds
+// the longest record line (calc::rawcsv::REC_MAX) many times over; a longer line is handed out
+// cut short with complete = false and skipped up to its \n. lock = take the SD lock per block
+// (otherwise the caller holds it for the whole pass).
+struct LineReader {
+  static constexpr size_t CAP = 2048 + 2 * calc::rawcsv::REC_MAX;
+  File& in; bool lock;
+  uint8_t* b;
+  size_t have = 0, off = 0;
+  bool eof = false, skip = false;
+  uint32_t blocks = 0;
+  LineReader(File& f, bool sdLock) : in(f), lock(sdLock) { static uint8_t buf[CAP]; b = buf; }
+  // Next line incl. its \n; false at the end of the file. complete = false: no \n (cut off
+  // at the end) or longer than the buffer.
+  bool next(const char** p, size_t* n, bool* complete) {
+    for (;;) {
+      if (skip) {
+        const uint8_t* nl = static_cast<const uint8_t*>(memchr(b + off, '\n', have - off));
+        if (nl) { off = static_cast<size_t>(nl - b) + 1; skip = false; } else off = have;
+      }
+      if (!skip) {
+        const uint8_t* nl = static_cast<const uint8_t*>(memchr(b + off, '\n', have - off));
+        if (nl) {
+          *p = reinterpret_cast<const char*>(b + off); *n = static_cast<size_t>(nl - b) + 1 - off;
+          off += *n; *complete = true; return true;
+        }
+        if (off == 0 && have == CAP) {   // too long for the buffer
+          *p = reinterpret_cast<const char*>(b); *n = have; *complete = false;
+          off = have; skip = true; return true;
+        }
+      }
+      if (eof) {
+        if (!skip && off < have) {
+          *p = reinterpret_cast<const char*>(b + off); *n = have - off; *complete = false;
+          off = have; return true;
+        }
+        return false;
+      }
+      memmove(b, b + off, have - off); have -= off; off = 0;
+      size_t want = CAP - have; if (want > 2048) want = 2048;
+      if (lock) storage::lockSd();
+      const size_t got = in.read(b + have, want);
+      if (lock) storage::unlockSd();
+      if (!got) eof = true;
+      have += got;
+      if (++blocks % 64 == 0) touch();   // a long pass must not look like a lost web link
+    }
+  }
+};
+
+// A raw stream starts with a complete sync record (rawlog.cpp writes it first).
+bool rawStart(LineReader& lr) {
+  const char* p; size_t n; bool complete; calc::rawcsv::Rec r;
+  return lr.next(&p, &n, &complete) && complete && calc::rawcsv::parseLine(p, n, r) && r.kind == calc::rawcsv::K_SYNC;
+}
+
+// <stem>.<ext> next to a raw <stem>.csv, whole into buf (at most cap - 1 bytes). Length, 0 = none.
+size_t readSibling(fs::FS& f, const String& csvPath, const char* ext, char* buf, size_t cap, bool lock) {
+  buf[0] = '\0';
+  if (!csvPath.endsWith(".csv")) return 0;
+  const String p = csvPath.substring(0, csvPath.length() - 4) + ext;
+  if (lock) storage::lockSd();
+  File x = f.exists(p) ? f.open(p, "r") : File();
+  size_t n = 0;
+  if (x) { for (size_t k; n < cap - 1 && (k = x.read(reinterpret_cast<uint8_t*>(buf) + n, cap - 1 - n)) > 0;) n += k; x.close(); }
+  if (lock) storage::unlockSd();
+  buf[n] = '\0';
+  return n;
+}
+
+// One CSV from the raw stream: one pass, only the lines of this type.
+// Returns the number of rows; bad = a line that is not a valid record (the last one cut
+// off by a power loss, as a rule) -- every other line is still taken.
+uint32_t csvPass(File& in, calc::rawcsv::Kind which, ZipOut& z, bool& bad) {
+  static char line[calc::rawcsv::REC_MAX + 64];
   uint32_t rows = 0;
   bad = false;
-  in.seek(hdrLen);
-  calc::rrl::Decoder d;
-  z.data(calc::rrl::csvHeader(which));
-  for (;;) {
-    const size_t got = in.read(ib + have, sizeof(ib) - have);
-    have += got;
-    size_t off = 0;
-    for (;;) {
-      calc::rrl::Rec r; size_t used = 0;
-      const calc::rrl::Status st = d.next(ib + off, have - off, r, &used);
-      if (st == calc::rrl::NEED_MORE) break;
-      if (st == calc::rrl::BAD) { bad = true; return rows; }
-      off += used;
-      if (!calc::rrl::csvBelongs(which, r.type)) continue;
-      const size_t k = calc::rrl::csvLine(line, sizeof(line), r);
-      if (k) { z.data(reinterpret_cast<const uint8_t*>(line), k); rows++; }
-    }
-    memmove(ib, ib + off, have - off);
-    have -= off;
-    if (got == 0) { if (have) bad = true; return rows; }   // remainder = truncated last record
+  in.seek(0);
+  LineReader lr(in, false);
+  if (calc::rawcsv::csvHeader(line, sizeof(line), which)) z.data(line);
+  const char* p; size_t n; bool complete;
+  while (lr.next(&p, &n, &complete)) {
+    calc::rawcsv::Rec r;
+    if (!complete || !calc::rawcsv::parseLine(p, n, r)) { bad = true; continue; }
+    if (!calc::rawcsv::csvBelongs(which, r.kind)) continue;
+    const size_t k = calc::rawcsv::csvLine(line, sizeof(line), r);
+    if (k) { z.data(reinterpret_cast<const uint8_t*>(line), k); rows++; }
   }
+  return rows;
 }
 
 // Download name: inside a session directory <session>_<file>, so files from several runs
@@ -339,7 +396,7 @@ String downloadName(const String& path) {
   const String file = path.substring(s + 1);
   const int s2 = s > 0 ? path.lastIndexOf('/', s - 1) : -1;
   const String parent = s2 >= 0 ? path.substring(s2 + 1, s) : String("");
-  if (file.indexOf(parent) >= 0) return file;   // raw_<session>.rrl, info_<session>.md: already unique
+  if (file.indexOf(parent) >= 0) return file;   // raw_<session>.csv: already unique
   return path.startsWith(String(storage::ROOT_DIR) + "/") && parent.length() && parent != "vmrr" ? parent + "_" + file : file;
 }
 
@@ -348,12 +405,9 @@ void sendRawZip(fs::FS& f, const String& path) {
   if (!in) { g_server.send(404, "text/plain", "not found"); return; }
   const String file = path.substring(path.lastIndexOf('/') + 1);
   const String dl = downloadName(path);
-  const String base = dl.endsWith(".rrl") ? dl.substring(0, dl.length() - 4) : dl;
-
-  static uint8_t hb[calc::rrl::HEADER_FIXED + 1024];
-  const size_t hn = in.read(hb, sizeof(hb));
-  const char* text = nullptr; size_t textLen = 0;
-  const size_t hdrLen = calc::rrl::parseHeader(hb, hn, &text, &textLen);
+  const String base = dl.endsWith(".csv") ? dl.substring(0, dl.length() - 4) : dl;
+  bool raw = false;
+  { LineReader lr(in, false); raw = rawStart(lr); }
 
   g_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
   g_server.sendHeader("Cache-Control", "no-store");
@@ -362,11 +416,11 @@ void sendRawZip(fs::FS& f, const String& path) {
 
   static ZipOut z;
   z = ZipOut();
-  ZipEntry e[calc::rrl::CSV_FILE_N + 2];
+  ZipEntry e[calc::rawcsv::CSV_FILE_N + 3];
   size_t ne = 0;
   char name[64];
 
-  if (!hdrLen) {   // not an .rrl: into the archive unchanged
+  if (!raw) {   // not a raw stream: into the archive unchanged
     zipBegin(z, e[ne], file.c_str());
     in.seek(0);
     static uint8_t b[1024];
@@ -377,29 +431,37 @@ void sendRawZip(fs::FS& f, const String& path) {
     return;
   }
 
-  uint32_t rows[calc::rrl::CSV_FILE_N];
+  uint32_t rows[calc::rawcsv::CSV_FILE_N];
   bool anyBad = false;
-  for (size_t i = 0; i < calc::rrl::CSV_FILE_N; i++) {
-    const calc::rrl::Type t = calc::rrl::CSV_FILES[i];
-    snprintf(name, sizeof(name), "%s_%s", base.c_str(), calc::rrl::csvName(t));
+  for (size_t i = 0; i < calc::rawcsv::CSV_FILE_N; i++) {
+    const calc::rawcsv::Kind t = calc::rawcsv::CSV_FILES[i];
+    snprintf(name, sizeof(name), "%s_%s", base.c_str(), calc::rawcsv::csvName(t));
     zipBegin(z, e[ne], name);
     bool bad = false;
-    rows[i] = csvPass(in, hdrLen, t, z, bad);
+    rows[i] = csvPass(in, t, z, bad);
     anyBad |= bad;
     zipEnd(z, e[ne++]);
   }
-  // Finally the header of the raw file (constants for conversion) and the row counts.
+  // Then the metadata and the legend as they are on the card, and the row counts.
+  static char side[calc::rawcsv::HEADER_MAX + 1];
+  for (const char* ext : {".json", ".md"}) {
+    const size_t k = readSibling(f, path, ext, side, sizeof(side), false);
+    if (!k) continue;
+    snprintf(name, sizeof(name), "%s%s", base.c_str(), ext);
+    zipBegin(z, e[ne], name);
+    z.data(reinterpret_cast<const uint8_t*>(side), k);
+    zipEnd(z, e[ne++]);
+  }
   snprintf(name, sizeof(name), "%s_info.txt", base.c_str());
   zipBegin(z, e[ne], name);
-  z.data(reinterpret_cast<const uint8_t*>(text), textLen);
   char l[96];
   snprintf(l, sizeof(l), "source_file=%s\nsource_bytes=%lu\n", file.c_str(), static_cast<unsigned long>(in.size()));
   z.data(l);
-  for (size_t i = 0; i < calc::rrl::CSV_FILE_N; i++) {
-    snprintf(l, sizeof(l), "rows_%s=%lu\n", calc::rrl::csvName(calc::rrl::CSV_FILES[i]), static_cast<unsigned long>(rows[i]));
+  for (size_t i = 0; i < calc::rawcsv::CSV_FILE_N; i++) {
+    snprintf(l, sizeof(l), "rows_%s=%lu\n", calc::rawcsv::csvName(calc::rawcsv::CSV_FILES[i]), static_cast<unsigned long>(rows[i]));
     z.data(l);
   }
-  z.data(anyBad ? "end=truncated (last record incomplete or unknown; everything before it is valid)\n" : "end=clean\n");
+  z.data(anyBad ? "end=truncated (a line incomplete or unknown, as a rule the last one; all other lines are valid)\n" : "end=clean\n");
   zipEnd(z, e[ne++]);
   in.close();
   zipFinish(z, e, ne);
@@ -411,7 +473,7 @@ void sendRawZip(fs::FS& f, const String& path) {
 //   GET /fs/<sd|flash><path>                 a file for download (application/octet-stream,
 //                                            see below), file name <session>_<file>
 //   GET /fs/<sd|flash><path>?view            the same as text/plain inline (the UI renders .md)
-//   GET /fs/<sd|flash><path.rrl>?csv         raw file converted to CSV per sensor, as .zip
+//   GET /fs/<sd|flash><raw_*.csv>?csv        raw stream split into one CSV per sensor (+ .json, .md), as .zip
 //   GET /fs/<sd|flash><dir>?zip              all files of a directory (not recursive) as .zip
 //
 // Download is application/octet-stream: text/markdown with Content-Disposition was still
@@ -521,25 +583,26 @@ void sendPlain(storage::Media m, const String& path, bool view) {
   if (sd) storage::unlockSd();
 }
 
-// Overview of a raw file as JSON for the viewer (?info, since 2026-11-26): header text,
-// time span, records and bytes per type, edges per channel, dropped bytes, the first and
-// last TEXT messages. One pass through the file on the ESP (a 30 MB file takes some
+// Overview of a raw file as JSON for the viewer (?info, since 2026-11-26): metadata (.json next to it),
+// time span, lines and bytes per kind, edges per channel, dropped bytes, the first and
+// last note messages. One pass through the file on the ESP (a 10 MB file takes some
 // seconds); the SD lock is taken per 2 kB block, so a running raw log is not held up.
 void sendRawInfo(storage::Media m, const String& path) {
   const bool sd = m == storage::SD_CARD;
   if (sd) storage::lockSd();
   fs::FS* f = storage::fs(m);
   File in = f ? f->open(path, "r") : File();
-  static uint8_t ib[2048];
-  size_t have = in ? in.read(ib, sizeof(ib)) : 0;
   const size_t size = in ? in.size() : 0;
   if (sd) storage::unlockSd();
   if (!in) { g_server.send(404, "text/plain", "not found"); return; }
-  const char* text = nullptr; size_t textLen = 0;
-  const size_t hdrLen = calc::rrl::parseHeader(ib, have, &text, &textLen);
-  String o = "{\"size\":" + String(static_cast<unsigned long>(size)) + ",\"hdrLen\":" + String(static_cast<unsigned long>(hdrLen)) + ",\"hdr\":";
-  appendJsonString(o, hdrLen ? String(text).substring(0, textLen) : String(""));
-  if (!hdrLen) {
+  // metadata from <stem>.json next to it (shown as tables by the viewer); "" if missing
+  static char hdr[calc::rawcsv::HEADER_MAX + 1];
+  readSibling(*f, path, ".json", hdr, sizeof(hdr), sd);
+  bool raw = false;
+  { LineReader lr0(in, sd); raw = rawStart(lr0); }
+  String o = "{\"size\":" + String(static_cast<unsigned long>(size)) + ",\"hdrLen\":0,\"hdr\":";
+  appendJsonString(o, String(hdr));
+  if (!raw) {
     o += ",\"ok\":false}";
     if (sd) storage::lockSd();
     in.close();
@@ -547,56 +610,45 @@ void sendRawInfo(storage::Media m, const String& path) {
     g_server.send(200, "application/json; charset=utf-8", o);
     return;
   }
-  memmove(ib, ib + hdrLen, have - hdrLen);
-  have -= hdrLen;
-  calc::rrl::Decoder d;
-  calc::rrl::Summary sm;
+  if (sd) storage::lockSd();
+  in.seek(0);
+  if (sd) storage::unlockSd();
+  LineReader lr(in, sd);
+  calc::rawcsv::Summary sm;
   constexpr uint8_t TXT_FIRST = 30, TXT_LAST = 10;
   static char txt[TXT_FIRST + TXT_LAST][72];
   static int64_t txtT[TXT_FIRST + TXT_LAST];
   uint32_t txtN = 0;
-  bool bad = false;
-  uint32_t blocks = 0;
-  for (;;) {
-    size_t off = 0;
-    for (;;) {
-      calc::rrl::Rec r; size_t used = 0;
-      const calc::rrl::Status st = d.next(ib + off, have - off, r, &used);
-      if (st == calc::rrl::NEED_MORE) break;
-      if (st == calc::rrl::BAD) { bad = true; break; }
-      sm.add(r, used);
-      if (r.type == calc::rrl::T_TEXT) {
-        const uint32_t slot = txtN < TXT_FIRST ? txtN : TXT_FIRST + (txtN - TXT_FIRST) % TXT_LAST;
-        const size_t k = r.len < sizeof(txt[0]) - 1 ? r.len : sizeof(txt[0]) - 1;
-        memcpy(txt[slot], r.p, k); txt[slot][k] = '\0'; txtT[slot] = r.tUs;
-        txtN++;
-      }
-      off += used;
+  bool lastBad = false;
+  const char* p; size_t n; bool complete;
+  while (lr.next(&p, &n, &complete)) {
+    calc::rawcsv::Rec r;
+    lastBad = !complete || !calc::rawcsv::parseLine(p, n, r);
+    if (lastBad) { sm.bad++; continue; }
+    sm.add(r, n);
+    if (r.kind == calc::rawcsv::K_NOTE) {
+      const uint32_t slot = txtN < TXT_FIRST ? txtN : TXT_FIRST + (txtN - TXT_FIRST) % TXT_LAST;
+      calc::rawcsv::unquote(txt[slot], sizeof(txt[0]), r.body, r.bodyLen);
+      txtT[slot] = r.t;
+      txtN++;
     }
-    if (bad) break;
-    memmove(ib, ib + off, have - off);
-    have -= off;
-    if (sd) storage::lockSd();
-    const size_t got = in.read(ib + have, sizeof(ib) - have);
-    if (sd) storage::unlockSd();
-    have += got;
-    if (got == 0) break;
-    if (++blocks % 64 == 0) touch();   // a long pass must not look like a lost web link
   }
-  const bool truncated = bad || have > 0;
   if (sd) storage::lockSd();
   in.close();
   if (sd) storage::unlockSd();
-  char b[96];
-  snprintf(b, sizeof(b), ",\"ok\":true,\"unix\":%lu,\"t0\":%lld,\"t1\":%lld,\"end\":\"%s\",\"gap\":%llu",
-           static_cast<unsigned long>(d.unixStart), static_cast<long long>(sm.t0), static_cast<long long>(sm.t1),
-           truncated ? "truncated" : "clean", static_cast<unsigned long long>(sm.gapBytes));
+  // end: clean, truncated (only the last line is broken: power loss or still recording),
+  // bad (broken lines in between as well)
+  const char* end = !sm.bad ? "clean" : (sm.bad == 1 && lastBad) ? "truncated" : "bad";
+  char b[128];
+  snprintf(b, sizeof(b), ",\"ok\":true,\"unix\":%lu,\"t0\":%lld,\"t1\":%lld,\"end\":\"%s\",\"bad\":%lu,\"gap\":%llu",
+           static_cast<unsigned long>(sm.unixStart), static_cast<long long>(sm.t0), static_cast<long long>(sm.t1),
+           end, static_cast<unsigned long>(sm.bad), static_cast<unsigned long long>(sm.gapBytes));
   o += b;
   o += ",\"types\":[";
   bool first = true;
-  for (uint8_t t = 1; t < calc::rrl::T_N; t++) {
+  for (uint8_t t = 1; t < calc::rawcsv::K_N; t++) {
     if (!sm.n[t]) continue;
-    snprintf(b, sizeof(b), "%s{\"t\":\"%s\",\"n\":%lu,\"b\":%llu}", first ? "" : ",", calc::rrl::typeName(static_cast<calc::rrl::Type>(t)),
+    snprintf(b, sizeof(b), "%s{\"t\":\"%s\",\"n\":%lu,\"b\":%llu}", first ? "" : ",", calc::rawcsv::kindKey(static_cast<calc::rawcsv::Kind>(t)),
              static_cast<unsigned long>(sm.n[t]), static_cast<unsigned long long>(sm.bytes[t]));
     o += b; first = false;
   }

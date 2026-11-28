@@ -21,6 +21,7 @@
 //      also works if the controller or computer fails (docs/07-safety.md §3).
 //
 #include "calib.h"
+#include "autozero.h"
 #include "relaytest.h"
 #include "profiles.h"
 #include <Arduino.h>
@@ -135,6 +136,7 @@ void loop() {
   TIMED("brake", brake::service());
   relaytest::service();
   calib::service();
+  autozero::service();
   TIMED("state", state::service());
   TIMED("run", run::service());
   TIMED("serial", console::pollSerial());

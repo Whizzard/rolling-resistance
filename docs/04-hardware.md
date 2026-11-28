@@ -526,7 +526,7 @@ table via expressions. Dimensions are changed **in the table**, not in the sketc
 | | |
 |---|---|
 | Feature tree | BaseBlock · Cavity · ComponentSpace · **LedgeChamfers · CableRamp** · SnapNoses · SpringRelief · ScrewHole · CableGroove (+round) · CableTrough (+round) · LED_Hole |
-| `hardware/hall_housing.py` | builds the tree from scratch, exports `.step` and `.stl` |
+| `hardware/hall_housing.py` | builds the tree from scratch, exports `.step` |
 
 Whoever works in the GUI maintains the FCStd — the script overwrites it. It is the
 generator, not the truth.
@@ -616,7 +616,7 @@ the load cell. Outer dimensions **49.2 × 28.2 × 12.3 mm**, 9.3 cm³.
 | | |
 |---|---|
 | Feature tree | BaseBlock · Cavity · ComponentSpace · **CornerLedges · LedgeChamfers · CableRamp** · SnapNoses · SpringRelief · ScrewHole · CableNeck · CableGroove · CableTrough (+round) · MouthChamfers |
-| `hardware/hx711_housing.py` | builds the tree from scratch, exports `.step` and `.stl` |
+| `hardware/hx711_housing.py` | builds the tree from scratch, exports `.step` |
 
 Structure, spreadsheet and caveat as above: the script is the generator, the FCStd
 the truth.
@@ -887,7 +887,7 @@ Outer dimensions **61.3 × 26.4 × 4.0 mm**, 4.8 cm³ (version of 2026-11-23).
 | | |
 |---|---|
 | Feature tree | Plate · M4_Thread · M6_Clearance · M6_Counterbore · Fillet |
-| `hardware/esp_bracket.py` | builds the tree from scratch, exports `.step` and `.stl` |
+| `hardware/esp_bracket.py` | builds the tree from scratch, exports `.step` |
 
 #### Three holes in a triangle
 
@@ -966,7 +966,7 @@ Outer dimensions **40.0 × 34.0 × 19.1 mm**, 9.5 cm³.
 | | |
 |---|---|
 | Feature tree | BasePlate · EndWall · Rib_p/_m · Cutout · EarHoles · M6_Clearance · M6_Counterbore · Chamfers |
-| `hardware/xt60_holder.py` | builds the tree from scratch, exports `.step` and `.stl` |
+| `hardware/xt60_holder.py` | builds the tree from scratch, exports `.step` |
 
 Connector dimensions from the dimensional drawing in the Amass datasheet, read off 2026-11-22:
 
@@ -1032,7 +1032,7 @@ housing sits with 0.1 mm of air per side and cannot wander when tightening.
 | | |
 |---|---|
 | Feature tree | Plate · Seat · M6_Hole · Channel_1 (· Channel_2) |
-| `hardware/insulating_plate.py` | builds **both** plates, exports `.step` and `.stl` |
+| `hardware/insulating_plate.py` | builds **both** plates, exports `.step` |
 
 **No dimensions of its own.** The script reads contour, hole position and channel position when building
 from the parameter lists of `hx711_housing.py` and `hall_housing.py`. If a housing changes,
@@ -1072,7 +1072,7 @@ Outer dimensions **71.3 × 18.6 × 17.1 mm**, 4.6 cm³, hole spacing **56.8 mm**
 | | |
 |---|---|
 | Feature tree | BasePlate · Rails · EndWalls · Supports · Supports_Clear · M6_Holes |
-| `hardware/level_clip.py` | builds the tree from scratch, exports `.step` and `.stl` |
+| `hardware/level_clip.py` | builds the tree from scratch, exports `.step` |
 
 **The vial remains visible from three sides**, from above and from both long sides. It
 is located at the end faces and by the longitudinal bars, and held by the tape:
@@ -1107,7 +1107,7 @@ at the cutout and outside at the circumference, are rounded with **r = 1 mm**. O
 | | |
 |---|---|
 | Feature tree | Washer · Nose · Fillet · Hole |
-| `hardware/spacer_washer.py` | builds the tree from scratch, exports `.step` and `.stl` |
+| `hardware/spacer_washer.py` | builds the tree from scratch, exports `.step` |
 | Bar as printed | 7.8 mm wide: nominal 8.0 minus 0.2 print allowance (`nose_fit`), parallel flanks |
 | Bar pieces | 2 × 15.1 mm long; outside they end exactly on the circumference, inside 4.5 mm from the axis |
 
@@ -1127,7 +1127,7 @@ has to hang freely under the rider, so there is no cross member over the head.
 | Posts | two 8 × 8 mm posts outside the head (1.5 mm air, 48 mm clear) from the collar lugs up to 3 mm above the head; there they bend inward at 45° (from z 26 to 40, the slanted part stays 8 mm thick) to 20.3 mm clear, i.e. rider width plus 1 mm air on each side, and run vertically to 85 mm |
 | Pivot | Ø 2.3 hole through both posts along x, 77 mm above the collar bottom. The 2 mm wire lies across the tube: post, rider hump, post; secure it outside on both sides. The tube runs lengthwise between the posts (bottom edge 37 mm above the collar bottom, rider legs end at 28.3 mm since the beam rider was shortened on 2026-11-26, before at 25 mm; head top at 23 mm). When the weight swings, the posts move beside the rider, never over it, so the rider's clamp screws are never in the way |
 | Outer size | 64 × 35.2 × 85 mm, 14.6 cm³ |
-| `hardware/weight_clip.py` | builds the tree, exports `.step` and `.stl`; rider and tube dimensions are parameters |
+| `hardware/weight_clip.py` | builds the tree, exports `.step`; rider and tube dimensions are parameters |
 
 > **Print:** standing on the collar. Posts vertical or 45°, wire hole short and
 > horizontal. No support.
@@ -1163,11 +1163,29 @@ the neck length) whose bottom is the neck Ø.
 | Size | 64 × 44.4 × 112.5 mm, 24.3 cm³; about 31 g as solid PETG (1.27 g/cm³, typical datasheet value; with infill less, weigh it) |
 | Overhangs | none beyond 45°: checked on every face and on 0.3 mm slices (each layer within 45° of the one below); only the wire hole is a short horizontal bridge, as in the clip above |
 | Model | Part solids (booleans), not a sketch tree: the claws lie in inclined planes and are trimmed by a revolved envelope. Change values in `PARAMS` in the generator; the spreadsheet in the FCStd documents them. Objects: Arch_FR · Arch_FL · Arch_B · WeightClipDual |
-| `hardware/weight_clip_dual.py` | builds the part, exports `.step` and `.stl` |
+| `hardware/weight_clip_dual.py` | builds the part, exports `.step` |
 
 > **Print:** standing on the collar, like the clip above. No support. PETG (the front
 > arches have to spring). **Check before trusting it:** the 200 g groove shape (semicircle
 > assumed): the weight must click in with all three claws in the groove.
+
+#### Lift for the 1000 g weight (draft)
+
+Builder's idea 2026-11-27: put the weight on and take it off by a servo, so the
+calibration runs without a hand at the arm. **Draft, not printed, not tested.** As of
+2026-11-27.
+
+| | |
+|---|---|
+| Hanger | swings on the rider's wire like the clip above. The weight stands with its flat bottom on a **cross** (8 × 6 mm arms along x and y); four **centring fences** at the arm ends (0/90/180/270°), 0.4 mm radial play, the lead-in over the full fence thickness (a ridge, no ledge). The x arms carry the posts: vertical outside the body, 45° inwards, vertical to the Ø 2.3 wire hole; taller than the clip's, so the lifted head passes under the rider legs |
+| Cradle | four stubs turned by **45°** pass between the hanger's arms and lift the weight by its bottom. On each a **ramp** from the seat (0.4 mm play) rising at 45° all the way out to the column: the weight cannot sit on a ramp, it slides into the seat. A flat ring ties the stub ends; the columns rise from the stub ends, per side two columns join at 45° in a **head** with a vertical hole for a **3 mm steel guide wire** and, beside it, a horizontal hole for the **string** at x ±25 (50 mm apart, in line with the pendulum wire) |
+| Base | hangs under the 40 × 40 profile (slot 8) of the traverse, which runs **parallel above the arm**; **2 × M6 button head** along the arm (y +10 and +40 from the horn plane, both clear of the servo) in flat counterbores from below as the cups, so it slides along the arm to the rider's position. The guide wires pass the arm in front and behind (x ±29.7). Holds the two guide wires in vertical **through holes** (parallel to the M6, orthogonal to the servo shaft; they lie outside the profile, so the wire goes in from above), clamped by a horizontal M3 set screw, one **turning pin** per side (3 mm steel) over which the string turns from horizontal to vertical, and the servo **lying flat**: shaft horizontal and parallel to the arm, body long side across, the double horn level across the arm at rest, centred between the wires (shaft, horn and guide wires are three different axes). The servo frame is open at the bottom, the servo goes in from below, 4 screws through the tabs. The strings leave the horn in opposite directions, so turning it pulls both by the same length |
+| States | lowered: the cradle is 9 mm below the weight and touches nothing, the weight hangs only on the hanger. Raised by 20 mm: the weight sits in the cradle 11 mm above the hanger's cross. Either way the receiving ramps or fences catch and centre the weight |
+| Checked by the generator | at least 3 mm between cradle, hanger and weight in both states; hanger may swing 4.5° before it touches the lowered cradle; raised cradle 5 mm below the base; no overhang beyond 45° on any part, no bridge; guide wires 4.5 mm and pin cheeks 2 mm clear of the servo; string pull with the horn hole at r 14: 17.9 mm at 90°, 23.4 mm at 120° |
+| Height | the profile underside must be **at least 81 mm above the pendulum wire** (otherwise the guide wires get shorter and the base lower: change `base_gap`) |
+| Assumed, TBD | weight body Ø 48 and height 58 scaled from the 200 g weight (× 1.71); servo MG996R class, typical listing dimensions, horn plane to tab face 16, tab face to top face 10, body below the tabs 27; horn hole radius 14; string Ø 1 |
+| Print | hanger standing on its cross, cradle on its ring, base upside down (profile face on the bed); no supports |
+| `hardware/weight_lift.py` | builds hanger, cradle and base, checks clearances and overhangs, exports `weight-lift-hanger.step`, `weight-lift-cradle.step`, `weight-lift-base.step`; the FCStd holds the assembly (cradle lowered and raised, servo envelope, guide wires) |
 
 ### 7.11 Rider for the balance beam
 
@@ -1213,7 +1231,7 @@ claw height; the claws run on unchanged over the 30 mm between the bosses.
 | Walls | 2.3 mm of leg under the through-hole (`under_wall`, kept from the first version: 12 − 6.5 − 3.2), so the legs end 8.7 mm below the tube (`leg_below`, derived). Outer bosses from the leg bottom to 2.3 mm above the tube bottom, 5.5 mm each side of the axis |
 | Thread length | **5.5 mm** (outer boss 2.5 + leg 1.5 + inner boss 1.5), was 4 mm |
 | Feature tree | Sk_Outer · Block · Sk_BeamSpace · BeamSpace · Sk_Hump · Hump · Sk_Bosses · Bosses · Sk_Claws · Claws · Sk_Inner_Bosses · Inner_Bosses · Sk_Inner_Lead · Inner_Lead · Sk_Wire · WireHole · Sk_M6_Clearance · M6_Clearance · Sk_M6_Thread · M6_Thread |
-| `hardware/beam_rider.py` | builds the tree, exports `.step` and `.stl` |
+| `hardware/beam_rider.py` | builds the tree, exports `.step` |
 
 > **Print:** lying on its end face, so the profile reads as a U on the bed. All walls
 > vertical; hump and bosses (outer and inner) have 45° run-ins on the side facing the bed; the claws are
@@ -1237,7 +1255,7 @@ walls, and is **glued** to the deck. The profile is constant over the 40 mm leng
 | Mounting | press straight on (each cheek springs 1.8 mm over 25 mm, about 0.9 % strain at the root, fine for PETG, marginal for PLA) or hook one claw and press the other side down. To remove, push one cheek outward at its lower edge |
 | Size | 40 along the tube, 19.3 wide, 33 high; 7.0 cm³ |
 | Feature tree | one sketch `Sk_Profile` (closed 20-point polygon on YZ) · Saddle |
-| `hardware/level_saddle.py` | builds the tree, exports `.step` and `.stl`; tube, vial, preload and claw are parameters |
+| `hardware/level_saddle.py` | builds the tree, exports `.step`; tube, vial, preload and claw are parameters |
 
 > **Print:** lying on its end face, the U on the bed. All walls vertical, all slopes are
 > profile edges, no overhang. PETG, 3 walls, brim: the footprint is only 19 × 33 mm at
@@ -1253,18 +1271,33 @@ not on the screw. As of 2026-11-26.
 | | |
 |---|---|
 | Interior | **Ø 50.0, 50.0 deep** from the top of the floor, as specified; no clearance added |
-| Small sizes | two more cups for the small weights, builder 2026-11-26: inside **Ø 38 × 38** (`weight-cup-38`, outside Ø 41.0 × 43.5, 13.8 cm³) and **Ø 28 × 28** (`weight-cup-28`, Ø 31.0 × 33.5, 7.5 cm³); same wall, floor and M6 |
+| Small sizes | two more cups for the small weights, builder 2026-11-26: inside **Ø 38 × 38** (`weight-cup-38`, outside Ø 41.0 × 43.5, 13.8 cm³) and **Ø 29 × 28** for the Ø 28 weight (`weight-cup-28`, Ø 32.0 × 33.5, 7.9 cm³; Ø 28 was too tight, +1 mm on 2026-11-28); same wall, floor and M6 |
 | Wall | 1.5 mm |
 | Floor | 5.5 mm = head height 4.0 (**assumed**, measure on the screw) + 1.5 under the head |
 | M6 | Ø 6.6 through, flat counterbore Ø 13.0 × 4.0 (takes DIN 7985 dk 12 and ISO 7380 dk 10.6) |
 | Size | Ø 53.0 × 55.5 mm, 23.7 cm³ |
 | Feature tree | Cylinder · Interior · M6 |
-| `hardware/weight_cup.py` | builds all three sizes from scratch (`weight-cup`, `weight-cup-38`, `weight-cup-28`), exports `.step` and `.stl` |
+| `hardware/weight_cup.py` | builds all three sizes from scratch (`weight-cup`, `weight-cup-38`, `weight-cup-28`), exports `.step` |
 
 > One screw only: the cup can turn about it, which does not matter for a cup. If the
 > weight sits too tight, raise `inner_d` in the table.
 
 > **Print:** floor on the bed. No overhangs, no support.
+
+### 7.14 Prism for measuring from a shaft
+
+For measuring the distances from the pendulum axis to the force and load arms: on a round
+shaft the centre is hard to see (builder 2026-11-27). The prism is set on the shaft from
+above and marks its vertical centre plane. As of 2026-11-27, not printed yet.
+
+| | |
+|---|---|
+| V | 90°, opening downwards, for shafts **Ø 16 to 20**: the symmetry plane of the V is the shaft's centre plane for every diameter (axis 11.3 / 14.1 mm below the vertex, contacts at ±5.7 / ±7.1 mm). Small relief at the vertex. The generator asserts both V faces at exactly 45° |
+| Stop | vertical face at x = 0, facing left: a steel ruler lies flat on the shelf on the left and is pushed against it, so its zero sits exactly above the axis. For distances to the right, turn the prism round |
+| Vial | block vial 15.1 × 15.1 × 40 (as §7.8) along the ruler, on the right; the stop is the left end wall of its pocket. Bubble centred = stop face plumb (the prism can rock on the shaft). Visible from above and both long sides, taped |
+| Size | 92.8 × 20 × 36.1 mm, wings of equal length so it balances on the shaft; about 31 g solid PETG |
+| Print | lying on its side: the part is one extruded profile, no overhang, no support; V faces and stop come out as smooth walls |
+| `hardware/shaft_prism.py` | builds the part, exports `.step` |
 
 ## 8 Mark mounting on the drum
 
@@ -2540,8 +2573,8 @@ chamfer next to 1. Count on the adapter itself before soldering.
 - **Both ground contacts** (3 and 6) are connected.
 - **Decoupling** at the adapter: the card draws current peaks while writing.
 - **Wires** as short as possible (under 15 cm), a ground wire next to CLK. The SPI clock
-  is `SD_SPI_KHZ` = 10 MHz; halve it first if reads fail. Needed are about 2 kB/s of
-  raw data, so even 1 MHz would be enough for logging — the clock only matters for
+  is `SD_SPI_KHZ` = 10 MHz; halve it first if reads fail. Needed are an estimated 2.5–3.5 kB/s of
+  raw data ([10-firmware](10-firmware.md) §11.3), so even 1 MHz would be enough for logging — the clock only matters for
   downloads.
 - The **write-protect slider** of the adapter has no effect in SPI mode: it is only a
   switch for a card reader to read.

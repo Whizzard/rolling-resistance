@@ -714,12 +714,31 @@ class Files:
         self.fs = {"sd": {"/vmrr": None, "/vmrr/2026-11-25-183012": None,
                           "/vmrr/2026-11-25-183012/protocol.md": (demo, now - 86400),
                           "/vmrr/2026-11-25-183012/points.csv": ("kind,plateau,v_kmh,crr\nmeasure,1,28.80,0.00451\n", now - 86400),
-                          "/vmrr/2026-11-25-183012/raw_2026-11-25-183012.rrl": ("x" * 1200000, now - 86400),
                           "/vmrr/2026-11-26-101500": None,
-                          "/vmrr/2026-11-26-101500/raw_2026-11-26-101500.rrl": ("x" * 118562, now - 600),
-                          "/vmrr/2026-11-26-101500/info_2026-11-26-101500.md": ("# Raw log 2026-11-26-101500 (FAKE)\n\nStarted by hand.\n\n| Key | Value |\n|---|---|\n| format | rrl1 |\n", now - 600),
-                          "/raw": None, "/raw/up23.rrl": ("x" * 118562, now - 3600)},
+                          "/raw": None},
                    "flash": {"/vmrr": None, "/profiles.tsv": ("RRP2\n", now - 7200)}}
+
+        self.add_raw("2026-11-25-183012", 1200000, now - 86400, "Recorded by the guided run `2026-11-25-183012`.")
+        self.add_raw("2026-11-26-101500", 118562, now - 600, "Started by hand (console `L1` or Manual), not by a run.")
+
+    @staticmethod
+    def fake_meta(name, unix):
+        """raw_<s>.json in the shape of calc/rawlog.h header(); FAKE values, dimensions and
+        calibration unknown."""
+        return json.dumps({"file": name + ".csv", "legend": name + ".md", "format": "vmrr-raw", "version": 3,
+                           "firmware": "FAKE", "commit": "FAKE", "stand_rev": "FAKE stand (tools/fake_stand.py)",
+                           "start_local": "FAKE", "unix_start_local": unix, "run_id": None,
+                           "setup": {"marks_per_rev": 8, "wheel_marks_per_rev": 1, "motor_pole_pairs": 15,
+                                     "drum_circumference_m": None, "torque_arm_m": None, "hx711_rate_sps": 80,
+                                     "wheel_circumference_m": None},
+                           "calibration": {"loadcell_n_per_count": None, "tare_offset_counts": 0, "validity": -1,
+                                           "validity_text": "not calibrated (FAKE)", "record": None}}, indent=2)
+
+    def add_raw(self, sess, size, t, origin):
+        d, name = self.fs["sd"], f"raw_{sess}"
+        d[f"/vmrr/{sess}/{name}.csv"] = ("x" * size, t)
+        d[f"/vmrr/{sess}/{name}.json"] = (self.fake_meta(name, t - 300), t)
+        d[f"/vmrr/{sess}/{name}.md"] = (f"# Raw log {name} (FAKE)\n\n{origin}\n\nDemo content of tools/fake_stand.py.\n", t)
 
     def write_run(self, rid):
         d = self.fs["sd"]
@@ -729,7 +748,7 @@ class Files:
         d[f"/vmrr/{rid}"] = None
         d[f"/vmrr/{rid}/protocol.md"] = (f"# Measurement run {rid} (FAKE)\n\nFake run of tools/fake_stand.py.\n", now)
         d[f"/vmrr/{rid}/points.csv"] = ("kind,plateau,v_kmh\nmeasure,1,28.80\n", now)
-        d[f"/vmrr/{rid}/raw_{rid}.rrl"] = ("x" * 900000, now)
+        self.add_raw(rid, 900000, now, f"Recorded by the guided run `{rid}`.")
 
     def listing(self, m, p):
         d = self.fs.get(m, {})
@@ -750,15 +769,16 @@ class Files:
         d = self.fs.get(m, {})
         if p not in d:
             return 404, "not found", "text/plain"
-        if "info" in q and p.endswith(".rrl"):   # FAKE overview, shape as webui.cpp sendRawInfo
+        if "info" in q and p.rsplit("/", 1)[-1].startswith("raw_") and p.endswith(".csv"):   # FAKE, shape as webui.cpp sendRawInfo
             n = len(d[p][0])
-            return 200, json.dumps({"size": n, "hdrLen": 212, "ok": True, "unix": int(d[p][1]) - 300,
-                "hdr": "format=rrl1\nfirmware=FAKE\nsps=80\ndrum_circ_m=2.8420\nmarks=8\nloadcell_n_per_count=TBD\n",
-                "t0": 0, "t1": 300_000_000, "end": "clean", "gap": 0,
-                "types": [{"t": "sync", "n": 300, "b": 2700}, {"t": "edge", "n": 21000, "b": 63000},
-                          {"t": "hx711", "n": 24000, "b": 96000}, {"t": "vesc", "n": 6000, "b": 162000},
-                          {"t": "ctrl", "n": 6000, "b": 48000}, {"t": "tire", "n": 60, "b": 540},
-                          {"t": "text", "n": 3, "b": 120}],
+            meta = d.get(p[:-4] + ".json")
+            hdr = meta[0] if meta else ""
+            return 200, json.dumps({"size": n, "hdrLen": 0, "ok": True, "unix": int(d[p][1]) - 300,
+                "hdr": hdr, "t0": 0, "t1": 300_000_000, "end": "clean", "bad": 0, "gap": 0,
+                "types": [{"t": "S", "n": 300, "b": 10500}, {"t": "D", "n": 18012, "b": 270180},
+                          {"t": "W", "n": 3000, "b": 45000}, {"t": "T", "n": 24000, "b": 456000},
+                          {"t": "M", "n": 1500, "b": 93000}, {"t": "C", "n": 600, "b": 18600},
+                          {"t": "P", "n": 60, "b": 1320}, {"t": "N", "n": 3, "b": 110}],
                 "edges": [[18000, 12], [0, 0], [3000, 0], [0, 0]], "textN": 3,
                 "text": [[0, "raw log started by hand"], [120000000, "note FAKE"], [300000000, "raw log stopped"]]}), "application/json"
         if "zip" in q or "csv" in q:

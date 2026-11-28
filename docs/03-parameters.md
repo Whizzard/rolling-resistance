@@ -391,6 +391,19 @@ bus voltage, on top of which sits a slow trim. This is how the stand was driven 
 | `BRAKE_MAX_KMH` | 45 | km/h | est | **With the power supply on the bus:** above this there is no braking but release until the drum has coasted below it. Entering braking from motion in FOC always crosses the regeneration zone (source code FW 7.01, [07-safety](07-safety.md) §3.2d); the surge grows roughly with the square of the speed. Measured 2026-11-23: entry at 54 km/h clean, at 56/58/59 km/h fault 1 (overvoltage). 45 leaves margin. Raise only in 2-km/h steps with an eye on `vin`. |
 | `RUN_POINTS_PER_PLATEAU` | 3 | – | spec | Guided measurement run (`run.h`, [11-review](11-review.md) R4): three points of `AVG_REVS_PER_POINT` revolutions each per plateau, from which mean and scatter. Costs about a minute per run. |
 | `RUN_CTRL_MASS_KG` | 1.0 | kg | meas | **Default** of the check-weight mass; since 2026-11-25 the valid value lives in the settings (NVS, `K<kg>`, setup page). Certified weight, hangs at `CALIB_ARM_M`; target 3.237 Nm. Step 5 of the measurement run adopts the factor from it, so the setup page no longer calibrates. |
+| `AZ_POSITIONS` | 2 | – | est | Automatic zero by the drum motor (autozero.h, method of 2026-11-27): readings, alternating in direction (+, −); must be even. Mean = zero (cogging ripple and drum friction cancel), half the difference = drum friction. |
+| `AZ_SPIN_KMH` | 10 | km/h | spec | Drum speed of the readings. Builder 2026-11-27: "10 or 15 km/h would be fine". Drum losses there hardly above standstill (0.472 Nm + 3.178e-4·ω² Nm, [12-logbook](12-logbook.md) 2026-11-17: ω² part 0.012 Nm at 10 km/h). |
+| `AZ_SPIN_REVS` | 5 | – | est | Whole drum revolutions averaged per direction (about 5 s at 10 km/h). |
+| `AZ_SPIN_TOL_KMH` | 1.0 | km/h | est | Band around `AZ_SPIN_KMH` that counts as steady. |
+| `AZ_SPIN_STEADY_MS` | 3000 | ms | est | Steady this long before the duty is frozen and the reading starts. |
+| `AZ_SPIN_DRIFT_KMH` | 0.05 | km/h | est | Speed of the first against the last revolution of a reading (from the revolution times); more and the reading is repeated. 0.05 km/h over the 5 s are about 0.012 Nm with `DRUM_INERTIA_KGM2`, 0.4 % of the 1 kg torque. |
+| `AZ_POS_TIMEOUT_MS` | 60000 | ms | est | A reading (stop, spin-up, revolutions) not finished after this long stops the procedure. |
+| `AZ_WHEEL_PULSES_MAX` | 1 | – | est | Test-wheel pulses during the procedure that mean "wheel on the drum". At 10 km/h a wheel resting on the drum turns along at once. |
+| `CRAWL_KMH_MAX` | 15 | km/h | spec | Highest speed `speedctl::crawl` accepts (builder 2026-11-27). |
+| `CRAWL_DUTY_MAX` | 0.15 | – | est | Duty limit of the crawl; 15 km/h needs 0.136 at the 33.8 V sag of 2026-11-17 (`MOTOR_NO_LOAD_RPM_PER_V`). Above it the crawl ends. |
+| `CRAWL_RAMP_PER_S` | 0.02 | 1/s | est | Duty ramp of the crawl towards feed-forward plus trim. |
+| `CRAWL_TRIM_PER_KMH_S` | 0.002 | 1/(km/h·s) | est | Integral trim of the crawl on the speed error, frozen while reading. |
+| `CRAWL_MAX_FACTOR` | 1.5 | – | est | Faster than this times the crawl speed ends the crawl. |
 | `RUN_CTRL_OK_PCT` | 0.5 | % | est | Check weight: deviation below this is ok. Adjust from the first runs. |
 | `CAL_AVG_MS` | 5000 | ms | est | Calibration procedure (calib.h): averaging time per reading at standstill. |
 | `CAL_MAX_POINTS` | 16 | – | est | Calibration procedure: most readings (zero and loads) per calibration. |
@@ -511,7 +524,7 @@ pin, and when in doubt switch over instead of trying both.
 
 ## 10 Storage and raw data
 
-As of 2026-11-25. Firmware `storage.cpp`, `rawlog.cpp`; reasoning in
+As of 2026-11-27. Firmware `storage.cpp`, `rawlog.cpp`; reasoning in
 [10-firmware](10-firmware.md) §11, wiring in [04-hardware](04-hardware.md) §15.
 
 | Constant | Value | Unit | Origin | Note |
@@ -519,9 +532,9 @@ As of 2026-11-25. Firmware `storage.cpp`, `rawlog.cpp`; reasoning in
 | `SD_SPI_KHZ` | 10000 | kHz | spec | SPI clock of the microSD. Flying wires to the adapter; 20 MHz (IDF default) is not attempted. Halve on read errors. Set explicitly after the card init: the driver alone fell back to 400 kHz below 20 MHz (until 2026-11-26, about 45 kB/s; at 10 MHz about 1 MB/s read). |
 | `STORAGE_CHECK_MS` | 2000 | ms | spec | Poll for card inserted/removed (no card-detect contact). |
 | `STORAGE_STATS_MS` | 10000 | ms | spec | Recompute the usage. LittleFS walks all blocks for it, so only at standstill (§11 of 10-firmware). |
-| `RAWLOG_BUF_BYTES` | 1048576 | B | spec | Ring in PSRAM (1 of 8 MB) between main loop and storage task. At about 2 kB/s: roughly 8 min. Only bridges pauses of the SD card; raw data goes to the SD only since 2026-11-26. |
+| `RAWLOG_BUF_BYTES` | 1048576 | B | spec | Ring in PSRAM (1 of 8 MB) between main loop and storage task. At the estimated 2.5–3.5 kB/s of the CSV stream (since 2026-11-27, [10-firmware](10-firmware.md) §11.3): roughly 5 min. Only bridges pauses of the SD card; raw data goes to the SD only since 2026-11-26. |
 | `RAWLOG_CHUNK_BYTES` | 4096 | B | spec | Write unit: eight SD sectors. |
-| `RAWLOG_SYNC_MS` | 1000 | ms | spec | Interval of the SYNC record (absolute time). The file can be resumed from there. |
+| `RAWLOG_SYNC_MS` | 1000 | ms | spec | Interval of the `S` (sync) line, wall clock against `t_us`; the `C` (control) line is repeated with it. |
 | `RAWLOG_FLUSH_MS` | 2000 | ms | spec | File is committed this often; at most this much is lost on power failure. |
 | `RAWLOG_STOP_PCT` | 95 | % | spec | Recording stops at this usage of the medium. |
 | `RAWLOG_EDGE_RING` | 256 | edges | spec | Ring between the Hall ISRs and the main loop. Power of two. At the highest edge rate (motor Hall plus drum marks, well below 1000/s) it bridges more than 0.2 s of main-loop stall. |

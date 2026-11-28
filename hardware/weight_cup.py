@@ -11,15 +11,16 @@ Invocation (only FreeCAD's own Python can import FreeCAD):
 
     /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/weight_cup.py
 
-Creates three sizes, each as .FCStd, .step and .stl (VARIANTS below):
+Creates three sizes, each as .FCStd and .step (VARIANTS below):
     hardware/weight-cup     inside 50 x 50 (1 kg check weight)
     hardware/weight-cup-38  inside 38 x 38 (small weights, builder 2026-11-26)
-    hardware/weight-cup-28  inside 28 x 28 (small weights, builder 2026-11-26)
+    hardware/weight-cup-28  inside 29 x 28 for the Ø 28 weight (builder 2026-11-26;
+                            Ø 28 was too tight, +1 mm on 2026-11-28)
 
 POSITION: z = 0 is the underside of the floor = print bed face, the cup axis is
 the z axis.
 
-    inner_d x inner_h = 50.0 x 50.0    inside, as specified (or 38 x 38, 28 x 28); no clearance added —
+    inner_d x inner_h = 50.0 x 50.0    inside, as specified (or 38 x 38, 29 x 28); no clearance added —
                                        if the weight sticks, raise inner_d
     wall_t            = 1.5            side wall
 
@@ -74,7 +75,7 @@ PARAMS = [
 VARIANTS = [
     ('weight-cup',    50.0, 50.0),
     ('weight-cup-38', 38.0, 38.0),
-    ('weight-cup-28', 28.0, 28.0),
+    ('weight-cup-28', 29.0, 28.0),   # for the Ø 28 weight; 28 was too tight (builder 2026-11-28)
 ]
 
 
@@ -306,7 +307,6 @@ def main_one(name, inner_d, inner_h):
         'X_Axis', 'Y_Axis', 'Z_Axis',
         'XY_Plane', 'XZ_Plane', 'YZ_Plane', 'Origin001'})
     Part.export([body], os.path.join(here, name + '.step'))
-    body.Shape.exportStl(os.path.join(here, name + '.stl'))
 
     bb = body.Shape.BoundBox
     print('Outer size  %.1f x %.1f x %.1f mm'

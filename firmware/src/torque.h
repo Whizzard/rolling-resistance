@@ -49,6 +49,8 @@ bool     tareBusy();
 uint16_t tareCount();      // 0..TARE_SAMPLES, for the progress
 float    tareSigma();      // standard deviation of the raw values of the last tare, NAN before
 long     tareOffset();
+// Set the zero from outside (autozero.cpp: mean over several rotor positions); stored like a tare.
+void     setTare(long offsetCounts, float sigmaCounts);
 
 // --- Revolution-synchronous averaging ---------------------------------------
 // Every raw value is sorted into an angle bin by the mark number.

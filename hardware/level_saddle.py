@@ -47,7 +47,7 @@ Everything sits in ONE sketch on YZ (one closed polyline, 20 corners) and is bou
 the spreadsheet "Parameter" through expressions. Dimensions in mm.
 
 Invocation:  /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/level_saddle.py
-Produces hardware/level-saddle.FCStd, .step, .stl.
+Produces hardware/level-saddle.FCStd, .step.
 
 Printing: standing on the end face, the U lies on the bed. PETG (springs better than
 PLA), 3 walls, 100 % infill does no harm at 7 cm3. With brim, the footprint is only
@@ -292,7 +292,6 @@ def main():
     fcstd = os.path.join(here, 'level-saddle.FCStd'); doc.saveAs(fcstd)
     write_gui_visibility(fcstd, {body.Name, body.Tip.Name, 'X_Axis', 'Y_Axis', 'Z_Axis', 'XY_Plane', 'XZ_Plane', 'YZ_Plane', 'Origin001'})
     Part.export([body], os.path.join(here, 'level-saddle.step'))
-    body.Shape.exportStl(os.path.join(here, 'level-saddle.stl'))
     bb = body.Shape.BoundBox
     print('Outer size  %.1f x %.1f x %.1f mm' % (bb.XLength, bb.YLength, bb.ZLength))
     print('Volume      %.0f mm3' % body.Shape.Volume)

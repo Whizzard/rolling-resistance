@@ -301,6 +301,22 @@ documented until then. Together with the old 40 mm arm, that would have loaded t
 measure the bore on the lever arm to ±0.1 mm. According to the statement, about 80 mm is
 installed; the arm enters **linearly** into every torque.
 
+### C6 Calibrating the cell directly, without the arm — **option, later**
+As of 2026-11-28 (builder). The load arm hangs from the cell on a Bowden cable; with the arm
+lifted the cell is free, and a known weight can hang straight from the lower end of the
+cable. That gives the cell's N per count with drum, rotor, cogging torque and bearing
+friction out of the picture, loaded in the same direction as in operation. Needs a
+mechanical change by the builder first.
+
+- **Price:** the torque then is force times the cell arm, so the arm (85 mm) enters fully;
+  with the lever calibration it cancels and only `L_cal` counts. Both together give the
+  effective cell arm as a measured value (torque per count from the lever calibration with
+  the drum turning, divided by N per count from the direct one).
+- **Weights:** 1 kg direct is about 20 % of the cell's range; steps up to several kg, each
+  weighed, are needed for a straight line. Masses TBD.
+- **Firmware:** a second calibration mode: ratio 1 instead of `L_cal` / arm, readings at
+  rest (no motor), noted as "direct" in the calibration book. Not built.
+
 ## Done
 
 | Question | Decision | Date |

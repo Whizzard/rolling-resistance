@@ -190,62 +190,152 @@ static void test_zip_stored_archive() {
   if (FILE* f = std::fopen("/tmp/rr_test.zip", "wb")) { std::fwrite(z, 1, p, f); std::fclose(f); }
 }
 
-// ------------------------------------------------------------ Raw data (.rrl)
-// Times deliberately out of order (edges arrive after the controller packet) and across
-// the overflow of micros(); the expectation is computed by hand.
-static void test_rrl_roundtrip() {
-  using namespace calc::rrl;
-  uint8_t b[512]; size_t n = header(b, "k=v\n");
+// ------------------------------------------------------------ Raw data (raw_*.csv)
+// Times deliberately out of order (an edge arrives after the controller packet) and across
+// the overflow of micros(); the expected lines are written by hand. The stream also goes to
+// /tmp/rr_test_raw.csv for tools/rawlog.py and python3 csv.
+static void test_rawcsv_records() {
+  using namespace calc::rawcsv;
+  char b[2048]; size_t n = 0;
   Encoder e;
   const uint32_t t0 = 0xFFFFFF00u;                      // 256 µs before the overflow
-  n += e.sync(b + n, t0, 1764000000u);
-  n += e.vesc(b + n, t0 + 1000, -12345, 678, -250, 1234, -56, 361, 254, -15, 0, 2);
-  n += e.edge(b + n, t0 + 400, 0x80 | 0);               // older than the record before
-  n += e.hx711(b + n, t0 + 2000, -8388608);             // smallest 24-bit value
-  n += e.ctrl(b + n, t0 + 2000, 1550, -123, 1, 4);
-  n += e.tire(b + n, t0 + 70000000u, 4250, -35, 87);    // 70 s later, after the overflow
-  n += e.text(b + n, t0 + 70000001u, "a\"b");
-  n += e.gap(b + n, t0 + 70000002u, 99);
+  e.begin(t0);
+  size_t len[10]; int k = 0;
+  len[k] = e.sync(b + n, sizeof(b) - n, t0, 1764000000u); n += len[k++];
+  len[k] = e.vesc(b + n, sizeof(b) - n, t0 + 1000, -12345, 678, -250, 1234, -56, 361, 254, -15, 0, 2); n += len[k++];
+  len[k] = e.edge(b + n, sizeof(b) - n, t0 + 400, 0x80 | 0);   // older than the line before
+  n += len[k++];
+  len[k] = e.edge(b + n, sizeof(b) - n, t0 + 1500, 3); n += len[k++];   // motor Hall
+  len[k] = e.hx711(b + n, sizeof(b) - n, t0 + 2000, -8388608); n += len[k++];   // smallest 24-bit value
+  len[k] = e.ctrl(b + n, sizeof(b) - n, t0 + 2000, 1550, -123, 1, 4); n += len[k++];
+  len[k] = e.tire(b + n, sizeof(b) - n, t0 + 70000000u, 4250, -35, 87); n += len[k++];   // 70 s later
+  len[k] = e.tire(b + n, sizeof(b) - n, t0 + 70000000u, 0xFFFF, INT16_MIN, 0xFF); n += len[k++];
+  len[k] = e.note(b + n, sizeof(b) - n, t0 + 70000001u, "a\"b\\c, d\ne"); n += len[k++];
+  len[k] = e.gap(b + n, sizeof(b) - n, t0 + 70000002u, 99); n += len[k++];
+  b[n] = '\0';
+  const char* expLines =
+    "S,0,1764000000,4294967040\n"
+    "M,1000,-12345,678,-0.250,12.34,-0.56,36.1,25.4,-1.5,0,2\n"
+    "D,400,1\n"
+    "H,1500,0\n"
+    "T,2000,-8388608\n"
+    "C,2000,15.50,-0.0123,1,4\n"
+    "P,70000000,4.250,-3.5,87\n"
+    "P,70000000,,,\n"
+    "N,70000001,\"a\"\"b\\c, d e\"\n"
+    "G,70000002,99\n";
+  TEST_ASSERT_EQUAL_STRING(expLines, b);
 
-  const char* text; size_t tl;
-  const size_t h = parseHeader(b, n, &text, &tl);
-  TEST_ASSERT_EQUAL_UINT(10u, h);
-  TEST_ASSERT_EQUAL_MEMORY("k=v\n", text, 4);
-
-  Decoder d; Rec r; size_t used; size_t off = h; char line[200];
-  const int64_t expT[] = {0, 1000, 400, 2000, 2000, 70000000, 70000001, 70000002};
-  const char* expL[] = {
+  // split into the per-type CSVs
+  const char* expCsv[] = {
     "0,sync,1764000000\n",
     "1000,-12345,678,-0.250,12.34,-0.56,36.1,25.4,-1.5,0,2\n",
-    "400,0,1\n",
+    "400,drum,1\n",
+    "1500,motor,0\n",
     "2000,-8388608\n",
     "2000,15.50,-0.0123,1,4\n",
     "70000000,4.250,-3.5,87\n",
-    "70000001,note,\"a\"\"b\"\n",
-    "70000002,gap_bytes,99\n"};
-  for (int i = 0; i < 8; i++) {
-    TEST_ASSERT_EQUAL(OK, d.next(b + off, n - off, r, &used));
-    off += used;
-    TEST_ASSERT_EQUAL_INT64(expT[i], r.tUs);
+    "70000000,,,\n",
+    "70000001,note,\"a\"\"b\\c, d e\"\n",
+    "70000002,gap,99\n"};
+  const Kind expK[] = {K_SYNC, K_VESC, K_DRUM, K_MOTOR, K_HX, K_CTRL, K_TIRE, K_TIRE, K_NOTE, K_GAP};
+  Summary sm; size_t off = 0; char line[200];
+  for (int i = 0; i < 10; i++) {
+    Rec r;
+    TEST_ASSERT_TRUE(parseLine(b + off, len[i], r));
+    TEST_ASSERT_EQUAL_UINT8(expK[i], r.kind);
     TEST_ASSERT_TRUE(csvLine(line, sizeof(line), r) > 0);
-    TEST_ASSERT_EQUAL_STRING(expL[i], line);
+    TEST_ASSERT_EQUAL_STRING(expCsv[i], line);
+    sm.add(r, len[i]);
+    off += len[i];
   }
   TEST_ASSERT_EQUAL_UINT(n, off);
-  TEST_ASSERT_EQUAL(NEED_MORE, d.next(b + off, 0, r, &used));
-  // summary over the same records
-  { Decoder ds; Summary sm; size_t o = h;
-    while (ds.next(b + o, n - o, r, &used) == OK) { sm.add(r, used); o += used; }
-    TEST_ASSERT_EQUAL_UINT32(1, sm.n[T_EDGE]); TEST_ASSERT_EQUAL_UINT32(1, sm.n[T_VESC]);
-    TEST_ASSERT_EQUAL_INT64(0, sm.t0); TEST_ASSERT_EQUAL_INT64(70000002, sm.t1);
-    TEST_ASSERT_EQUAL_UINT32(1, sm.edges[0]); TEST_ASSERT_EQUAL_UINT32(1, sm.rejected[0]);
-    TEST_ASSERT_EQUAL_UINT64(99, sm.gapBytes);
-    uint64_t tot = 0; for (int k = 0; k < T_N; k++) tot += sm.bytes[k];
-    TEST_ASSERT_EQUAL_UINT64(n - h, tot); }
-  // truncated record: reading on asks for more, not nonsense
-  Decoder d2; size_t o2 = h; d2.next(b + o2, n - o2, r, &used); o2 += used;
-  TEST_ASSERT_EQUAL(NEED_MORE, d2.next(b + o2, 5, r, &used));   // VESC record is 29 bytes
-  uint8_t junk = 0xEE;
-  TEST_ASSERT_EQUAL(BAD, d2.next(&junk, 1, r, &used));
+  { Rec r; size_t o8 = 0; for (int i = 0; i < 8; i++) o8 += len[i];
+    TEST_ASSERT_TRUE(parseLine(b + o8, len[8], r)); TEST_ASSERT_EQUAL_UINT8(K_NOTE, r.kind);
+    char t[40]; unquote(t, sizeof(t), r.body, r.bodyLen); TEST_ASSERT_EQUAL_STRING("a\"b\\c, d e", t); }
+  TEST_ASSERT_EQUAL_UINT32(1, sm.n[K_DRUM]); TEST_ASSERT_EQUAL_UINT32(1, sm.n[K_MOTOR]); TEST_ASSERT_EQUAL_UINT32(2, sm.n[K_TIRE]);
+  TEST_ASSERT_EQUAL_UINT32(1, sm.edges[3]); TEST_ASSERT_EQUAL_UINT32(0, sm.rejected[3]);
+  TEST_ASSERT_EQUAL_INT64(0, sm.t0); TEST_ASSERT_EQUAL_INT64(70000002, sm.t1);
+  TEST_ASSERT_EQUAL_UINT32(1, sm.edges[0]); TEST_ASSERT_EQUAL_UINT32(1, sm.rejected[0]);
+  TEST_ASSERT_EQUAL_UINT64(99, sm.gapBytes);
+  TEST_ASSERT_EQUAL_UINT32(1764000000u, sm.unixStart);
+  uint64_t tot = 0; for (int i = 0; i < K_N; i++) tot += sm.bytes[i];
+  TEST_ASSERT_EQUAL_UINT64(n, tot);
+
+  char h[160];
+  TEST_ASSERT_TRUE(csvHeader(h, sizeof(h), K_VESC) > 0);
+  TEST_ASSERT_EQUAL_STRING("t_us,erpm,tacho,duty,i_motor_A,i_in_A,v_in_V,t_fet_C,t_motor_C,fault,status\n", h);
+  csvHeader(h, sizeof(h), K_NOTE); TEST_ASSERT_EQUAL_STRING("t_us,event,value\n", h);
+  csvHeader(h, sizeof(h), K_DRUM); TEST_ASSERT_EQUAL_STRING("t_us,channel,echo\n", h);
+  TEST_ASSERT_TRUE(csvBelongs(K_DRUM, K_WHEEL)); TEST_ASSERT_FALSE(csvBelongs(K_DRUM, K_HX));
+
+  // cut off and foreign lines are not records
+  Rec r;
+  TEST_ASSERT_FALSE(parseLine(b + len[0], 30, r));                       // vesc with 5 of 10 fields
+  TEST_ASSERT_FALSE(parseLine("N,5,\"open", 9, r));                     // quote never closed
+  TEST_ASSERT_FALSE(parseLine("T,5", 3, r));                             // no field
+  TEST_ASSERT_FALSE(parseLine("D,5,mark,0", 10, r));                     // edge with a channel column
+  TEST_ASSERT_FALSE(parseLine("L,5,1", 5, r));                           // reserved, not written yet
+  TEST_ASSERT_FALSE(parseLine("bogus,5,1", 9, r));
+  TEST_ASSERT_FALSE(parseLine("kind,plateau,v_kmh", 18, r));            // points.csv header
+  TEST_ASSERT_FALSE(parseLine("measure,1,28.80", 15, r));
+  // a line that does not fit is refused, not written half
+  char small[20];
+  TEST_ASSERT_EQUAL_UINT(0, e.vesc(small, sizeof(small), t0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0));
+  TEST_ASSERT_EQUAL_UINT(0, e.edge(small, sizeof(small), t0, 5));        // unknown channel: not written
+  // a long note is cut, but stays a valid record
+  { char big[400]; std::memset(big, '"', 300); big[300] = '\0';
+    char o[REC_MAX]; const size_t m = e.note(o, sizeof(o), t0, big);
+    TEST_ASSERT_TRUE(m > 0 && m < sizeof(o)); TEST_ASSERT_EQUAL_CHAR('\n', o[m - 1]);
+    TEST_ASSERT_TRUE(parseLine(o, m, r)); }
+  if (FILE* f = std::fopen("/tmp/rr_test_raw.csv", "wb")) { std::fwrite(b, 1, n, f); std::fclose(f); }
+}
+
+// Metadata JSON with NaN as null and an escaped stand revision, and the legend; written to
+// /tmp/rr_test_raw.json and .md and checked with python3 json there.
+static void test_rawcsv_meta() {
+  using namespace calc::rawcsv;
+  static const char* const ph[] = {"IDLE", "TARE"};
+  HeaderInfo h;
+  h.csvFile = "rr_test_raw.csv"; h.legendFile = "rr_test_raw.md";
+  h.firmware = "Nov 27 2026 10:00:00"; h.commit = "abc1234"; h.standRev = "rev \"B\"\\2\nnew cell";
+  h.startLocal = "2026-11-27 10:00:00"; h.unixStartLocal = 1795773600u; h.runId = "";
+  h.marksPerRev = 8; h.wheelMarksPerRev = 1; h.motorPolePairs = 15;
+  h.drumCircM = 0.4523f; h.torqueArmM = 0.1f; h.calibArmM = 0.2f; h.wheelCircM = NAN;
+  h.directionSign = -1; h.vescPollMs = 200; h.hx711RateSps = 80; h.hx711GainPulses = 1; h.syncMs = 1000;
+  h.loadcellCapacityN = 49.03f; h.loadEmptyKg = 1.0f; h.loadWeightKg = 2.0f; h.loadArmM = 0.3f;
+  h.nPerCount = NAN; h.tareOffset = -81234; h.validity = -1; h.validityWhy = "not calibrated: Setup \xE2\x86\x92 Calibrate";
+  h.cal.present = true; h.cal.ver = 1; h.cal.npc = 1.2345e-5f; h.cal.linPctFS = NAN; h.cal.method = "single point (k)";
+  h.phases = ph; h.phaseN = 2;
+  static char b[HEADER_MAX];
+  const size_t n = header(b, sizeof(b), h);
+  TEST_ASSERT_TRUE(n > 0);
+  TEST_ASSERT_NULL(std::strstr(b, "nan"));
+  TEST_ASSERT_NOT_NULL(std::strstr(b, "\"stand_rev\": \"rev \\\"B\\\"\\\\2 new cell\""));
+  TEST_ASSERT_NOT_NULL(std::strstr(b, "\"run_id\": null"));
+  TEST_ASSERT_NOT_NULL(std::strstr(b, "\"loadcell_n_per_count\":null"));
+  TEST_ASSERT_NOT_NULL(std::strstr(b, "\"wheel_circumference_m\":null"));
+  TEST_ASSERT_NOT_NULL(std::strstr(b, "\"drum_circumference_m\":0.4523,"));
+  TEST_ASSERT_NOT_NULL(std::strstr(b, "\"npc\":1.2345e-05,"));
+  TEST_ASSERT_NOT_NULL(std::strstr(b, "\"T\":[[\"t_us\",\"us\"],[\"raw_counts\",\"HX711 counts\"]]"));
+  TEST_ASSERT_NOT_NULL(std::strstr(b, "\"D\":{\"name\":\"drum\","));
+  TEST_ASSERT_NOT_NULL(std::strstr(b, "\"L\":{\"name\":\"axle_load\""));
+  // the storage task's way: file keys + "," + header without its "{" gives the same text
+  { HeaderInfo h2 = h; h2.csvFile = nullptr; static char c[HEADER_MAX]; const size_t cn = header(c, sizeof(c), h2);
+    char fk[160]; const size_t fn = headerFiles(fk, sizeof(fk), "rr_test_raw.csv", "rr_test_raw.md");
+    TEST_ASSERT_TRUE(cn > 0 && fn > 0);
+    static char j[HEADER_MAX + 200]; std::snprintf(j, sizeof(j), "%s,%s", fk, c + 1);
+    TEST_ASSERT_EQUAL_STRING(b, j); }
+  char small[200]; TEST_ASSERT_EQUAL_UINT(0, header(small, sizeof(small), h));   // too small: refused
+  static char md[LEGEND_MAX];
+  const size_t mn = legend(md, sizeof(md), "rr_test_raw", "Recorded by the guided run `2026-11-27-100000`.");
+  TEST_ASSERT_TRUE(mn > 0);
+  TEST_ASSERT_NOT_NULL(std::strstr(md, "| `M` | erpm (1/min electrical), tacho (steps), duty (0..1),"));
+  TEST_ASSERT_NOT_NULL(std::strstr(md, "| `L` | | axle load cells"));
+  TEST_ASSERT_NOT_NULL(std::strstr(md, "grep '^T,' rr_test_raw.csv"));
+  if (FILE* f = std::fopen("/tmp/rr_test_raw.json", "wb")) { std::fwrite(b, 1, n, f); std::fclose(f); }
+  if (FILE* f = std::fopen("/tmp/rr_test_raw.md", "wb")) { std::fwrite(md, 1, mn, f); std::fclose(f); }
+  std::printf("json %u B, md %u B\n", static_cast<unsigned>(n), static_cast<unsigned>(mn));
 }
 
 // Streamed entry (data descriptor): written to /tmp and checked there by
@@ -284,7 +374,8 @@ int main(int, char**) {
   RUN_TEST(test_crc32_catalog_value);
   RUN_TEST(test_zip_stored_archive);
   RUN_TEST(test_zip_streamed_entry);
-  RUN_TEST(test_rrl_roundtrip);
+  RUN_TEST(test_rawcsv_records);
+  RUN_TEST(test_rawcsv_meta);
   RUN_TEST(test_linfit_exact_line);
   RUN_TEST(test_linfit_too_few_points);
   RUN_TEST(test_linfit_degenerate_x);

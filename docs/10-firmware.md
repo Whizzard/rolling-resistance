@@ -350,6 +350,23 @@ carried over to another combination.
 - **Warm-up minute values (since 2026-11-26):** the mean of all valid live values of that
   minute, no longer the last snapshot; one console line per minute with M, P, Crr, tire
   temperature and the span the settle test sees.
+- **Automatic zero by the drum motor (since 2026-11-27, `autozero.cpp`):** replaces nudging
+  and turning the drum by hand in the run's zeroing step and in the post-run zero check
+  (W14). Wheel lifted. Method (builder 2026-11-27): the drum runs at `AZ_SPIN_KMH`
+  (`speedctl::crawl`: feed-forward plus slow trim, at most `CRAWL_DUTY_MAX`), first in the
+  measuring direction, then against it; once steady (`AZ_SPIN_STEADY_MS`) the duty is frozen
+  and the cell averaged over `AZ_SPIN_REVS` whole revolutions. Over whole revolutions the
+  cogging ripple averages out; the drum friction the motor works against has opposite sign
+  in the two directions. Zero = mean of both, half the difference = drum friction (console
+  and raw-log note), check = largest spread of the single-revolution means
+  (`RUN_ZERO_LIMIT_N`). A reading whose first and last revolution differ by more than
+  `AZ_SPIN_DRIFT_KMH` is repeated (inertia in the cell). Between the directions the controller brakes and the other
+  direction starts below `STANDSTILL_KMH` (builder 2026-11-28). A counting test-wheel Hall stops it ("lift the
+  wheel"). Fallback: the manual procedure ("By hand"). Console `Z` (measure), `Zt` (and set
+  the tare), `Zx`. **The same reading is used for every calibration point** (zero and loads,
+  `calib.cpp`, method "procedure, motor") **and for the three readings of the run's
+  check-weight step** (weight, weight again, zero); without the controller they fall back
+  to a plain average at rest. As of 2026-11-27, not yet run on the stand.
 - **Relay pulse test (since 2026-11-26):** console `X<n>` lets the brake relays drop and pull
   in n times at standstill and prints per cycle the edges on all four inputs and the
   load-cell excursion, against a quiet window of the same length (`RELAYTEST_WIN_MS`).
@@ -402,7 +419,7 @@ MEASURE  rev 7/10  ok
 
 ## 11 Storage and Raw Log
 
-As of 2026-11-26. Code: `storage.cpp`, `rawlog.cpp`, format in `calc/rawlog.h`, PC
+As of 2026-11-27. Code: `storage.cpp`, `rawlog.cpp`, format in `calc/rawlog.h`, PC
 decoder `tools/rawlog.py`. Wiring of the card: [04-hardware](04-hardware.md) §15.
 Constants: [03-parameters](03-parameters.md) §10.
 
@@ -415,9 +432,12 @@ Constants: [03-parameters](03-parameters.md) §10.
 
 **Layout (since 2026-11-26), the same on both media:** one directory per run or manual
 raw log, `/vmrr/<session>/`, `<session>` = run id = local time `YYYY-MM-DD-HHMMSS`
-(`up<seconds since boot>` while the browser has not set the clock). In it `raw_<session>.rrl`
-(`raw_<session>-b.rrl` … after a name clash, never overwritten), `protocol.md`, `points.csv`, and
-for a manual raw log `info_<session>.md` (what it is, the header constants as a table). Files from
+(`up<seconds since boot>` while the browser has not set the clock). In it the raw log as three files
+`raw_<session>.csv` (the stream), `raw_<session>.json` (metadata) and `raw_<session>.md`
+(legend), §11.4 (`raw_<session>-b.*` … after a name clash, never overwritten), and
+`protocol.md`, `points.csv` of a run. Raw files written before 2026-11-27 are in an older
+binary format; the firmware and `tools/rawlog.py` no longer read them (builder 2026-11-27:
+no compatibility layer). Files from
 before 2026-11-26 stay in `/raw` and `/runs` and are reachable in the file browser.
 The file system type (FAT32 …, LittleFS) is shown next to the medium under Setup >
 Storage, in `/api/state` (`sto.sdFs`, `sto.flFs`) and by `D` on the console.
@@ -465,45 +485,125 @@ Everything the sensors deliver, as raw values, with a timestamp in **µs** (`mic
 the finest unit the ISRs and the main loop share; the ISR latency is of the same
 order):
 
-| Record | Source | Rate | Content |
+| Type | Source | Rate | Content |
 |---|---|---|---|
-| EDGE | Hall ISRs, `speed::rawEdges` | every edge | channel 0 marks, 1 index, 2 wheel, 3 motor Hall; bit 7 = rejected as echo |
-| HX711 | `torque::update` | 80 /s | raw count of cell 1 (24 bit) |
-| VESC | each values packet | 5 /s (`VESC_POLL_MS`) | ERPM, tachometer, duty, motor and input current, voltage, both temperatures, fault, status — in the controller's own resolution |
-| TIRE | AirSpy / manual entry | on each new value | pressure, temperature, battery |
-| CTRL | `speedctl`, `brake`, `state` | on change and with each SYNC | target speed, duty command, brake, phase |
-| TEXT | `logger` notes | on each note | text |
-| SYNC | — | every `RAWLOG_SYNC_MS` | absolute `micros()` and local Unix time |
-| GAP | — | after an overflow | bytes dropped |
+| `D` `I` `W` `H` | Hall ISRs, `speed::rawEdges` | every edge | one type per channel: drum marks, drum index, test wheel, motor Hall; `echo` 1 = rejected as echo |
+| `T` | `torque::update` | 80 /s | raw count of cell 1 (24 bit) |
+| `M` | each values packet | 5 /s (`VESC_POLL_MS`) | ERPM, tachometer, duty, motor and input current, voltage, both temperatures, fault, status — in the controller's own resolution |
+| `P` | AirSpy / manual entry | on each new value | pressure, temperature, battery |
+| `C` | `speedctl`, `brake`, `state` | on change and with each `S` | target speed, duty command, brake, phase |
+| `N` | `logger` notes | on each note | text |
+| `S` | — | every `RAWLOG_SYNC_MS` | `micros()` and local Unix time |
+| `G` | — | after an overflow | bytes dropped |
 
 Derived quantities (speed, force, Crr) are **not** recorded; they come from the
-evaluation. The file header carries the constants needed for it (drum circumference,
-lever arm, N per count, tare offset, marks per revolution, ...).
+evaluation. The metadata file `raw_<session>.json` carries the constants needed for it (§11.4).
 
-Volume, estimated from the rates above (not yet measured): about 2 kB/s while driving,
-roughly 7 MB per hour.
+Volume of the binary format version 1 (until 2026-11-26), measured on run `2026-11-26-1651` (1515 s,
+80 SPS): about 0.9 kB/s without the text notes, roughly 3.4 MB per hour. By record type: load cell 812 kB, controller 210 kB,
+control 195 kB, edges 145 kB. In that file a repeated note (W18, 42 029 copies, since
+fixed in `main.cpp`) made up 4.2 MB of the 5.6 MB, overflowed the ring and dropped data
+between 117 and 206 s (GAP records; `G` lines today).
 
-### 11.4 Format `.rrl`
+Volume of the CSV stream (since 2026-11-27), **estimate, not yet measured**: the record
+rates of that run (load cell 80 /s, edges about 19 /s, control about 14 /s, controller
+about 4.6 /s, from bytes per type divided by the binary record size) times the line
+lengths (`T` 20, edge 15, `C` 31, `M` 62 B with a 10-digit `t_us`) give about
+2.6 kB/s, about three times the binary format; more edges at higher speed raise it.
+Planning figure 2.5–3.5 kB/s, about 4–5 MB per 25-minute run. The ring
+(`RAWLOG_BUF_BYTES`, 1 MB) then bridges about 5 to 6.5 min.
+
+### 11.4 Format: CSV stream, metadata, legend
+
+As of 2026-11-27 (format `vmrr-raw` version 3; until 2026-11-26 a binary format, version 1).
+Builder 2026-11-27: one CSV stream for everything with the sensor type in front, legend in
+Markdown, the metadata as a separate JSON instead of a header; a timestamp on every record;
+the type a single letter ("D=drum, W=wheel, T=torque etc."), the edge channel in the type. Code:
+`src/calc/rawlog.h` (namespace `calc::rawcsv`), counterpart on the PC `tools/rawlog.py`.
+Three files per raw log, all in the session directory:
+
+**`raw_<session>.csv`, the stream.** One record per line, comma-separated, decimal point,
+`\n` at the end, **no header line**. Every line is `type,t_us,fields` with a single-letter
+type; the number of fields depends on the type (that is intended):
+
+| Type | Fields after t_us | Content |
+|---|---|---|
+| `S` | unix_s (s, local wall clock), micros (µs, `micros()` of the ESP32) | sync: time anchor, first line, then every `RAWLOG_SYNC_MS` |
+| `D` | echo (1 = rejected as echo) | drum mark edge (`marks_per_rev` per drum revolution) |
+| `I` | echo | drum index edge (one per revolution) |
+| `W` | echo | test wheel edge (`wheel_marks_per_rev` per revolution) |
+| `H` | echo | motor Hall edge (`motor_pole_pairs` per motor revolution) |
+| `T` | raw_counts (HX711 counts) | torque load cell, HX711 raw |
+| `M` | erpm (1/min electrical), tacho (steps), duty (0..1), i_motor_A (A), i_in_A (A), v_in_V (V), t_fet_C (°C), t_motor_C (°C), fault (code), status (code) | motor controller (VESC) packet as received |
+| `C` | target_kmh (km/h), duty_cmd (0..1), brake (1 = relays dropped out), phase (index into `ctrl_phases`) | control: speed controller, on change and with every sync |
+| `P` | p_tire_bar (bar), t_tire_C (°C), battery_pct (%) | tire pressure sensor, empty = unknown |
+| `G` | dropped_bytes (B) | gap: ring buffer was full, bytes of records dropped before this line |
+| `N` | text (CSV-quoted, `""` for a quote, line breaks become spaces) | note: message of the firmware |
+| `L` | | axle load cells (planned): reserved, not yet written |
 
 ```
-"RRL1" | u16 text length | header text (key=value lines)
-records: u8 type | time delta (zigzag varint, µs, signed) | payload of fixed length
-         SYNC: u8 type | u32 abs_us | u32 unix_s   (no delta)
-         TEXT: u8 type | delta | u8 length | text
+S,0,1764000000,4294967040
+M,1000,-12345,678,-0.250,12.34,-0.56,36.1,25.4,-1.5,0,2
+D,400,1
+H,1500,0
+T,2000,-8388608
+C,2000,15.50,-0.0123,1,4
+P,70000000,4.250,-3.5,87
+P,70000000,,,
+N,70000001,"a""b\c, d e"
+G,70000002,99
 ```
 
-Little endian. The delta is signed because the ISR edges reach the main loop only on its
-next round and can be older than a record already written. Record sizes: edge 3–7 B,
-load cell 5–9 B, controller packet 28–32 B (the delta takes 1–5 bytes). The decoder accumulates the deltas into a
-64-bit `t_us` from the start of the recording, so the 71-minute wrap of `micros()`
-does not matter (host test `test_rrl_roundtrip`). A file cut off by a power failure is
-valid up to the last complete record.
+(Lines of the host test `test_rawcsv_records`, values made up.) `t_us` is on **every line**:
+µs since the start of the recording, from `micros()` extended to 64 bit, so the 71-minute
+wrap of `micros()` does not matter, and no line needs the lines before it. Edges from the
+ISRs reach the main loop only on its next round and can carry a `t_us` a little *before*
+the line above them: sort by `t_us` where order matters. Fixed-point fields are written
+with the decimals the source delivers (no float formatting), so the values are exactly what
+was recorded; km/h and bar appear only in the fields named so. After an overflow of the
+ring, the next line that fits is preceded by a `G` line with the bytes dropped.
+
+One type: `grep '^T,' raw_<session>.csv`. In pandas:
+`d = pd.read_csv(f, header=None, names=range(12))` (12 = the longest line, `M`), then
+filter on column 0 (`d[d[0] == "T"]`). One CSV per type with column names (the edges in
+one `edges.csv` with a channel column drum/index/wheel/motor): `tools/rawlog.py` or *CSV .zip* in
+the file browser (§11.6).
+
+**`raw_<session>.json`, the metadata**, written once at the start before the stream:
+
+| Key | Content |
+|---|---|
+| `file`, `legend` | the stream and the legend next to it (with collision suffix) |
+| `format`, `version` | `"vmrr-raw"`, `3` |
+| `firmware`, `commit` | build date and time, git commit (`-dirty` with uncommitted changes) |
+| `stand_rev` | stand revision text (Setup) |
+| `start_local`, `unix_start_local` | local wall clock at the start (0 = clock not set) |
+| `run_id` | id of the guided run, `null` for a manual raw log |
+| `layout`, `time` | the line layout and the meaning of `t_us` in words |
+| `columns` | per letter the columns in file order after the type, each `[name, unit]`, `t_us` first |
+| `types`, `echo`, `ctrl_phases` | per letter `name` and `description` (with the reserved `L`), the echo flag of the edges, names of the `C` phase numbers (`state.h`) |
+| `setup` | `marks_per_rev`, `wheel_marks_per_rev`, `motor_pole_pairs`, `drum_circumference_m`, `torque_arm_m`, `calib_arm_m`, `direction_sign`, `vesc_poll_ms`, `hx711_rate_sps`, `hx711_gain_pulses`, `loadcell_capacity_n`, `load_empty_kg`, `load_weight_kg`, `load_arm_m`, `wheel_circumference_m`, `sync_ms` |
+| `calibration` | `loadcell_n_per_count` (`null` while TBD), `tare_offset_counts`, `validity` (1 valid, 0 conditions unknown, −1 not valid; `calib::validity`) and `validity_text`, `record` = the stored calibration record (`ver`, `gain_pulses`, `sps`, `epoch_local`, `npc`, `arm_m`, `lcal_m`, `sps_meas`, `lin_pct_fs`, `hyst_pct_fs`, `zero_pct_fs`, `n_loads`, `n_points`, `method`) or `null` |
+
+A value that is not known (NaN in the firmware) is written as `null`, never as a number.
+Top-level keys one per line. About 3.5 to 4 kB; `HEADER_MAX` = 5 kB.
+
+**`raw_<session>.md`, the legend**, for every raw log (run or manual): what the file is,
+how it was started, the type table above, the `grep` and pandas lines. Generated by
+`calc::rawcsv::legend()`.
+
+A stream cut off by a power failure loses at most its last line, which then has no `\n`;
+every line before it is valid. The viewer, the CSV split and `tools/rawlog.py` take a line
+only if its type is known and the field count matches, take the last line only with its
+`\n`, and report the end as *truncated* (only the last line) or *bad*. A raw stream is
+recognised by its first line, an `S` record; ordinary CSVs such as `points.csv` stay
+ordinary.
 
 ### 11.5 Path of the data and the flash rule
 
 Main loop → encoder → ring in PSRAM (`RAWLOG_BUF_BYTES`) → storage task → file in
 `RAWLOG_CHUNK_BYTES` pieces, committed every `RAWLOG_FLUSH_MS`. If the ring is full,
-records are dropped and a GAP record notes how many bytes.
+lines are dropped and a `G` line notes how many bytes.
 
 **Raw data goes to the SD only.** While the ESP32 erases or writes its flash, cache and
 every interrupt not in IRAM are locked on *both* cores — including the Hall ISRs
@@ -512,7 +612,7 @@ milliseconds; edges would arrive late or merge, the main loop would stand. Until
 2026-11-26 the raw log fell back to the flash and wrote it only at standstill; that
 fallback is gone. Without a ready card there is no raw log, and the run checklist says
 so (row *Storage*, yellow). The SD hangs on SPI2 and locks nothing; it is written
-continuously. The ring (1 MB, about 8 minutes) only has to bridge the card's own
+continuously. The ring (1 MB, about 5 minutes at the estimated rate, §11.3) only has to bridge the card's own
 pauses. Flash usage and formatting still wait for `RAWLOG_FLASH_IDLE_MS` of standstill.
 Requirement: [01-requirements](01-requirements.md) F8a.
 
@@ -525,8 +625,8 @@ shorter, but large downloads belong to standstill as well.
   only creates the run, and tapping *Measure* alone must not start a recording), on the
   SD. Without a ready card: no raw log, the run still works.
   The whole run is recorded continuously, waiting times between steps included. Every
-  step change writes a TEXT mark `run <step>.<sub>` into the file, and the results of
-  the standstill readings follow as TEXT next to their samples (`tare raw_counts=… sigma_counts=… pp_counts=…`, `check_weight raw_above_tare=…`,
+  step change writes an `N` (note) line `run <step>.<sub>` into the file, and the results of
+  the standstill readings follow as `N` lines next to their samples (`tare raw_counts=… sigma_counts=… pp_counts=…`, `check_weight raw_above_tare=…`,
   `check_weight_after_stop …`, `zero_after_stop …`), so each window can be cut out of
   `_loadcell.csv` by time. The protocol names the raw file.
 - **By hand:** the button *Turn recording on* / *Stop recording* under Manual (since 2026-11-26; it was under Setup >
@@ -534,16 +634,17 @@ shorter, but large downloads belong to standstill as well.
   cannot be switched off there.
 - **Protocols** (`/vmrr/<id>/protocol.md`, `points.csv`) go to the SD if it is ready at
   the end of the run, otherwise to the flash.
-- File name: `/vmrr/<session>/raw_<session>.rrl` (§11.1). An existing file is never overwritten.
+- File names: `/vmrr/<session>/raw_<session>.csv`, `.json`, `.md` (§11.1, §11.4). An existing file is never overwritten.
 - **Download:** in the file browser (§11.7); per raw file *Download* and *CSV .zip*.
   The zip is converted while sending: one CSV per record type
   (`_loadcell.csv`, `_edges.csv`, `_vesc.csv`, `_control.csv`, `_tire.csv`,
-  `_events.csv`) plus `_info.txt` with the header constants and row counts. Streamed
+  `_events.csv`), each with a column header row, plus the `.json` and `.md` of the log and
+  `_info.txt` with the row counts and whether the stream ends cleanly. Streamed
   zip with data descriptors over HTTP chunked — one read pass per CSV, no intermediate
-  file. If the file is not a readable `.rrl`, the zip contains it unchanged.
+  file. If the first line is not an `S` record, the zip contains the file unchanged.
   While a download streams, the web task serves nothing else.
-- **On the PC:** `python3 tools/rawlog.py <file>.rrl` gives the same CSVs (cross-checked
-  against the firmware decoder).
+- **On the PC:** `python3 tools/rawlog.py raw_<session>.csv` gives the same CSVs (cross-checked
+  on the lines of the host test: identical).
 
 ### 11.7 File browser
 
@@ -552,7 +653,7 @@ SD / Flash switch, *↑ Back* and the path as breadcrumbs, directories newest fi
 size and time. A tap on icon or name opens a directory or views a file; *Download*, *.zip* and
 *CSV* sit right-aligned. No Refresh button: the listing reloads by itself while a raw log is
 written and when recording starts or stops (nothing else changes it while it is open).
-Viewing: (`.md` rendered, `.csv`/`.txt` as text, `.rrl` as an overview: start, duration, size, complete or cut off, dropped bytes, records per type with rate, bytes and field types, edges per channel, header, events), *Download*, for raw files *CSV .zip*,
+Viewing: (`.md` rendered, `.csv`/`.txt` as text, `raw_*.csv` as an overview: start, duration, size, complete or cut off, dropped bytes, lines per type with rate, bytes and fields, edges per channel, header, setup and calibration from the `.json`, events), *Download*, for raw files *CSV .zip*,
 per directory *.zip*. *Format SD card* small at the very bottom, with a spinner and the elapsed seconds while the stand formats (FatFs reports no progress), then a fresh listing, then *Formatted in n s* or the reason (`sto.sdFmtRes`). The UI waits for the counter of finished formats (`sto.sdFmtN`), not for the short *formatting* phase, which a poll can miss; file requests get 503 while formatting, so they never stall the web task on the SD lock. Formatting a readable card runs FatFs `f_mkfs` (FAT type by size); until 2026-11-26 it only re-mounted with `format_if_mount_failed`, which does nothing on a readable card. *Close* at the top leaves the browser, *↑ Back* next to the path goes one step back. Navigation runs through the URL
 hash (`#fb:sd/vmrr/<session>`, `#fv:<url>`), so the browser's back button walks back
 through directories and closes the viewer; *Back* in the bar does the same. The Setup
@@ -565,7 +666,7 @@ tab itself is kept as `#setup`, so a refresh stays there.
 | `…?view=1` | the same as `text/plain` inline (the viewer) |
 | `…?csv=1` | a raw file converted to one CSV per record type, as streamed ZIP |
 | `…?zip=1` | all files of a directory (not recursive) as streamed ZIP |
-| `…?info=1` | overview of a raw file as JSON: time span, records and bytes per type, edges per channel (echo rejected), dropped bytes, header, first 30 and last 10 TEXT events; shown by the viewer |
+| `…?info=1` | overview of a raw file as JSON: time span, records and bytes per type, edges per channel (echo rejected), dropped bytes, `bad` lines, the `.json` next to it as `hdr`, first 30 and last 10 `N` notes; shown by the viewer |
 
 The flags need a value (`?zip=1`, not `?zip`): the Arduino WebServer drops query
 arguments without `=` (`Parsing.cpp`), which made every *.zip* answer 404 until

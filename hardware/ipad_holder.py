@@ -11,7 +11,7 @@ Invocation (only FreeCAD's own Python can import FreeCAD):
 
     /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/ipad_holder.py
 
-Produces hardware/ipad-holder.FCStd, .step and .stl.
+Produces hardware/ipad-holder.FCStd and .step.
 
 ORIENTATION: portrait, home button at the bottom. The iPad lies with its back on
 the plate. z = 0 is the back of the mount — flat, that is the print bed face.
@@ -735,7 +735,6 @@ def main():
         'X_Axis', 'Y_Axis', 'Z_Axis',
         'XY_Plane', 'XZ_Plane', 'YZ_Plane', 'Origin001'})
     Part.export([body], os.path.join(here, 'ipad-holder.step'))
-    body.Shape.exportStl(os.path.join(here, 'ipad-holder.stl'))
 
     bb = body.Shape.BoundBox
     print('Outer size  %.1f x %.1f x %.1f mm'

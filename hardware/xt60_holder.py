@@ -11,7 +11,7 @@ Invocation (only FreeCAD's own Python can import FreeCAD):
 
     /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/xt60_holder.py
 
-Produces hardware/xt60-holder.FCStd, .step and .stl.
+Produces hardware/xt60-holder.FCStd and .step.
 
 POSITION: the connector LIES FLAT -- its long axis (the two ears) parallel to the
 mounting surface, the mating direction parallel to the profile. The cable thus runs
@@ -492,7 +492,6 @@ def main():
         'X_Axis', 'Y_Axis', 'Z_Axis',
         'XY_Plane', 'XZ_Plane', 'YZ_Plane', 'Origin001'})
     Part.export([body], os.path.join(here, 'xt60-holder.step'))
-    body.Shape.exportStl(os.path.join(here, 'xt60-holder.stl'))
 
     bb = body.Shape.BoundBox
     print('Outer size  %.1f x %.1f x %.1f mm'

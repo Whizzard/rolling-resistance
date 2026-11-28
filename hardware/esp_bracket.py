@@ -389,7 +389,6 @@ def main():
         'X_Axis', 'Y_Axis', 'Z_Axis',
         'XY_Plane', 'XZ_Plane', 'YZ_Plane', 'Origin001'})
     Part.export([body], os.path.join(here, 'esp-bracket.step'))
-    body.Shape.exportStl(os.path.join(here, 'esp-bracket.stl'))
 
     bb = body.Shape.BoundBox
     print('Outer size  %.1f x %.1f x %.1f mm'

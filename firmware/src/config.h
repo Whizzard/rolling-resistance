@@ -571,6 +571,29 @@ constexpr float    RUN_TURN_DEG       = 90.0f;     // [est] zero check: the drum
 // [est] Accepted short of RUN_TURN_DEG (builder, 2026-11-26: "88 or so"). The tachometer
 // counts 4 degrees per step (VESC_TACHO_PER_REV = 90), so 88 passes, 84 does not.
 constexpr float    RUN_TURN_TOL_DEG   = 5.0f;
+// Automatic zero with the drum motor (autozero.h, 2026-11-27, builder): the drum runs at
+// AZ_SPIN_KMH, first in the measuring direction, then against it; the cell is averaged
+// over AZ_SPIN_REVS whole revolutions each. Mean of the two = zero (cogging ripple and
+// drum friction cancel), half the difference = drum friction. [spec] speed: builder
+// 2026-11-27 ("10 or 15 km/h would be fine"). [est] the rest: revolutions, the band and
+// time that count as steady, the spin-up timeout,
+// and test-wheel pulses that mean "the wheel is on the drum".
+constexpr uint8_t  AZ_POSITIONS        = 2;        // readings: +, - (even, alternating)
+constexpr float    AZ_SPIN_KMH         = 10.0f;
+constexpr uint8_t  AZ_SPIN_REVS        = 5;
+constexpr float    AZ_SPIN_TOL_KMH     = 1.0f;
+constexpr uint32_t AZ_SPIN_STEADY_MS   = 3000;
+constexpr float    AZ_SPIN_DRIFT_KMH   = 0.05f;    // [est] first vs last revolution of a reading; more = read again
+constexpr uint32_t AZ_POS_TIMEOUT_MS   = 60000;
+constexpr uint32_t AZ_WHEEL_PULSES_MAX = 1;
+// Crawl drive (speedctl::crawl, 2026-11-27). [spec] CRAWL_KMH_MAX: builder 2026-11-27.
+// [est] the rest: duty limit (0.136 needed for 15 km/h at the 33.8 V sag of 2026-11-17
+// with MOTOR_NO_LOAD_RPM_PER_V), ramp, trim gain, overspeed factor that ends the crawl.
+constexpr float    CRAWL_KMH_MAX        = 15.0f;
+constexpr float    CRAWL_DUTY_MAX       = 0.15f;
+constexpr float    CRAWL_RAMP_PER_S     = 0.02f;
+constexpr float    CRAWL_TRIM_PER_KMH_S = 0.002f;
+constexpr float    CRAWL_MAX_FACTOR     = 1.5f;
 constexpr uint32_t RUN_TURN_STANDSTILL_MS  = 1500;      // [est] then still for this long before the Measure button appears (no automatic start since 2026-11-26)
 // Type B components of the uncertainty per point (R9), relative. Origin docs/03-parameters.md.
 constexpr float    UNC_K_REL     = 0.002f;        // [est] calibration factor: check weight 0.05 %, averaging, linearity
@@ -673,19 +696,19 @@ constexpr uint8_t PIN_BRAKE_RELEASE = 40;
 // storage.cpp / rawlog.cpp, since 2026-11-25. Rationale docs/10-firmware.md §11.
 //
 // SPI clock of the microSD. [spec] 10 MHz: flying leads to the adapter tolerate
-// less than the default 20 MHz; about 2 kB/s of raw data are needed. On
+// less than the default 20 MHz; an estimated 2.5-3.5 kB/s of raw data are needed. On
 // read errors halve this value first. Set explicitly after the card's init
 // (storage.cpp sdSetClock): the driver alone knows only 20 MHz and up and fell
 // back to 400 kHz until 2026-11-26.
 constexpr uint32_t SD_SPI_KHZ          = 10000;
 constexpr uint32_t STORAGE_CHECK_MS    = 2000;    // [spec] check SD inserted/removed
 constexpr uint32_t STORAGE_STATS_MS    = 10000;   // [spec] recalculate usage (LittleFS walks through all blocks for this)
-// Ring buffer in PSRAM between main loop and writer task. [spec] 1 MB: at about
-// 2 kB/s a good 8 min. It only has to bridge the pauses of the SD (housekeeping of the
+// Ring buffer in PSRAM between main loop and writer task. [spec] 1 MB: at an estimated
+// 2.5-3.5 kB/s (CSV stream since 2026-11-27) about 5 min. It only has to bridge the pauses of the SD (housekeeping of the
 // card, removal and insertion), since 2026-11-26 no longer the run down to standstill.
 constexpr uint32_t RAWLOG_BUF_BYTES    = 1024u * 1024u;
 constexpr uint32_t RAWLOG_CHUNK_BYTES  = 4096;    // [spec] write unit, one flash page / eight SD sectors
-constexpr uint32_t RAWLOG_SYNC_MS      = 1000;    // [spec] absolute time mark; readable again from there
+constexpr uint32_t RAWLOG_SYNC_MS      = 1000;    // [spec] sync line: wall clock against t
 constexpr uint32_t RAWLOG_FLUSH_MS     = 2000;    // [spec] commit the file: at most this much is lost on a power failure
 constexpr uint8_t  RAWLOG_STOP_PCT     = 95;      // [spec] recording ends at this usage
 constexpr uint16_t RAWLOG_EDGE_RING    = 256;     // [spec] edges between ISR and main loop, power of two

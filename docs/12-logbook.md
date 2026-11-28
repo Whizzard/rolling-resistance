@@ -8,6 +8,15 @@ Entries before 2026-11-25 were written on 2026-11-26 from the builder's notes an
 and from commit messages and dated passages in the documents (those name their source).
 Days with only design or documentation work are left out.
 
+## 2026-11-27
+
+**Motor flange made new** (workshop day, builder's report). The shaft bore was no longer
+drilled on the mill: only pre-drilled roughly, then bored out on the lathe with the motor
+housing chucked and the flange mounted, for better concentricity. On the way a fault of the
+mill was found: centring on the bearing and drilling always ended with a marked offset despite
+a precise dial gauge. Cause: the head was not trammed square, so every travel in Z shifted
+the tool in X, the more the higher chuck, gauge or cutter stood. Trammed since.
+
 ## 2026-11-26
 
 **SD card swapped, SD clock found at 400 kHz.** File transfers over USB ran at about

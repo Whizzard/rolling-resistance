@@ -1,6 +1,8 @@
 #pragma once
 //
-// RAW DATA RECORDING, since 2026-11-25. Format: calc/rawlog.h, docs/10-firmware.md §11.
+// RAW DATA RECORDING, since 2026-11-25. Format since 2026-11-27: one CSV stream
+// raw_<session>.csv (type,t_us,fields per line), metadata raw_<session>.json, legend
+// raw_<session>.md; calc/rawlog.h, docs/10-firmware.md §11.
 //
 // Everything the sensors deliver, timestamped in µs: every edge of the four
 // Hall sensors (from the ISRs), every load cell value (80 SPS), every measurement packet
@@ -12,7 +14,8 @@
 // DATA PATH: the main loop encodes into a ring in PSRAM (RAWLOG_BUF_BYTES),
 // the storage task writes it out in RAWLOG_CHUNK_BYTES chunks. The main loop
 // never waits for a file system.
-// If the ring runs full, data is dropped and a GAP record with the byte count is entered.
+// If the ring runs full, lines are dropped; the next line that fits is preceded by a
+// gap line with the dropped byte count.
 //
 // WHEN: by hand (console L1/L0, UI) or automatically while a
 // guided run is active (run::active()).
@@ -33,11 +36,11 @@ bool active();                       // requested or file open
 bool manual();
 bool draining();                     // stopped, ring still being written
 storage::Media media();
-const char* fileName();              // "/vmrr/<session>/raw_<session>.rrl" or ""
+const char* fileName();              // "/vmrr/<session>/raw_<session>.csv" or ""
 uint32_t bytesWritten();
 uint32_t bytesPending();             // still in the ring
 uint32_t bytesDropped();             // dropped since start
 
-void text(const char* s);            // message as TEXT record (main loop)
+void text(const char* s);            // message as a note line (main loop)
 
 }  // namespace rawlog

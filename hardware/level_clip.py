@@ -12,7 +12,7 @@ Invocation (only FreeCAD's own Python can import FreeCAD):
 
     /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/level_clip.py
 
-Produces hardware/level-clip.FCStd, .step and .stl.
+Produces hardware/level-clip.FCStd and .step.
 
 POSITION: z = 0 is the contact face on the profile. x runs along the profile (and
 along the vial), y across it, symmetric about y = 0. The vial lies with its long axis
@@ -430,7 +430,6 @@ def main():
         'X_Axis', 'Y_Axis', 'Z_Axis',
         'XY_Plane', 'XZ_Plane', 'YZ_Plane', 'Origin001'})
     Part.export([body], os.path.join(here, 'level-clip.step'))
-    body.Shape.exportStl(os.path.join(here, 'level-clip.stl'))
 
     bb = body.Shape.BoundBox
     print('Outer size  %.1f x %.1f x %.1f mm'

@@ -10,7 +10,7 @@ Invocation (only FreeCAD's own Python can import FreeCAD):
     /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/insulating_plate.py
 
 Produces per housing hardware/insulating-plate-hx711.* and hardware/insulating-plate-hall.*
-(FCStd, STEP, STL).
+(FCStd, STEP).
 
 WHY: Both housings are open at the bottom, the board lies with the solder side
 down and only solder_gap = 2 mm above the mounting surface. That surface is
@@ -382,7 +382,6 @@ def main():
             'X_Axis', 'Y_Axis', 'Z_Axis',
             'XY_Plane', 'XZ_Plane', 'YZ_Plane', 'Origin001'})
         Part.export([body], os.path.join(HERE, name + '.step'))
-        body.Shape.exportStl(os.path.join(HERE, name + '.stl'))
 
         bb = body.Shape.BoundBox
         print('== %s  from %s' % (name, spec['source']))

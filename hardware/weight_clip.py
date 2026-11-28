@@ -35,7 +35,7 @@ Everything sits in sketches on XY (collar, webs), XZ (posts) and YZ (wire hole) 
 bound to the spreadsheet "Parameter" through expressions. Dimensions in mm.
 
 Invocation:  /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/weight_clip.py
-Produces hardware/weight-clip.FCStd, .step, .stl.
+Produces hardware/weight-clip.FCStd, .step.
 
 Printing: standing on the collar. Posts vertical or at 45 degrees, the wire hole is
 horizontal and small -- no overhangs beyond 45 degrees. PETG, 3 to 4 walls; 1 kg is
@@ -331,7 +331,6 @@ def main():
     write_gui_visibility(fcstd, {body.Name, body.Tip.Name, 'X_Axis', 'Y_Axis', 'Z_Axis',
                                  'XY_Plane', 'XZ_Plane', 'YZ_Plane', 'Origin001'})
     Part.export([body], os.path.join(here, 'weight-clip.step'))
-    body.Shape.exportStl(os.path.join(here, 'weight-clip.stl'))
     bb = body.Shape.BoundBox
     print('Outer size  %.1f x %.1f x %.1f mm' % (bb.XLength, bb.YLength, bb.ZLength))
     print('Volume      %.0f mm3' % body.Shape.Volume)

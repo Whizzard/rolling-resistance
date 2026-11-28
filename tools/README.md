@@ -30,7 +30,7 @@ command `Gz`, only at standstill and outside a run): 32 kB chunks, heatshrink-co
 on the stand (`firmware/lib/heatshrink`, about 3.5x on raw logs), as base64 lines with
 CRC32; a damaged chunk is requested again. 5.6 MB in 156 s (2026-11-26). The limit is the
 SD card itself: it reads about 48 kB/s over SPI at 10 MHz, whatever the block size; the
-compression only shortens the line. Firmware without `Gz` gets the plain `G` transfer. Then `rawlog.py` turns the `.rrl` into CSV.
+compression only shortens the line. Firmware without `Gz` gets the plain `G` transfer. Then `rawlog.py` splits the raw stream into one CSV per sensor.
 
 Arguments are commands in order, `sleep:<s>` waits in between, `--log` writes the
 capture to a file as well. `j<s>` is the firmware's live telemetry (one line every
@@ -43,12 +43,15 @@ sensors and power stage in order; the fault was in the Hall table.
 
 ## `rawlog.py` — raw recordings to CSV
 
-Converts a raw recording of the stand (`.rrl`, [10-firmware](../docs/10-firmware.md) §11)
-into one CSV per sensor, exactly like the `.zip` download from `/raw` does on the stand.
-For files fetched raw or copied straight off the SD card.
+Splits a raw recording of the stand (`raw_<session>.csv`, one stream `type,t_us,fields`,
+[10-firmware](../docs/10-firmware.md) §11.4) into one CSV per sensor with column names, exactly
+like the CSV `.zip` download of the file browser does on the stand. For files fetched raw or
+copied straight off the SD card. The metadata `raw_<session>.json` next to it (version, stand,
+dimensions, calibration) goes into `<file>_info.txt` if present; a line cut off at the end is
+skipped.
 
 ```
-python3 tools/rawlog.py 2026-11-25-183012.rrl [--out folder/]
+python3 tools/rawlog.py raw_2026-11-27-101500.csv [--out folder/]
 ```
 
 ## `vesc_console.py` — drive the controller by hand

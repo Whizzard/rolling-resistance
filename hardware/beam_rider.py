@@ -65,7 +65,7 @@ Holes:
                  it finds the turns.
 
 Invocation:  /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/beam_rider.py
-Produces hardware/beam-rider.FCStd, .step, .stl.
+Produces hardware/beam-rider.FCStd, .step.
 """
 
 import os
@@ -489,7 +489,6 @@ def main():
     fcstd = os.path.join(here, 'beam-rider.FCStd'); doc.saveAs(fcstd)
     write_gui_visibility(fcstd, {body.Name, body.Tip.Name, 'X_Axis', 'Y_Axis', 'Z_Axis', 'XY_Plane', 'XZ_Plane', 'YZ_Plane', 'Origin001'})
     Part.export([body], os.path.join(here, 'beam-rider.step'))
-    body.Shape.exportStl(os.path.join(here, 'beam-rider.stl'))
     bb = body.Shape.BoundBox
     print('Outer size  %.1f x %.1f x %.1f mm' % (bb.XLength, bb.YLength, bb.ZLength))
     print('Volume      %.0f mm3' % body.Shape.Volume)

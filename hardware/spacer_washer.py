@@ -18,7 +18,7 @@ Invocation (only FreeCAD's own Python can import FreeCAD):
 
     /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/spacer_washer.py
 
-Produces hardware/spacer-washer.FCStd, .step and .stl.
+Produces hardware/spacer-washer.FCStd and .step.
 
 POSITION: disc in the XY plane, hole axis = z, z = 0 is the flat side facing away
 from the profile. The rib sits on the face z = disc_t, runs along x (= slot
@@ -315,7 +315,6 @@ def main():
         'X_Axis', 'Y_Axis', 'Z_Axis',
         'XY_Plane', 'XZ_Plane', 'YZ_Plane', 'Origin001'})
     Part.export([body], os.path.join(here, 'spacer-washer.step'))
-    body.Shape.exportStl(os.path.join(here, 'spacer-washer.stl'))
 
     bb = body.Shape.BoundBox
     print('Outer size  %.1f x %.1f x %.1f mm' % (bb.XLength, bb.YLength, bb.ZLength))

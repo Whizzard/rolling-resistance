@@ -31,9 +31,9 @@
 //   /vmrr/<session>/            one directory per run or manual raw log;
 //                               <session> = run id = local time YYYY-MM-DD-HHMMSS,
 //                               "up<s>" while the clock is not set
-//     raw_<session>.rrl         raw log (SD only); raw_<session>-b.rrl ... after a name clash
+//     raw_<session>.csv/.json/.md  raw log: stream, metadata, legend (SD only);
+//                               raw_<session>-b.* ... after a name clash
 //     protocol.md, points.csv   report and averaged points of a run
-//     info_<session>.md         manual raw log: what it is, header constants
 // Older files in /raw and /runs (before 2026-11-26) stay where they are.
 // Flash only at standstill (config.h RAWLOG_FLASH_IDLE_MS: erasing locks the ISRs).
 //

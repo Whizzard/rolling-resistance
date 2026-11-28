@@ -44,7 +44,7 @@ dimensions in PARAMS below and rerun; the spreadsheet "Parameter" in the FCStd o
 documents the values used.
 
 Invocation:  /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/weight_clip_dual.py
-Produces hardware/weight-clip-dual.FCStd, .step, .stl.
+Produces hardware/weight-clip-dual.FCStd, .step.
 """
 
 import math
@@ -428,7 +428,6 @@ def main():
     fcstd = os.path.join(here, 'weight-clip-dual.FCStd')
     doc.saveAs(fcstd)
     Part.export([obj], os.path.join(here, 'weight-clip-dual.step'))
-    obj.Shape.exportStl(os.path.join(here, 'weight-clip-dual.stl'))
     s = obj.Shape; bb = s.BoundBox
     vol = s.Volume / 1000
     print('Outer size  %.1f x %.1f x %.1f mm' % (bb.XLength, bb.YLength, bb.ZLength))

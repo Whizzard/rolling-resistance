@@ -342,7 +342,7 @@ a.fbup { color: #2f6f99; text-decoration: none; font-weight: 700; font-size: 19p
 @-webkit-keyframes spin { to { -webkit-transform: rotate(360deg); } }
 @keyframes spin { to { transform: rotate(360deg); } }
 .fbmain > svg.fi { position: absolute; left: 0; top: 0; width: 44px; height: 44px; fill: none; stroke: #2f6f99; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
-.fbmain > svg.fi.fi-rrl { stroke: #b5651d; }
+.fbmain > svg.fi.fi-raw { stroke: #b5651d; }
 .fbmain > svg.fi.fi-dir { stroke: #2f6f99; fill: #e3eef6; }
 
 .fbnav { margin: 2px 0 10px; }
@@ -356,17 +356,17 @@ a.link.fbentry svg.bi.big { width: 36px; height: 36px; margin: 0 10px -10px 0; }
 .fbfmt button { float: none !important; width: auto !important; display: inline-block; padding: 6px 10px !important; font-size: 13px !important; margin: 0 8px 0 0 !important; }
 .fbfmt .sub { font-size: 12px; white-space: normal; }
 #fmtSt .ok { color: #1e7a46; font-weight: 700; }
-.md table.rrl td.r, .md table.rrl th.r { text-align: right; }
-.md table.rrl, .md table.kv { width: 100%; font-size: 14px; }
-.md table.rrl td, .md table.rrl th, .md table.kv td { white-space: normal; word-break: break-word; padding: 5px 6px; }
+.md table.raw td.r, .md table.raw th.r { text-align: right; }
+.md table.raw, .md table.kv { width: 100%; font-size: 14px; }
+.md table.raw td, .md table.raw th, .md table.kv td { white-space: normal; word-break: break-word; padding: 5px 6px; }
 /* key/value tables: the key column shaded and bold (2026-11-26) */
 .md table.kv td:first-child { background: #eef1f4; font-weight: 700; white-space: nowrap; width: 1%; }
 /* record statistics: the numbers never wrap, the type column takes the rest */
-.md table.rrl td.r, .md table.rrl th.r { white-space: nowrap; width: 1%; }
-.md table.rrl td .dt { display: block; color: #64737f; font-size: 12px; font-weight: 400; margin-top: 2px; }
-.md table.rrl th { font-size: 11px; letter-spacing: .04em; }
+.md table.raw td.r, .md table.raw th.r { white-space: nowrap; width: 1%; }
+.md table.raw td .dt { display: block; color: #64737f; font-size: 12px; font-weight: 400; margin-top: 2px; }
+.md table.raw th { font-size: 11px; letter-spacing: .04em; }
 .fvbar span#fvName { display: block; margin-top: 4px; }
-.md table.rrl td.dt { color: #64737f; font-size: 13px; }
+.md table.raw td.dt { color: #64737f; font-size: 13px; }
 .field .pbtns button { float: none; width: auto; margin: 0 6px 6px 0; padding: 9px 12px; }
 .field button:disabled { opacity: .45; cursor: default; }
 .wiz td.ok { color: #1f8a5c; font-weight: 700; }
@@ -1117,7 +1117,8 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     if (!k) {
       h += '<div class="act">Remove all weight</div><div class="row">' + calBtn("Start: read zero", "C0") + calBtn("Cancel", "Cx", "plain") + "</div>";
     } else if (k.st === 1) {
-      h += '<div class="act">Hands off, reading ' + (k.reading > 0 ? de(k.reading * 1000, 0) + " g" : "zero") + " · " + de(Math.max(0, (k.avgMs - k.ms) / 1000), 0) + " s</div>";
+      h += '<div class="act">Hands off, reading ' + (k.reading > 0 ? de(k.reading * 1000, 0) + " g" : "zero") + " · "
+        + (k.az ? k.az : de(Math.max(0, (k.avgMs - k.ms) / 1000), 0) + " s") + "</div>";
     } else {
       var loads = 0; for (i = 0; i < k.pts.length; i++) if (k.pts[i][0] > 0) loads++;
       if (k.st === 3) {
@@ -1385,12 +1386,12 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
           h += '<div class="fbrow"><a class="fbmain" href="#" data-fbp="' + esc(full) + '">' + FI.dir + '<span class="n">' + esc(e.n) + '</span></a>'
             + '<div class="fbact"><a class="btn" href="' + esc(u) + '?zip=1">' + IC.down + '.zip</a></div></div>';
         } else {
-          var rrl = /\.rrl$/i.test(e.n), view = rrl || /\.(md|csv|txt|tsv|log|json)$/i.test(e.n);
+          var raw = /^raw_.*\.csv$/i.test(e.n), view = raw || /\.(md|csv|txt|tsv|log|json)$/i.test(e.n);
           var meta = '<span class="sub">' + fbSize(e.s) + (fbTime(e.t) ? " · " + fbTime(e.t) : "") + '</span>' + (rec ? ' <span class="rec">● recording</span>' : '');
           h += '<div class="fbrow">' + (view ? '<a class="fbmain" href="#" data-fbv="' + esc(u) + '">' : '<span class="fbmain">')
             + fileIcon(e.n) + '<span class="n">' + esc(e.n) + '</span>' + meta + (view ? '</a>' : '</span>')
             + '<div class="fbact"><a class="btn" href="' + esc(u) + '">' + IC.down + 'Download</a>'
-            + (rrl && !rec ? '<a class="btn" href="' + esc(u) + '?csv=1">' + IC.down + 'CSV</a>' : '') + '</div></div>';
+            + (raw && !rec ? '<a class="btn" href="' + esc(u) + '?csv=1">' + IC.down + 'CSV</a>' : '') + '</div></div>';
         }
       }
     }
@@ -1460,12 +1461,12 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     $("fvDl").href = u;
     $("fvBody").innerHTML = "…";
     $("fview").hidden = false;
-    if (/\.rrl$/i.test(u)) {
+    if (/\/raw_[^\/]*\.csv$/i.test(u)) {
       $("fvBody").innerHTML = "<p>Reading the raw file on the stand …</p>";
       x.open("GET", u + "?info=1");
       x.onload = function () {
         var j = null; try { j = JSON.parse(x.responseText); } catch (e) {}
-        $("fvBody").innerHTML = x.status !== 200 || !j ? '<p class="bad">' + esc(x.responseText || "not readable") + '</p>' : rrlRender(j, u);
+        $("fvBody").innerHTML = x.status !== 200 || !j ? '<p class="bad">' + esc(x.responseText || "not readable") + '</p>' : rawRender(j, u);
       };
       x.onerror = function () { $("fvBody").innerHTML = '<p class="bad">Not reachable</p>'; };
       x.send();
@@ -1480,57 +1481,78 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     x.send();
   }
   window.fbView = fbView;
-  /* Raw file overview (2026-11-26): time span, records per type with size and data
-     types, edges per channel, header, events. Data from /fs/...?info=1 (one pass on the
-     ESP over the whole file). Field types from calc/rawlog.h. */
-  var RRL_TYPES = {
-    sync:  ["time anchor", "u32 µs since boot, u32 Unix s"],
-    edge:  ["Hall edge", "u8 channel, bit 7 = rejected as echo"],
-    hx711: ["load cell sample", "i24 raw counts"],
-    vesc:  ["motor controller", "i32 ERPM, i32 tacho, i16 duty·1000, i32 I_mot·100, i32 I_in·100, u16 V_in·10, i16 T_fet·10, i16 T_mot·10, u8 fault, u8 status"],
-    ctrl:  ["speed controller", "i16 target km/h·100, i16 duty·10000, u8 brake, u8 phase"],
-    tire:  ["tire sensor (AirSpy)", "u16 pressure mbar, i16 temperature ·10 °C, u8 battery %"],
-    gap:   ["buffer full", "u32 dropped bytes"],
-    text:  ["event / note", "u8 length, text"]
+  /* Raw file overview (2026-11-26; one CSV stream raw_*.csv since 2026-11-27): time span,
+     lines per type with size and fields, edges per channel, metadata from the .json next to
+     it, events. Data from /fs/...?info=1 (one pass on the ESP over the whole file). Fields
+     from calc/rawlog.h. */
+  var RAW_KINDS = {
+    S: ["sync", "unix_s, micros"],
+    D: ["drum mark edge", "echo"],
+    I: ["drum index edge", "echo"],
+    W: ["test wheel edge", "echo"],
+    H: ["motor Hall edge", "echo"],
+    T: ["torque load cell", "raw_counts"],
+    M: ["motor controller", "erpm, tacho, duty, i_motor_A, i_in_A, v_in_V, t_fet_C, t_motor_C, fault, status"],
+    C: ["control", "target_kmh, duty_cmd, brake, phase"],
+    P: ["tire pressure", "p_tire_bar, t_tire_C, battery_pct"],
+    G: ["gap, buffer full", "dropped_bytes"],
+    N: ["note", "text"]
   };
-  function rrlDur(us) {
+  function rawDur(us) {
     var s = Math.round(us / 1e6), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
     return (h ? h + " h " : "") + (h || m ? m + " min " : "") + (s % 60) + " s";
   }
-  function rrlT(us) { var s = us / 1e6, m = Math.floor(s / 60); return "+" + m + ":" + (s - m * 60 < 10 ? "0" : "") + de(s - m * 60, 1); }
-  function rrlRender(j, u) {
+  function rawT(us) { var s = us / 1e6, m = Math.floor(s / 60); return "+" + m + ":" + (s - m * 60 < 10 ? "0" : "") + de(s - m * 60, 1); }
+  /* Header object as key/value rows; nested objects one level deep as "group.key". */
+  function rawKv(o, pre) {
+    var r = "", k, v;
+    for (k in o) {
+      if (!o.hasOwnProperty(k)) continue;
+      v = o[k];
+      if (v && typeof v === "object" && !(v instanceof Array)) { r += rawKv(v, pre + k + "."); continue; }
+      r += "<tr><td>" + esc(pre + k) + "</td><td>" + esc(v === null ? "—" : v instanceof Array ? v.join(", ") : String(v)) + "</td></tr>";
+    }
+    return r;
+  }
+  function rawRender(j, u) {
     var h = "<h1>" + esc(u.replace(/^.*\//, "")) + "</h1>", i;
-    if (!j.ok) return h + "<p>Not a raw file (no rrl header). " + fbSize(j.size) + ".</p>";
+    if (!j.ok) return h + "<p>Not a raw file (no sync line first). " + fbSize(j.size) + ".</p>";
     var dur = j.t1 - j.t0, secs = dur / 1e6, tot = 0;
     for (i = 0; i < j.types.length; i++) tot += j.types[i].n;
     h += "<table class=\"kv\"><tr><td>Start</td><td>" + (j.unix > 946684800 ? esc(new Date(j.unix * 1000).toLocaleString()) : "clock not set at the start") + "</td></tr>"
-      + "<tr><td>Duration</td><td>" + rrlDur(dur) + "</td></tr>"
-      + "<tr><td>Size</td><td>" + fbSize(j.size) + " · header " + j.hdrLen + " B · " + tot + " records"
-      + (secs > 0 ? " · " + fbSize(Math.round((j.size - j.hdrLen) / secs)) + "/s" : "") + "</td></tr>"
-      + "<tr><td>End</td><td>" + (j.end === "clean" ? "complete" : "<b>cut off</b> (still recording, or power lost while writing)") + "</td></tr>"
+      + "<tr><td>Duration</td><td>" + rawDur(dur) + "</td></tr>"
+      + "<tr><td>Size</td><td>" + fbSize(j.size) + " · " + tot + " lines"
+      + (secs > 0 ? " · " + fbSize(Math.round(j.size / secs)) + "/s" : "") + "</td></tr>"
+      + "<tr><td>End</td><td>" + (j.end === "clean" ? "complete" : j.end === "truncated" ? "<b>cut off</b> (still recording, or power lost while writing)"
+        : '<b class="bad">' + (j.bad || "?") + " bad lines</b>") + "</td></tr>"
       + "<tr><td>Dropped</td><td>" + (j.gap ? '<b class="bad">' + fbSize(j.gap) + " lost (buffer full)</b>" : "nothing") + "</td></tr></table>";
-    h += "<h2>Records</h2><table class=\"rrl\"><tr><th>Type</th><th class=\"r\">Count</th><th class=\"r\">per s</th><th class=\"r\">Bytes</th><th class=\"r\">Share</th></tr>";
-    var bt = j.size - j.hdrLen || 1;
+    h += "<h2>Records</h2><table class=\"raw\"><tr><th>Kind</th><th class=\"r\">Count</th><th class=\"r\">per s</th><th class=\"r\">Bytes</th><th class=\"r\">Share</th></tr>";
+    var bt = j.size || 1;
     for (i = 0; i < j.types.length; i++) {
-      var t = j.types[i], d = RRL_TYPES[t.t] || ["", ""];
+      var t = j.types[i], d = RAW_KINDS[t.t] || ["", ""];
       h += "<tr><td><b>" + esc(t.t) + "</b> · " + d[0] + "<span class=\"dt\">" + esc(d[1]) + "</span></td>"
         + "<td class=\"r\">" + t.n + "</td><td class=\"r\">" + (secs > 0 ? de(t.n / secs, t.n / secs < 10 ? 1 : 0) : "—") + "</td>"
         + "<td class=\"r\">" + fbSize(t.b) + "</td><td class=\"r\">" + de(100 * t.b / bt, 1) + " %</td></tr>";
     }
-    h += "</table><p class=\"sub\">Every record: 1 byte type, then the time step to the previous record as varint (zigzag, µs), then the fields. Little endian.</p>";
+    h += "</table><p class=\"sub\">One stream, one line per record: type,t_us,fields. Legend in the .md next to it.</p>";
     var CH = ["drum marks", "index magnet", "test wheel", "motor Hall"];
-    h += "<h2>Edges per channel</h2><table class=\"rrl\"><tr><th>Channel</th><th class=\"r\">Edges</th><th class=\"r\">per s</th><th class=\"r\">Echo</th></tr>";
+    h += "<h2>Edges per channel</h2><table class=\"raw\"><tr><th>Channel</th><th class=\"r\">Edges</th><th class=\"r\">per s</th><th class=\"r\">Echo</th></tr>";
     for (i = 0; i < 4; i++) {
       var e = j.edges[i] || [0, 0];
       h += "<tr><td>" + CH[i] + "</td><td class=\"r\">" + e[0] + "</td><td class=\"r\">" + (secs > 0 ? de(e[0] / secs, 1) : "—") + "</td><td class=\"r\">" + e[1] + "</td></tr>";
     }
     h += "</table>";
-    var kv = (j.hdr || "").split("\n"), rows = "";
-    for (i = 0; i < kv.length; i++) { var k = kv[i].indexOf("="); if (kv[i]) rows += "<tr><td>" + esc(k > 0 ? kv[i].substr(0, k) : kv[i]) + "</td><td>" + esc(k > 0 ? kv[i].substr(k + 1) : "") + "</td></tr>"; }
-    if (rows) h += "<h2>Header</h2><table class=\"kv\">" + rows + "</table>";
+    var hd = null; try { hd = JSON.parse(j.hdr || ""); } catch (x) {}
+    if (hd) {
+      var top = {}, k;
+      for (k in hd) if (hd.hasOwnProperty(k) && k !== "setup" && k !== "calibration" && k !== "time" && k !== "echo" && k !== "types" && k !== "columns" && k !== "layout" && k !== "ctrl_phases") top[k] = hd[k];
+      h += "<h2>Header</h2><table class=\"kv\">" + rawKv(top, "") + "</table>";
+      if (hd.setup) h += "<h2>Setup</h2><table class=\"kv\">" + rawKv(hd.setup, "") + "</table>";
+      if (hd.calibration) h += "<h2>Calibration</h2><table class=\"kv\">" + rawKv(hd.calibration, "") + "</table>";
+    } else if (j.hdr) h += "<h2>Header</h2><pre>" + esc(j.hdr) + "</pre>";
     if (j.textN) {
       h += "<h2>Events</h2>" + (j.textN > j.text.length ? "<p class=\"sub\">" + j.textN + " in all; the first 30 and the last 10.</p>" : "") + "<table class=\"kv\">";
-      for (i = 0; i < j.text.length; i++) h += "<tr><td>" + rrlT(j.text[i][0]) + "</td><td>" + esc(j.text[i][1]) + "</td></tr>";
+      for (i = 0; i < j.text.length; i++) h += "<tr><td>" + rawT(j.text[i][0]) + "</td><td>" + esc(j.text[i][1]) + "</td></tr>";
       h += "</table>";
     }
     return h + "<p class=\"sub\">All data as CSV: <a href=\"" + esc(u) + "?csv=1\">CSV .zip</a> · on the PC: <code>tools/rawlog.py</code></p>";
@@ -1637,11 +1659,11 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   var FI = {
     dir: fico("M1.5 4.5v8h13v-6.5h-6.5l-1.5-1.5z", "dir"),
     md:  fico(DOC + "M5.8 8h4.4M5.8 10h4.4M5.8 12h2.8", "md"),
-    rrl: fico(DOC + "M5.2 10.5l1.1-2.3 1.2 3.6 1.2-2.8 1 1.5h1.1", "rrl"),
+    raw: fico(DOC + "M5.2 10.5l1.1-2.3 1.2 3.6 1.2-2.8 1 1.5h1.1", "raw"),
     csv: fico(DOC + "M5.5 7.5h5v5h-5zM5.5 10h5M8 7.5v5", "csv"),
     file: fico(DOC, "file")
   };
-  function fileIcon(n) { return /\.md$/i.test(n) ? FI.md : /\.rrl$/i.test(n) ? FI.rrl : /\.(csv|tsv)$/i.test(n) ? FI.csv : FI.file; }
+  function fileIcon(n) { return /\.md$/i.test(n) ? FI.md : /^raw_.*\.csv$/i.test(n) ? FI.raw : /\.(csv|tsv)$/i.test(n) ? FI.csv : FI.file; }
   var IC = {
     edit:   ico("M2 14l1-4 8-8 3 3-8 8zM10 3l3 3"),
     play:   ico("M4 2.5v11l9-5.5z"),
@@ -2169,7 +2191,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     /* Forward buttons carry an arrow, Back one to the left (2026-11-26); Close none. */
     /* Report and abort: no button step, the run is over; close with the X at the top (2026-11-26). */
     var over = (s === 14 || s === 99);
-    $("runX").hidden = !over;
+    $("runX").hidden = !over && s !== 0;   /* s 0: no run (start refused or none): Close must still be there */
     $("runOk").innerHTML = r.ok ? r.ok + " \u2192" : ""; $("runOk").hidden = !r.ok || over;
     $("runAlt").innerHTML = r.alt || ""; $("runAlt").hidden = !r.alt;
     $("runRedo").innerHTML = r.redo || ""; $("runRedo").hidden = !r.redo;
