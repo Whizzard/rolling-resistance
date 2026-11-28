@@ -222,21 +222,27 @@ Values from the motor controller via UART. Turns the motor controller into a sec
 
 ## 6 Load Cell Calibration Mode
 
-Hang the calibration weight on the lever arm, derive `LOADCELL_N_PER_COUNT` from it.
+As of 2026-11-28: **directly at the cell** (`calib.h`, Setup → Calibration, console `C…`).
+The arm is lifted off the Bowden cable, a stirrup hangs on the cable and stays on during
+the zero; the weights hang in the stirrup. `F = m · g`, no lever ratio;
+[09-measurement-theory](09-measurement-theory.md) §5.1.
 
 | | P | Requirement |
 |---|---|---|
-| W1 | M | Record the zero point (arm unloaded), mean over ≥ 200 values. |
-| W2 | M | Enter the mass of the calibration weight. The **lever arms** are separate fields on the same page (cell arm 80 mm, calibration arm 160 mm), measured on the assembly, not typed in per weighing. |
-| W3 | M | Measure with weight, mean over ≥ 200 values, compute and display the factor. |
-| W4 | M | The factor is **displayed, not adopted automatically**; it goes by hand into `config.h` and [03-parameters](03-parameters.md). |
-| W5 | S | **Several masses** in sequence, check linearity over the range and display the deviation. |
-| W6 | S | The same mass at both radii as a cross-check of the lever arm dimensions. |
-| W7 | K | Creep: leave the load on for 5 min, log the deviation. |
+| W1 | M | Zero with the stirrup on, mean over `CAL_AVG_MS` (5 s, about 400 values) at rest. Done. |
+| W2 | M | The masses are buttons (`CAL_MASSES_G`: 200, 500, 1000, 2000 g); the console takes any mass (`Cm<kg>`). No lever arm is involved. Done. |
+| W3 | M | Each load read the same way, factor from a least-squares line `counts = a + b·F`, `k = 1/|b|`. Done. |
+| W4 | M | The factor is shown with its change against the old one; **Accept** stores it in NVS with a calibration record (ver 2) and a row in `/vmrr/calibration.md` on the SD and in the flash (mirror, so the history survives without a card; the flash row is skipped while the drum turns). The two books are compared at every SD mount and after every calibration; rows one side lacks are added from the other. Setup → Calibration → **History** shows the factor over time (% against the latest) and the last rows. Entering it into `config.h` stays manual. |
+| W5 | S | Linearity: largest residual of a load in % of that load and in % FS; graphic of counts against load (fit line) and of the residuals per load (±2 σ of the mean as a bar). Done 2026-11-28. |
+| W6 | – | Dropped with the lever calibration (2026-11-28). The cell arm enters every torque and is measured separately (A12 in [06-open-questions](06-open-questions.md)). |
+| W7 | K | Creep: leave the load on for 5 min, log the deviation. Open. |
 
-Conversion: a mass *m* at radius *b* produces at the cell (arm L = 80 mm)
-`F = m · g · b / L`. At the 160 mm hole therefore **twice** the force; full scale of the 5 kg cell
-at 2.4 kg, [09-measurement-theory](09-measurement-theory.md) §5.1.
+Console: `C0` start (reads zero) · `Cm<kg>` read with this mass · `Cz` zero again ·
+`Ce` evaluate · `Ca` accept · `Cx` cancel. Allowed outside a run with the cell responding.
+`calib::validity()` before every run: valid for any cell arm, only HX711 rate and gain must
+match; a factor from the lever calibration (record ver 1, before 2026-11-28) or without
+record counts as "conditions unknown". Dropped on 2026-11-28: `k<kg>` (single point),
+`K<kg>` (check-weight mass), `b<m>` (calibration arm), the check weight in the run.
 
 ## 7 Measurement Page
 
@@ -292,7 +298,7 @@ Via the serial console, single-line, and included in the CSV header.
 | `w<A₁> <B₁>` | Wheel-loss model by hand | `w0.012 0.000071` | from the wheel spin-down |
 | `n<A₀> <B₀>` | Idle-loss model by hand | `n0.004 0.000209` | the idle run `m0` fits and stores it itself since 2026-11-23; from the baseline run |
 | `t` | static tare | | offset |
-| `R` | **Guided measurement run** | `R`, then `Rk`/`Rs`/`Rn`/`Rx`, `Rm<k>=<v>` | Fourteen steps ([11-review](11-review.md) §3): create run, visual check, system check, zeroing, control weight, idle-loss model (adopt, or since 2026-11-25 the spin-down wizard inside the run: wheel resting to 40 km/h, lift, wheel spin-down and idle pre-run together), wheel model, wheel resting; then on its own warm-up (`WARMUP_MS` at `WARMUP_KMH`, live point every minute), plateaus with `RUN_POINTS_PER_PLATEAU` points, anchor point, stop; optional idle post-run; report `protocol.md` and data `points.csv` in the session directory `/vmrr/<id>/` (SD, else flash), retrievable in the file browser (§11.7). Warnings W01…W12 in the report. In the web UI behind *Measurement*. Since 2026-11-23 |
+| `R` | **Guided measurement run** | `R`, then `Rk`/`Rs`/`Rn`/`Rx`, `Rm<k>=<v>` | Fourteen steps ([11-review](11-review.md) §3): create run, visual check, system check, zeroing, end stop and zero after it (check weight dropped 2026-11-28), idle-loss model (adopt, or since 2026-11-25 the spin-down wizard inside the run: wheel resting to 40 km/h, lift, wheel spin-down and idle pre-run together), wheel model, wheel resting; then on its own warm-up (`WARMUP_MS` at `WARMUP_KMH`, live point every minute), plateaus with `RUN_POINTS_PER_PLATEAU` points, anchor point, stop; optional idle post-run; report `protocol.md` and data `points.csv` in the session directory `/vmrr/<id>/` (SD, else flash), retrievable in the file browser (§11.7). Warnings W01…W12 in the report. In the web UI behind *Measurement*. Since 2026-11-23 |
 
 ### 8.1 Wheel profiles (since 2026-11-26)
 
@@ -343,30 +349,17 @@ carried over to another combination.
 - **Stand build in every protocol (since 2026-11-26):** section "Stand build" with the firmware
   commit (`src/build_id.h`, generated by `web/embed_pio.py`, `-dirty` with uncommitted
   changes), drum, marks and index, test-wheel pulses, load cell and HX711 with the rate
-  measured over the run, cell and calibration arm, wheel-load lever, motor. Plus the stand
+  measured over the run, cell arm, wheel-load lever, motor. Plus the stand
   revision, a free text in Setup → Stand (console `B<text>`), dated by its change stamp and
   kept through a settings reset. The raw-log header carries commit, revision, HX711 rate,
   cell capacity and lever.
 - **Warm-up minute values (since 2026-11-26):** the mean of all valid live values of that
   minute, no longer the last snapshot; one console line per minute with M, P, Crr, tire
   temperature and the span the settle test sees.
-- **Automatic zero by the drum motor (since 2026-11-27, `autozero.cpp`):** replaces nudging
-  and turning the drum by hand in the run's zeroing step and in the post-run zero check
-  (W14). Wheel lifted. Method (builder 2026-11-27): the drum runs at `AZ_SPIN_KMH`
-  (`speedctl::crawl`: feed-forward plus slow trim, at most `CRAWL_DUTY_MAX`), first in the
-  measuring direction, then against it; once steady (`AZ_SPIN_STEADY_MS`) the duty is frozen
-  and the cell averaged over `AZ_SPIN_REVS` whole revolutions. Over whole revolutions the
-  cogging ripple averages out; the drum friction the motor works against has opposite sign
-  in the two directions. Zero = mean of both, half the difference = drum friction (console
-  and raw-log note), check = largest spread of the single-revolution means
-  (`RUN_ZERO_LIMIT_N`). A reading whose first and last revolution differ by more than
-  `AZ_SPIN_DRIFT_KMH` is repeated (inertia in the cell). Between the directions the controller brakes and the other
-  direction starts below `STANDSTILL_KMH` (builder 2026-11-28). A counting test-wheel Hall stops it ("lift the
-  wheel"). Fallback: the manual procedure ("By hand"). Console `Z` (measure), `Zt` (and set
-  the tare), `Zx`. **The same reading is used for every calibration point** (zero and loads,
-  `calib.cpp`, method "procedure, motor") **and for the three readings of the run's
-  check-weight step** (weight, weight again, zero); without the controller they fall back
-  to a plain average at rest. As of 2026-11-27, not yet run on the stand.
+- **Automatic zero by the drum motor (2026-11-27 to 2026-11-28):** dropped before it ran on
+  the stand (builder 2026-11-28). Zeroing in the run is by hand again (nudge, tare, quarter
+  turn, check), the post-run zero a single reading at rest; console `Z…` and
+  `speedctl::crawl` are gone.
 - **Relay pulse test (since 2026-11-26):** console `X<n>` lets the brake relays drop and pull
   in n times at standstill and prints per cycle the edges on all four inputs and the
   load-cell excursion, against a quiet window of the same length (`RELAYTEST_WIN_MS`).
@@ -582,8 +575,8 @@ the file browser (§11.6).
 | `layout`, `time` | the line layout and the meaning of `t_us` in words |
 | `columns` | per letter the columns in file order after the type, each `[name, unit]`, `t_us` first |
 | `types`, `echo`, `ctrl_phases` | per letter `name` and `description` (with the reserved `L`), the echo flag of the edges, names of the `C` phase numbers (`state.h`) |
-| `setup` | `marks_per_rev`, `wheel_marks_per_rev`, `motor_pole_pairs`, `drum_circumference_m`, `torque_arm_m`, `calib_arm_m`, `direction_sign`, `vesc_poll_ms`, `hx711_rate_sps`, `hx711_gain_pulses`, `loadcell_capacity_n`, `load_empty_kg`, `load_weight_kg`, `load_arm_m`, `wheel_circumference_m`, `sync_ms` |
-| `calibration` | `loadcell_n_per_count` (`null` while TBD), `tare_offset_counts`, `validity` (1 valid, 0 conditions unknown, −1 not valid; `calib::validity`) and `validity_text`, `record` = the stored calibration record (`ver`, `gain_pulses`, `sps`, `epoch_local`, `npc`, `arm_m`, `lcal_m`, `sps_meas`, `lin_pct_fs`, `hyst_pct_fs`, `zero_pct_fs`, `n_loads`, `n_points`, `method`) or `null` |
+| `setup` | `marks_per_rev`, `wheel_marks_per_rev`, `motor_pole_pairs`, `drum_circumference_m`, `torque_arm_m`, `direction_sign`, `vesc_poll_ms`, `hx711_rate_sps`, `hx711_gain_pulses`, `loadcell_capacity_n`, `load_empty_kg`, `load_weight_kg`, `load_arm_m`, `wheel_circumference_m`, `sync_ms` |
+| `calibration` | `loadcell_n_per_count` (`null` while TBD), `tare_offset_counts`, `validity` (1 valid, 0 conditions unknown, −1 not valid; `calib::validity`) and `validity_text`, `record` = the stored calibration record (`ver`, `gain_pulses`, `sps`, `epoch_local`, `npc`, `arm_m`, `lcal_m` (ver 1 only), `sps_meas`, `lin_pct_fs`, `lin_pct_load` (since 2026-11-28), `hyst_pct_fs`, `zero_pct_fs`, `n_loads`, `n_points`, `method`) or `null`. `calib_arm_m` in `setup` was dropped on 2026-11-28 with the direct calibration; older files still carry it. |
 
 A value that is not known (NaN in the firmware) is written as `null`, never as a number.
 Top-level keys one per line. About 3.5 to 4 kB; `HEADER_MAX` = 5 kB.

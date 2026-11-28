@@ -24,7 +24,6 @@ void begin();
 float drumCircumferenceM();
 float drumRadiusM();            // derived, U / 2π
 float torqueArmM();             // lever arm of the load cell
-float calibArmM();              // lever arm of the calibration weight
 float loadcellNPerCount();
 
 // Which sign of the controller speed is the MEASURING DIRECTION. +1 or -1.
@@ -41,7 +40,6 @@ bool calibrated();
 // a mistyped drum circumference of 28.37 m should not silently apply.
 bool setDrumCircumferenceM(float m);
 bool setTorqueArmM(float m);
-bool setCalibArmM(float m);
 // epoch: local time in s (from the browser), 0 = unknown. For "calibrated ... ago" in the display.
 bool setLoadcellNPerCount(float nPerCount, uint32_t epoch = 0);
 uint32_t calibEpoch();
@@ -77,11 +75,6 @@ bool  haveBaseline();  bool haveWheelModel();
 // NVS, i.e. was set before the start: then nobody knows its age,
 // and the guided measuring run (run.h) asks whether it still applies.
 uint32_t baselineAgeMs(); uint32_t wheelModelAgeMs(); uint32_t tareAgeMs();
-// Mass of the check weight [kg], hangs at calibArmM(). Default RUN_CTRL_MASS_KG;
-// changeable in the setup since 2026-11-25 (command K<kg>). The measuring run uses it to check
-// the chain cell, arm, factor and takes over the factor -- since then there is no separate
-// calibration in the UI any more (k<kg> remains on the console).
-float ctrlMassKg(); bool setCtrlMassKg(float kg);
 // Stand revision (2026-11-26): free text on the mechanical build that the constants do not
 // capture (drum surface, cell mounting, modifications), dated by its stamp. Goes into every
 // protocol and raw log. Console B<text>, Setup. Survives reset().
@@ -94,22 +87,26 @@ float wheelMassKg(); bool setWheelMassKg(float kg);
 // measured; setWheelJKgm2(0) clears it.
 float wheelJKgm2(); bool setWheelJKgm2(float j);
 uint32_t wheelJSetMs();   // millis() of the last setWheelJKgm2 with a value, 0 = not in this session
-// Cell arm AT THE TIME OF CALIBRATION [m]. In the torque the arm cancels out
-// (M = counts * m g L_cal / counts_cal), but only as long as the same value applies as at
-// calibration. If torqueArmM() differs from it, the measuring run warns (W15). NAN = unknown.
+// Cell arm at the time of calibration [m], recorded with every factor. Since the direct
+// calibration (2026-11-28) the factor is N at the cell and does not depend on the arm; the
+// protocol still shows it. NAN = unknown.
 float armAtCalM();
 // Calibration record (2026-11-26): under which conditions the factor was determined, and
-// how. A factor holds only for the same cell arm, calibration arm, HX711 rate and gain
-// (calib.h checks this before every run). ver 0 = no record (factor from before).
+// how. ver 0 = no record (factor from before), 1 = lever calibration over the calibration
+// arm (until 2026-11-28; held only for the same cell and calibration arm), 2 = direct at the
+// cell (weights on the Bowden cable, holds for any cell arm). linPctLoad was appended on
+// 2026-11-28; a record stored before is read without it.
+// calib.h checks it before every run.
 struct CalRecord {
-  uint8_t  ver;            // 1
+  uint8_t  ver;            // 2 (direct); 1 = lever
   uint8_t  gainPulses;     // HX711_GAIN_PULSES at calibration
   uint16_t sps;            // HX711_RATE_SPS at calibration
   uint32_t epoch;          // local time, 0 = unknown
-  float    npc, armM, lcalM, spsMeas;
-  float    linPctFS, hystPctFS, zeroPctFS;   // NAN for a single-point calibration
+  float    npc, armM, lcalM, spsMeas;   // lcalM: calibration arm, ver 1 only (NAN in ver 2)
+  float    linPctFS, hystPctFS, zeroPctFS;
   uint8_t  nLoads, nPoints;
-  char     method[22];     // "procedure", "single point (k)"
+  char     method[22];     // "direct"; ver 1: "procedure", "single point (k)"
+  float    linPctLoad;     // largest residual of a load in % of that load (added 2026-11-28; NAN in older records)
 };
 const CalRecord& calRecord(); bool setCalRecord(const CalRecord& r);
 bool npcPlausible(float x);   // the same range check setLoadcellNPerCount applies

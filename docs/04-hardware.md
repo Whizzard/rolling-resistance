@@ -1271,13 +1271,13 @@ not on the screw. As of 2026-11-26.
 | | |
 |---|---|
 | Interior | **Ø 50.0, 50.0 deep** from the top of the floor, as specified; no clearance added |
-| Small sizes | two more cups for the small weights, builder 2026-11-26: inside **Ø 38 × 38** (`weight-cup-38`, outside Ø 41.0 × 43.5, 13.8 cm³) and **Ø 29 × 28** for the Ø 28 weight (`weight-cup-28`, Ø 32.0 × 33.5, 7.9 cm³; Ø 28 was too tight, +1 mm on 2026-11-28); same wall, floor and M6 |
+| Other sizes | named after the weights (the 1 kg cup is `weight-cup-1kg`). Builder 2026-11-26: inside **Ø 38 × 38** for the 500 g (`weight-cup-500g`, outside Ø 41.0 × 43.5, 13.8 cm³; fits well, builder 2026-11-28) and **Ø 29 × 28** for the 200 g (`weight-cup-200g`, Ø 32.0 × 33.5, 7.9 cm³; Ø 28 was too tight, +1 mm on 2026-11-28). Builder 2026-11-28: inside **Ø 62 × 65** for the 2 kg (`weight-cup-2kg`, Ø 65.0 × 70.5, 37.1 cm³; body Ø 60 per KERN 347-12, 60.5 scaled from the 1 kg). Same wall, floor and M6 |
 | Wall | 1.5 mm |
 | Floor | 5.5 mm = head height 4.0 (**assumed**, measure on the screw) + 1.5 under the head |
 | M6 | Ø 6.6 through, flat counterbore Ø 13.0 × 4.0 (takes DIN 7985 dk 12 and ISO 7380 dk 10.6) |
 | Size | Ø 53.0 × 55.5 mm, 23.7 cm³ |
 | Feature tree | Cylinder · Interior · M6 |
-| `hardware/weight_cup.py` | builds all three sizes from scratch (`weight-cup`, `weight-cup-38`, `weight-cup-28`), exports `.step` |
+| `hardware/weight_cup.py` | builds all four sizes from scratch (`weight-cup-2kg`, `weight-cup-1kg`, `weight-cup-500g`, `weight-cup-200g`), exports `.step` |
 
 > One screw only: the cup can turn about it, which does not matter for a cup. If the
 > weight sits too tight, raise `inner_d` in the table.
@@ -2351,9 +2351,8 @@ Commands, identical over serial console and web UI ([10-firmware](10-firmware.md
 | `s` | STOP via the relay brake at any speed (§9.4); `sr` existed for a few hours on 2026-11-25 for the brake comparison and is gone |
 | `c` | let coast |
 | `t` | tare the load cell (only at standstill) |
-| `k<kg>` | calibrate with known weight on the calibration arm. Console only from 2026-11-25 to 2026-11-26; since then again the scale button (calibrate) on the load tile under Manual, like zero shown only at standstill, (with the check weight from Setup, after a confirmation that names the current deviation). Next to it, while the check weight hangs (reading within ±25 % of m · L_cal / L), the deviation from the calibration small behind the values (± g, ± %). The utilization tile has a scale 0 … 160 % FS: green measuring range (`MEAS_TORQUE_*`), orange overload (`MAX_FORCE_N` to full scale), yellow target band of the end stop (`RUN_STOP_MIN/MAX_PCT`), red no-go above it, the whole bar red when the reading is there; marks for the check weight and the overload |
-| `K<kg>` | mass of the check weight (setup page, default `RUN_CTRL_MASS_KG`) |
-| `d<m>` `a<m>` `b<m>` | drum circumference · lever arm · calibration arm |
+| `C0` `Cm<kg>` `Cz` `Ce` `Ca` `Cx` | calibration directly at the cell (since 2026-11-28; Setup → Calibration): zero with the stirrup, read a mass, zero again, evaluate, accept, cancel. `k<kg>` (single point on the calibration arm) and `K<kg>` (check-weight mass) were dropped |
+| `d<m>` `a<m>` | drum circumference · cell arm (`b<m>`, calibration arm, dropped 2026-11-28) |
 | `z` | reset settings to the defaults from `config.h` |
 | `i` | **status**: controller, load cell, sensors, operator link |
 | `g` | zero the sensor counters (wiring test, see below) |
@@ -2422,20 +2421,19 @@ quantity that belongs in the evaluation. `i` prints the same line on the console
 
 ### 14.1a Calibration of the load cell
 
-Two steps, both via the Setup page or the console:
-
-1. **Tare** with the arm unloaded. Averages `TARE_SAMPLES` raw values, about 2.5 s.
-2. Hang a **known weight** on the calibration arm and enter the weight.
-
-The calculation is
+As of 2026-11-28: **directly at the cell**, Setup → Calibration. The arm is lifted off the
+Bowden cable, the stirrup hangs on the cable and stays on during the zero; then 200, 500,
+1000 and 2000 g go into the stirrup one after the other.
 
 ```
-F_cell    = m · g · L_cal / L_cell
-N_per_cnt = F_cell / (raw − zero)
+F_cell    = m · g
+N_per_cnt = 1 / |b|      from the least-squares line counts = a + b · F_cell
+M         = F_cell · L_cell
 ```
 
-The weight hangs on the **longer** arm, the cell sits on the shorter — that is why a
-handy weight produces twice the force at the cell (§Parameters `CALIB_ARM_M`).
+The cell arm therefore enters every torque. Until 2026-11-28 the weight hung on the
+calibration arm (`F_cell = m · g · L_cal / L_cell`); that and the check weight were dropped.
+Procedure and linearity: [09-measurement-theory](09-measurement-theory.md) §5.1.
 
 > **As long as it is not calibrated, there are no forces, only raw values.** The UI
 > then shows dashes and "not calibrated". That is intentional: a number that
@@ -2443,12 +2441,12 @@ handy weight produces twice the force at the cell (§Parameters `CALIB_ARM_M`).
 
 ### 14.1b Where the values determined on the setup live
 
-Drum circumference, both lever arms and the calibration factor are measured **on the setup**,
+Drum circumference, cell arm and the calibration factor are measured **on the setup**,
 not at the desk. A calibration run that forces compiling and flashing is
 not done — and a calibration run not done is exactly the source of invented
 numbers that the project rule is written against.
 
-That is why these values live in the **NVS** of the ESP32 (`firmware/src/settings.*`), since 2026-11-25 also the mass of the check weight (`K<kg>`).
+That is why these values live in the **NVS** of the ESP32 (`firmware/src/settings.*`).
 
 > **The rule is nevertheless upheld.** `config.h` supplies the defaults, and the
 > UI shows after every calibration the finished line for entry into `config.h`

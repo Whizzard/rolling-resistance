@@ -301,7 +301,7 @@ static void test_rawcsv_meta() {
   h.firmware = "Nov 27 2026 10:00:00"; h.commit = "abc1234"; h.standRev = "rev \"B\"\\2\nnew cell";
   h.startLocal = "2026-11-27 10:00:00"; h.unixStartLocal = 1795773600u; h.runId = "";
   h.marksPerRev = 8; h.wheelMarksPerRev = 1; h.motorPolePairs = 15;
-  h.drumCircM = 0.4523f; h.torqueArmM = 0.1f; h.calibArmM = 0.2f; h.wheelCircM = NAN;
+  h.drumCircM = 0.4523f; h.torqueArmM = 0.1f; h.wheelCircM = NAN;
   h.directionSign = -1; h.vescPollMs = 200; h.hx711RateSps = 80; h.hx711GainPulses = 1; h.syncMs = 1000;
   h.loadcellCapacityN = 49.03f; h.loadEmptyKg = 1.0f; h.loadWeightKg = 2.0f; h.loadArmM = 0.3f;
   h.nPerCount = NAN; h.tareOffset = -81234; h.validity = -1; h.validityWhy = "not calibrated: Setup \xE2\x86\x92 Calibrate";

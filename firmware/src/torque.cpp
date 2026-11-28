@@ -198,12 +198,6 @@ float    tareSigma() { return g_tareSigma; }
 
 long tareOffset() { return g_offset; }
 
-void setTare(long offsetCounts, float sigmaCounts) {
-  g_offset = offsetCounts;
-  g_tareSigma = isnan(sigmaCounts) ? 0.0f : sigmaCounts;
-  settings::setTareOffset(g_offset);
-}
-
 void accumulate(uint8_t markIndex) {
   if (g_count == 0) { g_accMin = g_accMax = g_raw; }
   else { if (g_raw < g_accMin) g_accMin = g_raw; if (g_raw > g_accMax) g_accMax = g_raw; }

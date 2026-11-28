@@ -52,7 +52,7 @@ Everything that needs hands comes first; from the warm-up on the stand runs alon
 |---|---|---|
 | Start | immediately if load and plateaus exist | system check first: controller, motor, cell, factor, lever arm against the arm at calibration, revolution source, pressure, plateaus, load; only what must be present at this point |
 | Zero | tare whenever, wheel maybe on the drum | tare only with the wheel lifted, 80 values, then a quarter turn by hand (watched through the controller tachometer) and a second reading; deviation > 0.25 N on F_roll is W13 |
-| Calibration | assumed | end stop checked live (100 to 140 % FS), then the 1 kg check weight at 330 mm; deviation warns (W10), today's reading can be adopted as the calibration (W18) |
+| Calibration | assumed | end stop checked live (100 to 140 % FS), then the zero after it. Since 2026-11-28 calibration is a Setup procedure directly at the cell (200 to 2000 g, linearity in % of load); the check weight in the run (W10, W18) was dropped |
 | Sequence | one point per plateau, 15 s settling by the clock | reference point 28.8 km/h first and last, three points per plateau, settling by state (0.3 km/h for 5 s, at most 60 s) |
 | Per point | mean only | mean, scatter of the per-revolution means, net acceleration from the regression line v(t), apparent torque `J_eff·dω/dt` subtracted, valid flag, ripple, pressure and tire temperature |
 | Warm-up | not part of the run | 30 min at 28.8 km/h, live P and Crr shown, one point per minute, can be cut short (W11) |
@@ -96,13 +96,13 @@ and again after the plateaus (anchor drift W04); post-run baseline as optional l
 course in the report. The convergence criterion is still to be derived from data (E3).
 
 **R8 Everything into the report.** Done. Header with build, controller firmware,
-U, L, L_cal, factor and arm at calibration, tare, models with age and origin of J_wheel,
+U, L, factor and arm at calibration (L_cal until 2026-11-28), tare, models with age and origin of J_wheel,
 load, tire, pressure cold and warm, AirSpy temperature at start and end (room temperature entry dropped 2026-11-25).
 
 **R9 Uncertainty per point.** Done. Pooled Type A over all plateaus of the run plus the
 Type B items `UNC_K/LCAL/N/P/BEARING/RAD(_EST)/J`, stated with k = 1 and ν.
 
-**R10 Numbered warnings.** Done. W01 check weight skipped, W02 idle-loss model older than
+**R10 Numbered warnings.** Done. W01, W10, W18 and W22 (check weight) dropped 2026-11-28. W01 check weight skipped, W02 idle-loss model older than
 the session, W03 point invalid, W04 anchor drift above threshold, W05 post-run baseline
 skipped, W06 run aborted (step and reason), W07 room temperature not entered (dropped 2026-11-25: temperature from the AirSpy), W08
 baseline drift above limit, W09 without wheel model (no longer possible since 2026-11-26), W10 check weight off by ≥ 0.5 % and
@@ -165,7 +165,7 @@ offset of the sensor against a reference gauge.
 **W3 Temperature.** Done. Room temperature at start and end, tire temperature from the
 AirSpy.
 
-**W4 Check weight checks drift, not correctness.** Partial. Averaging is real now (2 s
+**W4 Check weight checks drift, not correctness.** Superseded 2026-11-28: the check weight was dropped; the direct calibration measures linearity over 200 to 2000 g, the cell arm enters every torque and has to be measured to ±0.1 mm. Earlier state: Averaging is real now (2 s
 of samples), the lever arm is checked against the arm at calibration, and the end stop is
 checked before the weight hangs. The weight is the same as at calibration, so it cannot
 find an error in `CALIB_ARM_M` (330 mm, measured) and checks nothing in the range where
@@ -192,8 +192,10 @@ post-run only for the drift criterion), `crr.py` on the run record.
 
 **D1 Drum radius.** Done. All documents on r = 0.4523 m, J = 1.94 kg·m²; A14 closed.
 
-**D2 L versus L_cal.** Done. The torque chain depends only on L_cal; `UNC_LCAL_REL`
-replaces `UNC_L_REL`, the arm at calibration is stored and checked.
+**D2 L versus L_cal.** Superseded 2026-11-28. With the lever calibration the torque chain
+depended only on L_cal (`UNC_LCAL_REL`). Since the direct calibration the factor is N at
+the cell and L enters every torque 1:1: `UNC_ARM_REL` (0.1 mm on 84 mm) replaces
+`UNC_LCAL_REL`; `CALIB_ARM_M` is gone.
 
 **D3 Error budget.** Done. All items in `plateauStat` and in
 [09-measurement-theory](09-measurement-theory.md) §3.2. Realistic today, with K3, K4 and W4
@@ -217,7 +219,7 @@ document updated, knowledge-base rule removed from CLAUDE.md.
 | 2 | Visual inspection per SOP B0, emergency stop within reach | H | confirmed |
 | 3 | System check: controller, motor, cell, factor, arm, revolutions, pressure, plateaus, load, storage. The separate 5 s noise window was dropped on 2026-11-26: it saw the same noise as the tare and had no limit; the noise is now recorded at zeroing (σ and peak-to-peak of the tare values, step 4) | A | table ok / due / missing |
 | 4 | Zeroing with the wheel lifted, 80 values; quarter turn by hand watched through the controller tachometer (bar in degrees), second reading on the *Measure* button, which appears only once the quarter turn is done and the drum still (automatic start removed 2026-11-26: it fired while the drum was still creeping); with a zero point already set since boot the step can be skipped (W20) | H+A, skippable | offset, noise σ, zero after the turn or W13 |
-| 5 | Order since 2026-11-26: check weight 1 kg at 330 mm first; deviation never blocks: next (W10), adopt as calibration (W18) or again. The weight stays on: end stop of the load cell (live bar, peak 100 to 140 % FS, judged with the factor just confirmed), then the weight is read again (change ≥ 0.5 % → W22: the overload changed the sensitivity), then the weight comes off and the zero is read again (beyond `RUN_ZERO_LIMIT_N` → W21: the overload left an offset; zero again or continue). Both comparisons use raw counts, so an adopted factor does not distort them | H, skippable | deviation % or W01; W10 / W18; peak % FS or W17; W22; W21 |
+| 5 | Since 2026-11-28 without the check weight: end stop of the load cell (live bar, peak 100 to 140 % FS), then the zero is read again (beyond `RUN_ZERO_LIMIT_N` → W21: the overload left an offset; zero again or continue). Until then the 1 kg check weight came first (W01, W10, W18, W22) | H, skippable | peak % FS or W17; W21 |
 | 6 | Idle-loss model: adopt (W02 if of unknown age) or drive new — **since 2026-11-25 together with the wheel spin-down**: wheel resting, drum to 40 km/h, lift the wheel while running (detected from the speed ratio), the wheel coasts in the air (A₁, B₁) while the drum runs the idle plateaus (A₀, B₀); brake, wait for the wheel, lower it | H+A | A₀, B₀, points, drift relative to stored (W08); A₁, B₁ or W19 |
 | 7 | Wheel-loss model for this wheel. **Part of every run since 2026-11-26** (it depends on tire, tube and rim): fresh from step 6. Exception, a pressure series on the same wheel: step 6 offers "Use stored" only if the stored model comes from the same tire, tube, wheel and ETRTO (pressure may differ). The model stores the inputs of its run (`wm_org` in NVS). No "without model" any more; without a fresh model (W19) only Back to step 6 | H | A₁, B₁, J_wheel with origin (run, tire, tube, wheel, pressure), previous model of the same wheel for comparison, circumference |
 | 8 | Wheel placed, load confirmed | H | confirmed |
@@ -238,7 +240,7 @@ Rendered by the ESP from the run record, reproducible with `crr.py`:
 # Measurement run <id>
 Tire · ETRTO · Tube · Wheel · Pressure cold / warm · Load · AirSpy temperature start / end · Build
 
-## Checks                table: Check | Result | Value   (incl. zero, end stop, check weight)
+## Checks                table: Check | Result | Value   (incl. zero, end stop)
 ## Calibration state     table: Quantity | Value | Origin | As of
 ## Warm-up               table P(t) per minute with pressure and tire temperature
 ## Measurement points    table: v | n | M_raw | M_inert | dv/dt | M ± σ | Crr raw | Crr corrected ± u | valid
@@ -281,7 +283,7 @@ acceleration over the window decides, as for a point (K1), and a value appears a
 1.5 s of filled window rather than after a fixed number of samples
 ([03-parameters](03-parameters.md) `STEADY_*`, `LIVE_MIN_MS`).
 
-**N5 The check weight read +23.8 %.** Open. 1 kg at the 330 mm mark gave 4.007 Nm against
+**N5 The check weight read +23.8 %.** Closed 2026-11-28 with the direct calibration (the lever calibration and the check weight were dropped). 1 kg at the 330 mm mark gave 4.007 Nm against
 3.237 Nm expected with the stored factor 2.914e-5 N/count (config.h says 2.668e-5 from an
 earlier calibration). A 24 % step is more than drift. Candidates: the weight not at the
 mark or not plumb, the hook or cord weighed, the arm against the end stop (the end-stop

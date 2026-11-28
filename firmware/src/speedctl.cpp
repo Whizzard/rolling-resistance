@@ -22,11 +22,6 @@ const char* g_refusal = "";
 bool     g_learn  = false;  // direction is being learned right now
 uint32_t g_learnStart = 0;
 bool     g_brk    = false;  // breakaway measurement running
-// Crawl (2026-11-27): slow turning in either direction for zero and load readings
-bool     g_crawl = false, g_crawlFrozen = false;
-int8_t   g_crawlDir = 1;
-float    g_crawlKmh = 0.0f, g_crawlDuty = 0.0f, g_crawlTrim = 0.0f;
-const char* g_crawlWhy = "";
 bool     g_dirDet = false;  // direction detection running (on top of g_brk)
 float    g_dirBase = NAN, g_dirDelta = NAN;
 int      g_dirRes = -2;
@@ -216,24 +211,6 @@ void service() {
       g_learn = false;
       g_refusal = "No rotation, learning aborted";
     }
-    return;
-  }
-
-  if (g_crawl) {
-    if (!vesc::connected()) { g_crawl = false; g_crawlWhy = "no controller data"; coast(); return; }
-    const float v = kmhSigned() * g_crawlDir;      // positive = in the wanted direction
-    if (v < -STANDSTILL_KMH) { g_crawl = false; g_crawlWhy = "drum turns the wrong way"; coast(); return; }
-    if (v > CRAWL_MAX_FACTOR * g_crawlKmh) { g_crawl = false; g_crawlWhy = "drum too fast"; coast(); return; }
-    // Feed-forward from the no-load characteristic plus a slow trim, the duty ramped towards it.
-    if (!g_crawlFrozen && v > STANDSTILL_KMH) g_crawlTrim += CRAWL_TRIM_PER_KMH_S * (g_crawlKmh - v) * dt;
-    const float want = rpmFromKmh(g_crawlKmh) / noLoadRpm() + g_crawlTrim;
-    if (!g_crawlFrozen) {
-      const float step = CRAWL_RAMP_PER_S * dt;
-      g_crawlDuty += (want > g_crawlDuty + step) ? step : (want < g_crawlDuty - step ? -step : want - g_crawlDuty);
-    }
-    if (g_crawlDuty < 0.0f) g_crawlDuty = 0.0f;
-    if (g_crawlDuty > CRAWL_DUTY_MAX) { g_crawl = false; g_crawlWhy = "duty limit reached"; coast(); return; }
-    vesc::setDuty(g_crawlDuty * settings::directionSign() * g_crawlDir);
     return;
   }
 
@@ -444,7 +421,7 @@ float rampKmh()   { return g_run ? g_ramp : 0.0f; }
 float kmh()       { const float k = kmhSigned(); return k > 0.0f ? k : 0.0f; }
 // An output is also applied during the breakaway measurement -- without g_brk here
 // the display showed 0 throughout, and that very number is the measurement result.
-float duty()      { return g_run ? g_out : (g_brk ? g_duty : (g_crawl ? g_crawlDuty * g_crawlDir : 0.0f)); }
+float duty()      { return g_run ? g_out : (g_brk ? g_duty : 0.0f); }
 bool  running()   { return g_run; }
 bool  slowingDown() { return (g_run && g_coasting) || g_stopping; }
 
@@ -453,7 +430,6 @@ void stop() {
   // duty cycle went on rising on the next tick (found while adding the detection).
   if (g_dirDet) { g_dirDet = false; g_dirRes = 0; }
   g_brk = false;
-  g_crawl = false;
   g_descBrake = false;
   g_run = false;
   g_coasting = false;
@@ -472,7 +448,6 @@ bool stalledUnderDuty() {
 
 void coast() {
   g_brk = false;          // breakaway() sets it again right after its own coast()
-  g_crawl = false;        // crawl() too
   g_descBrake = false;
   g_run = false;
   g_coasting = false;
@@ -519,32 +494,6 @@ void breakaway() {
   g_brk = true;
   g_refusal = "";
 }
-
-// Crawl: from standstill only, drive released, no relay brake (change of direction only after
-// standstill, docs/07-safety.md §3).
-bool crawl(int8_t dir, float kmh) {
-  g_crawlWhy = "";
-  if (g_run || g_brk || g_learn)               { g_crawlWhy = "drive busy"; return false; }
-  if (fabsf(kmhSigned()) >= STANDSTILL_KMH)    { g_crawlWhy = "drum not standing"; return false; }
-  if (brake::active())                         { g_crawlWhy = "relay brake active"; return false; }
-  if (brake::available() && brake::releasedForMs() < RELAY_SETTLE_MS) { g_crawlWhy = "relays settling"; return false; }
-  if (!(kmh > STANDSTILL_KMH && kmh <= CRAWL_KMH_MAX)) { g_crawlWhy = "crawl speed out of range"; return false; }
-  coast();
-  g_crawlDir = dir < 0 ? -1 : 1; g_crawlKmh = kmh; g_crawlDuty = g_crawlTrim = 0.0f;
-  g_crawlFrozen = false;
-  g_crawl = true;
-  return true;
-}
-void  crawlFreeze(bool f) { g_crawlFrozen = f; }
-void  crawlBrake() {
-  if (!g_crawl) return;
-  g_crawl = false; g_crawlDuty = 0.0f;
-  if (vesc::values().fault != 0 || vesc::lastFaultAgeMs() < BRAKE_FAULT_HOLD_MS) { vesc::release(); return; }
-  vesc::setBrakeCurrent(VESC_BRAKE_CURRENT_STOP);
-}
-bool  crawling()          { return g_crawl; }
-float crawlSpeed()        { return g_crawl ? kmhSigned() * g_crawlDir : 0.0f; }
-const char* crawlWhy()    { return g_crawlWhy; }
 
 bool  breakingAway()  { return g_brk; }
 float breakawayDuty() { return g_brkDuty; }

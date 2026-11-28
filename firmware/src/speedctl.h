@@ -95,22 +95,6 @@ bool learning();
 // and answers whether the clamp needs any reserve at start-up at all.
 void breakaway();
 bool breakingAway();
-
-// CRAWL (2026-11-27): turn the drum at a moderate constant speed in either direction
-// (dir -1 = against the measuring direction) for zero and load readings with the cogging
-// ripple and the bearing friction averaged out (autozero.h). From standstill only. The duty
-// ramps at CRAWL_RAMP_PER_S towards feed-forward plus a slow trim; crawlFreeze(true) holds
-// it constant while reading. Ends by itself with crawlWhy() set on: wrong direction, faster
-// than CRAWL_MAX_FACTOR x target, duty above CRAWL_DUTY_MAX, controller lost. coast() and
-// stop() end it (stop() with the relay brake).
-bool  crawl(int8_t dir, float kmh);
-void  crawlFreeze(bool frozen);
-// End the crawl by braking with the controller (VESC_BRAKE_CURRENT_STOP; the crawl is far
-// below BRAKE_MAX_KMH). The brake stays on until crawl(), coast() or stop().
-void  crawlBrake();
-bool  crawling();
-float crawlSpeed();         // km/h, positive in the crawl direction
-const char* crawlWhy();
 float breakawayDuty();      // duty cycle at breakaway, 0 = none yet
 float breakawayAmps();      // motor current at that moment
 

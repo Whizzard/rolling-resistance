@@ -384,7 +384,7 @@ struct CalRec {               // settings::CalRecord as stored; present = false 
   bool present = false;
   unsigned ver = 0, gainPulses = 0, sps = 0;
   uint32_t epoch = 0;
-  float npc = NAN, armM = NAN, lcalM = NAN, spsMeas = NAN, linPctFS = NAN, hystPctFS = NAN, zeroPctFS = NAN;
+  float npc = NAN, armM = NAN, lcalM = NAN, spsMeas = NAN, linPctFS = NAN, linPctLoad = NAN, hystPctFS = NAN, zeroPctFS = NAN;
   unsigned nLoads = 0, nPoints = 0;
   const char* method = "";
 };
@@ -394,7 +394,7 @@ struct HeaderInfo {
   const char* startLocal = ""; uint32_t unixStartLocal = 0;
   const char* runId = "";                                  // "" -> null
   unsigned marksPerRev = 0, wheelMarksPerRev = 0, motorPolePairs = 0;
-  float drumCircM = NAN, torqueArmM = NAN, calibArmM = NAN, wheelCircM = NAN;
+  float drumCircM = NAN, torqueArmM = NAN, wheelCircM = NAN;   // calib_arm_m dropped 2026-11-28
   int directionSign = 0;
   unsigned vescPollMs = 0, hx711RateSps = 0, hx711GainPulses = 0, syncMs = 0;
   float loadcellCapacityN = NAN, loadEmptyKg = NAN, loadWeightKg = NAN, loadArmM = NAN;
@@ -449,7 +449,6 @@ inline size_t header(char* o, size_t cap, const HeaderInfo& h) {
   l.key("marks_per_rev"); l.u(h.marksPerRev); l.key("wheel_marks_per_rev"); l.u(h.wheelMarksPerRev);
   l.key("motor_pole_pairs"); l.u(h.motorPolePairs);
   l.key("drum_circumference_m"); l.fl(h.drumCircM, 7); l.key("torque_arm_m"); l.fl(h.torqueArmM, 7);
-  l.key("calib_arm_m"); l.fl(h.calibArmM, 7);
   l.key("direction_sign"); l.i(h.directionSign); l.key("vesc_poll_ms"); l.u(h.vescPollMs);
   l.key("hx711_rate_sps"); l.u(h.hx711RateSps); l.key("hx711_gain_pulses"); l.u(h.hx711GainPulses);
   l.key("loadcell_capacity_n"); l.fl(h.loadcellCapacityN, 7);
@@ -467,7 +466,7 @@ inline size_t header(char* o, size_t cap, const HeaderInfo& h) {
     l.s("{"); l.key("ver"); l.u(c.ver); l.key("gain_pulses"); l.u(c.gainPulses); l.key("sps"); l.u(c.sps);
     l.key("epoch_local"); l.u(c.epoch); l.key("npc"); l.fl(c.npc, 7); l.key("arm_m"); l.fl(c.armM, 7);
     l.key("lcal_m"); l.fl(c.lcalM, 7); l.key("sps_meas"); l.fl(c.spsMeas, 6);
-    l.key("lin_pct_fs"); l.fl(c.linPctFS, 4); l.key("hyst_pct_fs"); l.fl(c.hystPctFS, 4);
+    l.key("lin_pct_fs"); l.fl(c.linPctFS, 4); l.key("lin_pct_load"); l.fl(c.linPctLoad, 4); l.key("hyst_pct_fs"); l.fl(c.hystPctFS, 4);
     l.key("zero_pct_fs"); l.fl(c.zeroPctFS, 4);
     l.key("n_loads"); l.u(c.nLoads); l.key("n_points"); l.u(c.nPoints); l.key("method"); l.str(c.method);
     l.s("}");

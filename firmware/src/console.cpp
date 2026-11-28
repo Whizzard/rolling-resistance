@@ -4,7 +4,6 @@ extern "C" {
 #include "relaytest.h"
 #include "console.h"
 #include "calib.h"
-#include "autozero.h"
 
 
 #include "config.h"
@@ -122,10 +121,10 @@ void printHelp() {
   Serial.println("#   c       let it coast down        q  acknowledge fault");
   Serial.println("#   m0      baseline run (wheel lifted)    m1  measurement run");
   Serial.println("#   h<kmh>  add measurement speed          h-<kmh>  remove");
-  Serial.println("#   t       tare load cell          k<kg>  calibrate (also web)   K<kg>  check weight");
+  Serial.println("#   t       tare load cell          (calibration: C..., below)");
   Serial.println("#   l<N>    wheel load              p<bar> tire pressure");
   Serial.println("#   d<m>    drum circumference      a<m>   cell arm");
-  Serial.println("#   b<m>    calibration arm         z      reset settings");
+  Serial.println("#   z       reset settings");
   Serial.println("#   e       learn direction (turn the drum by hand); e1 / e-1 directly");
   Serial.println("#   x       measure breakaway torque (duty cycle rises slowly)");
   Serial.println("#   ed      detect drive direction (slow start, load cell must count positive)");
@@ -136,7 +135,6 @@ void printHelp() {
   Serial.println("#   Fs / Ff format SD (also readable) / flash (only if unreadable) -- erases everything on it\n"
   "#   D       list /vmrr on the SD (sessions and their files); D<file> prints a text file below /vmrr");
   Serial.println("#   G?<dir> / G<path> <off> <len>  file transfer, for tools/console.py --get");
-  Serial.println("#   Z / Zt / Zx  automatic zero by the motor, wheel lifted: measure / and set tare / stop");
   Serial.println("#   C0 / Cm<kg> / Cz / Ce / Ca / Cx  calibration: zero, load with mass, zero, evaluate, accept, cancel");
   Serial.println("#   X<n>    relay pulse test at standstill: n drop/pull-in cycles, edges and load cell per cycle");
   Serial.println("#   B<text> stand revision (free text into every protocol), B alone clears");
@@ -291,8 +289,7 @@ void printStatus() {
     } else {
       Serial.print(" | not calibrated");
     }
-    Serial.print(" | arms "); Serial.print(settings::torqueArmM() * 1000.0f, 1);
-    Serial.print(" / ");       Serial.print(settings::calibArmM() * 1000.0f, 1); Serial.print(" mm");
+    Serial.print(" | cell arm "); Serial.print(settings::torqueArmM() * 1000.0f, 1); Serial.print(" mm");
     Serial.println();
   } else {
     Serial.print("MISSING — HX711 not responding on DOUT GPIO ");
@@ -420,31 +417,6 @@ void printStatus() {
   Serial.println(g_note[0] ? g_note : "—");
 }
 
-// Calibration: a known weight hangs on the calibration arm and produces the
-// torque m·g·L_cal there. The cell sits on the shorter arm L and therefore sees
-//     F = m · g · L_cal / L
-// The factor is this force divided by the raw-value increase since taring.
-void calibrate(float kg) {
-  if (kg <= 0.0f) { fail("Weight must be > 0"); return; }
-  if (!torque::isResponding()) { fail("HX711 not responding"); return; }
-
-  long mean, ripple;
-  torque::displayStats(mean, ripple);
-  const long delta = mean - torque::tareOffset();
-  if (delta == 0) { fail("No deflection"); return; }
-
-  const float f = kg * 9.80665f * settings::calibArmM() / settings::torqueArmM();
-  const float nPerCount = f / static_cast<float>(delta > 0 ? delta : -delta);
-
-  if (!settings::npcPlausible(nPerCount)) { fail("Factor implausible"); return; }
-  if (!calib::singlePoint(nPerCount)) return;
-  snprintf(g_note, sizeof(g_note),
-           "calibrated: %.1f N over %ld counts  ->  %.8f N/count", f, delta, nPerCount);
-  Serial.print("# "); Serial.println(g_note);
-  Serial.println("# Enter in config.h and docs/03-parameters.md:");
-  Serial.print("#   constexpr float LOADCELL_N_PER_COUNT = ");
-  Serial.print(nPerCount, 8); Serial.println("f;");
-}
 
 // The same command vocabulary for console and web UI (docs/10-firmware.md G5).
 
@@ -580,13 +552,6 @@ void handleCommand(const String& cmd) {
   if (cmd[0] == ':') { vesc::terminal(cmd.c_str() + 1); return; }
   // Guided run (run.h). Whoever starts it is subject to the dead-man check.
   if (cmd == "Gb") { if (run::busy() || state::phase() != state::IDLE || storage::info(storage::SD_CARD).formatting) Serial.println("# SD bench: only at standstill"); else storage::sdBench(); return; }
-  // Automatic zero by the drum motor (autozero.h): Z measures only, Zt also sets the tare, Zx stops.
-  if (cmd[0] == 'Z') {
-    if (cmd == "Zx") { autozero::stop(); note("Auto zero stopped"); return; }
-    if (run::busy()) { fail("Not during a run"); return; }
-    if (autozero::start(cmd == "Zt")) note("Auto zero: drum spins both ways, keep clear"); else fail(autozero::why());
-    return;
-  }
   if (cmd[0] == 'C' && cmd.length() > 1) { calib::command(cmd.c_str() + 1); return; }
   if (cmd[0] == 'G') { fileGet(cmd); return; }
   if (cmd[0] == 'X') { relaytest::start(static_cast<uint8_t>(constrain(cmd.substring(1).toInt(), 1, 20))); return; }
@@ -667,11 +632,6 @@ void handleCommand(const String& cmd) {
     case 'q':
       state::clearFault();
       break;
-    case 'k': calibrate(arg); break;
-    case 'K':   // check weight (setup); checked and applied during the measurement run
-      if (settings::setCtrlMassKg(arg)) note("Check weight set");
-      else                               fail("Check weight implausible");
-      break;
     case 'd':
       if (settings::setDrumCircumferenceM(arg)) note("Drum circumference set");
       else                                       fail("Drum circumference implausible");
@@ -679,10 +639,6 @@ void handleCommand(const String& cmd) {
     case 'a':
       if (settings::setTorqueArmM(arg)) note("Cell arm set");
       else                               fail("Cell arm implausible");
-      break;
-    case 'b':
-      if (settings::setCalibArmM(arg)) note("Calibration arm set");
-      else                               fail("Calibration arm implausible");
       break;
     case 'l':
       if (arg > 0.0f) {

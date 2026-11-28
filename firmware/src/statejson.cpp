@@ -161,8 +161,8 @@ void build(char* buf, size_t len) {
     "\"nDrum\":%s,\"nWheel\":%s,\"uWheel\":%s,\"uWheelN\":%lu,\"uWheelMin\":%lu,"
     "\"plateaus\":[%s],\"phase\":\"%s\",\"run\":%u,\"plateau\":%u,"
     "\"sfault\":%s,\"load\":%s,\"motorOpen\":%s,\"estop\":%s,"
-    "\"drumU\":%.4f,\"arm\":%.4f,\"calArm\":%.4f,\"npc\":%.8f,"
-    "\"vmax\":%.0f,\"vmin\":%.0f,\"step\":%.0f,\"fsN\":%.1f,\"maxN\":%.1f,\"ctrlKg\":%.3f,\"mMin\":%.2f,\"mMax\":%.2f,\"stopMin\":%.0f,\"stopMax\":%.0f,\"stopBar\":%.0f,\"rs\":%u}",
+    "\"drumU\":%.4f,\"arm\":%.4f,\"npc\":%.8f,"
+    "\"vmax\":%.0f,\"vmin\":%.0f,\"step\":%.0f,\"fsN\":%.1f,\"maxN\":%.1f,\"mMin\":%.2f,\"mMax\":%.2f,\"stopMin\":%.0f,\"stopMax\":%.0f,\"stopBar\":%.0f,\"rs\":%u}",
     ok ? "true" : "false",
     static_cast<unsigned>(v.fault), vesc::faultText(v.fault),
     static_cast<unsigned>(v.status), static_cast<unsigned long>(v.ageMs),
@@ -201,8 +201,8 @@ void build(char* buf, size_t len) {
     static_cast<unsigned>(state::plateauIndex()), sFault, sLoad,
     speedctl::motorOpen() ? "true" : "false", speedctl::estopInput() ? "true" : "false",
     settings::drumCircumferenceM(), settings::torqueArmM(),
-    settings::calibArmM(), settings::loadcellNPerCount(),
-    V_MAX_KMH, V_MIN_KMH, SPEED_STEP_KMH, LOADCELL_CAPACITY_N, MAX_FORCE_N, settings::ctrlMassKg(), MEAS_TORQUE_MIN_NM, MEAS_TORQUE_MAX_NM, RUN_STOP_MIN_PCT, RUN_STOP_MAX_PCT, RUN_STOP_BAR_PCT,
+    settings::loadcellNPerCount(),
+    V_MAX_KMH, V_MIN_KMH, SPEED_STEP_KMH, LOADCELL_CAPACITY_N, MAX_FORCE_N, MEAS_TORQUE_MIN_NM, MEAS_TORQUE_MAX_NM, RUN_STOP_MIN_PCT, RUN_STOP_MAX_PCT, RUN_STOP_BAR_PCT,
     static_cast<unsigned>(run::step()));
 
   // Storage and raw data (storage.h, rawlog.h), since 2026-11-25. Appended instead of in

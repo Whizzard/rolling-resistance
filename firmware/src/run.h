@@ -6,7 +6,8 @@
 //
 //   A Preparation (hands)        1 Create run  2 Visual inspection  3 System check
 //                                4 Zeroing (wheel lifted, rotor free) + zero check
-//                                  by turning further  5 Check weight  6 Idle-loss model
+//                                  by turning further  5 Load cell end stop + zero after it
+//                                  (check weight dropped 2026-11-28, calib.h)  6 Idle-loss model
 //                                7 Wheel model  8 Wheel placed
 //   B Measurement drive (alone)  9 Warm-up  10 Reference point + plateaus
 //                                11 Reference point after  12 Stopping
@@ -30,7 +31,7 @@
 // Commands (console and user interface, prefix 'R'):
 //   R          start               Rk  main button of the step (Continue, Confirmed, New)
 //   Rs         secondary button (Skip, Adopt)
-//   Rn         Again (check weight, system check)
+//   Rn         Again (end stop, zero, system check)
 //   Rb         Back, one preparation step (only while nothing is driving)
 //   Rx         abort and close
 //   Rm<k>=<v>  metadata: t tire, w wheel, b pressure bar, c room °C (start),

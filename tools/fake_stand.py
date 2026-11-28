@@ -62,16 +62,17 @@ class Stand:
         self.rec_kb = 0.0
         self.note = ""
         self.err = ""
-        self.set = {"drum_u": DRUM_U, "arm": ARM, "calib_arm": 0.330, "npc": 0.00002668, "load_n": LOAD_N,
-                    "ctrl_kg": 1.0, "m_wheel": 0.95, "j_wheel": None, "a0": 0.05, "b0": 1.1e-5,
+        self.set = {"drum_u": DRUM_U, "arm": ARM, "npc": 0.00002668, "load_n": LOAD_N,
+                    "m_wheel": 0.95, "j_wheel": None, "a0": 0.05, "b0": 1.1e-5,
                     "a1": 0.004, "b1": 2.0e-6, "plateaus": list(PLATEAUS), "tare": 81234}
         day = 86400
         now = int(time.time())
         # last-changed stamps as the firmware sends them (local time in s; 0 = unknown)
-        self.chg = {"drum_u": now - 9 * day, "arm": now - 3 * day, "calib_arm": 0, "n_per_count": now - 3 * day,
-                    "load_n": now - 2 * day, "ctrl_kg": now - day, "plateaus": now - 5 * day,
+        self.chg = {"drum_u": now - 9 * day, "arm": now - 3 * day, "n_per_count": now - 3 * day,
+                    "load_n": now - 2 * day, "plateaus": now - 5 * day,
                     "tare": now - 3600, "a0": now - 2 * day, "a1": now - 2 * day, "m_wheel": now - 6 * day}
         self.run = Run(self)
+        self.cal = None          # calibration procedure (calib.h), None = off
         self.trace = []          # raw values at 80 SPS, last TRACE_N
         self.trace_t = time.time()
 
@@ -138,15 +139,69 @@ class Stand:
             "mGl": 0, "ldEmpty": 2.1, "ldWeight": 25.0, "ldArm": 0.42, "nDrum": 8, "nWheel": 1, "uWheel": 2105,
             "uWheelN": 10, "uWheelMin": 10, "plateaus": self.set["plateaus"], "phase": "SETTLE" if v > 0.5 and not steady else ("POINT" if steady else "IDLE"),
             "run": 0, "plateau": 0, "sfault": "", "load": self.set["load_n"], "motorOpen": False, "estop": False,
-            "drumU": self.set["drum_u"], "arm": self.set["arm"], "calArm": self.set["calib_arm"], "npc": self.set["npc"],
-            "vmax": 100, "vmin": 10, "step": 5, "fsN": 49.03, "maxN": 45, "ctrlKg": self.set["ctrl_kg"], "mMin": 0.5, "mMax": 1.4, "stopMin": 100, "stopMax": 140, "stopBar": 160,
+            "drumU": self.set["drum_u"], "arm": self.set["arm"], "npc": self.set["npc"],
+            "vmax": 100, "vmin": 10, "step": 5, "fsN": 49.03, "maxN": 45, "mMin": 0.5, "mMax": 1.4, "stopMin": 100, "stopMax": 140, "stopBar": 160,
             "rs": self.run.step if self.run.step else 0, "build": "fake", "mRad": self.set["m_wheel"],
             "sto": {"sd": self.sd, "sdPct": sd_pct, "sdMB": 30436, "sdFmt": bool(self.sd_fmt_until), "sdFmtRes": "" if self.sd_fmt_until else self.sd_fmt_res, "sdFmtN": self.sd_fmt_n, "sdFs": "FAT32" if self.sd in (1, 2) else "", "flFs": "LittleFS", "fl": self.fl,
                     "flPct": 2, "flMB": 3, "flFmt": False, "rec": self.rec, "recMan": self.rec_man,
                     "recOn": "sd", "recKB": int(self.rec_kb), "recPend": 3, "recDrop": 0},
             "chg": self.chg,
+            "calV": 1, "calWhy": f"{self.set['npc']:.4g} N/count \u00b7 direct (FAKE)",
         })
+        c = self.cal_json()
+        if c:
+            d["calib"] = c
         return d
+
+    # ---- calibration procedure as calib.cpp: direct at the cell, F = m g
+    def cal_counts(self, kg):
+        """Fake cell: slight nonlinearity (-0.02 % of load per kg) plus noise."""
+        f = kg * 9.80665
+        return 81234 + f / 0.00002690 * (1 - 0.0002 * kg) + random.gauss(0, 1.5)
+
+    def cal_json(self):
+        k = self.cal
+        if not k:
+            return None
+        if k["st"] == 1 and time.time() - k["t0"] >= 5 / self.fast:
+            k["pts"].append([k["reading"], round(self.cal_counts(k["reading"]), 1), 12.0, None, None, 400])
+            k["st"], k["reading"] = 2, None
+        d = {"st": k["st"], "ms": int((time.time() - k["t0"]) * 1000 * self.fast) if k["st"] == 1 else 0, "avgMs": 5000,
+             "pts": k["pts"], "reading": k["reading"], "g": 9.80665, "fs": 49.03, "masses": [200, 500, 1000, 2000]}
+        if k["st"] == 3:
+            d.update(k["res"])
+        return d
+
+    def cal_eval(self):
+        k = self.cal; P = k["pts"]; n = len(P)
+        xs = [p[0] * 9.80665 for p in P]; ys = [p[1] for p in P]
+        sx, sy = sum(xs), sum(ys); sxx = sum(x * x for x in xs); sxy = sum(x * y for x, y in zip(xs, ys))
+        b = (n * sxy - sx * sy) / (n * sxx - sx * sx); a = (sy - b * sx) / n
+        fs = abs(b) * 49.03; lin = linl = 0
+        for p, x in zip(P, xs):
+            r = p[1] - (a + b * x)
+            p[3] = round(r / fs * 100, 3)
+            p[4] = round(r / (abs(b) * x) * 100, 3) if p[0] > 0 else None
+            if p[0] > 0:
+                lin, linl = max(lin, abs(p[3])), max(linl, abs(p[4]))
+        k["res"] = {"npc": 1 / abs(b), "old": self.set["npc"], "a": a, "b": b, "lin": lin, "linLoad": linl, "hyst": None, "zero": None}
+        k["st"] = 3
+
+    def cal_cmd(self, t):
+        k = self.cal
+        if t == "x":
+            self.cal = None
+        elif t == "0":
+            self.cal = {"st": 1, "pts": [], "reading": 0.0, "t0": time.time()}
+        elif k and t[:1] in "mz" and k["st"] in (2, 3):
+            for p in k["pts"]:
+                p[3] = p[4] = None
+            k.update(st=1, reading=0.0 if t == "z" else float(t[1:]), t0=time.time())
+        elif k and t == "e" and k["st"] in (2, 3):
+            self.cal_eval()
+        elif k and t == "a" and k["st"] == 3:
+            self.set["npc"] = k["res"]["npc"]; self.stamp("n_per_count"); self.cal = None
+        return 200, "ok"
 
     def dir_json(self):
         """Direction detection as speedctl: 3 s slow start, then positive (fake)."""
@@ -162,6 +217,8 @@ class Stand:
         m = re.match(r"^([A-Za-z]+?)(-?[0-9.,]+)?$", c)
         if c.startswith("R"):
             return self.run.cmd(c)
+        if c.startswith("C") and len(c) > 1:
+            return self.cal_cmd(c[1:])
         if m and m.group(2):
             arg = float(m.group(2).replace(",", "."))
         k = c[:1]
@@ -201,8 +258,8 @@ class Stand:
                 p.sort()
             self.stamp("plateaus")
         else:
-            key = {"d": ("drum_u", "drum_u"), "a": ("arm", "arm"), "b": ("calib_arm", "calib_arm"),
-                   "l": ("load_n", "load_n"), "K": ("ctrl_kg", "ctrl_kg"), "y": ("m_wheel", "m_wheel"),
+            key = {"d": ("drum_u", "drum_u"), "a": ("arm", "arm"),
+                   "l": ("load_n", "load_n"), "y": ("m_wheel", "m_wheel"),
                    "Y": ("j_wheel", "j_wheel")}.get(k)
             if key and arg is not None:
                 self.set[key[0]] = arg
@@ -214,7 +271,7 @@ class Stand:
 
 # ------------------------------------------------------------------- guided run
 TITLES = {1: "Create run", 2: "Visual check, E-stop", 3: "System check", 4: "Zero, wheel lifted",
-          5: "Check weight, end stop", 6: "Idle + wheel spin-down", 7: "Wheel model", 8: "Wheel down, load",
+          5: "Load cell end stop", 6: "Idle + wheel spin-down", 7: "Wheel model", 8: "Wheel down, load",
           9: "Warm-up", 10: "Reference + plateaus", 11: "Reference after", 12: "Stop", 13: "Zero, post-run",
           14: "Protocol", 99: "Aborted"}
 
@@ -232,9 +289,7 @@ class Run:
         self.anchor_pre, self.pts, self.anchor, self.stat, self.warns = [], [], [], [], []
         self.tare_sigma = self.tare_chk = self.zero_end = None
         self.stop_live = self.stop_peak = None
-        self.ctrl_live = self.ctrl_nm = self.ctrl_dev = None
-        self.ctrl_adopted = False
-        self.ctrl_rep = self.stop_zero = None
+        self.stop_zero = None
         self.a0 = self.b0 = None
         self.anchor_dn = None
         self.k = 0
@@ -283,32 +338,16 @@ class Run:
                     S.stamp("tare")
                 self.next_sub()
         elif st == 5 and sub == 0:
-            # weight hangs (about 79 % FS), the press adds up to about 125 % FS, then back
+            # the press rises to about 125 % FS, then back
             x = (e % 6) / 6
-            self.stop_live = 79 + (46 * math.sin(math.pi * x) if e < 6 else 0)
+            self.stop_live = 125 * math.sin(math.pi * x) if e < 6 else 0
             self.stop_peak = max(self.stop_peak or 0, self.stop_live)
-        elif st == 5 and sub in (4, 6):
-            self.prog, self.prog_txt = min(1, e / 4), ("Reading zero point" if sub == 4 else "Reading check weight again")
+        elif st == 5 and sub == 4:
+            self.prog, self.prog_txt = min(1, e / 4), "Reading zero point"
             if e >= 4:
-                if sub == 4:
-                    self.stop_zero = round(random.gauss(0.02, 0.02), 3)
-                    self.sub = 5
-                else:
-                    self.ctrl_rep = round(random.gauss(0.05, 0.08), 3)
-                    self.sub = 7
+                self.stop_zero = round(random.gauss(0.02, 0.02), 3)
+                self.sub = 5
                 self.t_sub, self.prog = time.time(), None
-        elif st == 5 and sub == 1:
-            tg = S.set["ctrl_kg"] * 9.81 * S.set["calib_arm"]
-            self.ctrl_live = tg * (1.003 + random.gauss(0, 0.0005)) if e > 2 else tg * e / 2
-        elif st == 5 and sub == 2:
-            self.prog, self.prog_txt = min(1, e / 4), "Check weight, measuring"
-            tg = S.set["ctrl_kg"] * 9.81 * S.set["calib_arm"]
-            self.ctrl_live = tg * (1.0031 + random.gauss(0, 0.0005))
-            if e >= 4:
-                self.ctrl_raw = round(tg * 1.0031 / (S.set["npc"] * S.set["arm"]), 1)
-                self.ctrl_nm = tg * 1.0031
-                self.ctrl_dev = 0.31
-                self.next_sub()
         elif st == 6 and sub == 1:
             plat = S.set["plateaus"]
             i = int(e // 4)
@@ -393,7 +432,7 @@ class Run:
             ["Motor on controller", 1, "disconnect quiet"],
             ["Load cell", 1, "responds · 0.3 % of full scale"],
             ["Calibration factor", 1, f"{S.set['npc']:.4g} N/count"],
-            ["Cell arm", 1, f"{S.set['arm'] * 1000:.1f} mm · L_cal {S.set['calib_arm'] * 1000:.1f} mm"],
+            ["Cell arm", 1, f"{S.set['arm'] * 1000:.1f} mm"],
             ["Revolutions", 1, "source drum"],
             ["Tire pressure", 1, "AirSpy 4C1A · 5.00 bar · 21.5 °C · battery 88 %"],
             ["Plateaus", 1, " · ".join(f"{p:.1f}" for p in S.set["plateaus"]) + " km/h, reference 28.8 before and after"],
@@ -455,27 +494,16 @@ class Run:
                 self.make_checks()
             elif st == 4:
                 self.go(4)
-            elif st == 5 and sub == 3:
-                self.go(5, 1)
             elif st == 5 and sub == 0:
                 self.go(5, 0)
                 self.stop_peak = None
-            elif st == 5 and sub == 7:
-                self.go(5, 6)
             elif st == 5 and sub == 5:
                 self.go(4)
             return 200, "ok"
         if c == "Rs":
-            if st == 5 and sub == 3:
-                self.ctrl_adopted = True
-                S.stamp("n_per_count")
-            elif st == 5 and sub == 1:
-                self.warns.append("W01 Check weight skipped")
-                self.stop_peak = None
-                self.go(5, 0)
-            elif st == 5 and sub == 0:
+            if st == 5 and sub == 0:
                 self.warns.append("W17 End-stop check skipped")
-                self.go(5, 7)
+                self.go(6)
             elif st == 6 and sub == 0:
                 self.go(7)
             elif st == 7:
@@ -506,15 +534,9 @@ class Run:
             self.turn_deg, self.turn_ready = 0, False
             self.next_sub()
         elif st == 4 and sub == 4:
-            self.go(5, 1)
-        elif st == 5 and sub == 1:
-            self.next_sub()
-        elif st == 5 and sub == 3:
             self.stop_peak = None
             self.go(5, 0)
         elif st == 5 and sub == 0:
-            self.go(5, 6)
-        elif st == 5 and sub == 7:
             self.go(5, 4)
         elif st == 5 and sub == 5:
             self.go(6)
@@ -562,15 +584,9 @@ class Run:
                 ok, redo = "Next", "Again"
         elif st == 5:
             if sub == 0:
-                txt, ok, alt, redo = "Check weight stays on. Push the arm slowly against the end stop, then let go and wait until the weight hangs still.", "Released, still", "Skip", "Again"
-            elif sub == 1:
-                txt, ok, alt = "Hang the check weight.", "Weight hangs", "Skip"
-            elif sub in (2, 4, 6):
+                txt, ok, alt, redo = "Wheel lifted. Push the arm slowly against the end stop, then let go and wait until the arm is still.", "Released, still", "Skip", "Again"
+            elif sub == 4:
                 txt = "Hands off, measuring."
-            elif sub == 3:
-                txt, ok, alt, redo = "Matches the calibration. Leave the weight on: the end stop comes next.", "Next", None if self.ctrl_adopted else "Adopt as calibration", "Again"
-            elif sub == 7:
-                txt, ok, redo = "Same as before the press. Remove the weight, then Next.", "Next", "Again"
             else:
                 txt, ok = "Zero unchanged: the overload left no bias.", "Next"
         elif st == 6:
@@ -600,7 +616,6 @@ class Run:
     def json(self):
         S = self.s
         ok, alt, redo, back, txt = self.buttons()
-        tg = S.set["ctrl_kg"] * 9.81 * S.set["calib_arm"]
         live = self.step == 9 and S.kmh > 25
         md = f"/fs/sd/vmrr/{self.id}/protocol.md" if self.step in (14, 99) else None
         if md:
@@ -612,15 +627,10 @@ class Run:
             "lvCrr": round(crr_true(28.8), 5) if live else None, "lvM": None,
             "prog": self.prog, "progTxt": self.prog_txt, "tareSigma": self.tare_sigma,
             "tareSigmaN": self.tare_sigma, "tareChk": self.tare_chk, "zeroEnd": self.zero_end, "zeroLim": 0.25,
-            "ctrlNm": self.ctrl_nm, "ctrlDev": self.ctrl_dev, "ctrlOn": self.step == 5 and self.sub in (1, 2, 3, 0, 6),
-            "ctrlRep": getattr(self, "ctrl_rep", None), "stopZero": getattr(self, "stop_zero", None),
-            "ctrlAdopted": self.ctrl_adopted, "turnDeg": getattr(self, "turn_deg", None) if (self.step == 4 and self.sub == 2) else None, "ctrlTarget": tg, "ctrlLive": self.ctrl_live,
-            "ctrlExpect": (tg / (S.set["npc"] * S.set["arm"])) if S.set.get("npc") else None,
-            "ctrlRaw": getattr(self, "ctrl_raw", None),
+            "stopZero": getattr(self, "stop_zero", None),
+            "turnDeg": getattr(self, "turn_deg", None) if (self.step == 4 and self.sub == 2) else None,
             "tareAgeS": (time.time() - S.chg["tare"]) if S.chg.get("tare") else None,
             "calEpoch": S.chg.get("n_per_count", 0), "nowEpoch": S.wall or int(time.time()),
-            "ctrlKg": (self.ctrl_nm / 9.81 / S.set["calib_arm"]) if self.ctrl_nm else None,
-            "ctrlTargetKg": S.set["ctrl_kg"], "calArmMm": S.set["calib_arm"] * 1000,
             "stopLive": self.stop_live, "stopPeak": self.stop_peak, "stopMin": 100, "stopMax": 140, "stopBar": 160,
             "bar": 5.0, "barWarm": 5.0, "tTire": 21.5, "meta": self.meta, "checks": self.checks,
             "pre": self.pre, "a0": self.a0, "b0": self.b0, "a0Old": 0.05, "post": self.post, "warm": self.warm,
@@ -632,19 +642,16 @@ class Run:
         }
 
     def load_counts(self):
-        """Counts the hanging check weight adds to the fake cell (step 5)."""
+        """Counts the end-stop press adds to the fake cell (step 5, sub 0)."""
         S = self.s
-        if self.step != 5 or self.sub in (4, 5) or not S.set.get("npc"):
+        if self.step != 5 or self.sub != 0 or not S.set.get("npc") or self.stop_live is None:
             return 0
-        tg = S.set["ctrl_kg"] * 9.81 * S.set["calib_arm"]
-        if self.sub == 1:
-            return (self.ctrl_live or 0) / (S.set["npc"] * S.set["arm"])
-        return tg * (1.0036 if self.sub == 6 else 1.0031) / (S.set["npc"] * S.set["arm"])
+        return self.stop_live / 100 * 49.03 / S.set["npc"]
 
     def trace_json(self):
         S = self.s
         if not (self.step == 4 or (self.step == 13 and self.sub == 1)
-                or (self.step == 5 and (self.sub >= 4 or self.sub in (1, 2)))) or not S.trace:
+                or (self.step == 5 and self.sub >= 4)) or not S.trace:
             return {}
         mean = round(sum(S.trace) / len(S.trace))
         npc_froll = S.set["npc"] * S.set["arm"] / R_DRUM

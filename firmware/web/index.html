@@ -158,6 +158,15 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .calp .row button, .calp .row input { float: none; margin: 0; width: auto; flex: 1 1 28%; min-width: 90px; }
 .calp .row input { font-size: 19px; padding: 10px; }
 .calp .res { font-size: 17px; line-height: 1.55; color: #28475c; }
+/* Calibration graphic (2026-11-28): colours as variables, so a dark theme only redefines them. */
+.calp svg { --cal-pt: #2f6f99; --cal-fit: #16202a; --cal-axis: #64737f; --cal-grid: #dde3e8; --cal-bar: #e0a800;
+  display: block; width: 100%; max-width: 420px; height: auto; margin: 8px 0; font-size: 11px; }
+.calp svg .ax { stroke: var(--cal-axis); stroke-width: 1; }
+.calp svg .gr { stroke: var(--cal-grid); stroke-width: 1; }
+.calp svg .fit { stroke: var(--cal-fit); stroke-width: 1.5; }
+.calp svg .pt { fill: var(--cal-pt); }
+.calp svg .eb { stroke: var(--cal-bar); stroke-width: 2; }
+.calp svg text { fill: var(--cal-axis); }
 .field .hint { font-size: 15px; color: #7d8a95; margin-top: 6px; clear: both;
                padding-top: 6px; line-height: 1.45; }
 /* ---- small icon in a tile label, here: zero ---- */
@@ -167,9 +176,7 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
   min-width: 48px; min-height: 40px; text-transform: none; letter-spacing: 0; }
 .lab .ico:active { background: #2f6f99; color: #fff; }
 .lab .ico.busy { background: #2f6f99; color: #fff; }
-/* Calibrate at the bottom edge of the load tile, the same look as zero (2026-11-26). */
-.tbtns { text-align: right; margin-top: 10px; }
-/* Utilization scale with marks 0, check weight, overload (2026-11-26), as at the end stop. */
+/* Utilization scale with marks 0, overload (2026-11-26), as at the end stop. */
 .uscale { position: relative; margin: 26px 0 18px; }
 .uscale .ml.up { top: -20px; }
 .uscale .tr { position: relative; height: 14px; border-radius: 4px; overflow: hidden; background: #e4e9ed; }
@@ -180,25 +187,16 @@ h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
 .uscale .ml { position: absolute; top: 19px; font-size: 11px; color: #64737f; white-space: nowrap; -webkit-transform: translateX(-50%); transform: translateX(-50%); }
 .uscale .ml.l { -webkit-transform: none; transform: none; }
 .uscale .ml.r { -webkit-transform: translateX(-100%); transform: translateX(-100%); }
-.tbtns .ico { -webkit-appearance: none; border: 0; cursor: pointer; background: #d6dde3; color: #2b3a46;
-  border-radius: 7px; padding: 8px 12px; min-width: 48px; min-height: 40px; line-height: 0; }
-.tbtns .ico svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-/* zero and calibrate only at standstill (2026-11-26) */
+/* zero only at standstill (2026-11-26) */
 .ico.away { visibility: hidden; }
-.tbtns .ico:active { background: #2f6f99; color: #fff; }
-.tbtns .ico:disabled { opacity: .4; }
 /* word next to the symbol (2026-11-26) */
 #bTare { font-size: 18px; padding: 6px 12px; min-height: 34px; margin-top: -7px; line-height: 1;
   display: -webkit-inline-flex; display: inline-flex; -webkit-align-items: center; align-items: center; }
 #bTare .bl { vertical-align: 0; margin-left: 6px; }
 .ico .bl { font-size: 14px; font-weight: 700; margin-left: 6px; vertical-align: 4px; line-height: 1; }
-.tbtns .ico svg { vertical-align: middle; }
-.tbtns .ico .bl { vertical-align: middle; }
-/* <tare> / <cal> in place of the value while it runs */
+/* <tare> in place of the value while it runs */
 .val .busyv { font-size: 24px; font-weight: 700; color: #2f6f99; letter-spacing: 0; }
 /* deviation from the check-weight mark, small behind the value (2026-11-26) */
-.val small.cwd { font-size: 13px; font-weight: 700; margin-left: 4px; letter-spacing: 0; white-space: nowrap; }
-@media (max-width: 480px) { .val small.cwd { display: block; margin: 2px 0 0; } }
 
 /* ---- Settings: shown as fixed values, Edit opens the editor ---- */
 .view { font-size: 25px; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -578,13 +576,12 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     <div class="tiles">
       <div class="tile half big"><div>
         <div class="lab">Load <button type="button" class="ico" id="bTare" title="Zero">&#8960;<span class="bl">tare</span></button></div>
-        <div class="val"><span id="kg">—</span><small>kg</small><small class="cwd" id="kgD"></small></div>
+        <div class="val"><span id="kg">—</span><small>kg</small></div>
         <div class="sub" id="ppSub">—</div>
-        <div class="tbtns"><button type="button" class="ico" id="bCalib" title="Calibrate with the check weight"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10h9l3 10.5h-15zM9.5 10V8.5a2.5 2.5 0 0 1 5 0V10"/></svg><span class="bl">cal</span></button></div>
       </div></div>
       <div class="tile half big"><div>
         <div class="lab">Utilization</div>
-        <div class="val"><span id="pct">—</span><small>%</small><small class="cwd" id="pctD"></small></div>
+        <div class="val"><span id="pct">—</span><small>%</small></div>
         <div class="sub" id="pctSub">—</div>
         <div class="uscale" id="uScale"></div>
       </div></div>
@@ -687,32 +684,14 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         <button type="button" class="plain" id="xArm">Cancel</button>
       </div>
     </div>
-    <div class="field">
-      <label>Drum axis – check weight</label>
-      <div class="view"><span id="vCal">—</span><small>mm</small>
-        <button type="button" id="eCal">Edit</button></div>
-      <div class="editor" id="edCal" hidden>
-        <input type="text" id="fCal" inputmode="decimal">
-        <button type="button" id="bCal">OK</button>
-        <button type="button" class="plain" id="xCal">Cancel</button>
-      </div>
-    </div>
-    <div class="field">
-      <label>Check weight</label>
-      <div class="view"><span id="vG">—</span><small>g</small>
-        <button type="button" id="eG">Edit</button></div>
-      <div class="editor" id="edG" hidden>
-        <input type="text" id="fG" inputmode="decimal">
-        <button type="button" id="bG">OK</button>
-        <button type="button" class="plain" id="xG">Cancel</button>
-      </div>
-    </div>
 
     <div class="field" id="fieldCalib">
       <label>Calibration</label>
       <div class="view"><span id="vCalib">—</span>
-        <button type="button" id="eCalib">Calibrate</button></div>
+        <button type="button" id="eCalib">Calibrate</button>
+        <button type="button" id="eCalHist">History</button></div>
       <div class="calp" id="calPanel" hidden></div>
+      <div class="calp" id="calHist" hidden></div>
     </div>
 
     <h2>Drive direction</h2>
@@ -1052,8 +1031,6 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   }
   editor("Drum", "d", 1000);
   editor("Arm",  "a", 1000);
-  editor("Cal",  "b", 1000);
-  editor("G",    "K", 1000);
   editor("Load", "l", 1 / 9.80665);   /* shown in kg, the command takes N */
   function view(key, v, d) { if (!editing[key]) $("v" + key).innerHTML = de(v, d); }
   /* Stand revision: free text, not a number (console B<text>). */
@@ -1068,75 +1045,155 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
   };
 
   $("bTare").onclick  = function () { send("t"); };
-  /* Calibrate with the check weight from Setup (console k<kg>): zero without it first,
-     then hang it on the calibration arm. Asks first; the new factor replaces the old. */
-  var calCtx = null, calShowUntil = 0;   /* calibrating is one step on the stand: <cal> shown briefly */
-  $("bCalib").onclick = function () { openCalib(); };
-  /* Calibration procedure (calib.h, console C...): zero, loads with their masses, zero
-     again, evaluate, accept. The stand keeps the readings; the page only shows them. */
+  /* Calibration procedure (calib.h, console C...), DIRECT at the cell since 2026-11-28: arm
+     lifted, stirrup on the Bowden cable -> zero, weights in the stirrup, zero again
+     (optional), evaluate, accept. The stand keeps the readings; the page only shows them. */
   var calOpen = false;
-  /* In a run (check weight off) the field moves into the run overlay, back when done. */
-  var calHome = null;
-  function calPlace(inRun) {
-    var f = $("fieldCalib");
-    if (!calHome) { calHome = document.createComment("calib"); f.parentNode.insertBefore(calHome, f); }
-    if (inRun && f.parentNode !== $("runPanel")) $("runPanel").insertBefore(f, $("runAct"));
-    else if (!inRun && f.parentNode === $("runPanel")) calHome.parentNode.insertBefore(f, calHome);
-  }
-  function openCalib() {
-    calOpen = true;
-    if (!$("run").hidden) calPlace(true); else tab(false);
-    if (lastJ) paintCalib(lastJ);
-    setTimeout(function () { $("fieldCalib").scrollIntoView({ block: "start" }); }, 50);
-  }
   $("eCalib").onclick = function () { calOpen = !calOpen; if (lastJ) paintCalib(lastJ); };
+  /* Calibration history: the calibration book (/vmrr/calibration.md, flash mirror, else SD)
+     parsed by its table headers; factor over time as % against the latest, and a table. */
+  var histOpen = false;
+  $("eCalHist").onclick = function () {
+    histOpen = !histOpen; $("calHist").hidden = !histOpen; $("eCalHist").textContent = histOpen ? "Close" : "History";
+    if (histOpen) loadHist(["flash", "sd"]);
+  };
+  function loadHist(media) {
+    if (!media.length) { $("calHist").innerHTML = '<div class="act">No book</div>'; return; }
+    var x = new XMLHttpRequest();
+    x.open("GET", "/fs/" + media[0] + "/vmrr/calibration.md?view=1");
+    x.onload = function () { if (x.status === 200 && x.responseText.indexOf("|") >= 0) paintHist(x.responseText); else loadHist(media.slice(1)); };
+    x.onerror = function () { loadHist(media.slice(1)); };
+    x.send();
+  }
+  function parseBook(t) {
+    var ls = t.split("\n"), head = null, out = [], i, c, r;
+    for (i = 0; i < ls.length; i++) {
+      var l = ls[i].trim();
+      if (l.indexOf("| Time |") === 0) { head = l.split("|").map(function (s) { return s.trim(); }); continue; }
+      if (!head || l.indexOf("| ") !== 0 || l.indexOf("---") >= 0) continue;
+      c = l.split("|").map(function (s) { return s.trim(); });
+      r = {};
+      for (var k = 0; k < head.length; k++) r[head[k]] = c[k];
+      var f = parseFloat(r["Factor N/count"]);
+      if (!(f > 0)) continue;
+      out.push({ t: r["Time"], m: r["Method"], f: f, lin: r["Linearity % of load"] || r["Linearity % FS"] || "—",
+                 linFs: !r["Linearity % of load"], kg: r["Max load kg"] || "" });
+    }
+    return out;
+  }
+  function paintHist(t) {
+    var h = parseBook(t), i, s = "";
+    if (!h.length) { $("calHist").innerHTML = '<div class="act">No calibrations</div>'; return; }
+    var last = h[h.length - 1].f, W = 320, L = 44, R = 14, H = 120, mn = 0, mx = 0, d = [];
+    for (i = 0; i < h.length; i++) { var v = (h[i].f / last - 1) * 100; d.push(v); mn = Math.min(mn, v); mx = Math.max(mx, v); }
+    var sp = Math.max(0.05, mx - mn) * 1.15, mid = (mx + mn) / 2;
+    var fy = function (v) { return 8 + (H - 8) * (0.5 - (v - mid) / sp); };
+    var fx = function (k) { return h.length < 2 ? (L + W - R) / 2 : L + (W - L - R) * k / (h.length - 1); };
+    s += '<svg viewBox="0 0 ' + W + ' ' + (H + 18) + '" role="img" aria-label="Calibration history">';
+    s += '<line class="ax" x1="' + L + '" x2="' + (W - R) + '" y1="' + fy(0) + '" y2="' + fy(0) + '"/>'
+       + '<text x="' + (L - 4) + '" y="' + (fy(0) + 4) + '" text-anchor="end">0</text>'
+       + '<text x="' + (L - 4) + '" y="' + (fy(mid + sp / 2.3) + 4) + '" text-anchor="end">' + (mid + sp / 2.3 >= 0 ? "+" : "") + de(mid + sp / 2.3, 2) + '</text>'
+       + '<text x="' + (L - 4) + '" y="' + (fy(mid - sp / 2.3) + 4) + '" text-anchor="end">' + (mid - sp / 2.3 >= 0 ? "+" : "") + de(mid - sp / 2.3, 2) + '</text>'
+       + '<text x="' + (L + 4) + '" y="16">% vs latest</text>';
+    var pl = "";
+    for (i = 0; i < h.length; i++) pl += (i ? " " : "") + fx(i) + "," + fy(d[i]);
+    if (h.length > 1) s += '<polyline class="fit" fill="none" points="' + pl + '"/>';
+    for (i = 0; i < h.length; i++) s += '<circle class="pt" cx="' + fx(i) + '" cy="' + fy(d[i]) + '" r="3.5"><title>' + esc(h[i].t) + '</title></circle>';
+    s += '<text x="' + L + '" y="' + (H + 14) + '">' + esc((h[0].t || "").slice(0, 10)) + '</text><text x="' + (W - R) + '" y="' + (H + 14) + '" text-anchor="end">' + esc((h[h.length - 1].t || "").slice(0, 10)) + '</text>';
+    s += "</svg>";
+    var rows = [];
+    for (i = h.length - 1; i >= 0 && rows.length < 12; i--)
+      rows.push([esc(h[i].t), esc(h[i].m), h[i].f.toExponential(4), (d[i] >= 0 ? "+" : "") + de(d[i], 2), esc(h[i].lin) + (h[i].linFs ? " FS" : ""), esc(h[i].kg)]);
+    s += tbl(["Time", "Method", "N/count", "%", "Lin. %", "Max kg"], rows);
+    $("calHist").innerHTML = s;
+  }
   function calBtn(label, cmd, cls, dis) { return '<button type="button" class="' + (cls || "") + '" data-c="' + esc(cmd) + '"' + (dis ? " disabled" : "") + '>' + label + '</button>'; }
   $("calPanel").onclick = function (e) {
     var b = e.target.closest ? e.target.closest("button") : null; if (!b || b.disabled) return;
     var c = b.getAttribute("data-c");
-    if (c === "own") { var g = parseFloat(String($("calOwn").value).replace(",", ".")); if (!(g > 0)) return; c = "Cm" + (g / 1000); }
     if (c === "Cx") calOpen = false;
     send(c);
   };
+  /* Graphic after Evaluate: counts above the fitted zero against the load, with the fit
+     line; below, the residual of every load in % of that load, the bar = ±2 σ of the mean
+     (the reading's own noise). Points: [kg, counts, σ, res % FS, res % load, n]. */
+  function calSvg(k) {
+    var W = 320, L = 44, R = 14, H1 = 150, H2 = 110, G = 26, i, q, x, y, h = "";
+    var g = k.g || 9.80665, mx = 0, loads = [];
+    for (i = 0; i < k.pts.length; i++) { mx = Math.max(mx, k.pts[i][0]); if (k.pts[i][0] > 0) loads.push(k.pts[i]); }
+    if (!(mx > 0)) return "";
+    var fx = function (kg) { return L + (W - L - R) * kg / mx; };
+    var top = Math.abs(k.b) * mx * g;                       /* counts above zero at the largest load */
+    var fy = function (c) { return 8 + (H1 - 8) * (1 - c / top); };
+    h += '<svg viewBox="0 0 ' + W + ' ' + (H1 + G + H2 + 18) + '" role="img" aria-label="Calibration">';
+    for (i = 0; i <= 4; i++) { y = fy(top * i / 4); h += '<line class="gr" x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '"/>'
+      + '<text x="' + (L - 4) + '" y="' + (y + 4) + '" text-anchor="end">' + de(top * i / 4 / 1000, 0) + 'k</text>'; }
+    h += '<line class="ax" x1="' + L + '" x2="' + L + '" y1="8" y2="' + H1 + '"/><line class="ax" x1="' + L + '" x2="' + (W - R) + '" y1="' + H1 + '" y2="' + H1 + '"/>';
+    h += '<line class="fit" x1="' + fx(0) + '" y1="' + fy(0) + '" x2="' + fx(mx) + '" y2="' + fy(top) + '"/>';
+    for (i = 0; i < k.pts.length; i++) { q = k.pts[i];
+      h += '<circle class="pt" cx="' + fx(q[0]) + '" cy="' + fy(Math.abs(q[1] - k.a)) + '" r="3.5"/>'; }
+    h += '<text x="' + L + '" y="' + (H1 + 14) + '">0</text><text x="' + (W - R) + '" y="' + (H1 + 14) + '" text-anchor="end">' + de(mx * 1000, 0) + ' g</text>'
+      + '<text x="' + (L + 4) + '" y="18">counts</text>';
+    /* residuals */
+    var y0 = H1 + G, span = 0.01;
+    for (i = 0; i < loads.length; i++) { q = loads[i];
+      var eb = q[5] > 0 ? 2 * q[2] / Math.sqrt(q[5]) / (Math.abs(k.b) * q[0] * g) * 100 : 0;
+      span = Math.max(span, Math.abs(q[4] || 0) + eb); }
+    span *= 1.15;
+    var ry = function (v) { return y0 + H2 / 2 - (H2 / 2) * v / span; };
+    h += '<line class="gr" x1="' + L + '" x2="' + (W - R) + '" y1="' + ry(span / 1.15) + '" y2="' + ry(span / 1.15) + '"/>'
+      + '<line class="gr" x1="' + L + '" x2="' + (W - R) + '" y1="' + ry(-span / 1.15) + '" y2="' + ry(-span / 1.15) + '"/>'
+      + '<text x="' + (L - 4) + '" y="' + (ry(span / 1.15) + 4) + '" text-anchor="end">+' + de(span / 1.15, span < 0.1 ? 3 : 2) + '</text>'
+      + '<text x="' + (L - 4) + '" y="' + (ry(-span / 1.15) + 4) + '" text-anchor="end">−' + de(span / 1.15, span < 0.1 ? 3 : 2) + '</text>'
+      + '<line class="ax" x1="' + L + '" x2="' + (W - R) + '" y1="' + ry(0) + '" y2="' + ry(0) + '"/>'
+      + '<text x="' + (L - 4) + '" y="' + (ry(0) + 4) + '" text-anchor="end">0</text>'
+      + '<text x="' + (L + 4) + '" y="' + (y0 + 10) + '">% of load</text>';
+    for (i = 0; i < loads.length; i++) { q = loads[i]; if (q[4] === null) continue;
+      x = fx(q[0]);
+      var e2 = q[5] > 0 ? 2 * q[2] / Math.sqrt(q[5]) / (Math.abs(k.b) * q[0] * g) * 100 : 0;
+      if (e2 > 0) h += '<line class="eb" x1="' + x + '" x2="' + x + '" y1="' + ry(q[4] + e2) + '" y2="' + ry(q[4] - e2) + '"/>';
+      h += '<circle class="pt" cx="' + x + '" cy="' + ry(q[4]) + '" r="3.5"/>'; }
+    h += '<text x="' + (W - R) + '" y="' + (y0 + H2 + 14) + '" text-anchor="end">bar ±2σ</text>';
+    return h + "</svg>";
+  }
   function paintCalib(j) {
     $("vCalib").innerHTML = (j.calV > 0 ? mark("good") : j.calV === 0 ? mark("warn") : mark("bad")) + esc(j.calWhy || "—");
     var k = j.calib || null;
     $("eCalib").textContent = calOpen && !k ? "Close" : "Calibrate";
     $("eCalib").hidden = !!k;
     var p = $("calPanel"); p.hidden = !(calOpen || k);
-    if (p.hidden || $("run").hidden) calPlace(false);
     if (p.hidden) return;
     var h = "", i, rows = [];
     if (k && k.pts.length) {
       for (i = 0; i < k.pts.length; i++) {
         var q = k.pts[i];
-        rows.push([q[0] > 0 ? de(q[0] * 1000, 0) + " g" : "zero", de(q[1], 0), "±" + de(q[2], 0), q[3] === null ? "" : de(q[3], 3) + " %"]);
+        rows.push([q[0] > 0 ? de(q[0] * 1000, 0) + " g" : "zero", de(q[1], 0), "±" + de(q[2], 0),
+                   q[3] === null ? "" : de(q[3], 3), q[4] === null ? "" : de(q[4], 3)]);
       }
-      h += tbl(["Load", "Counts", "σ", k.st === 3 ? "Residual FS" : ""], rows);
+      h += tbl(["Load", "Counts", "σ", k.st === 3 ? "% FS" : "", k.st === 3 ? "% load" : ""], rows);
     }
     if (!k) {
-      h += '<div class="act">Remove all weight</div><div class="row">' + calBtn("Start: read zero", "C0") + calBtn("Cancel", "Cx", "plain") + "</div>";
+      h += '<div class="act">Lift arm, hang stirrup</div><div class="row">' + calBtn("Zero", "C0") + calBtn("Cancel", "Cx", "plain") + "</div>";
     } else if (k.st === 1) {
-      h += '<div class="act">Hands off, reading ' + (k.reading > 0 ? de(k.reading * 1000, 0) + " g" : "zero") + " · "
-        + (k.az ? k.az : de(Math.max(0, (k.avgMs - k.ms) / 1000), 0) + " s") + "</div>";
+      h += '<div class="act">Hands off · ' + (k.reading > 0 ? de(k.reading * 1000, 0) + " g" : "zero") + " · "
+        + de(Math.max(0, (k.avgMs - k.ms) / 1000), 0) + " s</div>";
     } else {
       var loads = 0; for (i = 0; i < k.pts.length; i++) if (k.pts[i][0] > 0) loads++;
       if (k.st === 3) {
         var d = (k.npc / k.old - 1) * 100;
         h += '<div class="res">Factor <b>' + k.npc.toExponential(4) + "</b> N/count" + (k.old > 0 ? " (" + (d >= 0 ? "+" : "") + de(d, 2) + " %)" : "")
-           + "<br>Linearity " + de(k.lin, 3) + " % FS · hysteresis " + (k.hyst === null ? "—" : de(k.hyst, 3) + " % FS")
-           + " · zero return " + (k.zero === null ? "—" : de(k.zero, 3) + " % FS") + "</div>";
-      } else h += '<div class="act">Hang a weight at the mark, then its mass</div>';
+           + "<br>Linearity <b>" + de(k.linLoad, 3) + " %</b> of load · " + de(k.lin, 3) + " % FS"
+           + "<br>Hysteresis " + (k.hyst === null ? "—" : de(k.hyst, 3) + " % FS")
+           + " · zero return " + (k.zero === null ? "—" : de(k.zero, 3) + " % FS") + "</div>" + calSvg(k);
+      } else h += '<div class="act">Weight in stirrup</div>';
       var r = '<div class="row">';
       for (i = 0; i < k.masses.length; i++) r += calBtn(k.masses[i] + " g", "Cm" + (k.masses[i] / 1000));
-      r += calBtn("Zero", "Cz", "plain") + "</div>";
-      r += '<div class="row"><input type="text" id="calOwn" inputmode="decimal" placeholder="g">' + calBtn("Read", "own") + "</div>";
+      r += calBtn("Zero again", "Cz", "plain") + "</div>";
       r += '<div class="row">' + calBtn("Evaluate", "Ce", "", !(loads > 0 && k.pts.length >= 2))
          + (k.st === 3 ? calBtn("Accept", "Ca") : "") + calBtn("Cancel", "Cx", "plain") + "</div>";
       h += r;
     }
-    var own = $("calOwn") ? $("calOwn").value : "";
-    if (p.getAttribute("data-h") !== h) { p.innerHTML = h; p.setAttribute("data-h", h); if ($("calOwn")) $("calOwn").value = own; }
+    if (p.getAttribute("data-h") !== h) { p.innerHTML = h; p.setAttribute("data-h", h); }
   }
   var airOpen = false;
   $("bAir").onclick = function () { airOpen = !airOpen; $("airInfo").hidden = !airOpen; if (lastJ) paintAir(lastJ); };
@@ -1185,8 +1242,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
      j.chg maps the NVS key to the browser's local time in s. Missing key = default
      from config.h, 0 = set, time unknown. "label": into the field's label, "after":
      right behind the element (for a second value in the same field). */
-  var CHG = { drum_u: ["vDrum", "label"], arm: ["vArm", "label"], calib_arm: ["vCal", "label"],
-    ctrl_kg: ["vG", "label"], load_n: ["vLoad", "label"], stand_rev: ["vRev", "label"],
+  var CHG = { drum_u: ["vDrum", "label"], arm: ["vArm", "label"], load_n: ["vLoad", "label"], stand_rev: ["vRev", "label"],
     plateaus: ["chips", "label"], dir_sign: ["dirNow", "label"], a0: ["b0", "after"] };
   function chgText(t) {
     if (t === undefined) return "default";
@@ -2027,42 +2083,6 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       + '<div class="tracelab">' + lab + '</div></div>'
       + '<div class="sub">last 2 s around the mean ' + r.trMean + ' counts \u00b7 scale \u00b1' + de(R, 0) + ' counts' + inN(R, 3) + ' on F_roll</div>';
   }
-  /* Check weight hanging (step 5, sub 1 / 2 / 6), live (2026-11-26). With a reference --
-     the reading the stored calibration expects, or for the reread the first reading of
-     this run -- the live value as deviation from that mark: tiles, a bar 0..120 % with the
-     mark, and the last 2 s as a fine curve in %. Without one (not calibrated, first
-     reading): the raw counts above zero with their scale. */
-  function weightLive(r) {
-    var t = r.trace || [], n = t.length, i;
-    if (!n) return "";
-    var ref = r.sub === 6 ? r.ctrlRaw : r.ctrlExpect;
-    var refLab = r.sub === 6 ? "first reading" : "old calibration";
-    var now = r.trNow - r.trTare;
-    if (ref === null || ref === undefined || !ref) return traceHtml(r);
-    var dv = (now / ref - 1) * 100, pv = [], mx = 0;
-    for (i = 0; i < n; i++) { pv.push((t[i] + r.trMean - r.trTare) / ref * 100 - 100); mx = Math.max(mx, Math.abs(pv[i])); }
-    var sc = ref * 1.2, pb = function (v) { return Math.max(0, Math.min(100, v / sc * 100)); };
-    var Rg = niceRange(Math.max(Math.min(mx, 25) * 1.15, 0.5));   /* at least +-0.5 %, the ok band */
-    var W = 300, H = 120, y = function (v) { v = Math.max(-Rg, Math.min(Rg, v)); return H / 2 - v / Rg * (H / 2 - 4); };
-    var pts = [], grid = "", lab = "", g;
-    for (i = 0; i < n; i++) pts.push((i / Math.max(1, n - 1) * W).toFixed(1) + "," + y(pv[i]).toFixed(1));
-    for (g = -1; g <= 1; g += 0.5) {
-      grid += '<line x1="0" x2="' + W + '" y1="' + y(g * Rg) + '" y2="' + y(g * Rg) + '" stroke="' + (g === 0 ? "#1e1e1e" : "#d4dbe1") + '" stroke-width="' + (g === 0 ? 1.4 : 0.7) + '"/>';
-      lab += '<span style="top:' + (y(g * Rg) / H * 100).toFixed(1) + '%">' + (g === 0 ? refLab : (g > 0 ? "+" : "") + de(g * Rg, Rg < 2 ? 2 : 1) + " %") + "</span>";
-    }
-    var big = r.ctrlLive !== null && r.ctrlLive !== undefined && r.sub !== 6
-      ? fm(r.ctrlLive, 3) + '<small>Nm</small>' : de(now, 0) + '<small>counts</small>';
-    return '<div class="tiles"><div class="tile half"><div><div class="lab">Live</div><div class="val">' + big + '</div><div class="sub">' + de(now, 0) + ' counts above zero \u00b7 mark ' + de(ref, 0) + '</div></div></div>'
-      + '<div class="tile half ' + lvl(dv, 0.5, 1.0) + '"><div><div class="lab">Deviation from ' + refLab + '</div><div class="val">' + (dv >= 0 ? "+" : "") + de(dv, 2) + '<small>%</small></div><div class="sub">ok below 0.5 %</div></div></div></div>'
-      + '<div style="position:relative;height:22px;border-radius:5px;overflow:hidden;background:linear-gradient(to right,#e4e9ed 0 ' + pb(ref * 0.99) + '%,#cfe6d2 ' + pb(ref * 0.99) + '% ' + pb(ref * 1.01) + '%,#e4e9ed ' + pb(ref * 1.01) + '% 100%)">'
-      + '<div style="position:absolute;left:0;top:0;height:100%;width:' + pb(now) + '%;background:#2f6f99;opacity:.75"></div>'
-      + '<div style="position:absolute;left:' + pb(ref) + '%;top:0;height:100%;width:2px;background:#1e1e1e"></div></div>'
-      + '<div class="sub">0 \u2026 120 % of the mark \u00b7 line = ' + refLab + ' \u00b7 green \u00b11 %</div>'
-      + '<div class="tracewrap" style="margin-top:10px"><svg class="trace" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + grid
-      + '<polyline fill="none" stroke="#2f6f99" stroke-width="1.4" vector-effect="non-scaling-stroke" points="' + pts.join(" ") + '"/></svg>'
-      + '<div class="tracelab">' + lab + '</div></div>'
-      + '<div class="sub">last 2 s, deviation from the ' + refLab + ' \u00b7 scale \u00b1' + de(Rg, Rg < 2 ? 2 : 1) + ' %</div>';
-  }
   function paintRun(r) {
     var s = r.step || 0, i;
     $("runId").innerHTML = r.id || "";
@@ -2120,14 +2140,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
           + '<div style="position:absolute;left:' + pct(100) + '%;top:0;height:100%;width:1px;background:#64737f"></div></div>'
           + '<div class="sub">0 … ' + de(sc, 0) + ' % of cell full scale · green measuring range · yellow target band ' + de(r.stopMin, 0) + '–' + de(r.stopMax, 0) + ' % · red too far · line = peak</div>';
       }
-      else if (s === 5 && (r.sub === 1 || r.sub === 2 || r.sub === 6)) body = weightLive(r);
-      else if (s === 5 && r.sub === 7) body = '<div class="tiles"><div class="tile half"><div><div class="lab">Before the press</div><div class="val">' + fm(r.ctrlKg, 3) + '<small>kg</small></div></div></div>'
-        + '<div class="tile half ' + lvl(r.ctrlRep, 0.5, 1.0) + '"><div><div class="lab">After the press</div><div class="val">' + (r.ctrlRep === null ? "\u2014" : ((r.ctrlRep >= 0 ? "+" : "") + de(r.ctrlRep, 2))) + '<small>%</small></div><div class="sub">change \u00b7 ok under 0.5 %</div></div></div></div>';
       else if (s === 5 && r.sub === 5) body = '<div class="tiles"><div class="tile half ' + lvl(r.stopZero, r.zeroLim, null) + '"><div><div class="lab">Zero after end stop</div><div class="val" style="white-space:nowrap">' + (r.stopZero === null ? "\u2014" : ((r.stopZero >= 0 ? "+" : "") + de(r.stopZero, 3))) + '<small>N</small></div><div class="sub">on F_roll \u00b7 limit ' + de(r.zeroLim, 2) + ' N</div></div></div></div>';
-      else if (s === 5 && r.sub === 3) body = '<div class="tiles"><div class="tile half"><div><div class="lab">Measured at ' + de(r.calArmMm, 0) + ' mm</div><div class="val">' + fm(r.ctrlKg, 3) + '<small>kg</small></div><div class="sub">target ' + fm(r.ctrlTargetKg, 3) + ' kg · ' + fm(r.ctrlNm, 3) + ' / ' + fm(r.ctrlTarget, 3) + ' Nm</div></div></div>'
-        + '<div class="tile half ' + lvl(r.ctrlDev, 0.5, 1.0) + '"><div><div class="lab">Deviation</div><div class="val">' + (r.ctrlDev === null ? "—" : ((r.ctrlDev >= 0 ? "+" : "") + de(r.ctrlDev, 2))) + '<small>%</small></div><div class="sub">ok below 0.5 %, warning up to 1 %</div></div></div></div>'
-        + ''
-        + (r.sub === 3 && r.ctrlDev !== null ? (r.ctrlOn ? '<div class="txt good">' + mark("good") + 'Weight on, end stop next</div>' : '<div class="txt warn">' + mark("warn") + 'Weight off</div>') : '');
       if ((s === 6 && r.sub >= 2) || (s === 13 && r.sub >= 2)) {
         var pts = (s === 6) ? (r.pre || []) : (r.post || []), rr = [];
         for (i = 0; i < pts.length; i++) rr.push(s === 6 ? [fm(pts[i][0], 1), fm(pts[i][2], 4), fm(pts[i][3], 4), fm(pts[i][5], 3)] : [fm(pts[i][0], 1), fm(pts[i][1], 4), fm(pts[i][2], 3) + " N"]);
@@ -2171,8 +2184,8 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
         if (r.md) body += '<div class="sub">download, share via AirDrop or mail · <a href="#fv:' + r.md + '">view report</a>' + (r.csv ? ' · <a href="#fv:' + r.csv + '">view data</a>' : '') + '</div>';
         if (r.dir) body += '<div class="sub"><a href="#fb:' + r.dir.replace(/^\/fs\//, "") + '">all files of this run</a></div>';
       }
-      /* Age of zero point and calibration at zeroing and check weight. */
-      if ((s === 4 || s === 5) && r.sub <= 1) {
+      /* Age of zero point and calibration at zeroing. */
+      if (s === 4 && r.sub <= 1) {
         var ago = function (sec) { return sec < 120 ? Math.round(sec) + " s" : (sec < 7200 ? Math.round(sec / 60) + " min" : (sec < 172800 ? de(sec / 3600, 1) + " h" : Math.round(sec / 86400) + " days")); };
         var calTxt = !r.calEpoch ? "unknown" : (r.nowEpoch && r.nowEpoch >= r.calEpoch ? ago(r.nowEpoch - r.calEpoch) + " ago" : "stored");
         body += '<div class="sub">zeroed ' + (r.tareAgeS === null ? "not yet" : ago(r.tareAgeS) + " ago") + ' · calibrated ' + calTxt + '</div>';
@@ -2182,7 +2195,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
          as a curve of the last 2 s with a scale fine enough to see flutter. */
       /* Quarter turn by hand (step 4, sub 2): the drum as a dial, live (2026-11-26). */
       if (s === 4 && r.sub === 2 && r.turnDeg !== null && r.turnDeg !== undefined) body = turnDial(r.turnDeg, r.turnTarget || 90, r.turnMin || r.turnTarget || 90) + body;
-      if (r.trace && r.trace.length && !(s === 5 && (r.sub === 1 || r.sub === 2 || r.sub === 6))) body = traceHtml(r) + body;
+      if (r.trace && r.trace.length) body = traceHtml(r) + body;
       if (r.prog !== null && r.prog !== undefined)
         body = '<div class="bar"><div style="width:' + (r.prog * 100) + '%"></div></div><div class="txt" style="margin-bottom:10px">' + (r.progTxt || '') + '</div>' + body;
       if (runShown !== key || s >= 3) { $("runBody").innerHTML = body; runShown = key; }
@@ -2259,7 +2272,6 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     send("Rk"); setTimeout(pollRun, 300);
   };
   $("runAlt").onclick  = function () {
-    if ($("runAlt").textContent === "Calibrate") { openCalib(); return; }   /* check weight off: the procedure, then Again */
     send("Rs"); setTimeout(pollRun, 300); };
   $("runRedo").onclick = function () { send("Rn"); setTimeout(pollRun, 300); };
   $("runBack").onclick = function () { send("Rb"); runShown = null; setTimeout(pollRun, 300); };
@@ -2317,7 +2329,7 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     var calOk = j.cal;
     $("kg").className  = "val" + (calOk ? "" : " dim");
     $("pct").className = "val" + (calOk ? "" : " dim");
-    var busyV = j.taring ? "&lt;tare&gt;" : Date.now() < calShowUntil ? "&lt;cal&gt;" : "";
+    var busyV = j.taring ? "&lt;tare&gt;" : "";
     if (busyV) { $("kg").innerHTML = $("pct").innerHTML = '<span class="busyv">' + busyV + '</span>'; }
     else { show("kg", j.kg, 3); show("pct", j.pct, 1); }
     show("pw",  j.pw,  1);
@@ -2331,23 +2343,13 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       : (j.counts + " counts raw");
     $("pctSub").innerHTML = calOk ? ("of " + de(j.fsN / 9.80665, 2) + " kg")
                                 : "not calibrated";
-    /* Check weight hanging? The cell then reads m · L_cal / L (lever ratio); within
-       +-25 % of that the deviation from the calibration is shown: in g on the load tile,
-       in % on the utilization tile (2026-11-26). */
-    var cwExp = j.ctrlKg > 0 && j.arm > 0 ? j.ctrlKg * j.calArm / j.arm : 0;
-    var cwNear = calOk && cwExp > 0 && !j.taring && j.kg !== null && Math.abs(j.kg / cwExp - 1) < 0.25;
-    var cwD = cwNear ? j.kg - cwExp : 0, cwP = cwNear ? (j.kg / cwExp - 1) * 100 : 0;
-    var cwC = Math.abs(cwP) < 0.5 ? "#1e7a46" : Math.abs(cwP) < 1 ? "#b5651d" : "#c0392b";
-    $("kgD").innerHTML = cwNear ? (cwD >= 0 ? "+" : "\u2212") + de(Math.abs(cwD) * 1000, 0) + " g" : "";
-    $("pctD").innerHTML = cwNear ? (cwP >= 0 ? "+" : "\u2212") + de(Math.abs(cwP), 2) + " %" : "";
-    $("kgD").style.color = $("pctD").style.color = cwC;
     /* Scale 0 ... end-stop bar end (2026-11-26), zones as at the end stop:
        green  measuring range of the torque signal (config.h MEAS_TORQUE_*)
        orange overload: the firmware's force limit (MAX_FORCE_N) up to full scale
        yellow target band of the end stop (RUN_STOP_MIN/MAX_PCT, above full scale)
        red    no-go above it; with the reading there the whole bar turns red. */
     var pc = function (n) { return j.fsN > 0 ? n / j.fsN * 100 : 0; };
-    var ovP = j.maxN > 0 ? pc(j.maxN) : 100, cwP2 = pc(cwExp * 9.80665);
+    var ovP = j.maxN > 0 ? pc(j.maxN) : 100;
     var sMin = j.stopMin || 100, sMax = j.stopMax || 140, usc = j.stopBar || 160;
     var up = function (v) { return Math.max(0, Math.min(100, v / usc * 100)); };
     var mg0 = j.arm > 0 && j.mMin ? pc(j.mMin / j.arm) : 0, mg1 = j.arm > 0 && j.mMax ? pc(j.mMax / j.arm) : 0;
@@ -2357,13 +2359,8 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
       + (nogo ? '' : zone(mg0, mg1, "#cfe6d2") + zone(ovP, sMin, "#f5c99a") + zone(sMin, sMax, "#f1dfa3") + zone(sMax, usc, "#f0b8b2"))
       + '<i style="width:' + up(uNow) + '%' + (nogo ? ';background:#c0392b;opacity:1' : '') + '"></i></div>'
       + '<span class="mk" style="left:0;margin-left:0"></span><span class="ml l" style="left:0">0</span>'
-      + (cwP2 > 0 ? '<span class="mk" style="left:' + up(cwP2) + '%"></span><span class="ml up" style="left:' + up(cwP2) + '%">check ' + de(cwP2, 0) + ' %</span>' : '')
       + '<span class="mk over" style="left:' + up(ovP) + '%"></span><span class="ml" style="left:' + up(ovP) + '%">overload ' + de(ovP, 0) + ' %</span>'
       + '<span class="mk" style="left:' + up(100) + '%;width:1px;background:#64737f"></span>';
-    calCtx = { kg: j.ctrlKg, arm: j.calArm, near: cwNear, p: cwNear ? (j.kg / cwExp - 1) * 100 : null, cal: calOk };
-    var still = !j.driving && !(j.link && j.kmh > 0.3);
-    $("bCalib").disabled = j.taring;
-    $("bCalib").className = "ico" + (still ? "" : " away");
 
     /* Drive */
     show("imot", j.link ? j.imot : null, 2);
@@ -2409,8 +2406,6 @@ footer { font-size: 11px; color: #8795a1; margin-top: 14px; line-height: 1.6; }
     if (j.commit) $("vCommit").innerHTML = esc(j.commit);
     view("Drum", j.drumU * 1000, 1);
     view("Arm",  j.arm * 1000,   1);
-    view("Cal",  j.calArm * 1000, 1);
-    if (j.ctrlKg !== null && j.ctrlKg !== undefined) view("G", j.ctrlKg * 1000, 0);
     $("dia").innerHTML = de(j.drumU / Math.PI * 1000, 1);
     $("bTare").className = "ico" + (j.taring ? " busy" : "") + (j.taring || !j.driving && !(j.link && j.kmh > 0.3) ? "" : " away");
     $("a0").innerHTML = (j.a0 === null) ? "—" : j.a0;

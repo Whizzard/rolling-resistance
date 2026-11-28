@@ -35,34 +35,25 @@ are the same on the serial console and in the web UI.
 
 1. Tape measure around the drum, average three measurements → `d<m>`. Current value
    2.842 m. (2)
-2. Measure the lever arm, ±0.5 mm → `a<m>`. Current value 0.084 m. It cancels out of the
-   torque; **recalibrate after any change**, otherwise the firmware blocks.
-3. Calibration arm, axis to mark, ±0.1 mm → `b<m>`. Current value 0.330 m. **This
-   dimension determines every torque.** (4)
+2. Cell arm, drum axis to the cable axis at the cell, **±0.1 mm** → `a<m>`. Current
+   value 0.084 m (not yet measured to that accuracy). **It enters every torque 1:1.** (4)
 
 ### A2 Load cell and torque chain
 
-1. Drum stationary, **wheel lifted**, drum nudged by hand and allowed to settle (rotor
-   free in its detent position). Weighing part in measuring position, cables routed as in
-   operation, arm free. (3)
-2. Zeroing: `t`. 80 samples. Turn the drum a quarter turn further; the raw value must
-   stay the same.
-3. **Weigh the calibration weight yourself** (the 1 kg weight is certified), hang it on the
-   mark of the calibration arm, plumb. **At most 1.27 kg** — on the 330 mm arm that is the
-   full-scale value of the 5 kg cell. (4)
-4. `k<kg>`. The console prints force, counts and factor.
-5. Repeat with **at least three** masses across the range, e.g. 0.2 / 0.5 / 1.0 kg
-   = 16 / 40 / 79 % of full scale. Note the raw value ("Raw") for each mass. (5)
-   **As of 2026-11-24: done with 1.0 kg only, linearity open.**
-6. Straight-line fit by hand: `M = k · (raw − offset)`. Require **linearity deviation
-   < 0.2 %**.
-7. Hysteresis: load ascending and descending. Difference at equal load goes into the
-   report, **not** into the fit.
-8. Cross-check: same mass on the lever arm → force times 84/330. Checks the arm ratio
-   from A1 independently of the factor.
-9. Creep: leave the load on for 5 min, record the deviation.
-10. Enter `LOADCELL_N_PER_COUNT` by hand in `firmware/src/config.h` **and**
-    [03-parameters](03-parameters.md) §2. The console prints the line. (6)
+As of 2026-11-28: **directly at the cell**, Setup → Calibration (console `C…`,
+[10-firmware](10-firmware.md)). (3)
+
+1. **Lift the arm** off the Bowden cable, hang the **stirrup** on the cable. Stand idle,
+   no run open.
+2. **Zero** (`C0`): reads 5 s with the stirrup only.
+3. Hang **200, 500, 1000, 2000 g** one after the other in the stirrup, each followed by its
+   button (`Cm<kg>`). Hands off while it reads. **At most 5 kg** (cell full scale). (5)
+4. **Zero again** (`Cz`), optional: gives zero return and hysteresis.
+5. **Evaluate** (`Ce`): factor, linearity in % of load and % FS, graphic of counts against
+   load and of the residuals per load.
+6. **Accept** (`Ca`): factor and calibration record into NVS, one row into the calibration
+   book `/vmrr/calibration.md` on the SD, mirrored in the flash (history of the factor, to see drift). (6)
+7. Lower the arm onto the cable again.
 
 ### A3 Characterize the drive
 
@@ -116,9 +107,8 @@ today** at the end. About two hours, of which 30 min warm-up. (11)
 > opens the guided measurement run (`run.h`, [11-review](11-review.md) §3).
 > Before starting it checks motor controller, cell, noise, calibration status, lever arm
 > and models, tares with the wheel lifted and checks the zero by turning the drum further,
-> checks the load-cell end stop (live bar, peak 100 to 140 % of full scale) and then
-> prompts for the check weight (continue only once the live torque shows the weight is
-> off), runs the idle pre-run baseline if needed, then on its own
+> checks the load-cell end stop (live bar, peak 100 to 140 % of full scale) and the zero
+> after it, runs the idle pre-run baseline if needed, then on its own
 > warm-up, reference point, plateaus with three points each, reference point and stop,
 > optionally zero check and post-run baseline, and stores report and data under
 > `/vmrr/<id>/`. Every point is corrected by `J·dω/dt`; pressure and tire temperature come
@@ -253,7 +243,7 @@ today** at the end. About two hours, of which 30 min warm-up. (11)
   gap plus counterweight ([04-hardware](04-hardware.md) §8.6); the firmware detects it on
   its own. The second Hall sensor as index (`PIN_INDEX`) would be the alternative.
 - **Bifilar pendulum** (A5.4) → `Y<kgm2>`; until then ±3.5 % on the wheel model.
-- **Linearity of the cell** (A2.5) with 0.2 and 0.5 kg.
+- **Calibrate directly** (A2, since 2026-11-28); a lever calibration from before counts as unknown.
 - **Weigh the wheel load** (B1) instead of calculating it; the default 494 N is
   calculated.
 - There is no mechanical brake — [07-safety](07-safety.md) §3.
@@ -264,16 +254,12 @@ today** at the end. About two hours, of which 30 min warm-up. (11)
    is missing, it is the UART. Resolve both before the first weight.
 2. 1 mm error on the circumference is 0.03 %. Measured 2026-11-23: 2.842 m (A14 done);
    redo after every change to the surface.
-3. It is not the cell alone that is calibrated but the whole chain up to the torque — this
-   spares the separate uncertainties of cell and lever arm.
-   [09-measurement-theory](09-measurement-theory.md) §5.1.
-4. On the arm L = 84 mm the cell sees 3.9 times the force of the weight on the
-   calibration arm L_cal = 330 mm. In the torque L cancels out, L_cal does not:
-   `M = counts · m·g·L_cal / Δcounts`. Calculation and support points:
-   [09-measurement-theory](09-measurement-theory.md) §5.1.
-5. `k<kg>` sets the factor from **one** mass. The firmware does not check linearity over
-   several masses ([10-firmware](10-firmware.md) W5, priority S) — note the raw values and
-   fit by hand.
+3. Since 2026-11-28 the cell alone is calibrated (force at the cell, F = m·g); the torque is
+   that force times the cell arm. The lever calibration over the calibration arm and the
+   check weight in every run were dropped. [09-measurement-theory](09-measurement-theory.md) §5.1.
+4. 1 mm on 84 mm is 1.2 % on every torque. [09-measurement-theory](09-measurement-theory.md) §5.1.
+5. 2000 g are 19.6 N = 40 % of full scale; the measuring range lies at 44 to 59 %. The
+   stirrup stays on during the zero, so only the weights are measured.
 6. The factor is displayed, **not** automatically written to `config.h`
    ([10-firmware](10-firmware.md) W4). It is stored in NVS nonetheless; `r` resets it.
 7. The breakaway torque is static friction plus cogging torque, `DRUM_LOSS_CONST_NM` the

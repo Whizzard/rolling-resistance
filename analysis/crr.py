@@ -182,7 +182,7 @@ class Run:
         u_idle_nm = (drift if drift is not None else g("drift_limit_N", BASELINE_DRIFT_LIMIT_N)) * self.r
         u_sync = mean([(p["ripple"] or 0) / 2 / (p["revs"] or 1) for p in good if not p["real"]]) if any(not p["real"] for p in good) else 0.0
         m_inert = mean([abs(p["m_inert"] or 0) for p in good])
-        rel2 = ((u_a / m_r) ** 2 + g("unc_k", 0) ** 2 + g("unc_lcal", 0) ** 2 + g("unc_n", 0) ** 2
+        rel2 = ((u_a / m_r) ** 2 + g("unc_k", 0) ** 2 + (g("unc_arm", 0) or g("unc_lcal", 0)) ** 2 + g("unc_n", 0) ** 2
                 + g("unc_p", 0) ** 2 + g("unc_bearing", 0) ** 2 + (u_idle_nm / m_r) ** 2
                 + g("unc_rad", 0) ** 2 + (u_sync / m_r) ** 2 + (g("unc_j", 0) * m_inert / m_r) ** 2)
         crr_k = self.crr(m_r)

@@ -22,9 +22,10 @@ CHANGES TO weight_clip_dual.py (builder 2026-11-28):
 LOWER SEAT, webs and side posts are those of weight_clip.py (1000 g weight measured
 2026-11-24; the 500 g head fits the same, builder 2026-11-26).
 
-UPPER SEAT (builder's design 2026-11-26): three curved arches rise from the collar --
-one at each side of the opening, one at the back -- bow around the 1000 g head and its
-path in from +y, and end in three separate CLAWS that reach into the 200 g neck groove.
+UPPER SEAT (builder's design 2026-11-26, front noses moved onto the side posts
+2026-11-28): two branches leave the side posts and one rises from a column at the back;
+they run up at 45 degrees inwards (the front ones slightly forwards, to the opening) over
+the 1000 g head and end in three separate CLAWS that reach into the 200 g neck groove.
 No ring at the top: the 200 g weight hangs on three points (front right, front left,
 back). Each arch: a web on the bed from the collar, a vertical column outside the 1000 g
 head, then a straight branch rising inwards at exactly 45 degrees to the claw. The claw
@@ -75,7 +76,8 @@ PARAMS = [
     # 1000 g weight, measured 2026-11-24 (as weight_clip.py); 500 g head fits the same
     ('neck_d',   33.0, 'Neck diameter 1000 g, measured'),
     ('head_d',   45.0, 'Head diameter 1000 g, measured'),
-    ('head_h',   15.0, 'Top of collar to top of head, generous (weight_clip.py)'),
+    ('head_h',   11.0, 'Top of collar to top of head, builder 2026-11-28 (was 15, generous)'),
+    ('head_round', 11.0, 'Rounding of the head top edge: "completely rounded" (builder 2026-11-28); radius ASSUMED = head_h'),
     # 200 g weight, builder's caliper measurements 2026-11-26
     ('neck2_d',  21.0, '200 g neck (groove bottom), measured'),
     ('neck2_len', 8.0, '200 g groove length, measured "about 8"; semicircle ASSUMED'),
@@ -92,15 +94,16 @@ PARAMS = [
     ('gap_w',    30.0, 'Collar opening (smaller than the neck: snaps)'),
     ('head_clear', 1.5, 'Clearance 1000 g head to posts and columns'),
     ('top_clear',  3.0, 'Clearance above the 200 g head to the post bend'),
-    ('claw_clear', 1.5, 'Clearance 1000 g head top to the branch underside'),
+    ('claw_clear', 2.0, 'Clearance 1000 g head top to the branch underside, builder 2026-11-28'),
     ('arm_w',     8.0, 'Side post width (x)'),
     ('arm_t',     8.0, 'Side post thickness (y)'),
     # Arches and claws
     ('nose_a',    0.5, 'Claw tip half height'),
     ('nose_c',    2.5, 'Claw upper flank run (45 degrees)'),
+    ('nose_above', 20.0, 'Nose underside above the top of the lower collar, builder 2026-11-28'),
     ('top_flat',  5.0, 'Claw top flat from the tip; sets the branch thickness'),
     ('col_t',     6.0, 'Arch column and branch width (square column)'),
-    ('front_c',  (27.6, 9.5), 'Front column centre (x, y), mirrored for the left'),
+    ('front_c',  (28.0, 0.5), 'Front branch root (x, y) inside the side post, mirrored for the left (builder 2026-11-28: noses on the hanger)'),
     ('back_c',   (0.0, -27.0), 'Back column centre (x, y)'),
     ('fillet_in', 4.0, 'Fillet radius column inside to branch underside'),
     ('round_out', 3.0, 'Rounding of the outer corners'),
@@ -143,7 +146,8 @@ def derive():
         u_max = max(0.05 * k for k in range(int((a['L'] - P['col_t'] / 2) / 0.05) + 1)
                     if over_head(a['T'] + d * (0.05 * k)))
         zn = max(zn, zc + P['nose_a'] + u_max)
-    P['z_n2'] = math.ceil(zn * 2) / 2
+    P['z_n2_head'] = math.ceil(zn * 2) / 2            # lowest that clears a full Ø 45 x head_h head
+    P['z_n2'] = P['coll_h'] + P['nose_above'] + P['nose_a']   # builder's choice
     P['arches'] = arches
     P['z_head2'] = P['z_n2'] + P['head2_top']
     # Roof: inner 45 degree lines from the post insides (x = +-post_x, z_v) to the flat
@@ -302,12 +306,16 @@ def check(obj):
     if inside(0, r_in + 1, ch / 2): bad('opening missing')
     # 1000 g head at rest and on its way in (+y), with top_clear above
     R1 = P['head_d'] / 2 - 0.2
-    zt = P['z_head'] + P['claw_clear'] - 0.3
+    def head_top(r):
+        rr, r0 = P['head_round'], P['head_d'] / 2 - P['head_round']
+        if r <= r0: return P['z_head']
+        return P['z_head'] - rr + math.sqrt(max(rr * rr - (r - r0) ** 2, 0.0))
     for yc in (0, 8, 16, 25, 40):
         for ang in range(0, 360, 10):
-            for rr in (R1, R1 * 0.7, R1 * 0.35):
+            for rr in (R1, R1 * 0.85, R1 * 0.7, R1 * 0.5, R1 * 0.35):
                 x, y = rr * math.cos(math.radians(ang)), yc + rr * math.sin(math.radians(ang))
-                for z in (ch + 0.5, P['z_head'] - 0.5, zt):
+                zt = head_top(rr)
+                for z in (ch + 0.5, max(ch + 0.5, zt - 0.5), zt + P['claw_clear'] - 0.3):
                     if inside(x, y, z): bad('1000 g head blocked at y_c=%g (%.1f, %.1f, %.1f)' % (yc, x, y, z))
     # 200 g at rest: no material inside the weight (sampled on a grid around the seat)
     zn = P['z_n2']
@@ -339,10 +347,11 @@ def check(obj):
         p = T + dirv * 0.3; p.z = zn
         if not s.isInside(p, 1e-6, True): bad('claw tip of %s missing' % a['name'])
     # Insertion from +y: spread each front claw needs (claw points moved outwards in x)
-    front = [o for o in obj.Document.Objects if o.Name in ('Arch_FR',)]
+    # sample the whole clip (the trimmed arch alone is not a valid solid); the region
+    # below holds only the right front nose
     sreq = 0.0
-    if front:
-        fs = front[0].Shape
+    if True:
+        fs = s
         bb = fs.BoundBox
         samples = []
         for ix in range(0, 41):
@@ -373,11 +382,6 @@ def check(obj):
     for z in (P['z_head2'] + 0.5, P['z_ru'] - 0.5):
         for x in (0, P['roof_w_in'] / 2 - 0.5, -(P['roof_w_in'] / 2 - 0.5)):
             if inside(x, 0, z): bad('material in the clamp space at (%.1f, %.1f)' % (x, z))
-    # Front columns apart from the side posts (they must flex on their own)
-    for a in P['arches']:
-        if a['name'] == 'Arch_B': continue
-        y_min = a['C'].y - P['col_t'] / 2 * 1.5
-        if y_min < P['arm_t'] / 2 + 0.5: bad('%s column too close to the side post' % a['name'])
     return ok
 
 
@@ -470,10 +474,13 @@ def main():
     for a in P['arches']:
         Lc = zn - P['coll_h']
         print('Arch %-7s tip angle %.1f, length tip-column %.1f, column top inside z %.1f' % (a['name'], a['th'], a['L'], a['z_ci']))
-    Lc = zn - P['coll_h']
-    eps = 3 * P['col_t'] * sp / (2 * Lc * Lc)
-    print('Insertion   each front claw spreads %.1f mm; as a cantilever %.0f mm long, %.0f mm thick: strain at the root approx. %.2f %%'
-          % (sp, Lc, P['col_t'], 100 * eps))
+    # the front noses sit on the side posts: the posts bow outwards between collar and
+    # roof (both ends held, load near the middle): strain approx. 12 * d * t / L^2
+    Lc = P['z_v'] - P['coll_h']
+    eps = 12 * P['arm_w'] * sp / (Lc * Lc)
+    print('Insertion   each front nose moves out %.1f mm; the side post (%.0f mm in x) bows over %.0f mm between collar and roof:'
+          ' strain approx. %.1f %% (PETG: 2 %% for repeated snapping)' % (sp, P['arm_w'], Lc, 100 * eps))
+    print('Noses       underside %.1f above the collar (clearing a full-diameter 1000 g head would need %.1f)' % (P['nose_above'], P['z_n2_head'] - P['nose_a'] - P['coll_h']))
     print('Claws       tip circle %.1f (neck %.1f + fit %.1f - %.1f)' % (2 * P['x_i2'], P['neck2_d'], P['fit'], P['claw_tight']))
     print('Heights     1000 g head top z %.1f, 200 g neck centre z %.1f (dual clip 42.5), head top %.1f, body bottom %.1f;'
           ' roof underside %.1f, top %.1f (flat %.1f wide)'

@@ -70,27 +70,14 @@ constexpr float DRUM_LOSS_OMEGA2_NM = 3.178e-4f;
 // unchanged, only the overload limit lies elsewhere.
 // According to the statement of 2026-11-16 about 80 mm are installed. The arm enters
 // every torque LINEARLY — before the first measurement measure the bore to ±0.1 mm and
-// enter the value here; until then it stays TBD. The calibration bore moves outwards
-// with it to 160 mm, so that the 2:1 ratio is kept. Stop at 0.200 m.
+// enter the value here; until then it stays TBD. Stop at 0.200 m.
 // [meas 2026-11-23] 84 mm, drum axis to load cell, stated at the rig.
+// Since 2026-11-28 the cell is calibrated DIRECTLY (weights on the Bowden cable, arm
+// lifted, calib.h): the factor is N at the cell, and every torque is that force times
+// THIS arm. Its error enters every torque 1:1 (0.1 mm = 0.12 %), hence UNC_ARM_REL.
+// The lever calibration over a calibration arm (CALIB_ARM_M, 330 mm) was dropped.
 constexpr float TORQUE_ARM_M = 0.084f;
 
-// [spec] Lever arm of the CALIBRATION WEIGHT, the second bore in the arm. The
-// 2:1 ratio to the cell arm is intentional: a weight on the longer arm produces
-// double the torque and thus double the force at the cell, so calibration up into
-// the upper measuring range is possible with handy weights.
-//
-// Both arms can be overridden at runtime (settings.h) — they are measured AT THE
-// RIG, and a calibration run that forces a recompile does not get done.
-// [meas 2026-11-23] 330 mm, measured axis to mark on the arm; the certified 1-kg
-// weight hangs there: 38.5 N at the cell, 79 % of the 5-kg cell -- covers the
-// measuring range (48...64 %) at the top and leaves reserve. The mark may still move
-// to a rounder value; then update here AND in NVS.
-// IMPORTANT: in the torque chain TORQUE_ARM_M cancels out,
-//   M = counts * m*g*CALIB_ARM_M / (counts_cal - offset),
-// so the correctness of every torque depends on THIS dimension, not on the cell arm
-// (docs/11-review.md D2). Hence UNC_LCAL_REL instead of an L item.
-constexpr float CALIB_ARM_M = 0.330f;
 
 // [spec] DIRECT DRIVE: the drum sits on the rotor of the hub motor,
 // motor and drum speed are identical. The installed hoverboard motor alone gives
@@ -263,23 +250,24 @@ constexpr float LOADCELL_CAPACITY_N = 49.03f;
 // section. Type from the builder's statement above; the board from docs/04-hardware.md §5.5.
 constexpr const char* LOADCELL_TYPE = "5 kg (nameplate not read)";
 constexpr const char* LOADCELL_AMP  = "HX711, SparkFun SEN-13879, RATE trace cut 2026-11-26";
-// [est] Calibration procedure (calib.h): averaging time per reading at standstill, at most
-// this many readings, and the masses offered as quick choices in the UI (builder's weights,
-// stated 2026-11-26; 1000 g certified, 500 and 200 g nominal until weighed).
+// [est] Calibration procedure (calib.h, direct at the cell since 2026-11-28): averaging time
+// per reading at rest and at most this many readings. [spec] The masses offered in the UI:
+// the builder's weights, hung one after the other in the stirrup on the Bowden cable
+// (builder 2026-11-28; 1000 g certified, 2000, 500 and 200 g nominal until weighed).
 constexpr uint32_t CAL_AVG_MS     = 5000;
 constexpr uint8_t  CAL_MAX_POINTS = 16;
-constexpr uint16_t CAL_MASSES_G[] = {200, 500, 1000};
+constexpr uint16_t CAL_MASSES_G[] = {200, 500, 1000, 2000};
 // [spec] Longest stand revision text (settings::standRev), characters.
 constexpr uint16_t STAND_REV_LEN = 160;
 
 // [TBD] CALIBRATION PENDING. As long as this value is 0, the firmware outputs
 // no forces and no Crr, only raw values. This is intentional:
 // an invented calibration factor would be worse than a gap.
-// Determination: docs/05-test-procedure.md §2.
+// Determination: docs/05-test-procedure.md A2 (directly at the cell since 2026-11-28).
 // [meas 2026-11-23] Certified 1-kg weight at 330 mm, cell arm 84 mm, i.e.
-// 38.53 N at the cell; factor determined via the web UI (command k). A
-// single weight -- linearity over the range is therefore not yet
-// checked (docs/03-parameters.md §2).
+// 38.53 N at the cell; factor determined via the web UI (command k, lever
+// calibration, dropped 2026-11-28). A single weight -- linearity not checked.
+// To be replaced by a direct calibration (docs/03-parameters.md §2).
 constexpr float LOADCELL_N_PER_COUNT = 0.00002668f;
 
 // -------------------------------------------------------------- Measurement operation
@@ -526,10 +514,6 @@ constexpr uint32_t RELAY_RELEASE_STILL_MS = 1000;   // [est] this long at stands
 
 // GUIDED MEASUREMENT RUN (run.h, docs/11-review.md §2 and §3).
 constexpr uint8_t  RUN_POINTS_PER_PLATEAU = 3;    // [spec] R4: scatter per plateau from three points of AVG_REVS_PER_POINT each
-constexpr float    RUN_CTRL_MASS_KG  = 1.0f;      // [meas] certified check weight, hangs at CALIB_ARM_M
-constexpr float    RUN_CTRL_OK_PCT   = 0.5f;      // [est] check weight: deviation below this is ok
-constexpr float    RUN_CTRL_WARN_PCT = 1.0f;      // [est] below this warning W10, above it only Retry or Abort
-constexpr uint32_t RUN_CTRL_AVG_MS   = 2000;      // [est] averaging time for the check weight (160 cell values, torque::sample*)
 // STOP of the load cell (docs/08-stand.md §7.5): the arm is pressed by hand against the
 // stop; the peak must lie ABOVE full scale (otherwise the stop limits within the
 // measuring range) and BELOW the permissible overload of the cell (150 % FS).
@@ -571,33 +555,10 @@ constexpr float    RUN_TURN_DEG       = 90.0f;     // [est] zero check: the drum
 // [est] Accepted short of RUN_TURN_DEG (builder, 2026-11-26: "88 or so"). The tachometer
 // counts 4 degrees per step (VESC_TACHO_PER_REV = 90), so 88 passes, 84 does not.
 constexpr float    RUN_TURN_TOL_DEG   = 5.0f;
-// Automatic zero with the drum motor (autozero.h, 2026-11-27, builder): the drum runs at
-// AZ_SPIN_KMH, first in the measuring direction, then against it; the cell is averaged
-// over AZ_SPIN_REVS whole revolutions each. Mean of the two = zero (cogging ripple and
-// drum friction cancel), half the difference = drum friction. [spec] speed: builder
-// 2026-11-27 ("10 or 15 km/h would be fine"). [est] the rest: revolutions, the band and
-// time that count as steady, the spin-up timeout,
-// and test-wheel pulses that mean "the wheel is on the drum".
-constexpr uint8_t  AZ_POSITIONS        = 2;        // readings: +, - (even, alternating)
-constexpr float    AZ_SPIN_KMH         = 10.0f;
-constexpr uint8_t  AZ_SPIN_REVS        = 5;
-constexpr float    AZ_SPIN_TOL_KMH     = 1.0f;
-constexpr uint32_t AZ_SPIN_STEADY_MS   = 3000;
-constexpr float    AZ_SPIN_DRIFT_KMH   = 0.05f;    // [est] first vs last revolution of a reading; more = read again
-constexpr uint32_t AZ_POS_TIMEOUT_MS   = 60000;
-constexpr uint32_t AZ_WHEEL_PULSES_MAX = 1;
-// Crawl drive (speedctl::crawl, 2026-11-27). [spec] CRAWL_KMH_MAX: builder 2026-11-27.
-// [est] the rest: duty limit (0.136 needed for 15 km/h at the 33.8 V sag of 2026-11-17
-// with MOTOR_NO_LOAD_RPM_PER_V), ramp, trim gain, overspeed factor that ends the crawl.
-constexpr float    CRAWL_KMH_MAX        = 15.0f;
-constexpr float    CRAWL_DUTY_MAX       = 0.15f;
-constexpr float    CRAWL_RAMP_PER_S     = 0.02f;
-constexpr float    CRAWL_TRIM_PER_KMH_S = 0.002f;
-constexpr float    CRAWL_MAX_FACTOR     = 1.5f;
 constexpr uint32_t RUN_TURN_STANDSTILL_MS  = 1500;      // [est] then still for this long before the Measure button appears (no automatic start since 2026-11-26)
 // Type B components of the uncertainty per point (R9), relative. Origin docs/03-parameters.md.
-constexpr float    UNC_K_REL     = 0.002f;        // [est] calibration factor: check weight 0.05 %, averaging, linearity
-constexpr float    UNC_LCAL_REL  = 0.001f;        // [est] CALIB_ARM_M: 0.1 mm on 330 mm plus plumb line of the suspension
+constexpr float    UNC_K_REL     = 0.002f;        // [est] calibration factor: weights, averaging, linearity
+constexpr float    UNC_ARM_REL   = 0.0012f;       // [est] TORQUE_ARM_M: 0.1 mm on 84 mm (direct calibration since 2026-11-28)
 constexpr float    UNC_N_REL     = 0.005f;        // [est] wheel load: hanging scale on the gantry, arm position
 constexpr float    UNC_P_REL     = 0.010f;        // [est] tire pressure: gauge +-0.1 bar or AirSpy offset, at ~8 %/bar Crr sensitivity
 constexpr float    UNC_BEARING_REL = 0.0065f;     // [calc] load-dependent drum bearing share 4.7 mNm (docs/06 A11), not corrected

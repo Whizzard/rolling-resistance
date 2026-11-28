@@ -49,8 +49,6 @@ bool     tareBusy();
 uint16_t tareCount();      // 0..TARE_SAMPLES, for the progress
 float    tareSigma();      // standard deviation of the raw values of the last tare, NAN before
 long     tareOffset();
-// Set the zero from outside (autozero.cpp: mean over several rotor positions); stored like a tare.
-void     setTare(long offsetCounts, float sigmaCounts);
 
 // --- Revolution-synchronous averaging ---------------------------------------
 // Every raw value is sorted into an angle bin by the mark number.
@@ -67,7 +65,7 @@ float    binAverageRaw(uint8_t bin); // angle bin, for the out-of-round diagnost
 uint8_t  binCount();
 
 // --- Sample at standstill ----------------------------------------------------
-// For the check weight and zero checks (run.cpp): sampleBegin(), wait, then
+// For the zero checks (run.cpp) and the calibration readings (calib.cpp): sampleBegin(), wait, then
 // sampleMean()/sampleSigma() over ALL values read since -- not the 40-value
 // display ring, which covers only 0.5 s (docs/11-review.md D5).
 // Independent of the revolution accumulator, which is only filled in state POINT.

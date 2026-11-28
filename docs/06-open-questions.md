@@ -301,26 +301,11 @@ documented until then. Together with the old 40 mm arm, that would have loaded t
 measure the bore on the lever arm to ±0.1 mm. According to the statement, about 80 mm is
 installed; the arm enters **linearly** into every torque.
 
-### C6 Calibrating the cell directly, without the arm — **option, later**
-As of 2026-11-28 (builder). The load arm hangs from the cell on a Bowden cable; with the arm
-lifted the cell is free, and a known weight can hang straight from the lower end of the
-cable. That gives the cell's N per count with drum, rotor, cogging torque and bearing
-friction out of the picture, loaded in the same direction as in operation. Needs a
-mechanical change by the builder first.
-
-- **Price:** the torque then is force times the cell arm, so the arm (85 mm) enters fully;
-  with the lever calibration it cancels and only `L_cal` counts. Both together give the
-  effective cell arm as a measured value (torque per count from the lever calibration with
-  the drum turning, divided by N per count from the direct one).
-- **Weights:** 1 kg direct is about 20 % of the cell's range; steps up to several kg, each
-  weighed, are needed for a straight line. Masses TBD.
-- **Firmware:** a second calibration mode: ratio 1 instead of `L_cal` / arm, readings at
-  rest (no motor), noted as "direct" in the calibration book. Not built.
-
 ## Done
 
 | Question | Decision | Date |
 |---|---|---|
+| **Calibrating the cell directly (C6)** | **Built 2026-11-28 (builder's decision).** Arm lifted, stirrup on the Bowden cable, 200 / 500 / 1000 / 2000 g, least-squares line, linearity in % of load with graphic ([09-measurement-theory](09-measurement-theory.md) §5.1, `calib.h`). The lever calibration over `L_cal` and the check weight in every run were dropped, so was the automatic zero by the motor of 2026-11-27. Price: the cell arm (84 mm) enters every torque 1:1 and still has to be measured to ±0.1 mm (A12 below). | 2026-11-28 |
 | Computing platform | ESP32 (BLE for the pressure sensor, WLAN logging, one board for everything) | 2026-10-24 |
 | Speed range | 10–100 km/h since 2026-11-25 (`V_MAX_KMH`, [07-safety](07-safety.md) §5 entry); 10–60 km/h before | 2026-11-25 |
 | Speed pickup | Hall instead of reed, 6 marks + index; speed from the window over a whole revolution | 2026-10-24 |

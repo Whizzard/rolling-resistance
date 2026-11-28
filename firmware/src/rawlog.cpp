@@ -113,7 +113,7 @@ void buildHeader() {
   h.runId = run::active() ? run::id() : "";
   h.marksPerRev = MARKS_PER_REV; h.wheelMarksPerRev = WHEEL_MARKS_PER_REV; h.motorPolePairs = MOTOR_POLE_PAIRS;
   h.drumCircM = settings::drumCircumferenceM(); h.torqueArmM = settings::torqueArmM();
-  h.calibArmM = settings::calibArmM(); h.wheelCircM = settings::wheelCircM();
+  h.wheelCircM = settings::wheelCircM();
   h.directionSign = settings::directionSign(); h.vescPollMs = VESC_POLL_MS;
   h.hx711RateSps = HX711_RATE_SPS; h.hx711GainPulses = HX711_GAIN_PULSES; h.syncMs = RAWLOG_SYNC_MS;
   h.loadcellCapacityN = LOADCELL_CAPACITY_N; h.loadEmptyKg = settings::loadEmptyKg();
@@ -125,7 +125,7 @@ void buildHeader() {
   if (r.ver != 0) {
     h.cal.present = true; h.cal.ver = r.ver; h.cal.gainPulses = r.gainPulses; h.cal.sps = r.sps;
     h.cal.epoch = r.epoch; h.cal.npc = r.npc; h.cal.armM = r.armM; h.cal.lcalM = r.lcalM;
-    h.cal.spsMeas = r.spsMeas; h.cal.linPctFS = r.linPctFS; h.cal.hystPctFS = r.hystPctFS;
+    h.cal.spsMeas = r.spsMeas; h.cal.linPctFS = r.linPctFS; h.cal.linPctLoad = r.linPctLoad; h.cal.hystPctFS = r.hystPctFS;
     h.cal.zeroPctFS = r.zeroPctFS; h.cal.nLoads = r.nLoads; h.cal.nPoints = r.nPoints;
     static char method[sizeof(r.method) + 1];
     memcpy(method, r.method, sizeof(r.method)); method[sizeof(r.method)] = '\0';

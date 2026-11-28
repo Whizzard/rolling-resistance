@@ -553,18 +553,9 @@ cell changes by `DIRDETECT_MIN_N`. **Found and fixed on 2026-11-26:** STOP did n
 this slow start — the duty cycle went on rising on the next cycle. `speedctl::stop()`
 and `coast()` now end it. Not yet tested on the stand.
 
-**Crawl in both directions (2026-11-27).** The automatic zero, the calibration readings and
-the check-weight readings run the drum at `AZ_SPIN_KMH` (10 km/h) forwards and then
-backwards (`speedctl::crawl`). Wheel lifted (a counting wheel Hall stops it). Limits: duty
-at most `CRAWL_DUTY_MAX`, speed at most `CRAWL_KMH_MAX` requested and `CRAWL_MAX_FACTOR`
-times the request measured, wrong direction, controller lost; each ends the crawl and
-releases the drive. Between the directions the controller brakes with
-`VESC_BRAKE_CURRENT_STOP` (builder 2026-11-28; the crawl lies far below `BRAKE_MAX_KMH`,
-and the drum holds about 37 J at 10 km/h with `DRUM_INERTIA_KGM2`), and the other direction
-starts as soon as the drum is below `STANDSTILL_KMH`, with the duty ramped from zero (§3:
-no reversing while running); `crawl()` refuses while the drum turns faster or the relays
-settle. STOP ends it like any drive. With the 1 kg calibration weight the drum friction
-adds to the weight in one direction: about 39.2 N plus at most 5.6 N (idle constant
-0.472 Nm, motor share included) = 92 % of the 49.03 N range. Watch the first calibration
-with the motor on the stand.
+**Crawl in both directions (2026-11-27 to 2026-11-28), removed.** The automatic zero ran the
+drum at 10 km/h forwards and backwards (`speedctl::crawl`, limits `CRAWL_*`). It was dropped
+with the direct calibration on 2026-11-28 before it ran on the stand; `crawl()` and the
+`CRAWL_*` and `AZ_*` limits are gone. Zeroing and calibration read the cell at rest, the
+motor does not turn for them.
 

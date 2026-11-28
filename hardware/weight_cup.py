@@ -11,10 +11,11 @@ Invocation (only FreeCAD's own Python can import FreeCAD):
 
     /Applications/FreeCAD.app/Contents/Resources/bin/python hardware/weight_cup.py
 
-Creates three sizes, each as .FCStd and .step (VARIANTS below):
-    hardware/weight-cup     inside 50 x 50 (1 kg check weight)
-    hardware/weight-cup-38  inside 38 x 38 (small weights, builder 2026-11-26)
-    hardware/weight-cup-28  inside 29 x 28 for the Ø 28 weight (builder 2026-11-26;
+Creates four sizes, named after the weights, each as .FCStd and .step (VARIANTS below):
+    hardware/weight-cup-1kg    inside 50 x 50 (1 kg check weight)
+    hardware/weight-cup-2kg    inside 62 x 65 for the 2 kg weight (builder 2026-11-28)
+    hardware/weight-cup-500g   inside 38 x 38 (500 g, builder 2026-11-26)
+    hardware/weight-cup-200g   inside 29 x 28 for the 200 g (Ø 28) (builder 2026-11-26;
                             Ø 28 was too tight, +1 mm on 2026-11-28)
 
 POSITION: z = 0 is the underside of the floor = print bed face, the cup axis is
@@ -73,9 +74,10 @@ PARAMS = [
 
 # Variants: export name -> (inner_d, inner_h), as specified by the builder.
 VARIANTS = [
-    ('weight-cup',    50.0, 50.0),
-    ('weight-cup-38', 38.0, 38.0),
-    ('weight-cup-28', 29.0, 28.0),   # for the Ø 28 weight; 28 was too tight (builder 2026-11-28)
+    ('weight-cup-1kg',  50.0, 50.0),
+    ('weight-cup-500g', 38.0, 38.0),   # fits well (builder 2026-11-28)
+    ('weight-cup-2kg',  62.0, 65.0),   # 2 kg: body Ø 60 (KERN 347-12) to 60.5 (1 kg scaled); depth as the 1 kg cup scaled (builder 2026-11-28)
+    ('weight-cup-200g', 29.0, 28.0),   # for the Ø 28 weight; 28 was too tight (builder 2026-11-28)
 ]
 
 

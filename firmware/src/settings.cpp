@@ -1,4 +1,5 @@
 #include "settings.h"
+#include <stddef.h>
 #include "config.h"
 #include <Preferences.h>
 #include "wallclock.h"
@@ -14,7 +15,6 @@ Preferences g_nvs;
 constexpr char NS[]      = "teststand";
 constexpr char K_DRUM[]  = "drum_u";
 constexpr char K_ARM[]   = "arm";
-constexpr char K_CALIB[] = "calib_arm";
 constexpr char K_NPC[]   = "n_per_count";
 constexpr char K_NPC_T[] = "npc_epoch";   // local time of the calibration, 0 = unknown
 uint32_t g_npcEpoch = 0;
@@ -33,7 +33,6 @@ constexpr char K_RM_HUB[] = "rm_hub"; constexpr char K_RM_NOTE[] = "rm_note";
 constexpr char K_RM_ETRTO[] = "rm_etrto"; constexpr char K_RM_TUBE[] = "rm_tube";
 constexpr char K_RM_BAR[] = "rm_bar"; constexpr char K_RM_TEMP[] = "rm_temp"; constexpr char K_RM_LOAD[] = "rm_load"; constexpr char K_RM_POS[] = "rm_pos";
 constexpr char K_ARMCAL[] = "arm_at_cal"; // cell arm at calibration
-constexpr char K_CTRLKG[] = "ctrl_kg";     // mass of the check weight (setup, 2026-11-25)
 constexpr char K_REV[] = "stand_rev";
 constexpr char K_CALREC[] = "cal_rec";      // CalRecord as bytes (2026-11-26)      // stand revision, free text (2026-11-26)
 constexpr char K_WORG[] = "wm_org";        // origin of the wheel model (WheelOrigin as bytes, 2026-11-26)
@@ -43,8 +42,10 @@ constexpr uint8_t WORG_VER = 2;            // first byte of the blob; a differen
 // browser in s (wallclock.h), in NVS under "t_<key>". For display in the
 // setup. UINT32_MAX = never set, the default from config.h applies; 0 = set,
 // but without a clock (console only, or saved before 2026-11-26).
-const char* const STAMPED[] = {K_DRUM, K_ARM, K_CALIB, K_NPC, K_DIR, K_PLAT, K_TARE, K_LOAD,
-                               K_A0, K_A1, K_MWHEEL, K_UWHEEL, K_JWHEEL, K_ARMCAL, K_CTRLKG,
+// "calib_arm" and "ctrl_kg" (calibration arm, check weight) were dropped on 2026-11-28 with
+// the direct calibration; old NVS entries under these keys are simply no longer read.
+const char* const STAMPED[] = {K_DRUM, K_ARM, K_NPC, K_DIR, K_PLAT, K_TARE, K_LOAD,
+                               K_A0, K_A1, K_MWHEEL, K_UWHEEL, K_JWHEEL, K_ARMCAL,
                                K_LD_EMPTY, K_LD_WEIGHT, K_LD_ARM, K_REV};
 constexpr size_t STAMP_N = sizeof(STAMPED) / sizeof(STAMPED[0]);
 uint32_t g_stamp[STAMP_N];
@@ -65,7 +66,6 @@ void stamp(const char* k) {
 
 float g_drum  = DRUM_CIRCUMFERENCE_M;
 float g_arm   = TORQUE_ARM_M;
-float g_cal   = CALIB_ARM_M;
 float g_npc   = LOADCELL_N_PER_COUNT;
 int8_t g_dir  = static_cast<int8_t>(VESC_DIRECTION_SIGN);
 
@@ -75,7 +75,6 @@ float   g_a0 = NAN, g_b0 = NAN, g_a1 = NAN, g_b1 = NAN, g_mWheel = WHEEL_MASS_DE
 float   g_uWheel = NAN;
 float   g_jWheel = NAN;
 float   g_armCal = NAN;
-float   g_ctrlKg = RUN_CTRL_MASS_KG;
 char    g_rev[STAND_REV_LEN + 1] = "";
 CalRecord g_calRec = {};
 RunMeta g_rm = {"", "", "", "", "", "", NAN, NAN, NAN, 0};
@@ -144,7 +143,6 @@ void begin() {
   if (g_nvs.begin(NS, true)) {
     if (g_nvs.isKey(K_DRUM))  g_drum = g_nvs.getFloat(K_DRUM,  DRUM_CIRCUMFERENCE_M);
     if (g_nvs.isKey(K_ARM))   g_arm  = g_nvs.getFloat(K_ARM,   TORQUE_ARM_M);
-    if (g_nvs.isKey(K_CALIB)) g_cal  = g_nvs.getFloat(K_CALIB, CALIB_ARM_M);
     if (g_nvs.isKey(K_NPC))   g_npc  = g_nvs.getFloat(K_NPC,   LOADCELL_N_PER_COUNT);
     g_npcEpoch = g_nvs.getUInt(K_NPC_T, 0);
     if (g_nvs.isKey(K_DIR))   g_dir  = g_nvs.getChar(K_DIR, static_cast<int8_t>(VESC_DIRECTION_SIGN));
@@ -158,11 +156,15 @@ void begin() {
     if (g_nvs.isKey(K_UWHEEL)) g_uWheel = g_nvs.getFloat(K_UWHEEL, NAN);
     if (g_nvs.isKey(K_JWHEEL)) g_jWheel = g_nvs.getFloat(K_JWHEEL, NAN);
     if (g_nvs.isKey(K_ARMCAL)) g_armCal = g_nvs.getFloat(K_ARMCAL, NAN);
-    if (g_nvs.isKey(K_CTRLKG)) g_ctrlKg = g_nvs.getFloat(K_CTRLKG, RUN_CTRL_MASS_KG);
     if (g_nvs.isKey(K_REV))    g_nvs.getString(K_REV, g_rev, sizeof(g_rev));
-    if (g_nvs.isKey(K_CALREC) && g_nvs.getBytesLength(K_CALREC) == sizeof(CalRecord)) {
-      g_nvs.getBytes(K_CALREC, &g_calRec, sizeof(CalRecord));
-      if (g_calRec.ver != 1) g_calRec = CalRecord();
+    if (g_nvs.isKey(K_CALREC)) {
+      // The record before 2026-11-28 ended before linPctLoad; read it as far as it goes.
+      const size_t len = g_nvs.getBytesLength(K_CALREC);
+      if (len == sizeof(CalRecord) || len == offsetof(CalRecord, linPctLoad)) {
+        g_nvs.getBytes(K_CALREC, &g_calRec, len);
+        if (len < sizeof(CalRecord)) g_calRec.linPctLoad = NAN;
+        if (g_calRec.ver != 1 && g_calRec.ver != 2) g_calRec = CalRecord();
+      }
     }
     if (g_nvs.isKey(K_LD_EMPTY))  g_ldEmpty  = g_nvs.getFloat(K_LD_EMPTY,  LOAD_EMPTY_KG);
     if (g_nvs.isKey(K_LD_WEIGHT)) g_ldWeight = g_nvs.getFloat(K_LD_WEIGHT, LOAD_WEIGHT_KG);
@@ -198,13 +200,11 @@ void begin() {
   // A nonsense value that ended up in NVS must not poison the stand.
   if (!okDrum(g_drum)) g_drum = DRUM_CIRCUMFERENCE_M;
   if (!okArm(g_arm))   g_arm  = TORQUE_ARM_M;
-  if (!okArm(g_cal))   g_cal  = CALIB_ARM_M;
   if (g_npc != 0.0f && !okNpc(g_npc)) g_npc = LOADCELL_N_PER_COUNT;
   if (g_dir != 1 && g_dir != -1) g_dir = static_cast<int8_t>(VESC_DIRECTION_SIGN);
 
   Serial.print("# Settings: drum "); Serial.print(g_drum, 4);
   Serial.print(" m, cell arm ");        Serial.print(g_arm, 4);
-  Serial.print(" m, calibration arm "); Serial.print(g_cal, 4);
   Serial.print(" m, direction ");       Serial.print(g_dir);
   Serial.print(", calibration factor ");
   if (g_npc > 0.0f) Serial.println(g_npc, 8);
@@ -279,13 +279,6 @@ bool setStandRev(const char* t) {
   if (g_nvs.putString(K_REV, g_rev) || !g_rev[0]) stamp(K_REV); else nvsFailed("stand revision");
   g_nvs.end();
   return true;
-}
-float ctrlMassKg() { return g_ctrlKg; }
-bool  setCtrlMassKg(float kg) {
-  // Upper limit: on the calibration arm the weight must not overload the cell.
-  if (!(kg > 0.0f && kg * 9.80665f * g_cal / g_arm <= LOADCELL_CAPACITY_N)) return false;
-  g_ctrlKg = kg;
-  return store1(K_CTRLKG, kg);
 }
 float wheelMassKg() { return g_mWheel; }
 bool  setWheelMassKg(float kg) {
@@ -400,7 +393,6 @@ bool removePlateau(float kmh) {
 float drumCircumferenceM() { return g_drum; }
 float drumRadiusM()        { return g_drum / (2.0f * PI); }
 float torqueArmM()         { return g_arm; }
-float calibArmM()          { return g_cal; }
 float loadcellNPerCount()  { return g_npc; }
 bool  calibrated()         { return g_npc > 0.0f; }
 int8_t directionSign()     { return g_dir; }
@@ -425,12 +417,6 @@ bool setTorqueArmM(float m) {
   if (!okArm(m)) return false;
   g_arm = m;
   return store(K_ARM, m);
-}
-
-bool setCalibArmM(float m) {
-  if (!okArm(m)) return false;
-  g_cal = m;
-  return store(K_CALIB, m);
 }
 
 uint32_t calibEpoch() { return g_npcEpoch; }
@@ -465,7 +451,6 @@ void reset() {
   }
   g_drum = DRUM_CIRCUMFERENCE_M;
   g_arm  = TORQUE_ARM_M;
-  g_cal  = CALIB_ARM_M;
   g_npc  = LOADCELL_N_PER_COUNT;
   g_dir  = static_cast<int8_t>(VESC_DIRECTION_SIGN);
   g_tare = 0;
@@ -476,7 +461,6 @@ void reset() {
   g_uWheel = NAN;
   g_jWheel = NAN;
   g_armCal = NAN;
-  g_ctrlKg = RUN_CTRL_MASS_KG;
   g_rm = RunMeta{"", "", "", "", "", "", NAN, NAN, NAN, 0};
   g_wo = WheelOrigin{};
   g_ldEmpty = LOAD_EMPTY_KG; g_ldWeight = LOAD_WEIGHT_KG; g_ldArm = LOAD_ARM_A_M;
@@ -502,7 +486,7 @@ bool anyOverridden() {
   for (uint8_t i = 0; !plat && i < g_platN; i++)
     plat = !samePlateau(g_plat[i], PLATEAUS_KMH[i]);
   return g_drum != DRUM_CIRCUMFERENCE_M || g_arm != TORQUE_ARM_M ||
-         g_cal  != CALIB_ARM_M          || g_npc != LOADCELL_N_PER_COUNT ||
+         g_npc != LOADCELL_N_PER_COUNT ||
          g_dir  != static_cast<int8_t>(VESC_DIRECTION_SIGN) || plat;
 }
 

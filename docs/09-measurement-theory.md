@@ -219,9 +219,8 @@ Change only on rebuild. Belong in `firmware/src/config.h` **and**
 |---|---|---|---|
 | Drum circumference | `U` | tape measure **over the finished surface**, average of 3 measurements | ±1 mm (0.03 %) |
 | Drum radius | `r = U/2π` | calculated | — |
-| Lever arm of the torque balance | `L` | axle center → force application, 84 mm; **cancels out in the torque** (§5.1), only determines cell utilization | ±0.5 mm suffices |
-| Calibration radius | `L_cal` | axle → mark on the arm, 330.0 mm; **determines the correctness of every torque** | ±0.1 mm (0.03 %) + plumb direction |
-| Cell characteristic | `N_PER_COUNT` | §5.1, at least 3 weights | ±0.2 % |
+| Lever arm of the torque balance | `L` | axle center → cable axis at the cell, 84 mm; **enters every torque 1:1** since the direct calibration (§5.1) | ±0.1 mm (0.12 %) |
+| Cell characteristic | `N_PER_COUNT` | §5.1, directly at the cell, 200 to 2000 g | ±0.2 % |
 | Lever of the wheel load | `a` | pivot axis → wheel axle, horizontal | ±0.5 mm (0.25 %) |
 | Marks per revolution | `MARKS_PER_REV` | by definition, 6 + index | exact |
 | Drum inertia | `J_drum` | spin-down test, §9.1 | ±5 % (inertia correction per point, §1.7) |
@@ -317,8 +316,7 @@ The reference is the target from [01-requirements](01-requirements.md) M1:
 | Cell noise, single sample | 0.0017 N | 0.8 % | 0.11 % | Type A |
 | Cell noise after 10 revolutions | 0.0001 N | 0.1 % | 0.01 % | Type A |
 | Cell, FS error 0.02 % (creep, repeatability) | 0.0017 N | 0.8 % | 0.11 % | `UNC_K_REL` |
-| Calibration arm L_cal to ±0.1 mm plus plumb (0.1 %) | 0.0015 N | 0.7 % | 0.10 % | `UNC_LCAL_REL` |
-| ~~Lever arm L~~ — *cancels out, §5.1* | 0 | 0 | 0 | — |
+| Cell arm L to ±0.1 mm on 84 mm (0.12 %, since 2026-11-28) | 0.0019 N | 0.9 % | 0.12 % | `UNC_ARM_REL` |
 | Circumference U to ±1 mm | 0.0005 N | 0.3 % | 0.03 % | — |
 | Wheel load ±0.5 % | 0.0077 N | 3.7 % | 0.50 % | `UNC_N_REL` |
 | **Tire pressure ±1 %** (gauge, AirSpy offset) | 0.0154 N | 7.4 % | 1.00 % | `UNC_P_REL` |
@@ -481,34 +479,38 @@ Two things that decide during assembly whether the measurement is any good:
 
 ### 5.1 Load Cell and Torque Chain
 
-Calibration covers **not the cell alone but the whole chain** up to the torque. That
-saves the separate uncertainty of cell and lever arm — more precisely: **the cell arm L
-cancels out.** Calibrated is `k = m·g·L_cal / (L·Δcounts)`, computed is
-`M = counts·k·L`, so `M = counts · m·g·L_cal / Δcounts`. L_cal has to be correct (the
-mark on the arm, 330 mm) and the weight must hang plumb; L only determines how far the cell
-is utilized. Because k applies to exactly the arm with which it was calibrated, the
-firmware remembers the arm at calibration and the measurement run blocks if it was changed.
+As of 2026-11-28. The cell is calibrated **directly**: the weighing arm is lifted off the
+Bowden cable, a stirrup hangs on the cable and the weights hang in it. The force at the
+cell is
 
-1. Balance in measuring position, **wheel lifted**, drum nudged by hand and allowed to settle
-   (rotor free in the detent position, §5.3), cables routed as in operation.
-2. Static tare (`t`), 80 samples.
-3. Hang a known weight at the **mark of the calibration arm** at `L_cal` = 330.0 mm.
-   Torque `M_cal = m · g · L_cal`. Average the raw value over 200 samples.
-4. Repeat with at least **three** masses over the range. At `L_cal` = 330 mm the
-   cell at arm L = 84 mm sees **3.9 times** the force: 0.2 / 0.5 / 1.0 kg give
-   0.65 / 1.62 / 3.24 Nm and 16 / 40 / 79 % of the full scale of the 5 kg cell; the measurement signal
-   (0.5 to 1.4 Nm) lies between the first two. **Do not hang more than 1.27 kg**
-   — that is the full scale. (calculated)
-5. Linear fit `M = k · (raw − offset)`. Require **linearity deviation < 0.2 %**.
-   So far calibration has been done with only **one** weight (1 kg) ([03-parameters](03-parameters.md)
-   §2); the linearity check is pending.
-6. Check hysteresis: load ascending and descending. The difference at equal load
-   belongs in the log, not in the fit.
-7. `N_PER_COUNT = k / L` into `config.h` and [03-parameters](03-parameters.md).
-8. The check weight in the measurement run (1 kg at 330 mm) checks **drift**, not correctness:
-   it is the same weight on the same arm. Correctness is checked by the cross-check with a
-   second mass in the measuring range (0.2 kg) or the same mass on the cell arm (force
-   times 84/330).
+    F = m · g
+
+with no lever ratio in between, and the factor is N at the cell per count. Every torque is
+
+    M = F · L = counts · k · L
+
+so the **cell arm L enters every torque 1:1** and has to be measured precisely:
+**1 mm on 84 mm is 1.2 %**, 0.1 mm is 0.12 % (`UNC_ARM_REL`). Measure it from the drum axis
+to the cable axis at the cell. Until 2026-11-28 a weight on the calibration arm
+(L_cal = 330 mm) calibrated the whole chain, and L cancelled out; that procedure and the
+check weight in every run were dropped (builder 2026-11-28). A factor of the lever
+calibration counts as "conditions unknown" until recalibrated.
+
+1. Arm lifted, stirrup on the cable, no run open (`calib.h`).
+2. **Zero** with the stirrup on, 5 s average (`CAL_AVG_MS`). The stirrup stays on, so it is
+   tared and only the weights count.
+3. **200, 500, 1000, 2000 g** one after the other, each read 5 s at rest:
+   1.96 / 4.90 / 9.81 / 19.6 N = 4 / 10 / 20 / 40 % of the 5 kg cell's full scale (calculated).
+   The measurement signal (0.5 to 1.4 Nm, 6 to 17 N at the cell) lies within; the design
+   case (44 to 59 %) lies above the largest weight and is extrapolated.
+4. **Zero again** (optional): zero return and, with the first zero, hysteresis.
+5. **Least squares** `counts = a + b·F` over all readings; factor `k = 1/|b|`.
+6. **Linearity** = largest residual of a load, reported in **% of that load** and in % FS.
+   The graphic shows counts against load with the fit line and the residual of every load
+   in % of the load, with ±2 σ of the reading's mean as a bar (its own noise): a residual
+   inside the bar is noise, one outside is the cell.
+7. Accept: factor and record (`CalRecord` ver 2) into NVS, one row into the calibration
+   book on the SD. The factor holds for any cell arm; it only depends on HX711 rate and gain.
 
 > Weigh the calibration weights yourself. A kitchen scale to 1 g at 2 kg is 0.05 % — good
 > enough. Taking gravitational acceleration as 9.81 m/s² suffices; the local variation in
@@ -529,7 +531,7 @@ on the drum in measuring operation, including wheel, tire and arm. Three things 
 - **pull vertically**, otherwise a cosine enters the reading (5° is 0.4 %);
 - **lift as little as possible** (1 to 2 mm clearance), so the arm stays practically in the
   measuring position and the lever ratio does not tip;
-- check the hanging scale beforehand with a known weight (the 1 kg check weight).
+- check the hanging scale beforehand with a known weight (the certified 1 kg weight).
 
 The value goes into the firmware as `l<kg>` or, in the measurement run, as the mandatory field "Auflast" (wheel load).
 Uncertainty `UNC_N_REL` = 0.5 %: scale, pull direction, residual clearance.

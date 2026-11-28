@@ -8,6 +8,16 @@ Entries before 2026-11-25 were written on 2026-11-26 from the builder's notes an
 and from commit messages and dated passages in the documents (those name their source).
 Days with only design or documentation work are left out.
 
+## 2026-11-28
+
+**Calibration moved to the cell itself** (builder's decision). The arm is lifted off the
+Bowden cable, a stirrup on the cable carries 200, 500, 1000 and 2000 g; F = m g, a straight
+line over all readings, linearity in % of load with a graphic. The check weight left the
+run, the lever calibration over the 330 mm mark and the automatic zero by the motor of
+the day before were dropped. The cell arm (84 mm) now enters every torque and still has
+to be measured to ±0.1 mm. Source: [09-measurement-theory](09-measurement-theory.md) §5.1
+(uncommitted).
+
 ## 2026-11-27
 
 **Motor flange made new** (workshop day, builder's report). The shaft bore was no longer
